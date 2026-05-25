@@ -1,0 +1,44 @@
+appId: app.nemo.desktop
+productName: Nemo
+copyright: "Copyright © 2024 Nemo Labs"
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/node_modules/*/{CHANGELOG.md,README.md,readme.md}'
+  - '!**/node_modules/**/{test,__tests__,tests,powered-test,example,examples}'
+asarUnpack:
+  - resources/**
+mac:
+  target:
+    - target: dmg
+      arch:
+        - universal
+  identity: null
+  minimumSystemVersion: "13.0"
+  category: public.app-category.developer-tools
+dmg:
+  combineWithBuild: true
+  title: "Install Nemo"
+  artifactName: ${productName}-${version}.${ext}
+  contents:
+    - x: 130
+      y: 150
+      type: "file"
+    - x: 410
+      y: 150
+      type: "link"
+      path: "/Applications"
+extraResources:
+  - from: "resources/models/"
+    to: "models/"
+    filter:
+      - "bge-micro-v2/**"
+  - from: "resources/default-templates/"
+    to: "default-templates/"
+npmRebuild: false
