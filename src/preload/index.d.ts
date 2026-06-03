@@ -1,0 +1,67 @@
+import { Root } from 'mdast'
+import {
+  VaultMetadata,
+  FileAST,
+  FileEntry,
+  SearchResult,
+  ActivityEntry,
+  Edge,
+  Template,
+} from '../shared/types'
+
+declare global {
+  interface Window {
+    electron: {
+      vault: {
+        open(): Promise<VaultMetadata>
+        close(): Promise<void>
+        getCurrent(): Promise<VaultMetadata | null>
+        create(parentPath: string, name: string): Promise<VaultMetadata>
+        scan(): Promise<VaultMetadata>
+      }
+      file: {
+        get(path: string): Promise<FileAST>
+      }
+      folder: {
+        create(path: string): Promise<{ success: boolean; error?: string }>
+      }
+      note: {
+        create(vaultPath: string, name: string, templateContent?: string): Promise<FileAST>
+        save(path: string, content: string): Promise<{ success: boolean; error?: string }>
+        rename(oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }>
+        delete(path: string): Promise<{ success: boolean; error?: string }>
+        getRaw(path: string): Promise<{ path: string; content?: string; error?: string }>
+        exportHtml(path: string, html: string): Promise<{ success: boolean; savedPath?: string; error?: string }>
+      }
+      templates: {
+        list(vaultPath: string): Promise<{ templates: Template[] }>
+      }
+      settings: {
+        get(key: string): Promise<{ value?: unknown }>
+        set(key: string, value: unknown): Promise<{ success: boolean; error?: string }>
+      }
+      task: {
+        toggle(path: string, lineIndex: number): Promise<void>
+      }
+      context: {
+        query(text: string): Promise<SearchResult[]>
+      }
+      on: {
+        noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
+        noteUpdated(
+          callback: (data: { path: string; ast: Root; isExternal: boolean }) => void
+        ): () => void
+        noteDeleted(callback: (data: { path: string }) => void): () => void
+        contextSearch(callback: (data: unknown) => void): () => void
+        activityLog(callback: (entry: ActivityEntry) => void): () => void
+        vaultOpened(callback: (data: VaultMetadata) => void): () => void
+        notesLoaded(callback: (data: { vaultPath?: string; files: FileEntry[] }) => void): () => void
+        focusSearch(callback: () => void): () => void
+        openSettings(callback: () => void): () => void
+        setupCreate(callback: () => void): () => void
+        setupOpen(callback: () => void): () => void
+        indexBuild(callback: (data: unknown) => void): () => void
+      }
+    }
+  }
+}
