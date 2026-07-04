@@ -1,38 +1,42 @@
-# Nemo
+# Nemo 🚀
 
-**A markdown-native knowledge base for developers — on disk, plain `.md`, zero lock-in.**
+**The open-source, markdown-native knowledge base for developers. Turn static notes into interactive HTML mini-apps.**
 
-Nemo is an open-source (AGPL-3.0) desktop app for developers who want their notes in their own control. It renders your local markdown files as a rich, interactive knowledge base with full-text search, tag filtering, a graph view of wiki-link relationships, and an HTML-native viewer that's extensible beyond what markdown alone can do.
+Nemo is a local-first, open-source (AGPL-3.0) desktop application that bridges the gap between clean Markdown text and rich web software. While your knowledge base stays 100% portable, plain text, and token-efficient (`.md`) on your hard drive, Nemo renders your notes into a powerful, interactive canvas.
 
-## Why Nemo?
+---
 
-- **Plain `.md` on disk.** Your notes are just markdown files in a folder. Open them in any editor, version with git, process with any tool. Zero lock-in.
-- **HTML-native rendering.** Since Nemo renders markdown as HTML, you can build dashboards, scrapers, or any HTML-based tool for your vault — all while keeping `.md` files that stay token-efficient for LLM use.
-- **Made for developers.** Designed for the Claude Code / developer workflow. Wiki-links, tags, full-text search, graph view — everything you expect from a knowledge base, none of the proprietary format.
+## 💡 The Core Differentiator: HTML-Native App Blocks
 
-## Features
+Traditional markdown editors treat text as static documents. Nemo treats Markdown as a launchpad for **lightweight, interactive software**. Because Nemo renders directly to a secure, sandboxed DOM layer, you can seamlessly embed full HTML, CSS, and JavaScript right inside your plain-text notes.
 
-| Feature | Description |
-|---|---|
-| **Setup wizard** | First-launch flow to create or open a vault |
-| **File tree** | Recursive tree with folder/note creation, rename, delete from context menu |
-| **Inline editing** | `Cmd+E` to edit, 1-second auto-save debounce, `Cmd+S` to save |
-| **Graph view** | d3-force directed graph of [[wiki-link]] relationships with drag, pan, zoom |
-| **Full-text search** | Every word indexed. Search across your vault, results sorted by relevance |
-| **Tag filtering** | YAML frontmatter `tags:` → tag panel → filter file tree |
-| **Backlinks** | Every note shows which other notes link to it with a snippet |
-| **Templates** | Create notes from templates stored in `_templates/` (Meeting Note, Bug Report, Project Brief) |
-| **Themes** | Dark, light, system — follows your macOS preference |
-| **Export** | Export any note as HTML or print to PDF |
-| **External edit detection** | Edit a note in another app, Nemo detects the change and re-parses automatically |
+### What this unlocks for your workflow:
 
-## Quick Start
+- **AI-Generated Cockpits:** Ask Claude Code to build a custom project dashboard, a real-time system architecture simulator, or an API testing script. It drops the HTML code into your vault, and Nemo runs it instantly as a live app block.
+- **Modular Custom Tools:** Turn a standard note into a personalized Kanban board, a live freelance invoice tracker, or a local git commit visualizer — no complex plugin SDK or proprietary widget formats required. If it runs in a browser, it runs in your note.
+- **Zero "Token Tax":** Because the structure is standard Markdown on disk, local AI agents and LLMs read your files with 1.0x token efficiency. They waste zero tokens reading bloated presentation code, while you enjoy a rich graphical interface.
 
-### Download
+---
 
-Download the latest DMG from the [releases page](https://github.com/Nemo-notes/Nemo/releases).
+## 🔥 Features Built for Developer Workflows
 
-> **Note:** Nemo is fully open-source and community-funded, so the DMG is not Apple code-signed. If macOS blocks the initial launch, right-click the app icon in Finder, select **Open**, and click **Open Anyway**.
+- **100% Data Ownership:** Your files live in local folders as raw `.md`. Open them in VS Code, version them with Git, or process them with grep. Zero walled gardens.
+- **External Change Detection:** Edit a file via the command line or an external IDE. Nemo's native file-watcher hot-reloads the visual canvas instantly.
+- **Developer Essentials Ecosystem:** Out-of-the-box D3 graph views for `[[wiki-links]]`, full-text fuzzy search, frontmatter tag filtering, backlinks, and dark mode.
+
+---
+
+## 🔒 High Trust & Open Source (AGPL-3.0)
+
+Nemo's desktop client core is entirely open-source. Developers can fully audit how their private data, repository structures, and system prompts are handled.
+
+---
+
+## 🚀 Getting Started
+
+1. Download the latest macOS release.
+2. Run the Setup Wizard to point Nemo to an existing Markdown folder or your project repository.
+3. Drop an interactive HTML snippet into any note and watch your workspace come alive.
 
 ### Via Homebrew (recommended for developers)
 
@@ -56,7 +60,7 @@ npm run dev
 2. **Create a new vault** (a folder on your machine) or **open an existing one** (any folder with `.md` files).
 3. **Navigate** your file tree in the sidebar. Create folders and notes with the `+` buttons.
 4. **Search** with the filter bar or `Cmd+Shift+F` to focus it.
-5. **Toggle graph view** — see [[wiki-link]] relationships between notes.
+5. **Toggle graph view** — see `[[wiki-link]]` relationships between notes.
 6. **Edit a note** with `Cmd+E`, save with `Cmd+S`.
 7. **Tag notes** by adding `tags: [tag1, tag2]` to YAML frontmatter.
 8. **Link notes** with `[[Page Name]]` wiki-link syntax.
@@ -153,9 +157,10 @@ This is free software. See `LICENSE` for details.
 
 ## Paid Add-ons
 
-- **Nemo Sync** — End-to-end encrypted sync across devices. Available at [nemo.app](https://nemo.app).
+- **Nemo Cloud Sync** — E2E encrypted sync across devices. Available at [nemo.app](https://nemo.app).
+- **Nemo Cloud Teams** — Shared vaults with team-wide AI context.
 
-Sync is a separate paid service that funds ongoing development. The open-source app works fully without it.
+Sync and Teams are separate paid services that fund ongoing development. The open-source app works fully without them.
 
 ## Development
 
