@@ -27,6 +27,7 @@ import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
 import { CodeBlock } from './blocks/CodeBlock'
+import { SandboxedHtml } from './blocks/SandboxedHtml'
 
 // ---------------------------------------------------------------------------
 // Timeout constant
@@ -319,11 +320,10 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'html') {
     const n = node as Html
-    // Render raw HTML as sanitized text to avoid injection
+    // Render HTML content inside a sandboxed iframe with allow-scripts only.
+    // See SandboxedHtml.tsx for the full security model.
     return (
-      <pre key={key} className="text-xs text-white/40 font-mono my-2 whitespace-pre-wrap">
-        {n.value}
-      </pre>
+      <SandboxedHtml key={key} html={n.value} />
     )
   }
 
