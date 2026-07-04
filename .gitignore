@@ -6,3 +6,4 @@ playwright-report/
 .DS_Store
 *.log
 .kiro/
+*.tsbuildinfo
