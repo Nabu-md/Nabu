@@ -56,7 +56,7 @@ import { VaultWatcher, type WatcherConfig } from '@main/watcher';
 function makeConfig(overrides: Partial<WatcherConfig> = {}): WatcherConfig {
   return {
     vaultPath: '/fake/vault',
-    ignored: /^\.|\.onyx/,
+    ignored: /^\.|\.nabu/,
     awaitWriteFinish: { stabilityThreshold: 50 },
     onFileChanged: vi.fn(),
     onFileAdded: vi.fn(),

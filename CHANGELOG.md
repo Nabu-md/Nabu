@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Nemo are documented here.
+All notable changes to Nabu are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -29,4 +29,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Three-tier Electron architecture: main process ↔ preload bridge ↔ React renderer
 - Zod v4 schemas for bidirectional IPC validation (14+ channels)
-- CRDT-ready sync foundation in the private nemo-cloud monorepo
+- CRDT-ready sync foundation in the private nabu-cloud monorepo

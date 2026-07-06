@@ -34,7 +34,7 @@ vi.mock('chokidar', () => {
 let tmpRoot: string;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(join(tmpdir(), 'nemo-vault-open-'));
+  tmpRoot = await mkdtemp(join(tmpdir(), 'nabu-vault-open-'));
 });
 
 afterEach(async () => {
@@ -73,7 +73,7 @@ describe('Property 3 — Watcher Activation (Req 1.4)', () => {
           const vaultMeta = await stateManager.openVault(vaultPath);
           watcher.start({
             vaultPath: vaultMeta.path,
-            ignored: /^\.|\.onyx/,
+            ignored: /^\.|\.nabu/,
             awaitWriteFinish: { stabilityThreshold: 50 },
             onFileChanged: vi.fn(),
             onFileAdded: vi.fn(),
@@ -114,7 +114,7 @@ describe('Property 3 — Watcher Activation (Req 1.4)', () => {
           await stateManager.openVault(vaultPath);
           watcher.start({
             vaultPath,
-            ignored: /^\.|\.onyx/,
+            ignored: /^\.|\.nabu/,
             awaitWriteFinish: { stabilityThreshold: 50 },
             onFileChanged: vi.fn(),
             onFileAdded: vi.fn(),

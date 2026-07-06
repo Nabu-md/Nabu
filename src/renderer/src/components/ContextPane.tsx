@@ -138,7 +138,7 @@ export function ContextPane(): React.JSX.Element {
                   >
                     {basename(result.path)}
                   </span>
-                  <span className="text-xs text-onyx-accent font-mono shrink-0">
+                  <span className="text-xs text-nabu-accent font-mono shrink-0">
                     {result.score.toFixed(2)}
                   </span>
                   <span className="text-xs text-white/40 shrink-0">

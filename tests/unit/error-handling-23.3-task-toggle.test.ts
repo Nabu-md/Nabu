@@ -25,7 +25,7 @@ import { StateManager } from '@main/state';
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), 'nemo-toggle-'));
+  tmpDir = await mkdtemp(join(tmpdir(), 'nabu-toggle-'));
 });
 
 afterEach(async () => {

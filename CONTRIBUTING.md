@@ -1,13 +1,13 @@
-# Contributing to Nemo
+# Contributing to Nabu
 
-Thanks for your interest in contributing. Nemo is AGPL-3.0 open-source, and every contribution makes the project stronger.
+Thanks for your interest in contributing. Nabu is AGPL-3.0 open-source, and every contribution makes the project stronger.
 
 ## Quick Start
 
 ```bash
 # Prerequisites: Node.js 20+, npm 9+
-git clone https://github.com/Nemo-notes/Nemo.git
-cd nemo
+git clone https://github.com/Nabu/Nabu.git
+cd nabu
 npm install
 npm run dev
 ```
@@ -82,4 +82,4 @@ src/
 
 ## Questions?
 
-Open a [Discussions](https://github.com/Nemo-notes/Nemo/discussions) thread — we're responsive and friendly.
+Open a [Discussions](https://github.com/Nabu/Nabu/discussions) thread — we're responsive and friendly.

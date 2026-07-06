@@ -1,6 +1,6 @@
 # Architecture
 
-Nemo is an Electron desktop app with three layers: **main process** (system), **preload bridge** (secure IPC), and **renderer process** (UI). Data flows in one direction through the pipeline.
+Nabu is an Electron desktop app with three layers: **main process** (system), **preload bridge** (secure IPC), and **renderer process** (UI). Data flows in one direction through the pipeline.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -48,7 +48,7 @@ Nemo is an Electron desktop app with three layers: **main process** (system), **
 - **`ipc.ts`** — Registers 14+ Zod-validated IPC handlers. Every message between processes is validated against a schema before processing.
 - **`parser.ts`** — Markdown → AST pipeline using unified/remark. Parses frontmatter, wiki-links, toggle blocks, and task lists into a structured tree.
 - **`state.ts`** — Central state: vault file tree, AST cache (LRU), full-text index, tag index, file hash map. All mutations go through the `PendingWriteLock`.
-- **`watcher.ts`** — chokidar-based file watcher with configurable debounce, restart on error, and filtering for `.md` and `.nemo/` cache files.
+- **`watcher.ts`** — chokidar-based file watcher with configurable debounce, restart on error, and filtering for `.md` and `.nabu/` cache files.
 - **`settings.ts`** — Persists user settings (theme, vault path, preferences) as JSON in Electron's `userData`.
 - **`vector.ts`** — ONNX-based vector index for semantic context search. Uses the bundled `bge-micro-v2` model.
 - **`templates.ts`** — Template engine that substitutes `{{title}}`, `{{date}}`, `{{time}}` variables in template files.
@@ -100,7 +100,7 @@ User-authored HTML content (embedded in markdown notes) is rendered inside a **s
 
 - `nodeIntegration` is **disabled** — no access to Node.js APIs.
 - `contextIsolation` is **enabled** — no access to Electron internals.
-- The iframe communicates with Nemo only via `window.postMessage`.
+- The iframe communicates with Nabu only via `window.postMessage`.
 
 ### IPC Security
 

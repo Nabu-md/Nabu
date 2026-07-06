@@ -50,7 +50,7 @@ let indexPath: string
 
 test.beforeEach(async () => {
   // Create a fresh temp vault for each test
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nemo-e2e-ext-'))
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-e2e-ext-'))
 
   // Copy the fixture vault into the temp dir so we can write to it
   await fs.writeFile(

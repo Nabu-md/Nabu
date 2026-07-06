@@ -298,7 +298,7 @@ export function registerIPCHandlers(
       // Start the file watcher for the newly opened vault
       watcher.start({
         vaultPath: parsedPath,
-        ignored: /^\.|\.onyx/,
+        ignored: /^\.|\.nabu/,
         awaitWriteFinish: { stabilityThreshold: 50 },
         onFileChanged: (filePath, isExternal) => {
           stateManager.invalidateAST(filePath);

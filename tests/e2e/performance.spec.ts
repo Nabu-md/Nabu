@@ -52,7 +52,7 @@ const TARGETS = {
  * Returns the directory path; caller is responsible for cleanup.
  */
 async function createLargeVault(count: number): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'nemo-perf-'))
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-perf-'))
 
   // Create subdirectories to better simulate a real vault structure
   const SUB_DIRS = 10
@@ -201,7 +201,7 @@ test('process memory with no vault is under 100MB (Req 11.5)', async () => {
  * Test 3 — Vault open time for 10K files (Req 11.1)
  *
  * Generates 10,000 markdown files in a temp directory, launches the app
- * pointing to that vault via ONYX_TEST_VAULT, and measures the time from
+ * pointing to that vault via NABU_TEST_VAULT, and measures the time from
  * vault scan start to FileTree being populated with visible entries.
  * Target: <1000ms
  */
@@ -214,7 +214,7 @@ test('vault open with 10K files completes under 1 second (Req 11.1)', async () =
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        ONYX_TEST_VAULT: vaultDir,
+        NABU_TEST_VAULT: vaultDir,
       } as Record<string, string>,
     })
 
@@ -268,7 +268,7 @@ test('process memory with 10K file vault is under 300MB (Req 11.6)', async () =>
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        ONYX_TEST_VAULT: vaultDir,
+        NABU_TEST_VAULT: vaultDir,
       } as Record<string, string>,
     })
 

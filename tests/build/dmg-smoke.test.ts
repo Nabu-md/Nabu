@@ -1,7 +1,7 @@
 /**
  * dmg-smoke.test.ts
  *
- * Smoke tests for the Nemo DMG build artifact.
+ * Smoke tests for the Nabu DMG build artifact.
  *
  * These tests verify post-build properties of the packaged app bundle:
  *   - Universal binary contains both arm64 and x64 slices (Req 12.3)
@@ -29,10 +29,10 @@ import { join } from 'path';
 const PROJECT_ROOT = join(__dirname, '..', '..');
 
 // electron-builder outputs universal dmg builds to dist/mac-universal/
-const APP_BUNDLE_PATH = join(PROJECT_ROOT, 'dist', 'mac-universal', 'Nemo.app');
+const APP_BUNDLE_PATH = join(PROJECT_ROOT, 'dist', 'mac-universal', 'Nabu.app');
 
 // The main Electron binary inside the app bundle
-const MAIN_BINARY_PATH = join(APP_BUNDLE_PATH, 'Contents', 'MacOS', 'Nemo');
+const MAIN_BINARY_PATH = join(APP_BUNDLE_PATH, 'Contents', 'MacOS', 'Nabu');
 
 // Resources path inside the bundle
 const RESOURCES_PATH = join(APP_BUNDLE_PATH, 'Contents', 'Resources');

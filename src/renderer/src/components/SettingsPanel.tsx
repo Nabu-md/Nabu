@@ -96,22 +96,22 @@ export function SettingsPanel(): React.JSX.Element | null {
         aria-labelledby="settings-title"
         tabIndex={-1}
         className="relative w-full max-w-md mx-4 rounded-lg shadow-2xl
-                   bg-onyx-bg-soft border border-onyx-border
+                   bg-nabu-bg-soft border border-nabu-border
                    focus:outline-none"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-onyx-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-nabu-border">
           <h2
             id="settings-title"
-            className="text-base font-semibold text-onyx-text"
+            className="text-base font-semibold text-nabu-text"
           >
             Settings
           </h2>
           <button
             aria-label="Close settings"
             onClick={() => dispatch({ type: 'SETTINGS_PANEL_TOGGLE' })}
-            className="p-1 rounded text-onyx-text-muted hover:text-onyx-text
-                       hover:bg-onyx-bg-mute transition-colors"
+            className="p-1 rounded text-nabu-text-muted hover:text-nabu-text
+                       hover:bg-nabu-bg-mute transition-colors"
           >
             <svg
               aria-hidden="true"
@@ -136,7 +136,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             <h3
               id="settings-vault-heading"
               className="text-xs font-medium uppercase tracking-wider
-                         text-onyx-text-muted mb-3"
+                         text-nabu-text-muted mb-3"
             >
               Vault
             </h3>
@@ -147,8 +147,8 @@ export function SettingsPanel(): React.JSX.Element | null {
                 aria-label="Switch vault"
                 onClick={handleSwitchVault}
                 className="w-full px-3 py-2 rounded text-sm text-left
-                           bg-onyx-bg-mute hover:bg-onyx-border border border-onyx-border
-                           text-onyx-text transition-colors"
+                           bg-nabu-bg-mute hover:bg-nabu-border border border-nabu-border
+                           text-nabu-text transition-colors"
               >
                 Switch Vault
               </button>
@@ -159,8 +159,8 @@ export function SettingsPanel(): React.JSX.Element | null {
                 disabled={isReindexing}
                 onClick={handleReindex}
                 className="w-full px-3 py-2 rounded text-sm text-left
-                           bg-onyx-bg-mute hover:bg-onyx-border border border-onyx-border
-                           text-onyx-text transition-colors
+                           bg-nabu-bg-mute hover:bg-nabu-border border border-nabu-border
+                           text-nabu-text transition-colors
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isReindexing ? (
@@ -193,7 +193,7 @@ export function SettingsPanel(): React.JSX.Element | null {
             <h3
               id="settings-theme-heading"
               className="text-xs font-medium uppercase tracking-wider
-                         text-onyx-text-muted mb-3"
+                         text-nabu-text-muted mb-3"
             >
               Theme
             </h3>
@@ -213,8 +213,8 @@ export function SettingsPanel(): React.JSX.Element | null {
                     border
                     ${
                       theme === t
-                        ? 'bg-onyx-accent/20 border-onyx-accent text-onyx-accent'
-                        : 'bg-onyx-bg-mute border-onyx-border text-onyx-text-muted hover:text-onyx-text'
+                        ? 'bg-nabu-accent/20 border-nabu-accent text-nabu-accent'
+                        : 'bg-nabu-bg-mute border-nabu-border text-nabu-text-muted hover:text-nabu-text'
                     }`}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -224,25 +224,25 @@ export function SettingsPanel(): React.JSX.Element | null {
           </section>
 
           {/* ----------------------------------------------------------------
-              Nemo Sync — paid add-on, available at nemo.app
+              Nabu Sync — paid add-on, available at nabu.app
           ---------------------------------------------------------------- */}
           <section aria-labelledby="settings-sync-heading">
             <h3
               id="settings-sync-heading"
               className="text-xs font-medium uppercase tracking-wider
-                         text-onyx-text-muted mb-3"
+                         text-nabu-text-muted mb-3"
             >
-              Nemo Sync
+              Nabu Sync
             </h3>
 
-            <p className="text-xs text-onyx-text-muted mb-3 leading-relaxed">
+            <p className="text-xs text-nabu-text-muted mb-3 leading-relaxed">
               End-to-end encrypted sync is available as a paid add-on at
               {' '}<a
-                href="https://nemo.app"
-                className="text-onyx-accent hover:underline"
+                href="https://nabu.app"
+                className="text-nabu-accent hover:underline"
                 target="_blank"
                 rel="noreferrer noopener"
-              >nemo.app</a>.
+              >nabu.app</a>.
             </p>
           </section>
         </div>

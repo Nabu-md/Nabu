@@ -79,16 +79,16 @@ export function SetupWizard(): React.JSX.Element {
   return (
     <div
       className="flex flex-col items-center justify-center h-full w-full
-                 bg-onyx-bg text-onyx-text"
+                 bg-nabu-bg text-nabu-text"
     >
       <div
         className="flex flex-col items-center gap-6 w-full max-w-sm px-6 py-10
-                   bg-onyx-bg-soft border border-onyx-border rounded-lg shadow-lg"
+                   bg-nabu-bg-soft border border-nabu-border rounded-lg shadow-lg"
       >
         {/* App title */}
         <div className="flex flex-col items-center gap-1 mb-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Nemo</h1>
-          <p className="text-sm text-onyx-text-muted">Your personal knowledge base</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Nabu</h1>
+          <p className="text-sm text-nabu-text-muted">Your personal knowledge base</p>
         </div>
 
         {/* Error alert */}
@@ -110,7 +110,7 @@ export function SetupWizard(): React.JSX.Element {
               aria-label="Create new vault"
               disabled={isLoading}
               onClick={() => setMode('create')}
-              className="w-full px-4 py-2.5 rounded bg-onyx-accent hover:bg-onyx-accent-hover
+              className="w-full px-4 py-2.5 rounded bg-nabu-accent hover:bg-nabu-accent-hover
                          text-white font-medium text-sm transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -120,8 +120,8 @@ export function SetupWizard(): React.JSX.Element {
               aria-label="Open existing vault"
               disabled={isLoading}
               onClick={handleOpenVault}
-              className="w-full px-4 py-2.5 rounded bg-onyx-bg-mute hover:bg-onyx-border
-                         text-onyx-text font-medium text-sm border border-onyx-border
+              className="w-full px-4 py-2.5 rounded bg-nabu-bg-mute hover:bg-nabu-border
+                         text-nabu-text font-medium text-sm border border-nabu-border
                          transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -140,8 +140,8 @@ export function SetupWizard(): React.JSX.Element {
         {error && (
           <button
             onClick={handleRetry}
-            className="w-full px-4 py-2.5 rounded bg-onyx-bg-mute hover:bg-onyx-border
-                       text-onyx-text font-medium text-sm border border-onyx-border
+            className="w-full px-4 py-2.5 rounded bg-nabu-bg-mute hover:bg-nabu-border
+                       text-nabu-text font-medium text-sm border border-nabu-border
                        transition-colors"
           >
             Retry
@@ -153,13 +153,13 @@ export function SetupWizard(): React.JSX.Element {
           <div className="flex flex-col gap-3 w-full">
             {/* Folder picker */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-onyx-text-muted">Parent folder</label>
+              <label className="text-xs text-nabu-text-muted">Parent folder</label>
               <div className="flex items-center gap-2">
                 <button
                   disabled={isLoading}
                   onClick={handleChooseParentFolder}
-                  className="flex-1 px-3 py-2 rounded bg-onyx-bg-mute hover:bg-onyx-border
-                             text-onyx-text text-sm border border-onyx-border
+                  className="flex-1 px-3 py-2 rounded bg-nabu-bg-mute hover:bg-nabu-border
+                             text-nabu-text text-sm border border-nabu-border
                              transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                              text-left truncate"
                 >
@@ -170,7 +170,7 @@ export function SetupWizard(): React.JSX.Element {
 
             {/* Vault name input */}
             <div className="flex flex-col gap-1">
-              <label htmlFor="vault-name-input" className="text-xs text-onyx-text-muted">
+              <label htmlFor="vault-name-input" className="text-xs text-nabu-text-muted">
                 Vault name
               </label>
               <input
@@ -183,9 +183,9 @@ export function SetupWizard(): React.JSX.Element {
                 disabled={isLoading}
                 onChange={(e) => setCreateVaultName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateVault()}
-                className="w-full px-3 py-2 rounded bg-onyx-bg-mute border border-onyx-border
-                           text-onyx-text placeholder:text-onyx-text-faint text-sm
-                           focus:outline-none focus:border-onyx-accent transition-colors
+                className="w-full px-3 py-2 rounded bg-nabu-bg-mute border border-nabu-border
+                           text-nabu-text placeholder:text-nabu-text-faint text-sm
+                           focus:outline-none focus:border-nabu-accent transition-colors
                            disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
@@ -195,7 +195,7 @@ export function SetupWizard(): React.JSX.Element {
               <button
                 disabled={isLoading || !createVaultName.trim()}
                 onClick={handleCreateVault}
-                className="flex-1 px-4 py-2.5 rounded bg-onyx-accent hover:bg-onyx-accent-hover
+                className="flex-1 px-4 py-2.5 rounded bg-nabu-accent hover:bg-nabu-accent-hover
                            text-white font-medium text-sm transition-colors
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -216,8 +216,8 @@ export function SetupWizard(): React.JSX.Element {
                   setCreateVaultName('')
                   setCreateVaultParentPath(null)
                 }}
-                className="px-4 py-2.5 rounded bg-onyx-bg-mute hover:bg-onyx-border
-                           text-onyx-text text-sm border border-onyx-border
+                className="px-4 py-2.5 rounded bg-nabu-bg-mute hover:bg-nabu-border
+                           text-nabu-text text-sm border border-nabu-border
                            transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel

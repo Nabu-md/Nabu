@@ -152,7 +152,7 @@ test('file selection — NoteView loads note content', async () => {
 
 test('vault open with many files — completes within 1 second', async () => {
   // Create a temporary vault with 100 markdown files
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nemo-e2e-perf-'))
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-e2e-perf-'))
   try {
     // Create 100 .md files
     await Promise.all(

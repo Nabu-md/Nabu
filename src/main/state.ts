@@ -55,10 +55,10 @@ export class StateManager {
    * Open a vault at `vaultPath`.
    *
    * - Scans for all `.md` files using `fs.readdir` recursive (Node 20+)
-   * - Excludes `.onyx/` and any dot-prefixed path segments
+   * - Excludes `.nabu/` and any dot-prefixed path segments
    * - Sorts: folders before files, alphabetical (case-insensitive) within groups
-   * - Creates `.onyx/` directory if it doesn't exist
-   * - Appends `.onyx/` to `.gitignore` if the file exists but doesn't already
+   * - Creates `.nabu/` directory if it doesn't exist
+   * - Appends `.nabu/` to `.gitignore` if the file exists but doesn't already
    *   contain the entry (prevents git pollution in tracked vaults)
    *
    * Requirements: 1.2, 1.3
@@ -66,17 +66,17 @@ export class StateManager {
   async openVault(vaultPath: string): Promise<VaultMetadata> {
     const files = await this.scanVault(vaultPath);
 
-    // Ensure .onyx/ cache directory exists
-    const onyxDir = path.join(vaultPath, '.onyx');
-    await fs.mkdir(onyxDir, { recursive: true });
+    // Ensure .nabu/ cache directory exists
+    const nabuDir = path.join(vaultPath, '.nabu');
+    await fs.mkdir(nabuDir, { recursive: true });
 
-    // Append .onyx/ to .gitignore if the file exists and lacks the entry
+    // Append .nabu/ to .gitignore if the file exists and lacks the entry
     const gitignorePath = path.join(vaultPath, '.gitignore');
     try {
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-      // Match .onyx/ as a standalone line (with or without trailing newline)
-      if (!/(^|\n)\.onyx\/(\n|$)/.test(gitignoreContent)) {
-        const suffix = gitignoreContent.endsWith('\n') ? '.onyx/\n' : '\n.onyx/\n';
+      // Match .nabu/ as a standalone line (with or without trailing newline)
+      if (!/(^|\n)\.nabu\/(\n|$)/.test(gitignoreContent)) {
+        const suffix = gitignoreContent.endsWith('\n') ? '.nabu/\n' : '\n.nabu/\n';
         await fs.appendFile(gitignorePath, suffix, 'utf-8');
       }
     } catch (err) {
@@ -121,7 +121,7 @@ export class StateManager {
       const relativePath = path.relative(vaultPath, absolutePath);
       const segments = relativePath.split(path.sep);
 
-      // Exclude if any segment starts with '.' (covers .onyx/, .git/, etc.)
+      // Exclude if any segment starts with '.' (covers .nabu/, .git/, etc.)
       if (segments.some((seg) => seg.startsWith('.'))) continue;
 
       let mtime = 0;

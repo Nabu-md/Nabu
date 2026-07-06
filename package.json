@@ -1,13 +1,13 @@
 {
-  "name": "nemo",
+  "name": "nabu",
   "version": "1.0.0",
   "description": "Markdown-native knowledge base for developers — on disk, plain .md, zero lock-in",
   "main": "./out/main/index.js",
-  "author": "Nemo Labs <hello@nemo.app>",
-  "homepage": "https://nemo.app",
+  "author": "Nabu Labs <hello@nabu.app>",
+  "homepage": "https://nabu.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nemo-notes/Nemo.git"
+    "url": "git+https://github.com/Nabu/Nabu.git"
   },
   "scripts": {
     "format": "prettier --write .",

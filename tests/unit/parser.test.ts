@@ -17,7 +17,7 @@ import type { Root } from 'mdast';
 let tmpDir: string;
 
 beforeAll(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), 'nemo-parser-test-'));
+  tmpDir = await mkdtemp(join(tmpdir(), 'nabu-parser-test-'));
 });
 
 afterAll(async () => {

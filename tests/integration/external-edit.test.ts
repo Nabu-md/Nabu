@@ -95,7 +95,7 @@ describe('Part 1 — VaultWatcher debounce and Pending_Write_Lock', () => {
   function startWatcher(): void {
     const config: WatcherConfig = {
       vaultPath: '/vault',
-      ignored: /^\.|\.onyx/,
+      ignored: /^\.|\.nabu/,
       awaitWriteFinish: { stabilityThreshold: 50 },
       onFileChanged: (filePath, isExternal) => {
         onFileChangedCalls.push({ filePath, isExternal });
@@ -147,7 +147,7 @@ describe('Part 1 — VaultWatcher debounce and Pending_Write_Lock', () => {
     const testWatcher = new TestableVaultWatcher();
     const config: WatcherConfig = {
       vaultPath: '/vault',
-      ignored: /^\.|\.onyx/,
+      ignored: /^\.|\.nabu/,
       awaitWriteFinish: { stabilityThreshold: 50 },
       onFileChanged: (filePath, isExternal) => {
         onFileChangedCalls.push({ filePath, isExternal });
@@ -206,7 +206,7 @@ describe('Part 1 — VaultWatcher debounce and Pending_Write_Lock', () => {
     // Override to capture timestamp
     const config: WatcherConfig = {
       vaultPath: '/vault',
-      ignored: /^\.|\.onyx/,
+      ignored: /^\.|\.nabu/,
       awaitWriteFinish: { stabilityThreshold: 50 },
       onFileChanged: (_filePath, _isExternal) => {
         callTimestamps.push(Date.now());
@@ -305,7 +305,7 @@ describe('Part 2 — Renderer reducer: ActivityTimeline recording (Req 6.5)', ()
   // -------------------------------------------------------------------------
   // Test 6 — isExternal flag: external vs internal write (Req 6.5)
   // -------------------------------------------------------------------------
-  it('records isExternal: false for Nemo-initiated (internal) writes (Req 6.5)', () => {
+  it('records isExternal: false for Nabu-initiated (internal) writes (Req 6.5)', () => {
     const state = makeInitialState();
 
     // Internal write: isExternal is false (or undefined → defaults to false)

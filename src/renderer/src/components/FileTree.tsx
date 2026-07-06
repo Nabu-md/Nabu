@@ -26,7 +26,7 @@ interface TreeNode {
 
 /**
  * Returns true if a path segment or any ancestor segment should be excluded.
- * Excludes _-prefixed paths (e.g. _templates/), .onyx/, dot-prefixed paths,
+ * Excludes _-prefixed paths (e.g. _templates/), .nabu/, dot-prefixed paths,
  * and non-.md files.
  */
 function shouldExclude(filePath: string, vaultRoot: string): boolean {
@@ -168,7 +168,7 @@ function TreeNodeRow({
         tabIndex={0}
         aria-expanded={isExpanded}
         className="flex items-center gap-1 px-2 py-0.5 cursor-pointer select-none text-sm
-                   text-onyx-text-muted hover:text-onyx-text hover:bg-onyx-bg-mute
+                   text-nabu-text-muted hover:text-nabu-text hover:bg-nabu-bg-mute
                    rounded transition-colors"
         style={{ paddingLeft: `${8 + indent}px` }}
         onClick={() => onToggle(node.path)}
@@ -176,7 +176,7 @@ function TreeNodeRow({
       >
         <span
           aria-hidden="true"
-          className="shrink-0 w-3 text-onyx-text-faint transition-transform duration-150"
+          className="shrink-0 w-3 text-nabu-text-faint transition-transform duration-150"
           style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
           ▶
@@ -195,8 +195,8 @@ function TreeNodeRow({
       className={[
         'flex items-center gap-1 px-2 py-0.5 cursor-pointer select-none text-sm rounded transition-colors',
         isActive
-          ? 'bg-onyx-accent/20 text-onyx-accent font-medium'
-          : 'text-onyx-text hover:bg-onyx-bg-mute hover:text-onyx-text',
+          ? 'bg-nabu-accent/20 text-nabu-accent font-medium'
+          : 'text-nabu-text hover:bg-nabu-bg-mute hover:text-nabu-text',
         isPulsing ? 'external-edit' : ''
       ]
         .filter(Boolean)
@@ -206,7 +206,7 @@ function TreeNodeRow({
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onFileClick(node)}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, node) : undefined}
     >
-      <span aria-hidden="true" className="shrink-0 w-3 text-onyx-text-faint text-xs">
+      <span aria-hidden="true" className="shrink-0 w-3 text-nabu-text-faint text-xs">
         ·
       </span>
       <span className="truncate">{node.name}</span>
@@ -628,8 +628,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             setShowFolderDialog(true)
           }}
           className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs rounded
-                     bg-onyx-bg-mute border border-onyx-border text-onyx-text-muted
-                     hover:text-onyx-text hover:border-onyx-accent transition-colors
+                     bg-nabu-bg-mute border border-nabu-border text-nabu-text-muted
+                     hover:text-nabu-text hover:border-nabu-accent transition-colors
                      disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span aria-hidden="true">+</span> Folder
@@ -653,8 +653,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             setNoteLoading(false)
           }}
           className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs rounded
-                     bg-onyx-bg-mute border border-onyx-border text-onyx-text-muted
-                     hover:text-onyx-text hover:border-onyx-accent transition-colors
+                     bg-nabu-bg-mute border border-nabu-border text-nabu-text-muted
+                     hover:text-nabu-text hover:border-nabu-accent transition-colors
                      disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <span aria-hidden="true">+</span> Note
@@ -667,7 +667,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           role="dialog"
           aria-modal="true"
           aria-label="Create folder"
-          className="mx-2 mt-1 p-2 rounded border border-onyx-border bg-onyx-bg-mute shrink-0"
+          className="mx-2 mt-1 p-2 rounded border border-nabu-border bg-nabu-bg-mute shrink-0"
         >
           <input
             ref={folderInputRef}
@@ -682,9 +682,9 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               if (e.key === 'Enter') handleCreateFolder()
             }}
             disabled={folderLoading}
-            className="w-full px-2 py-1 text-xs rounded bg-onyx-bg border border-onyx-border
-                       text-onyx-text placeholder:text-onyx-text-faint
-                       focus:outline-none focus:border-onyx-accent transition-colors
+            className="w-full px-2 py-1 text-xs rounded bg-nabu-bg border border-nabu-border
+                       text-nabu-text placeholder:text-nabu-text-faint
+                       focus:outline-none focus:border-nabu-accent transition-colors
                        disabled:opacity-50"
             aria-label="New folder name"
           />
@@ -694,16 +694,16 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             </p>
           )}
           {folderLoading && (
-            <p className="mt-1 text-xs text-onyx-text-faint">Creating…</p>
+            <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>
           )}
           {!folderLoading && !folderError && folderName.trim() === '' && (
-            <p className="mt-1 text-xs text-onyx-text-faint">Enter a folder name.</p>
+            <p className="mt-1 text-xs text-nabu-text-faint">Enter a folder name.</p>
           )}
           <div className="flex gap-1 mt-2">
             <button
               onClick={handleCreateFolder}
               disabled={folderLoading || folderName.trim() === ''}
-              className="flex-1 px-2 py-1 text-xs rounded bg-onyx-accent text-white
+              className="flex-1 px-2 py-1 text-xs rounded bg-nabu-accent text-white
                          hover:opacity-90 transition-opacity
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -716,8 +716,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 setFolderError(null)
               }}
               disabled={folderLoading}
-              className="flex-1 px-2 py-1 text-xs rounded border border-onyx-border
-                         text-onyx-text-muted hover:text-onyx-text transition-colors
+              className="flex-1 px-2 py-1 text-xs rounded border border-nabu-border
+                         text-nabu-text-muted hover:text-nabu-text transition-colors
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Cancel
@@ -732,11 +732,11 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           role="dialog"
           aria-modal="true"
           aria-label="Create note"
-          className="mx-2 mt-1 p-2 rounded border border-onyx-border bg-onyx-bg-mute shrink-0"
+          className="mx-2 mt-1 p-2 rounded border border-nabu-border bg-nabu-bg-mute shrink-0"
         >
           {/* Template list */}
           <div className="mb-2 max-h-36 overflow-y-auto">
-            <p className="text-xs text-onyx-text-faint mb-1">Template</p>
+            <p className="text-xs text-nabu-text-faint mb-1">Template</p>
             {/* Empty note option */}
             <div
               role="button"
@@ -746,8 +746,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               className={[
                 'flex items-center gap-2 px-2 py-0.5 rounded cursor-pointer text-xs transition-colors',
                 selectedTemplate === null
-                  ? 'bg-onyx-accent/20 text-onyx-accent'
-                  : 'text-onyx-text hover:bg-onyx-bg'
+                  ? 'bg-nabu-accent/20 text-nabu-accent'
+                  : 'text-nabu-text hover:bg-nabu-bg'
               ].join(' ')}
             >
               <span
@@ -755,8 +755,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 className={[
                   'w-3 h-3 rounded-full border shrink-0',
                   selectedTemplate === null
-                    ? 'border-onyx-accent bg-onyx-accent'
-                    : 'border-onyx-border'
+                    ? 'border-nabu-accent bg-nabu-accent'
+                    : 'border-nabu-border'
                 ].join(' ')}
               />
               (Empty note)
@@ -774,8 +774,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 className={[
                   'flex items-center gap-2 px-2 py-0.5 rounded cursor-pointer text-xs transition-colors',
                   selectedTemplate?.path === tpl.path
-                    ? 'bg-onyx-accent/20 text-onyx-accent'
-                    : 'text-onyx-text hover:bg-onyx-bg'
+                    ? 'bg-nabu-accent/20 text-nabu-accent'
+                    : 'text-nabu-text hover:bg-nabu-bg'
                 ].join(' ')}
               >
                 <span
@@ -783,8 +783,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                   className={[
                     'w-3 h-3 rounded-full border shrink-0',
                     selectedTemplate?.path === tpl.path
-                      ? 'border-onyx-accent bg-onyx-accent'
-                      : 'border-onyx-border'
+                      ? 'border-nabu-accent bg-nabu-accent'
+                      : 'border-nabu-border'
                   ].join(' ')}
                 />
                 {tpl.name}
@@ -806,9 +806,9 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               if (e.key === 'Enter') handleCreateNote()
             }}
             disabled={noteLoading}
-            className="w-full px-2 py-1 text-xs rounded bg-onyx-bg border border-onyx-border
-                       text-onyx-text placeholder:text-onyx-text-faint
-                       focus:outline-none focus:border-onyx-accent transition-colors
+            className="w-full px-2 py-1 text-xs rounded bg-nabu-bg border border-nabu-border
+                       text-nabu-text placeholder:text-nabu-text-faint
+                       focus:outline-none focus:border-nabu-accent transition-colors
                        disabled:opacity-50"
             aria-label="Note name"
           />
@@ -818,7 +818,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             </p>
           )}
           {noteLoading && (
-            <p className="mt-1 text-xs text-onyx-text-faint">Creating…</p>
+            <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>
           )}
 
           {/* Action buttons */}
@@ -826,7 +826,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             <button
               onClick={handleCreateNote}
               disabled={noteLoading || noteName.trim() === ''}
-              className="flex-1 px-2 py-1 text-xs rounded bg-onyx-accent text-white
+              className="flex-1 px-2 py-1 text-xs rounded bg-nabu-accent text-white
                          hover:opacity-90 transition-opacity
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -840,8 +840,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 setSelectedTemplate(null)
               }}
               disabled={noteLoading}
-              className="flex-1 px-2 py-1 text-xs rounded border border-onyx-border
-                         text-onyx-text-muted hover:text-onyx-text transition-colors
+              className="flex-1 px-2 py-1 text-xs rounded border border-nabu-border
+                         text-nabu-text-muted hover:text-nabu-text transition-colors
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Cancel
@@ -858,9 +858,9 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           placeholder="Filter files…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full px-2 py-1 text-xs rounded bg-onyx-bg-mute border border-onyx-border
-                     text-onyx-text placeholder:text-onyx-text-faint
-                     focus:outline-none focus:border-onyx-accent transition-colors"
+          className="w-full px-2 py-1 text-xs rounded bg-nabu-bg-mute border border-nabu-border
+                     text-nabu-text placeholder:text-nabu-text-faint
+                     focus:outline-none focus:border-nabu-accent transition-colors"
           aria-label="Search notes"
         />
       </div>
@@ -868,11 +868,11 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
       {/* Tree or filtered flat list */}
       <div className="flex-1 overflow-y-auto py-1" role={filteredNodes !== null ? 'listbox' : 'tree'} aria-label="Vault files">
         {state.vault === null ? (
-          <p className="px-3 py-2 text-xs text-onyx-text-faint">No vault open</p>
+          <p className="px-3 py-2 text-xs text-nabu-text-faint">No vault open</p>
         ) : filteredNodes !== null ? (
           // Flat filtered list
           filteredNodes.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-onyx-text-faint">No files match</p>
+            <p className="px-3 py-2 text-xs text-nabu-text-faint">No files match</p>
           ) : (
             filteredNodes.map((node) => (
               <div role="option" key={node.path}>
@@ -911,14 +911,14 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           id="file-tree-context-menu"
           role="menu"
           style={{ position: 'fixed', left: contextMenuPos.x, top: contextMenuPos.y, zIndex: 50 }}
-          className="bg-onyx-bg-mute border border-onyx-border rounded shadow-lg py-1 min-w-[140px]"
+          className="bg-nabu-bg-mute border border-nabu-border rounded shadow-lg py-1 min-w-[140px]"
         >
           {!showRenameInput && !showDeleteConfirm && (
             <>
               <button
                 role="menuitem"
                 aria-label="Rename file"
-                className="w-full text-left px-3 py-1 text-sm text-onyx-text hover:bg-onyx-bg transition-colors"
+                className="w-full text-left px-3 py-1 text-sm text-nabu-text hover:bg-nabu-bg transition-colors"
                 onClick={() => setShowRenameInput(true)}
               >
                 Rename
@@ -926,7 +926,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               <button
                 role="menuitem"
                 aria-label="Delete file"
-                className="w-full text-left px-3 py-1 text-sm text-red-400 hover:bg-onyx-bg transition-colors"
+                className="w-full text-left px-3 py-1 text-sm text-red-400 hover:bg-nabu-bg transition-colors"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 Delete
@@ -942,7 +942,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 onChange={(e) => { setRenameValue(e.target.value); setRenameError(null) }}
                 onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                 disabled={menuLoading}
-                className="w-full px-2 py-0.5 text-xs rounded bg-onyx-bg border border-onyx-border text-onyx-text focus:outline-none focus:border-onyx-accent"
+                className="w-full px-2 py-0.5 text-xs rounded bg-nabu-bg border border-nabu-border text-nabu-text focus:outline-none focus:border-nabu-accent"
                 aria-label="New file name"
                 autoFocus
               />
@@ -951,14 +951,14 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 <button
                   onClick={handleRename}
                   disabled={menuLoading}
-                  className="flex-1 px-2 py-0.5 text-xs rounded bg-onyx-accent text-white disabled:opacity-40"
+                  className="flex-1 px-2 py-0.5 text-xs rounded bg-nabu-accent text-white disabled:opacity-40"
                 >
                   Rename
                 </button>
                 <button
                   onClick={() => setShowRenameInput(false)}
                   disabled={menuLoading}
-                  className="flex-1 px-2 py-0.5 text-xs rounded border border-onyx-border text-onyx-text-muted"
+                  className="flex-1 px-2 py-0.5 text-xs rounded border border-nabu-border text-nabu-text-muted"
                 >
                   Cancel
                 </button>
@@ -967,7 +967,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           )}
           {showDeleteConfirm && (
             <div role="dialog" aria-modal="true" className="px-2 py-1">
-              <p className="text-xs text-onyx-text mb-1">Delete &ldquo;{contextMenuTarget.name}&rdquo;?</p>
+              <p className="text-xs text-nabu-text mb-1">Delete &ldquo;{contextMenuTarget.name}&rdquo;?</p>
               {renameError && <p className="text-xs text-red-400 mb-1">{renameError}</p>}
               <div className="flex gap-1">
                 <button
@@ -980,7 +980,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={menuLoading}
-                  className="flex-1 px-2 py-0.5 text-xs rounded border border-onyx-border text-onyx-text-muted"
+                  className="flex-1 px-2 py-0.5 text-xs rounded border border-nabu-border text-nabu-text-muted"
                 >
                   Cancel
                 </button>

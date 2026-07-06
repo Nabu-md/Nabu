@@ -82,7 +82,7 @@ test('Cmd+O — opens vault picker dialog', async () => {
   // Trigger the "Open Vault…" menu item (File → Open Vault…).
   // This fires the click handler which either shows the native dialog or sends
   // vault:open to the renderer. We intercept it to confirm the action was
-  // dispatched by patching the renderer's __nemoOpenVault hook.
+  // dispatched by patching the renderer's __nabuOpenVault hook.
   let receivedVaultOpen = false
   await page.exposeFunction('__testVaultOpenReceived', () => {
     receivedVaultOpen = true
@@ -90,10 +90,10 @@ test('Cmd+O — opens vault picker dialog', async () => {
 
   await page.evaluate(() => {
     // Patch the open vault handler to detect if it was called
-    const orig = (window as unknown as Record<string, unknown>)['__nemoOpenVault'] as
+    const orig = (window as unknown as Record<string, unknown>)['__nabuOpenVault'] as
       | (() => void)
       | undefined
-    ;(window as unknown as Record<string, unknown>)['__nemoOpenVault'] = () => {
+    ;(window as unknown as Record<string, unknown>)['__nabuOpenVault'] = () => {
       const cb = (window as unknown as Record<string, unknown>)['__testVaultOpenReceived']
       if (typeof cb === 'function') (cb as () => void)()
       if (typeof orig === 'function') orig()
@@ -161,7 +161,7 @@ test('Cmd+, — opens Preferences placeholder', async () => {
   // Trigger the Preferences menu item
   try {
     // macOS: app menu is named after the app
-    await clickMenuItem(handle, 'Nemo', 'Preferences…')
+    await clickMenuItem(handle, 'Nabu', 'Preferences…')
   } catch {
     // Non-macOS fallback
     try {

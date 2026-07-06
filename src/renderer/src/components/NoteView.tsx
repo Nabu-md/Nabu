@@ -723,12 +723,12 @@ export function NoteView(): React.JSX.Element {
 <meta charset="utf-8">
 <title>${currentFile.split('/').pop()?.replace(/\.md$/i, '') ?? 'Note'}</title>
 <style>
-body { background: ${getVar('--onyx-bg') || '#0a0a0a'}; color: ${getVar('--onyx-text') || '#e5e5e5'}; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
-h1,h2,h3,h4,h5,h6 { color: ${getVar('--onyx-text') || '#e5e5e5'}; }
-a { color: ${getVar('--onyx-accent') || '#60a5fa'}; }
+body { background: ${getVar('--nabu-bg') || '#0a0a0a'}; color: ${getVar('--nabu-text') || '#e5e5e5'}; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+h1,h2,h3,h4,h5,h6 { color: ${getVar('--nabu-text') || '#e5e5e5'}; }
+a { color: ${getVar('--nabu-accent') || '#60a5fa'}; }
 code { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; font-family: monospace; }
 pre { background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 6px; overflow-x: auto; }
-blockquote { border-left: 3px solid ${getVar('--onyx-border') || '#2a2a2a'}; padding-left: 1rem; opacity: 0.7; }
+blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; padding-left: 1rem; opacity: 0.7; }
 </style>
 </head>
 <body>${noteHtml}</body>
@@ -844,7 +844,7 @@ blockquote { border-left: 3px solid ${getVar('--onyx-border') || '#2a2a2a'}; pad
                 if (editDirty) saveNote().catch(console.error)
               }, 1000)
             }}
-            className="flex-1 w-full resize-none bg-transparent text-onyx-text text-sm font-mono focus:outline-none border border-onyx-border rounded p-3"
+            className="flex-1 w-full resize-none bg-transparent text-nabu-text text-sm font-mono focus:outline-none border border-nabu-border rounded p-3"
           />
         </div>
       )}

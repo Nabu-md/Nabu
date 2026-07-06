@@ -1,7 +1,7 @@
 /**
  * roundtrip.test.ts
  *
- * Round-trip fidelity test suite for the Nemo parser.
+ * Round-trip fidelity test suite for the Nabu parser.
  *
  * For every fixture file in tests/fixtures/markdown/:
  *   1. Parse the fixture  →  AST₁
@@ -36,7 +36,7 @@ const FIXTURES_DIR = resolve(__dirname, '../fixtures/markdown');
 let tmpDir: string;
 
 beforeAll(async () => {
-  tmpDir = join(tmpdir(), `nemo-roundtrip-${Date.now()}`);
+  tmpDir = join(tmpdir(), `nabu-roundtrip-${Date.now()}`);
   await mkdir(tmpDir, { recursive: true });
 });
 

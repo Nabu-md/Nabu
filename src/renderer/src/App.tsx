@@ -321,7 +321,7 @@ function App(): React.JSX.Element {
 
     // Handle vault:opened-test — used by E2E tests to inject vault state without
     // going through the native dialog picker. The main process sends this channel
-    // after opening the ONYX_TEST_VAULT env var path.
+    // after opening the NABU_TEST_VAULT env var path.
     const offVaultOpened = electron.on.vaultOpened((vaultMeta) => {
       dispatch({ type: 'VAULT_OPENED', payload: vaultMeta })
     })
@@ -409,7 +409,7 @@ function App(): React.JSX.Element {
     const cleanup = wireListeners()
 
     // Pull the current vault state from main process on mount.
-    // This handles the case where ONYX_TEST_VAULT (or vault restore) fires
+    // This handles the case where NABU_TEST_VAULT (or vault restore) fires
     // before React has mounted — the push message would have been dropped.
     //
     // Because openVault() is async in the main process, we may need to retry
@@ -444,16 +444,16 @@ function App(): React.JSX.Element {
 
           <main className="note-container">
             {/* Tab bar: Note | Graph */}
-            <div className="flex items-center border-b border-onyx-border shrink-0">
+            <div className="flex items-center border-b border-nabu-border shrink-0">
               <button
                 onClick={() => { if (state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' }) }}
-                className={`px-4 py-2 text-sm border-b-2 transition-colors ${!state.graphViewOpen ? 'border-onyx-accent text-onyx-accent' : 'border-transparent text-onyx-text-muted hover:text-onyx-text'}`}
+                className={`px-4 py-2 text-sm border-b-2 transition-colors ${!state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
               >
                 Note
               </button>
               <button
                 onClick={() => { if (!state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' }) }}
-                className={`px-4 py-2 text-sm border-b-2 transition-colors ${state.graphViewOpen ? 'border-onyx-accent text-onyx-accent' : 'border-transparent text-onyx-text-muted hover:text-onyx-text'}`}
+                className={`px-4 py-2 text-sm border-b-2 transition-colors ${state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
               >
                 Graph
               </button>

@@ -82,7 +82,7 @@ import { VectorManager } from '@main/vector';
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), 'nemo-vector-'));
+  tmpDir = await mkdtemp(join(tmpdir(), 'nabu-vector-'));
   // Reset all shared state
   Object.assign(vectraState, {
     isIndexCreated: true,

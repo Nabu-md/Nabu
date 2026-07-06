@@ -27,13 +27,13 @@ export function TagsPanel(): React.JSX.Element {
       {/* Section header */}
       <button
         className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold
-                   text-onyx-text-muted uppercase tracking-wide hover:text-onyx-text
+                   text-nabu-text-muted uppercase tracking-wide hover:text-nabu-text
                    transition-colors select-none"
         aria-expanded={isExpanded}
         onClick={() => setIsExpanded((prev) => !prev)}
       >
         <span>Tags</span>
-        <span aria-hidden="true" className="text-onyx-text-faint">
+        <span aria-hidden="true" className="text-nabu-text-faint">
           {isExpanded ? '▼' : '▶'}
         </span>
       </button>
@@ -42,7 +42,7 @@ export function TagsPanel(): React.JSX.Element {
       {isExpanded && (
         <div className="px-2 pb-2">
           {state.tagIndex.size === 0 ? (
-            <p className="px-1 py-1 text-xs text-onyx-text-faint italic">No tags found</p>
+            <p className="px-1 py-1 text-xs text-nabu-text-faint italic">No tags found</p>
           ) : (
             <div className="flex flex-col gap-0.5">
               {tags.map(({ tag, count }) => {
@@ -57,15 +57,15 @@ export function TagsPanel(): React.JSX.Element {
                       'flex items-center justify-between w-full px-2 py-0.5 text-xs rounded',
                       'transition-colors text-left select-none',
                       isPressed
-                        ? 'bg-onyx-accent/20 text-onyx-accent'
-                        : 'text-onyx-text-muted hover:text-onyx-text hover:bg-onyx-bg-mute'
+                        ? 'bg-nabu-accent/20 text-nabu-accent'
+                        : 'text-nabu-text-muted hover:text-nabu-text hover:bg-nabu-bg-mute'
                     ].join(' ')}
                   >
                     <span className="truncate">#{tag}</span>
                     <span
                       className={[
                         'ml-1 shrink-0 tabular-nums',
-                        isPressed ? 'text-onyx-accent/70' : 'text-onyx-text-faint'
+                        isPressed ? 'text-nabu-accent/70' : 'text-nabu-text-faint'
                       ].join(' ')}
                     >
                       {count}

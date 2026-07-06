@@ -1,6 +1,6 @@
-appId: app.nemo.desktop
-productName: Nemo
-copyright: "Copyright © 2024 Nemo Labs"
+appId: app.nabu.desktop
+productName: Nabu
+copyright: "Copyright © 2024 Nabu Labs"
 directories:
   buildResources: build
 files:
@@ -24,7 +24,7 @@ mac:
   category: public.app-category.developer-tools
 dmg:
   combineWithBuild: true
-  title: "Install Nemo"
+  title: "Install Nabu"
   artifactName: ${productName}-${version}.${ext}
   contents:
     - x: 130

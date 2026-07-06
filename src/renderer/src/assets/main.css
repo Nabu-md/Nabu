@@ -9,17 +9,17 @@
   /* Font families */
   --font-sans: -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 
-  /* Nemo color palette — references CSS vars so Tailwind utilities reflect theme switches */
-  --color-onyx-bg: var(--onyx-bg);
-  --color-onyx-bg-soft: var(--onyx-bg-soft);
-  --color-onyx-bg-mute: var(--onyx-bg-mute);
-  --color-onyx-border: var(--onyx-border);
-  --color-onyx-border-subtle: var(--onyx-border-subtle);
-  --color-onyx-text: var(--onyx-text);
-  --color-onyx-text-muted: var(--onyx-text-muted);
-  --color-onyx-text-faint: var(--onyx-text-faint);
-  --color-onyx-accent: var(--onyx-accent);
-  --color-onyx-accent-hover: var(--onyx-accent-hover);
+  /* Nabu color palette — references CSS vars so Tailwind utilities reflect theme switches */
+  --color-nabu-bg: var(--nabu-bg);
+  --color-nabu-bg-soft: var(--nabu-bg-soft);
+  --color-nabu-bg-mute: var(--nabu-bg-mute);
+  --color-nabu-border: var(--nabu-border);
+  --color-nabu-border-subtle: var(--nabu-border-subtle);
+  --color-nabu-text: var(--nabu-text);
+  --color-nabu-text-muted: var(--nabu-text-muted);
+  --color-nabu-text-faint: var(--nabu-text-faint);
+  --color-nabu-accent: var(--nabu-accent);
+  --color-nabu-accent-hover: var(--nabu-accent-hover);
 
   /* Widths */
   --width-sidebar: 240px;

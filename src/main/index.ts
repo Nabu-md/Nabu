@@ -149,7 +149,7 @@ export function registerMenu(mainWindow: BrowserWindow): void {
           click: (): void => {
             // Req 14.1 — trigger vault:open with no path (shows native picker)
             mainWindow.webContents
-              .executeJavaScript(`window.__nemoOpenVault && window.__nemoOpenVault()`)
+              .executeJavaScript(`window.__nabuOpenVault && window.__nabuOpenVault()`)
               .catch(() => {
                 // Fallback: invoke vault:open directly via IPC emulation
                 dialog
@@ -317,7 +317,7 @@ async function restoreVault(
     // Start the file watcher for the restored vault
     watcher.start({
       vaultPath: settings.lastVaultPath,
-      ignored: /^\.|\.onyx/,
+      ignored: /^\.|\.nabu/,
       awaitWriteFinish: { stabilityThreshold: 50 },
       onFileChanged: (filePath, isExternal) => {
         stateManager.invalidateAST(filePath)
@@ -388,7 +388,7 @@ app.whenReady().then(async () => {
     if (major < 13) {
       dialog.showErrorBox(
         'macOS Version Not Supported',
-        'Nemo requires macOS 13.0 (Ventura) or later.',
+        'Nabu requires macOS 13.0 (Ventura) or later.',
       )
       app.quit()
       return
@@ -432,7 +432,7 @@ app.whenReady().then(async () => {
 
   // ---- Deferred: initialise vector index after window is visible ----
   mainWindow.once('ready-to-show', () => {
-    const onyxDir = join(app.getPath('userData'), '.onyx')
+    const nabuDir = join(app.getPath('userData'), '.nabu')
     // Resolve model path based on packaging state (Req 12.4):
     //   - Packaged: models are extracted to <Resources>/models/ by electron-builder extraResources
     //   - Development: models live under resources/models/ in the repo root
@@ -441,20 +441,20 @@ app.whenReady().then(async () => {
       : join(__dirname, '..', '..', '..', 'resources', 'models', 'bge-micro-v2')
 
     vectorManager
-      .initialize({ indexPath: onyxDir, modelPath })
+      .initialize({ indexPath: nabuDir, modelPath })
       .catch((err) => console.error('[App] Vector manager init failed:', err))
   })
 
   // ---- Restore last vault once the renderer is ready ----
   mainWindow.webContents.once('did-finish-load', () => {
-    // Support ONYX_TEST_VAULT env var for E2E test injection (bypasses persisted settings)
-    const testVaultPath = process.env['ONYX_TEST_VAULT']
+    // Support NABU_TEST_VAULT env var for E2E test injection (bypasses persisted settings)
+    const testVaultPath = process.env['NABU_TEST_VAULT']
     if (testVaultPath) {
       stateManager.openVault(testVaultPath)
         .then((vaultMeta) => {
           watcher.start({
             vaultPath: testVaultPath,
-            ignored: /^\.|\.onyx/,
+            ignored: /^\.|\.nabu/,
             awaitWriteFinish: { stabilityThreshold: 50 },
             onFileChanged: (filePath, isExternal) => {
               stateManager.invalidateAST(filePath)
@@ -480,7 +480,7 @@ app.whenReady().then(async () => {
           sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: testVaultPath, files: vaultMeta.files })
         })
         .catch((err) => {
-          console.error('[App] ONYX_TEST_VAULT open failed:', err)
+          console.error('[App] NABU_TEST_VAULT open failed:', err)
         })
       return
     }

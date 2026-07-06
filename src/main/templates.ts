@@ -1,7 +1,7 @@
 /**
  * templates.ts
  *
- * Pure utility for substituting template variables in Nemo template files.
+ * Pure utility for substituting template variables in Nabu template files.
  * Templates are `.md` files located inside `_templates/` at the vault root
  * and may contain `{{title}}`, `{{date}}`, and `{{time}}` placeholders.
  *

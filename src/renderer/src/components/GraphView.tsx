@@ -171,7 +171,7 @@ export function GraphView(): React.JSX.Element {
 
       // Draw edges
       ctx.strokeStyle =
-        getComputedStyle(document.documentElement).getPropertyValue('--onyx-border') || '#2a2a2a'
+        getComputedStyle(document.documentElement).getPropertyValue('--nabu-border') || '#2a2a2a'
       ctx.lineWidth = 1
       for (const link of allLinks) {
         const s =
@@ -191,9 +191,9 @@ export function GraphView(): React.JSX.Element {
 
       // Draw nodes
       const accentColor =
-        getComputedStyle(document.documentElement).getPropertyValue('--onyx-accent') || '#60a5fa'
+        getComputedStyle(document.documentElement).getPropertyValue('--nabu-accent') || '#60a5fa'
       const textColor =
-        getComputedStyle(document.documentElement).getPropertyValue('--onyx-text') || '#e5e5e5'
+        getComputedStyle(document.documentElement).getPropertyValue('--nabu-text') || '#e5e5e5'
       for (const node of visibleNodes) {
         const { x, y } = node
         ctx.beginPath()
@@ -328,16 +328,16 @@ export function GraphView(): React.JSX.Element {
   return (
     <div className="graph-view flex flex-col h-full" aria-label="Graph view">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-onyx-border">
+      <div className="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-nabu-border">
         <input
           type="text"
           aria-label="Filter graph nodes"
           placeholder="Search nodes…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-2 py-1 text-xs rounded bg-onyx-bg-mute border border-onyx-border
-                     text-onyx-text placeholder:text-onyx-text-faint
-                     focus:outline-none focus:border-onyx-accent transition-colors"
+          className="flex-1 px-2 py-1 text-xs rounded bg-nabu-bg-mute border border-nabu-border
+                     text-nabu-text placeholder:text-nabu-text-faint
+                     focus:outline-none focus:border-nabu-accent transition-colors"
         />
         <div role="radiogroup" aria-label="Graph scope" className="flex gap-1">
           <button
@@ -346,8 +346,8 @@ export function GraphView(): React.JSX.Element {
             onClick={() => setMode('global')}
             className={`px-2 py-1 text-xs rounded transition-colors ${
               mode === 'global'
-                ? 'bg-onyx-accent/20 text-onyx-accent'
-                : 'text-onyx-text-muted hover:text-onyx-text bg-onyx-bg-mute'
+                ? 'bg-nabu-accent/20 text-nabu-accent'
+                : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
             }`}
           >
             Global
@@ -358,8 +358,8 @@ export function GraphView(): React.JSX.Element {
             onClick={() => setMode('local')}
             className={`px-2 py-1 text-xs rounded transition-colors ${
               mode === 'local'
-                ? 'bg-onyx-accent/20 text-onyx-accent'
-                : 'text-onyx-text-muted hover:text-onyx-text bg-onyx-bg-mute'
+                ? 'bg-nabu-accent/20 text-nabu-accent'
+                : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
             }`}
           >
             Local
@@ -384,12 +384,12 @@ export function GraphView(): React.JSX.Element {
           onWheel={handleWheel}
         />
         {state.vault === null && (
-          <div className="absolute inset-0 flex items-center justify-center text-onyx-text-faint text-sm">
+          <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
             No vault open
           </div>
         )}
         {state.vault !== null && state.vault.files.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-onyx-text-faint text-sm">
+          <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
             No notes in vault
           </div>
         )}

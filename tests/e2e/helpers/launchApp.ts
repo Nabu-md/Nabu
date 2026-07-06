@@ -31,7 +31,7 @@ const MAIN_PATH = path.resolve(__dirname, '../../../out/main/index.js')
  * Launch the Electron app and return the first window's Page.
  *
  * @param vaultPath  Optional vault path to open on launch.  When provided it is
- *                   passed via the `ONYX_TEST_VAULT` environment variable so the
+ *                   passed via the `NABU_TEST_VAULT` environment variable so the
  *                   app can load it automatically without showing the native
  *                   directory picker.
  * @param extraEnv   Additional environment variables to inject.
@@ -45,7 +45,7 @@ export async function launchApp(
     ...extraEnv
   }
   if (vaultPath) {
-    env['ONYX_TEST_VAULT'] = vaultPath
+    env['NABU_TEST_VAULT'] = vaultPath
   }
 
   const electronApp = await electron.launch({

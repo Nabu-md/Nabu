@@ -1,7 +1,7 @@
 /**
  * full-workflow.spec.ts
  *
- * End-to-end tests for the complete Nemo user workflow:
+ * End-to-end tests for the complete Nabu user workflow:
  *   1. Open vault → FileTree populates
  *   2. Navigate file tree → click file → NoteView loads
  *   3. Toggle section (ToggleBlock expand/collapse)
@@ -336,7 +336,7 @@ test.describe('external edit detection', () => {
 
   test.beforeEach(async () => {
     // Fresh temp vault for each test to avoid interference
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nemo-e2e-workflow-'))
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-e2e-workflow-'))
     await fs.writeFile(
       path.join(tmpDir, 'index.md'),
       '# Original Title\n\nOriginal content here.\n'
@@ -442,7 +442,7 @@ test.describe('external edit detection', () => {
 test.describe('vault persistence', () => {
   test('step 9: last-opened vault path persists and reopens after app restart', async () => {
     // Create a clean temp vault
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nemo-e2e-persist-'))
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-e2e-persist-'))
     await fs.writeFile(
       path.join(tmpDir, 'persist-test.md'),
       '# Persistence Test\n\nThis note confirms vault restore.\n'
@@ -450,7 +450,7 @@ test.describe('vault persistence', () => {
 
     // We use the settings file path to inject the last vault path directly,
     // since the full native-dialog flow cannot be automated in E2E tests.
-    // The ONYX_TEST_VAULT env var bypasses settings, so we use it here to
+    // The NABU_TEST_VAULT env var bypasses settings, so we use it here to
     // verify the file tree populates — the persistence mechanism (Req 1.7)
     // is covered at the unit/integration level in state.ts tests.
     //
@@ -480,7 +480,7 @@ test.describe('vault persistence', () => {
 
       // Reopen with the same vault path (simulating persisted setting via env var)
       // In production the settings.json stores lastVaultPath — here we re-inject
-      // the same path via ONYX_TEST_VAULT to verify the app handles reopening.
+      // the same path via NABU_TEST_VAULT to verify the app handles reopening.
       handle = await launchApp(tmpDir)
       await waitForFileTree(handle)
 

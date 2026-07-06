@@ -17,7 +17,7 @@ import type { SearchResult } from '../shared/types';
 // ---------------------------------------------------------------------------
 
 export interface VectorConfig {
-  /** Absolute path to the `.onyx/` directory */
+  /** Absolute path to the `.nabu/` directory */
   indexPath: string;
   /** Absolute path to the bundled ONNX model directory */
   modelPath: string;
@@ -104,7 +104,7 @@ export class VectorManager {
   /**
    * Initialise the vector index and BGE-micro embedding model.
    *
-   * 1. Load (or create) the Vectra index from `.onyx/`
+   * 1. Load (or create) the Vectra index from `.nabu/`
    * 2. Load the BGE-micro ONNX model from the app bundle
    * 3. If model files are missing, log error and disable embeddings (Req 9.8)
    * 4. If the index is corrupted, rebuild from vault as a background task (Req 9.9)

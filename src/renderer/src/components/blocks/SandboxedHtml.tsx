@@ -37,15 +37,15 @@ export interface SandboxedHtmlProps {
 
 // ── postMessage protocol ────────────────────────────────────────────────────
 
-type NemoApiMethod = 'readNote' | 'search' | 'getTheme' | 'getLocalAsset'
+type NabuApiMethod = 'readNote' | 'search' | 'getTheme' | 'getLocalAsset'
 
-type NemoApiRequest = {
+type NabuApiRequest = {
   id: string
-  method: NemoApiMethod
+  method: NabuApiMethod
   args?: unknown[]
 }
 
-type NemoApiResponse = {
+type NabuApiResponse = {
   id: string
   result?: unknown
   error?: string
@@ -56,8 +56,8 @@ type NemoApiResponse = {
 const BRIDGE_SCRIPT = `
 <script>
 (function() {
-  if (window.__nemoBridge) return;
-  window.__nemoBridge = true;
+  if (window.__nabuBridge) return;
+  window.__nabuBridge = true;
 
   var pending = {};
   var nextId = 0;
@@ -71,14 +71,14 @@ const BRIDGE_SCRIPT = `
     });
   }
 
-  window.nemo = {
+  window.nabu = {
     readNote:     function (p) { return call('readNote', p); },
     search:       function (q) { return call('search', q); },
     getTheme:     function ()  { return call('getTheme'); },
     getLocalAsset:function (p) { return call('getLocalAsset', p); },
   };
 
-  parent.postMessage({ type: 'nemo-ready' }, '*');
+  parent.postMessage({ type: 'nabu-ready' }, '*');
 })();
 </script>`
 
@@ -158,15 +158,15 @@ export function SandboxedHtml({
   const handleMessage = useCallback((event: MessageEvent) => {
     const data = event.data as Record<string, unknown>
     if (!data || typeof data !== 'object') return
-    if (data.type === 'nemo-ready') return // just a signal, ignore
+    if (data.type === 'nabu-ready') return // just a signal, ignore
 
     if (typeof data.method !== 'string') return
 
-    const { id, method, args } = data as unknown as NemoApiRequest
+    const { id, method, args } = data as unknown as NabuApiRequest
     if (!id) return
 
     const respond = (result: unknown, error?: string) => {
-      const response: NemoApiResponse = { id, result, error }
+      const response: NabuApiResponse = { id, result, error }
       try {
         if (iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage(response, '*')
@@ -252,7 +252,7 @@ export function SandboxedHtml({
   return (
     <div
       className={
-        `nemo-sandbox-html my-3 rounded-lg overflow-hidden border border-white/10 relative group ${className}`
+        `nabu-sandbox-html my-3 rounded-lg overflow-hidden border border-white/10 relative group ${className}`
       }
     >
       <iframe

@@ -18,7 +18,7 @@ import { stateManager } from './state';
 
 export interface WatcherConfig {
   vaultPath: string;
-  /** Patterns to ignore — default: /^\.|\.onyx/ */
+  /** Patterns to ignore — default: /^\.|\.nabu/ */
   ignored: RegExp;
   awaitWriteFinish: { stabilityThreshold: number };
   /** Called when a file is changed by an external editor (isExternal=true) */
@@ -56,7 +56,7 @@ const FATAL_ERROR_CODES = new Set(['EMFILE', 'ENFILE']);
  *
  * - Start / stop the underlying watcher
  * - Per-file debouncing (50 ms) to coalesce rapid write sequences
- * - Pending_Write_Lock check: skip re-parse when Nemo itself wrote the file
+ * - Pending_Write_Lock check: skip re-parse when Nabu itself wrote the file
  * - Automatic restart (up to 3 attempts, 2 s apart) on fatal errors
  * - Callback-based event forwarding to the IPC layer
  */
@@ -74,7 +74,7 @@ export class VaultWatcher {
    * Start watching the vault at `config.vaultPath`.
    *
    * Configures chokidar to:
-   * - Ignore dot-prefixed paths and the `.onyx/` cache directory
+   * - Ignore dot-prefixed paths and the `.nabu/` cache directory
    * - Use `awaitWriteFinish` with a 50 ms stability threshold to avoid
    *   partial-read events on large files
    * - Only report events for `.md` files (other files are filtered in handlers)
@@ -178,7 +178,7 @@ export class VaultWatcher {
    * Handle a debounced `change` event.
    *
    * Checks the Pending_Write_Lock first:
-   * - If the lock is set, the change was triggered by Nemo itself (task
+   * - If the lock is set, the change was triggered by Nabu itself (task
    *   toggle, etc.) — clear the lock and skip re-parsing.
    * - If the lock is absent, the change came from an external editor —
    *   forward to the callback for re-parsing.
