@@ -46,6 +46,8 @@ declare global {
       }
       context: {
         query(text: string): Promise<SearchResult[]>
+        reindex(vaultPath: string): Promise<{ processed: number; error?: string }>
+        status(): Promise<{ disabled: boolean; reason: string | null }>
       }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void

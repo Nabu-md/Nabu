@@ -41,6 +41,8 @@ export interface AppState {
   settingsPanelOpen: boolean
   graphViewOpen: boolean
   theme: 'dark' | 'light' | 'system'
+  vectorDisabled: boolean
+  vectorDisabledReason: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +68,7 @@ export type AppAction =
   | { type: 'SETTINGS_PANEL_TOGGLE' }
   | { type: 'GRAPH_VIEW_TOGGLE' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
+  | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -89,7 +92,9 @@ const initialState: AppState = {
   selectedTags: new Set(),
   settingsPanelOpen: false,
   graphViewOpen: false,
-  theme: 'dark'
+  theme: 'dark',
+  vectorDisabled: false,
+  vectorDisabledReason: null
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -181,6 +186,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'THEME_CHANGED':
       return { ...state, theme: action.payload }
+
+    case 'VECTOR_STATUS_UPDATED':
+      return { ...state, vectorDisabled: action.payload.disabled, vectorDisabledReason: action.payload.reason }
 
     default:
       return state
@@ -428,6 +436,12 @@ function App(): React.JSX.Element {
       }
     }
     pollForVault().catch(console.error)
+
+    // Query vector index status on mount so the renderer can surface a
+    // non-blocking notice when the bge-micro model failed to load (Req 1.4)
+    window.electron.context.status().then((status) => {
+      dispatch({ type: 'VECTOR_STATUS_UPDATED', payload: status })
+    }).catch(console.error)
 
     return cleanup
   }, [wireListeners])
