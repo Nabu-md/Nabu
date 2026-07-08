@@ -8,6 +8,7 @@
  */
 
 import path from 'path';
+import fs from 'fs/promises';
 import { pipeline, env } from '@xenova/transformers';
 import { LocalIndex } from 'vectra';
 import type { SearchResult } from '../shared/types';
@@ -85,6 +86,7 @@ export class VectorManager {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private embedder: ((text: string, options: object) => Promise<any>) | null = null;
   private embeddingsDisabled = false;
+  private disabledReason: string | null = null;
   private queue!: AsyncQueue<EmbedTask>;
 
   /** Callback used to send activity:log messages to the renderer. */
@@ -177,6 +179,48 @@ export class VectorManager {
   }
 
   /**
+   * Return the current status of the vector index.
+   *
+   * When embeddings are disabled (model did not load), returns `disabled: true`
+   * with a human-readable reason.
+   *
+   * Requirements: 1.5, 1.6
+   */
+  getStatus(): { disabled: boolean; reason: string | null } {
+    return {
+      disabled: this.embeddingsDisabled || !this.index,
+      reason: this.disabledReason,
+    };
+  }
+
+  /**
+   * Enqueue all vault files for re-embedding.
+   *
+   * Reads each file from disk and enqueues it through the AsyncQueue.
+   * Returns the number of non-empty files processed.
+   *
+   * Requirements: 1.5, 1.6
+   */
+  async reindexAll(files: import('../shared/types').FileEntry[]): Promise<number> {
+    if (this.embeddingsDisabled || !this.index) return 0;
+
+    let processed = 0;
+    for (const file of files) {
+      try {
+        const content = await fs.readFile(file.path, 'utf-8');
+        if (content && content.trim().length > 0) {
+          this.queue.enqueue({ path: file.path, text: content });
+          processed++;
+        }
+      } catch (err) {
+        this.log('error', `Failed to read file for reindex "${file.path}": ${String(err)}`);
+      }
+    }
+    this.log('info', `Reindex complete: ${processed}/${files.length} files enqueued`);
+    return processed;
+  }
+
+  /**
    * Search the vector index for notes semantically similar to `queryText`.
    *
    * Returns up to `limit` results, excluding `excludePath` if provided.
@@ -266,6 +310,7 @@ export class VectorManager {
     } catch (err) {
       // Model files missing or corrupt — disable embeddings (Req 9.8)
       this.embeddingsDisabled = true;
+      this.disabledReason = `BGE-micro ONNX model failed to load: ${String(err)}`;
       this.embedder = null;
       this.log(
         'error',

@@ -21,6 +21,8 @@ import {
   FileGetSchema,
   TaskToggleSchema,
   ContextQuerySchema,
+  ContextReindexSchema,
+  VectorStatusSchema,
   ActivityLogSchema,
   SettingsGetSchema,
   SettingsSetSchema,
@@ -38,6 +40,8 @@ import {
   FileGetResultSchema,
   TaskToggleResultSchema,
   ContextSearchResultSchema,
+  ContextReindexResultSchema,
+  VectorStatusResultSchema,
   NoteLoadedSchema,
   NoteUpdatedSchema,
   NoteDeletedSchema,
@@ -330,6 +334,8 @@ export function registerIPCHandlers(
     IPCChannel.NOTE_EXPORT_HTML,
     IPCChannel.TEMPLATES_LIST,
     IPCChannel.ASSET_READ,
+    IPCChannel.CONTEXT_REINDEX,
+    IPCChannel.VECTOR_STATUS,
     'vault:get-current' as IPCChannel,
   ];
   for (const ch of channels) {
@@ -590,6 +596,62 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { results: [], error: String(err) };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // context:reindex — trigger full re-embed of all vault files
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.CONTEXT_REINDEX, async (_event, rawPayload) => {
+    const validation = ContextReindexSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] context:reindex validation failed: ${reason}`);
+      return { error: reason };
+    }
+
+    const { vaultPath } = validation.data;
+    const vault = stateManager.getCurrentVault();
+    if (!vault) {
+      return { error: 'No vault is open' };
+    }
+    // Verify vault path matches the open vault
+    if (vault.path !== vaultPath) {
+      emitActivityLog('warn', `[IPC] context:reindex vault path mismatch: "${vaultPath}" !== "${vault.path}"`);
+      return { error: 'Vault path does not match currently open vault' };
+    }
+
+    try {
+      const processed = await vectorManager.reindexAll(vault.files);
+      return ContextReindexResultSchema.parse({ processed });
+    } catch (err) {
+      const msg = `[IPC] context:reindex handler error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { error: String(err) };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // vector:status — return the current vector index status
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.VECTOR_STATUS, async (_event, rawPayload) => {
+    // Validate payload (empty schema — just ensures correctness)
+    const validation = VectorStatusSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] vector:status validation failed: ${reason}`);
+      return { disabled: true, reason };
+    }
+
+    try {
+      const status = vectorManager.getStatus();
+      return VectorStatusResultSchema.parse(status);
+    } catch (err) {
+      const msg = `[IPC] vector:status handler error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { disabled: true, reason: String(err) };
     }
   });
 

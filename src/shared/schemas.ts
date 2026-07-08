@@ -93,6 +93,23 @@ export const ContextSearchResultSchema = z.object({
   )
 });
 
+// context:reindex (Renderer → Main) — trigger full re-embed of all vault files
+export const ContextReindexSchema = z.object({
+  vaultPath: z.string()
+});
+
+export const ContextReindexResultSchema = z.object({
+  processed: z.number().int().nonnegative()
+});
+
+// vector:status (Renderer → Main) — get vector index status
+export const VectorStatusSchema = z.object({});
+
+export const VectorStatusResultSchema = z.object({
+  disabled: z.boolean(),
+  reason: z.string().nullable()
+});
+
 // activity:log (bidirectional)
 export const ActivityLogSchema = z.object({
   level: z.enum(['info', 'warn', 'error']),
@@ -244,6 +261,9 @@ export type TaskTogglePayload = z.infer<typeof TaskToggleSchema>;
 export type TaskToggleResult = z.infer<typeof TaskToggleResultSchema>;
 export type ContextQueryPayload = z.infer<typeof ContextQuerySchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
+export type ContextReindexPayload = z.infer<typeof ContextReindexSchema>;
+export type ContextReindexResult = z.infer<typeof ContextReindexResultSchema>;
+export type VectorStatusResult = z.infer<typeof VectorStatusResultSchema>;
 export type ActivityLog = z.infer<typeof ActivityLogSchema>;
 // v1 types
 export type VaultCreatePayload = z.infer<typeof VaultCreateSchema>;

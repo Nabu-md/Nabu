@@ -60,6 +60,10 @@ const electronAPI = {
   context: {
     query: (text: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.CONTEXT_QUERY, { text }),
+    reindex: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.CONTEXT_REINDEX, { vaultPath }),
+    status: (): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VECTOR_STATUS, {}),
   },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {

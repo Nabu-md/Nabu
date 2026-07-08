@@ -3,7 +3,7 @@
  * Validates Requirements 13.1, 13.2, 13.3, 13.4
  *
  * Tests:
- * 1. Schema validation for all 14 channels (valid and invalid payloads)
+ * 1. Schema validation for all channels (valid and invalid payloads)
  * 2. IPC handler registration and invocation (Renderer→Main)
  * 3. Main→Renderer sendToRenderer message flow
  * 4. Undeclared channel filtering
@@ -26,6 +26,10 @@ import {
   TaskToggleResultSchema,
   ContextQuerySchema,
   ContextSearchResultSchema,
+  ContextReindexSchema,
+  ContextReindexResultSchema,
+  VectorStatusSchema,
+  VectorStatusResultSchema,
   ActivityLogSchema,
 } from '@shared/schemas';
 
@@ -85,6 +89,9 @@ const mockVectorManager = {
   initialize: vi.fn().mockResolvedValue(undefined),
   setLogCallback: vi.fn(),
   generateEmbedding: vi.fn().mockResolvedValue([]),
+  removeFile: vi.fn().mockResolvedValue(undefined),
+  getStatus: vi.fn().mockReturnValue({ disabled: false, reason: null }),
+  reindexAll: vi.fn().mockResolvedValue(10),
 };
 
 const mockWatcher = {
@@ -330,6 +337,44 @@ describe('Schema Validation — all 14 channels (Req 13.2)', () => {
     });
   });
 
+  // --- context:reindex ---
+  describe('context:reindex schema', () => {
+    it('accepts valid payload with vaultPath', () => {
+      expect(() => ContextReindexSchema.parse({ vaultPath: '/vault' })).not.toThrow();
+    });
+    it('rejects missing vaultPath', () => {
+      expect(() => ContextReindexSchema.parse({})).toThrow(ZodError);
+    });
+    it('accepts valid result', () => {
+      expect(() => ContextReindexResultSchema.parse({ processed: 42 })).not.toThrow();
+    });
+    it('rejects negative processed count', () => {
+      expect(() => ContextReindexResultSchema.parse({ processed: -1 })).toThrow(ZodError);
+    });
+  });
+
+  // --- vector:status ---
+  describe('vector:status schema', () => {
+    it('accepts empty payload (no params required)', () => {
+      expect(() => VectorStatusSchema.parse({})).not.toThrow();
+    });
+    it('accepts result with disabled=false', () => {
+      expect(() => VectorStatusResultSchema.parse({ disabled: false, reason: null })).not.toThrow();
+    });
+    it('accepts result with disabled=true and reason', () => {
+      expect(() => VectorStatusResultSchema.parse({ disabled: true, reason: 'Model not found' })).not.toThrow();
+    });
+    it('rejects result missing disabled', () => {
+      expect(() => VectorStatusResultSchema.parse({})).toThrow(ZodError);
+    });
+    it('rejects result missing reason', () => {
+      expect(() => VectorStatusResultSchema.parse({ disabled: false })).toThrow(ZodError);
+    });
+    it('rejects non-boolean disabled', () => {
+      expect(() => VectorStatusResultSchema.parse({ disabled: 'yes', reason: null })).toThrow(ZodError);
+    });
+  });
+
   // --- activity:log ---
   describe('activity:log schema', () => {
     it('accepts valid log entry', () => {
@@ -367,6 +412,8 @@ describe('IPC Handler Registration — all Renderer→Main channels registered (
     IPCChannel.TASK_TOGGLE,
     IPCChannel.NOTE_TOGGLE,
     IPCChannel.CONTEXT_QUERY,
+    IPCChannel.CONTEXT_REINDEX,
+    IPCChannel.VECTOR_STATUS,
     IPCChannel.ACTIVITY_LOG, // bidirectional — also registered on ipcMain
   ];
 
@@ -623,6 +670,53 @@ describe('context:query handler (Req 13.3)', () => {
 
     expect(result).toMatchObject({ results: [] });
     expect(result.error).toBeDefined();
+  });
+});
+
+describe('context:reindex handler (Req 1.5, 1.6)', () => {
+  it('calls vectorManager.reindexAll and returns processed count', async () => {
+    mockStateManager.getCurrentVault.mockReturnValueOnce({ path: '/vault', files: [{ path: '/vault/a.md', name: 'a', mtime: 1 }] });
+    mockVectorManager.reindexAll.mockResolvedValueOnce(5);
+
+    const result = await invokeHandler(IPCChannel.CONTEXT_REINDEX, { vaultPath: '/vault' }) as any;
+
+    expect(mockVectorManager.reindexAll).toHaveBeenCalled();
+    expect(result).toMatchObject({ processed: 5 });
+  });
+
+  it('returns error when no vault is open', async () => {
+    mockStateManager.getCurrentVault.mockReturnValueOnce(null);
+
+    const result = await invokeHandler(IPCChannel.CONTEXT_REINDEX, { vaultPath: '/vault' }) as any;
+
+    expect(mockVectorManager.reindexAll).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('error');
+  });
+
+  it('returns validation error for missing vaultPath', async () => {
+    const result = await invokeHandler(IPCChannel.CONTEXT_REINDEX, {}) as any;
+
+    expect(mockVectorManager.reindexAll).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('error');
+  });
+});
+
+describe('vector:status handler (Req 1.5, 1.6)', () => {
+  it('returns vector status from vectorManager.getStatus', async () => {
+    mockVectorManager.getStatus.mockReturnValueOnce({ disabled: false, reason: null });
+
+    const result = await invokeHandler(IPCChannel.VECTOR_STATUS, {}) as any;
+
+    expect(mockVectorManager.getStatus).toHaveBeenCalled();
+    expect(result).toMatchObject({ disabled: false, reason: null });
+  });
+
+  it('returns disabled=true with reason when model failed to load', async () => {
+    mockVectorManager.getStatus.mockReturnValueOnce({ disabled: true, reason: 'Model not found' });
+
+    const result = await invokeHandler(IPCChannel.VECTOR_STATUS, {}) as any;
+
+    expect(result).toMatchObject({ disabled: true, reason: 'Model not found' });
   });
 });
 

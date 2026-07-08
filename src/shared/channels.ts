@@ -26,5 +26,7 @@ export enum IPCChannel {
   SETTINGS_GET = 'settings:get',
   SETTINGS_SET = 'settings:set',
   INDEX_BUILD = 'index:build',
-  ASSET_READ = 'asset:read'
+  ASSET_READ = 'asset:read',
+  CONTEXT_REINDEX = 'context:reindex',
+  VECTOR_STATUS = 'vector:status',
 }
