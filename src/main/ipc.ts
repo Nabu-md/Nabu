@@ -828,6 +828,11 @@ export function registerIPCHandlers(
         // updateIndexesForFile not yet available — silently ignore
       }
 
+      // Enqueue an embedding for the saved file (Requirement 1.2).
+      // VectorManager.embedFile skips empty-content notes internally (Requirement 1.8)
+      // and respects the embeddingsDisabled flag, so calling it unconditionally is safe.
+      vectorManager.embedFile(filePath, content);
+
       return { success: true };
     } catch (err) {
       // Ensure lock is released even on error
