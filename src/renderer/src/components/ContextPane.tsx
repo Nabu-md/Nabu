@@ -64,7 +64,7 @@ function ChevronIcon({ direction }: ChevronProps): React.JSX.Element {
 
 export function ContextPane(): React.JSX.Element {
   const { state, dispatch } = useAppContext()
-  const { contextPaneOpen, currentFile, currentAST, contextResults } = state
+  const { contextPaneOpen, currentFile, currentAST, contextResults, vectorDisabled, vectorDisabledReason } = state
 
   // ---- Trigger context query when the current file changes ----
   useEffect(() => {
@@ -123,7 +123,17 @@ export function ContextPane(): React.JSX.Element {
             style={{ minHeight: '80px' }}
             aria-label="Context search results"
           >
-            {contextResults.length === 0 ? (
+            {/* Non-blocking notice when the vector model failed to load (Req 1.4) */}
+            {vectorDisabled && (
+              <p
+                className="text-xs text-amber-400/80 py-2 select-none leading-relaxed"
+                role="status"
+              >
+                Semantic search unavailable: {vectorDisabledReason ?? 'Embedding model not loaded'}
+              </p>
+            )}
+
+            {!vectorDisabled && contextResults.length === 0 ? (
               <p className="text-xs text-white/30 py-2 select-none">No related notes found</p>
             ) : (
               contextResults.map((result) => (
