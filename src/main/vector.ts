@@ -147,11 +147,33 @@ export class VectorManager {
    * Queue a file for embedding. The queue processes one file at a time to
    * limit memory pressure. Returns immediately (non-blocking).
    *
-   * Requirements: 9.2, 9.3
+   * Skips files whose text is empty (e.g. frontmatter-only notes) to avoid
+   * storing degenerate zero-content vectors (Requirement 1.8).
+   *
+   * Requirements: 1.8, 9.2, 9.3
    */
   embedFile(filePath: string, text: string): void {
     if (this.embeddingsDisabled || !this.index) return;
+    if (!text || text.trim().length === 0) return; // Requirement 1.8
     this.queue.enqueue({ path: filePath, text });
+  }
+
+  /**
+   * Remove a file's vector from the Vectra index.
+   *
+   * Called by the watcher when a file is deleted from the vault. Does not
+   * throw — failures are logged and silently ignored so deletion is never
+   * blocked by a vector-index error.
+   *
+   * Requirements: 1.3
+   */
+  async removeFile(filePath: string): Promise<void> {
+    if (!this.index || this.embeddingsDisabled) return;
+    try {
+      await this.index.deleteItem(filePath);
+    } catch (err) {
+      this.log('error', `Failed to remove vector for "${filePath}": ${String(err)}`);
+    }
   }
 
   /**

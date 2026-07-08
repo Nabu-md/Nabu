@@ -52,7 +52,7 @@ import { substituteVariables } from './templates';
 
 import type { StateManager } from './state';
 import type { VectorManager } from './vector';
-import type { VaultWatcher } from './watcher';
+import type { VaultWatcher, WatcherConfig } from './watcher';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -87,6 +87,104 @@ function emitActivityLog(
  */
 function formatZodError(err: ZodError): string {
   return err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+}
+
+// ---------------------------------------------------------------------------
+// buildWatcherConfig
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a consolidated watcher configuration with vector embedding wired into
+ * the add/change/delete callbacks.
+ *
+ * This function replaces the three previously-duplicated watcher callback sites
+ * in `ipc.ts` (vault:open) and `index.ts` (restoreVault, NABU_TEST_VAULT).
+ *
+ * Vector embedding behaviour:
+ * - onFileChanged: re-parses the file, pushes the updated AST to the renderer,
+ *   then embeds the changed content (only for external edits — the watcher's
+ *   internal `handleChange` already skips when `Pending_Write_Lock` is set).
+ * - onFileAdded: pushes the updated file list, then reads and embeds the new
+ *   file (guarded with `Pending_Write_Lock`).
+ * - onFileDeleted: removes the file's vector from the Vectra index.
+ *
+ * Requirements: 1.1, 1.3, 1.9
+ */
+export function buildWatcherConfig(
+  stateManager: StateManager,
+  vectorManager: VectorManager,
+  vaultPath: string,
+  vaultMeta: { files: import('../shared/types').FileEntry[] },
+): WatcherConfig {
+  return {
+    vaultPath,
+    ignored: /^\.|\.nabu/,
+    awaitWriteFinish: { stabilityThreshold: 50 },
+
+    onFileChanged: async (filePath: string, isExternal: boolean) => {
+      // Re-parse and push update to the renderer
+      stateManager.invalidateAST(filePath);
+      try {
+        const ast = await stateManager.getAST(filePath);
+        sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal });
+
+        // Embed the changed file. The watcher's handleChange already skips
+        // when Pending_Write_Lock is set (requirement 1.9), but we guard here
+        // as a belt-and-suspenders measure.
+        if (!stateManager.hasPendingWrite(filePath)) {
+          try {
+            const content = await fs.readFile(filePath, 'utf-8');
+            vectorManager.embedFile(filePath, content);
+          } catch (embedErr) {
+            emitActivityLog(
+              'error',
+              `[IPC] Failed to read file for embedding "${filePath}": ${String(embedErr)}`,
+            );
+          }
+        }
+      } catch (err) {
+        emitActivityLog(
+          'error',
+          `[IPC] Failed to re-parse "${filePath}": ${String(err)}`,
+        );
+      }
+    },
+
+    onFileAdded: async (filePath: string) => {
+      // Push the updated file list to the renderer
+      sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath, files: vaultMeta.files });
+
+      // Embed the new file (guard with Pending_Write_Lock — app-created files
+      // set the lock before writing)
+      if (!stateManager.hasPendingWrite(filePath)) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          vectorManager.embedFile(filePath, content);
+        } catch (embedErr) {
+          emitActivityLog(
+            'error',
+            `[IPC] Failed to read new file for embedding "${filePath}": ${String(embedErr)}`,
+          );
+        }
+      }
+    },
+
+    onFileDeleted: (filePath: string) => {
+      // Remove from the vector index (async, non-blocking)
+      vectorManager.removeFile(filePath).catch((err) => {
+        emitActivityLog(
+          'error',
+          `[IPC] Failed to remove vector for "${filePath}": ${String(err)}`,
+        );
+      });
+      // Notify the renderer
+      sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath });
+    },
+
+    onError: (error: Error) => {
+      emitActivityLog('error', `[IPC] Watcher error: ${error.message}`);
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -295,35 +393,8 @@ export function registerIPCHandlers(
         emitActivityLog('warn', `[IPC] vault:open — failed to copy default templates: ${String(copyErr)}`);
       }
 
-      // Start the file watcher for the newly opened vault
-      watcher.start({
-        vaultPath: parsedPath,
-        ignored: /^\.|\.nabu/,
-        awaitWriteFinish: { stabilityThreshold: 50 },
-        onFileChanged: (filePath, isExternal) => {
-          stateManager.invalidateAST(filePath);
-          stateManager.getAST(filePath)
-            .then((ast) => {
-              sendToRenderer(IPCChannel.NOTE_UPDATED, {
-                path: filePath,
-                ast,
-                isExternal,
-              });
-            })
-            .catch((err) => {
-              emitActivityLog('error', `[IPC] Failed to re-parse "${filePath}": ${String(err)}`);
-            });
-        },
-        onFileAdded: (_filePath) => {
-          sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: parsedPath, files: vaultMeta.files });
-        },
-        onFileDeleted: (filePath) => {
-          sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath });
-        },
-        onError: (error) => {
-          emitActivityLog('error', `[IPC] Watcher error: ${error.message}`);
-        },
-      });
+      // Start the file watcher (uses shared config with vector embedding)
+      watcher.start(buildWatcherConfig(stateManager, vectorManager, parsedPath, vaultMeta));
 
       const response = VaultScanResultSchema.parse(vaultMeta);
 

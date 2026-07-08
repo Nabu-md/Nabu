@@ -15,7 +15,7 @@ import fs from 'fs/promises'
 import { StateManager } from './state'
 import { VectorManager } from './vector'
 import { VaultWatcher } from './watcher'
-import { registerIPCHandlers, sendToRenderer } from './ipc'
+import { registerIPCHandlers, sendToRenderer, buildWatcherConfig } from './ipc'
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './settings'
 import type { AppSettings } from './settings'
@@ -277,6 +277,7 @@ export function registerMenu(mainWindow: BrowserWindow): void {
  */
 async function restoreVault(
   stateManager: StateManager,
+  vectorManager: VectorManager,
   watcher: VaultWatcher,
   mainWindow: BrowserWindow,
 ): Promise<void> {
@@ -314,32 +315,8 @@ async function restoreVault(
   try {
     const vaultMeta = await stateManager.openVault(settings.lastVaultPath)
 
-    // Start the file watcher for the restored vault
-    watcher.start({
-      vaultPath: settings.lastVaultPath,
-      ignored: /^\.|\.nabu/,
-      awaitWriteFinish: { stabilityThreshold: 50 },
-      onFileChanged: (filePath, isExternal) => {
-        stateManager.invalidateAST(filePath)
-        stateManager
-          .getAST(filePath)
-          .then((ast) => {
-            sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal })
-          })
-          .catch((err) => {
-            console.error(`[Watcher] Failed to re-parse "${filePath}":`, err)
-          })
-      },
-      onFileAdded: (_filePath) => {
-        sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: settings.lastVaultPath!, files: vaultMeta.files })
-      },
-      onFileDeleted: (filePath) => {
-        sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
-      },
-      onError: (error) => {
-        console.error('[Watcher] Error:', error)
-      },
-    })
+    // Start the file watcher for the restored vault (uses shared config with vector embedding)
+    watcher.start(buildWatcherConfig(stateManager, vectorManager, settings.lastVaultPath, vaultMeta))
   } catch (err) {
     console.error('[restoreVault] Failed to open vault:', err)
 
@@ -452,28 +429,8 @@ app.whenReady().then(async () => {
     if (testVaultPath) {
       stateManager.openVault(testVaultPath)
         .then((vaultMeta) => {
-          watcher.start({
-            vaultPath: testVaultPath,
-            ignored: /^\.|\.nabu/,
-            awaitWriteFinish: { stabilityThreshold: 50 },
-            onFileChanged: (filePath, isExternal) => {
-              stateManager.invalidateAST(filePath)
-              stateManager.getAST(filePath)
-                .then((ast) => {
-                  sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal })
-                })
-                .catch((err) => console.error('[Watcher] re-parse failed:', err))
-            },
-            onFileAdded: (_filePath) => {
-              sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: testVaultPath, files: vaultMeta.files })
-            },
-            onFileDeleted: (filePath) => {
-              sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
-            },
-            onError: (error) => {
-              console.error('[Watcher] Error:', error)
-            },
-          })
+          // Start the file watcher (uses shared config with vector embedding)
+          watcher.start(buildWatcherConfig(stateManager, vectorManager, testVaultPath, vaultMeta))
           // Push vault state to the renderer. This may arrive before or after
           // React mounts. The renderer also polls via vault:get-current so
           // whichever path succeeds first wins.
@@ -484,7 +441,7 @@ app.whenReady().then(async () => {
         })
       return
     }
-    restoreVault(stateManager, watcher, mainWindow).catch((err) => {
+    restoreVault(stateManager, vectorManager, watcher, mainWindow).catch((err) => {
       console.error('[App] restoreVault error:', err)
     })
   })
