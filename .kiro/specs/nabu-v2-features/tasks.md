@@ -290,11 +290,11 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 7 — Format Import & Feature Toggles
 
-- [ ] 52. Implement format import: PDF via `pdfjs-dist` (R36)
+- [x] 52. Implement format import: PDF via `pdfjs-dist` (R36)
   - Bundle `pdfjs-dist`; `pdf-importer.ts` in `src/main/importers/`; extract text content from PDF pages; convert to markdown (heading detection by font size, paragraph grouping, basic list detection); save as `.md` with frontmatter preserving original filename and `source_format: pdf`; progress reporting; error handling for encrypted/corrupt PDFs.
   - _Requirements: 36.1, 36.4, 36.5, 36.6, 36.8, 36.9_
 
-- [ ] 53. Implement format import: DOCX via `mammoth.js` + CSV via `xlsx` (R36)
+- [x] 53. Implement format import: DOCX via `mammoth.js` + CSV via `xlsx` (R36)
   - Bundle `mammoth.js` and `xlsx`; `docx-importer.ts` converts styled DOCX to markdown (bold/italic/headings/lists/tables preserved); `csv-importer.ts` renders CSV data as GFM markdown tables; same frontmatter, progress, error conventions as task 52.
   - Invocable from Command Palette ("Import file...") and "File > Import" menu via native file-open dialog filtered by supported extensions.
   - _Requirements: 36.2, 36.3, 36.4, 36.5, 36.6, 36.7, 36.8, 36.9_
