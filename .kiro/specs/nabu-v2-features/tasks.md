@@ -264,7 +264,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Parse `[^label]` / `[^label]:` footnote syntax; inline references as clickable superscript links; Footnotes sidebar panel listing definitions; click reference scrolls to definition and vice versa; hidden when no footnotes; round-trip on save; no parsing inside code blocks.
   - _Requirements: 31.1, 31.2, 31.3, 31.4, 31.5, 31.6_
 
-- [ ] 47. Implement Format Converter — Import from Notion/Roam/Evernote (R32)
+- [x] 47. Implement Format Converter — Import from Notion/Roam/Evernote (R32)
   - "Import notes" command (Command Palette + Settings); support Notion JSON/ZIP export, Roam JSON, Evernote ENEX; convert to Nabu markdown preserving headings/lists/bold-italic/code/links/images; map source metadata to frontmatter; dry-run preview before write; filename conflict handling (rename/skip/overwrite); main-process async with progress IPC pushes; modular per-format in `src/main/importers/`.
   - _Requirements: 32.1, 32.2, 32.3, 32.4, 32.5, 32.6, 32.7, 32.8, 32.9_
 
