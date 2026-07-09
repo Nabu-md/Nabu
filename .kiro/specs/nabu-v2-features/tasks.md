@@ -177,7 +177,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Allow switching between Properties table and raw-YAML edit at any time.
   - _Requirements: 12.7_
 
-- [ ] 30. Implement property search
+- [x] 30. Implement property search
   - `property:name:value` operator in SearchPanel using `Extended_SearchIndex.propertyIndex`; bare `name:value` for unambiguous keys; list values indexed element-wise.
   - Clicking a property value in PropertiesView filters results.
   - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
