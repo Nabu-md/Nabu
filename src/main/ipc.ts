@@ -82,6 +82,42 @@ import type { VectorManager } from './vector';
 import type { VaultWatcher, WatcherConfig } from './watcher';
 
 // ---------------------------------------------------------------------------
+// vaultId dispatch helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the appropriate session managers for the given vaultId.
+ * If vaultId is omitted, returns the active vault's managers.
+ * If the specified vault is not open, throws an error.
+ *
+ * Requirements: 22.3, 22.9
+ */
+function getSessionForVault(vaultId: string | undefined): {
+  stateManager: StateManager
+  vectorManager: VectorManager
+  vaultPath: string | null
+} {
+  const session = vaultRegistry.get(vaultId)
+  if (!session) {
+    const activeSession = vaultRegistry.getActive()
+    if (activeSession) {
+      // Return active session for backward compatibility when vaultId omitted
+      return {
+        stateManager: activeSession.stateManager as unknown as StateManager,
+        vectorManager: activeSession.vectorManager as unknown as VectorManager,
+        vaultPath: activeSession.vaultPath,
+      }
+    }
+    throw new Error('No vault is currently open')
+  }
+  return {
+    stateManager: session.stateManager as unknown as StateManager,
+    vectorManager: session.vectorManager as unknown as VectorManager,
+    vaultPath: session.vaultPath,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
