@@ -65,6 +65,10 @@ const electronAPI = {
     status: (): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.VECTOR_STATUS, {}),
   },
+  search: {
+    query: (queryString: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SEARCH_QUERY, { query: queryString }),
+  },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void =>
