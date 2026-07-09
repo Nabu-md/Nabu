@@ -937,6 +937,7 @@ export function registerIPCHandlers(
 
   // -------------------------------------------------------------------------
   // vault:open-in-new-window — open vault in a second BrowserWindow
+  // Requirements: 22.7
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, async (_event, rawPayload) => {
     const validation = VaultOpenSchema.safeParse(rawPayload ?? {})
@@ -955,7 +956,7 @@ export function registerIPCHandlers(
       // Check path is accessible
       await fs.access(vaultPath, fs.constants.R_OK)
 
-      // Open the vault in the registry
+      // Open the vault in the registry (Req 22.7)
       const vaultMeta = await stateManager.openVault(vaultPath)
 
       // Copy default templates on first open (non-fatal)
@@ -964,6 +965,16 @@ export function registerIPCHandlers(
       } catch (copyErr) {
         emitActivityLog('warn', `[IPC] vault:open-in-new-window — failed to copy default templates: ${String(copyErr)}`)
       }
+
+      // Register vault session in the registry
+      vaultRegistry.register(
+        vaultPath,
+        vaultPath,
+        stateManager,
+        vectorManager,
+        watcher,
+      )
+      vaultRegistry.setActive(vaultPath)
 
       // Start the file watcher for this vault
       watcher.start(buildWatcherConfig(stateManager, vectorManager, vaultPath, vaultMeta))
