@@ -49,8 +49,10 @@ const SNIPPET_MAX_LENGTH = 120;
  * hyphens, or forward slashes (for namespaced tags like `parent/child`).
  * Uses a negative lookbehind to avoid matching `##` (ATX headings) and a
  * negative lookahead to stop at punctuation or whitespace.
+ *
+ * Exported so the renderer can use the same pattern for clickable tag chips.
  */
-const INLINE_TAG_RE = /(?<!\w)(#[\p{L}\p{N}_/\-]+)(?!\w)/gu;
+export const INLINE_TAG_RE = /(?<!\w)(#[\p{L}\p{N}_/\-]+)(?!\w)/gu;
 
 /**
  * Regex for detecting block identifiers (`^block-id`) at the end of a line.

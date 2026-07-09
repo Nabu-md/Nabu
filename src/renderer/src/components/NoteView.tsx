@@ -31,6 +31,7 @@ import { MermaidBlock } from './blocks/MermaidBlock'
 import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
 import { PropertiesView } from './blocks/PropertiesView'
+import { renderInlineTagText } from './blocks/InlineTagChip'
 import katex from 'katex'
 
 // ---------------------------------------------------------------------------
@@ -460,7 +461,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   // ---- Inline nodes ----
 
   if (type === 'text') {
-    return (node as Text).value
+    return renderInlineTagText(node as Text)
   }
 
   if (type === 'strong') {
