@@ -1030,6 +1030,17 @@ export function NoteView(): React.JSX.Element {
     [currentFile]
   )
 
+  // ---- Property search handler (Req 13.5) ----
+  const handlePropertySearch = useCallback(
+    (propertyName: string, propertyValue: string) => {
+      dispatch({
+        type: 'SEARCH_PANEL_OPEN_WITH_QUERY',
+        payload: `property:${propertyName}:${propertyValue}`,
+      })
+    },
+    [dispatch]
+  )
+
   // ---- Article ref for HTML export ----
   const articleRef = useRef<HTMLElement>(null)
 
@@ -1222,6 +1233,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                   key="properties"
                   yamlValue={yamlValue}
                   onSave={handlePropertiesSave}
+                  onPropertySearch={handlePropertySearch}
                 />
               )
             })()}

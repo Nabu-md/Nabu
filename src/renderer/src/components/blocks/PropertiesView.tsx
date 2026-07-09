@@ -19,6 +19,8 @@ export interface PropertiesViewProps {
   yamlValue: string | null
   /** Called when the user modifies properties, with the new YAML string. */
   onSave: (yamlString: string) => void
+  /** Called when the user wants to search for all notes with a given property value. */
+  onPropertySearch?: (propertyName: string, propertyValue: string) => void
 }
 
 interface PropertyEntry {
@@ -135,7 +137,7 @@ function ValueInput({ value, onChange, onBlur, autoFocus }: ValueInputProps): Re
 // PropertiesView
 // ---------------------------------------------------------------------------
 
-export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): React.JSX.Element {
+export function PropertiesView({ yamlValue, onSave, onPropertySearch }: PropertiesViewProps): React.JSX.Element {
   const [entries, setEntries] = useState<PropertyEntry[]>([])
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [newKeyInput, setNewKeyInput] = useState('')
@@ -437,12 +439,25 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
               </div>
 
               {/* Value cell */}
-              <div className="flex items-center min-h-[24px]">
-                <ValueInput
-                  value={entry.value}
-                  onChange={(newVal) => handleValueChange(entry.key, newVal)}
-                  onBlur={() => setEditingKey(null)}
-                />
+              <div className="flex items-center min-h-[24px] gap-1">
+                <div className="flex-1">
+                  <ValueInput
+                    value={entry.value}
+                    onChange={(newVal) => handleValueChange(entry.key, newVal)}
+                    onBlur={() => setEditingKey(null)}
+                  />
+                </div>
+                {onPropertySearch && (
+                  <button
+                    type="button"
+                    onClick={() => onPropertySearch(entry.key, valueToString(entry.value))}
+                    className="text-xs text-white/20 hover:text-blue-400 transition-colors px-1 opacity-0 group-hover:opacity-100 shrink-0"
+                    title={`Filter by ${entry.key}: ${valueToString(entry.value)}`}
+                    aria-label={`Search for notes with ${entry.key} = ${valueToString(entry.value)}`}
+                  >
+                    🔍
+                  </button>
+                )}
               </div>
 
               {/* Remove button */}

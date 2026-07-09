@@ -318,6 +318,34 @@ describe('executeQuery', () => {
     expect(results).toEqual([]);
   });
 
+  // --- bare name:value property promotion (Req 13.2) ---
+
+  it('bare status:active promotes to property filter (known property key)', () => {
+    const results = executeQuery(parseQuery('status:active'), FILES, VAULT_PATH, index, () => undefined);
+    expect(results).toHaveLength(1);
+    expect(results[0].filePath).toBe('/test-vault/projects/alpha.md');
+  });
+
+  it('bare nonexistent:value stays as bare term (unknown property key)', () => {
+    const results = executeQuery(parseQuery('nonexistent:value'), FILES, VAULT_PATH, index, () => undefined);
+    // "nonexistent" is not in the property index, so it stays as a bare term
+    // Neither "nonexistent" nor "value" appear in any file's content
+    expect(results).toEqual([]);
+  });
+
+  it('bare status:active promotes and AND-combines with a bare term', () => {
+    const results = executeQuery(parseQuery('status:active TypeScript'), FILES, VAULT_PATH, index, () => undefined);
+    expect(results).toHaveLength(1);
+    expect(results[0].filePath).toBe('/test-vault/projects/alpha.md');
+  });
+
+  it('bare property promotion does not override explicit property: operator', () => {
+    // When both bare and explicit forms are present, explicit wins (first set wins)
+    const parsed = parseQuery('property:status:active');
+    // Execute with a bare term that would also promote, but explicit is already set
+    expect(parsed.property).toEqual({ name: 'status', value: 'active' });
+  });
+
   // --- content: (Req 3.5) ---
 
   it('content: matches substring in line snippets and returns snippet + position', () => {

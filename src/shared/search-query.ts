@@ -184,12 +184,16 @@ export function executeQuery(
   const fileMap = new Map<string, FileEntry>();
   for (const f of files) fileMap.set(f.path, f);
 
+  // 0. Promote bare key:value terms that match known frontmatter properties
+  //    (Req 13.2 — bare name:value form for unambiguous property keys)
+  const parsed = promoteBarePropertyTerms(query, extIndex);
+
   // 1. Determine candidate files from fast index-based filters
-  let candidates = getCandidatesByIndexChecks(query, extIndex, files, vaultPath);
+  let candidates = getCandidatesByIndexChecks(parsed, extIndex, files, vaultPath);
 
   // 2. For line:/content:/regex, also require the text to appear in snippets
-  if (query.line !== undefined || query.content !== undefined || query.regex !== undefined || query.bareTerms.length > 0) {
-    candidates = filterBySnippetScan(candidates, query, extIndex, vaultPath);
+  if (parsed.line !== undefined || parsed.content !== undefined || parsed.regex !== undefined || parsed.bareTerms.length > 0) {
+    candidates = filterBySnippetScan(candidates, parsed, extIndex, vaultPath);
   } else {
     // No text-based filtering needed — build results from index-only matches
     candidates = candidates.map((filePath) => {
@@ -229,6 +233,46 @@ export function search(
 // ---------------------------------------------------------------------------
 // Private helpers — candidate filtering
 // ---------------------------------------------------------------------------
+
+/**
+ * Scan bare terms for `key:value` patterns that match known frontmatter
+ * properties in the index.  When a match is found the term is promoted to a
+ * `property:` filter and removed from bare terms.
+ *
+ * This implements Requirement 13.2 — bare `name:value` form for unambiguous
+ * property keys.
+ *
+ * The returned ParsedQuery is either the original (if no promotion occurred)
+ * or a new object with the promoted property filter and filtered bare terms.
+ */
+function promoteBarePropertyTerms(
+  query: ParsedQuery,
+  extIndex: ExtendedSearchIndex,
+): ParsedQuery {
+  if (extIndex.propertyIndex.size === 0) return query;
+
+  const promoted: ParsedQuery = { ...query, bareTerms: [...query.bareTerms] };
+  let changed = false;
+
+  for (let i = promoted.bareTerms.length - 1; i >= 0; i--) {
+    const term = promoted.bareTerms[i];
+    const match = term.match(/^([\w\s-]+?):(.+)$/);
+    if (match) {
+      const name = match[1].trim().toLowerCase();
+      const value = match[2].trim();
+      if (extIndex.propertyIndex.has(name)) {
+        // Promote to property filter if one isn't already set
+        if (!promoted.property) {
+          promoted.property = { name, value };
+        }
+        promoted.bareTerms.splice(i, 1);
+        changed = true;
+      }
+    }
+  }
+
+  return changed ? promoted : query;
+}
 
 /**
  * Use fast index-based lookups (path, tag, file, property) to narrow the

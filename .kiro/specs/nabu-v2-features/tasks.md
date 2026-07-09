@@ -173,7 +173,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Reload + warn on external frontmatter change while the view is open.
   - _Requirements: 12.4, 12.7, 12.8, 13B.1, 13B.2, 13B.3, 26.1_
 
-- [ ] 29. Add raw-YAML toggle
+- [x] 29. Add raw-YAML toggle
   - Allow switching between Properties table and raw-YAML edit at any time.
   - _Requirements: 12.7_
 

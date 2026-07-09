@@ -100,6 +100,15 @@ export function SearchPanel({
     inputRef.current?.focus()
   }, [])
 
+  // If a query was pre-set (e.g. from property search), trigger search immediately
+  useEffect(() => {
+    if (query.trim()) {
+      performSearch(query)
+    }
+    // Only run on mount — query changes via input are handled by the debounce
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Scroll the selected result into view
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'nearest' })

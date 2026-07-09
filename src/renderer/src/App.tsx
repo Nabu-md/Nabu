@@ -86,6 +86,7 @@ export type AppAction =
   | { type: 'SEARCH_PANEL_TOGGLE' }
   | { type: 'SEARCH_PANEL_OPEN' }
   | { type: 'SEARCH_PANEL_CLOSE' }
+  | { type: 'SEARCH_PANEL_OPEN_WITH_QUERY'; payload: string }
   | { type: 'SEARCH_RESULTS_UPDATED'; payload: { query: string; results: SearchQueryResult[] } }
   | { type: 'QUICK_SWITCHER_TOGGLE' }
   | { type: 'QUICK_SWITCHER_OPEN' }
@@ -240,6 +241,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'SEARCH_PANEL_CLOSE':
       return { ...state, searchPanelOpen: false }
+
+    case 'SEARCH_PANEL_OPEN_WITH_QUERY':
+      return { ...state, searchPanelOpen: true, searchQuery: action.payload, searchResults: [] }
 
     case 'SEARCH_RESULTS_UPDATED':
       return { ...state, searchQuery: action.payload.query, searchResults: action.payload.results }
