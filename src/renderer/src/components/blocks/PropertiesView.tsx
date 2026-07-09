@@ -1,11 +1,10 @@
 /**
  * PropertiesView.tsx
  *
- * Renders YAML frontmatter as a two-column editable table.
- * Supports inline editing of string/number/boolean/list values,
- * adding new properties, and removing existing ones.
+ * Renders YAML frontmatter as a two-column editable table, with a toggle
+ * to switch between table view and raw-YAML textarea editor.
  *
- * Requirements: 12.1, 12.2, 12.3, 12.5, 12.6
+ * Requirements: 12.1, 12.2, 12.3, 12.5, 12.6, 12.7
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -142,6 +141,8 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
   const [newKeyInput, setNewKeyInput] = useState('')
   const [showNewKeyInput, setShowNewKeyInput] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [rawMode, setRawMode] = useState(false)
+  const [rawYamlText, setRawYamlText] = useState('')
 
   // Parse YAML value into entries whenever yamlValue prop changes
   useEffect(() => {
@@ -161,7 +162,7 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
       }
       setEntries(ordered)
     } catch {
-      // If YAML is invalid, show nothing — the raw YAML edit toggle (Req 12.7) will be available
+      // If YAML is invalid, show nothing — raw-YAML edit is available
       setEntries([])
     }
   }, [yamlValue])
@@ -176,6 +177,9 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
     return stringify(obj)
   }, [])
 
+  /** The raw YAML derived from current entries (for the raw editor). */
+  const entriesRawYaml = useMemo(() => serializeEntries(entries), [entries, serializeEntries])
+
   /** Save current state and notify parent. */
   const saveEntries = useCallback(
     (items: PropertyEntry[]) => {
@@ -184,6 +188,43 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
     },
     [onSave, serializeEntries],
   )
+
+  /** Save raw YAML text. */
+  const saveRawYaml = useCallback(() => {
+    // Validate YAML before saving
+    try {
+      parse(rawYamlText)
+    } catch {
+      // Invalid — don't save, show no feedback for now
+      return
+    }
+    onSave(rawYamlText)
+    // Re-parse back into entries for table view
+    try {
+      const parsed = parse(rawYamlText)
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        const ordered: PropertyEntry[] = []
+        for (const [key, value] of Object.entries(parsed)) {
+          ordered.push({ key, value })
+        }
+        setEntries(ordered)
+      }
+    } catch {
+      // ignore parse errors on save
+    }
+    setRawMode(false)
+  }, [rawYamlText, onSave])
+
+  /** Switch to raw mode, loading the current YAML text. */
+  const enterRawMode = useCallback(() => {
+    setRawYamlText(entriesRawYaml || yamlValue || '')
+    setRawMode(true)
+  }, [entriesRawYaml, yamlValue])
+
+  /** Switch to table mode (no save — discard raw edits). */
+  const exitRawMode = useCallback(() => {
+    setRawMode(false)
+  }, [])
 
   /** Update a single entry's value. */
   const handleValueChange = useCallback(
@@ -234,8 +275,45 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
     saveEntries(updated)
   }, [newKeyInput, entries, saveEntries])
 
-  // Derive keys for display
-  const existingKeys = useMemo(() => new Set(entries.map((e) => e.key)), [entries])
+  // ---- Raw-YAML editor mode ----
+  if (rawMode) {
+    return (
+      <section
+        className="properties-view mt-2 mb-4 border border-white/10 rounded-lg overflow-hidden"
+        aria-label="Properties — raw YAML editor"
+      >
+        <div className="flex items-center justify-between px-4 py-2 bg-white/[0.02] border-b border-white/5">
+          <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">
+            Raw YAML
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={saveRawYaml}
+              className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={exitRawMode}
+              className="text-xs text-white/30 hover:text-white/50 transition-colors"
+            >
+              Back to table
+            </button>
+          </div>
+        </div>
+        <textarea
+          value={rawYamlText}
+          onChange={(e) => setRawYamlText(e.target.value)}
+          className="w-full min-h-[120px] bg-transparent text-sm font-mono text-white/80 p-3 outline-none resize-y focus:bg-white/[0.01] transition-colors"
+          placeholder="key: value"
+          spellCheck={false}
+          aria-label="Raw YAML editor"
+        />
+      </section>
+    )
+  }
 
   // ---- Empty state ----
   if (entries.length === 0 && !showNewKeyInput) {
@@ -248,6 +326,14 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
           <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">
             Properties
           </span>
+          <button
+            type="button"
+            onClick={enterRawMode}
+            className="text-xs text-white/30 hover:text-white/50 transition-colors"
+            title="Edit raw YAML"
+          >
+            {'{ }'}
+          </button>
         </div>
         <p className="text-xs text-white/30 mb-2">No properties yet.</p>
         <button
@@ -272,14 +358,24 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
         <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">
           Properties
         </span>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-xs text-white/30 hover:text-white/50 transition-colors"
-          aria-label={collapsed ? 'Expand properties' : 'Collapse properties'}
-        >
-          {collapsed ? '▲' : '▼'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={enterRawMode}
+            className="text-xs text-white/30 hover:text-white/50 transition-colors"
+            title="Edit raw YAML"
+          >
+            {'{ }'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-xs text-white/30 hover:text-white/50 transition-colors"
+            aria-label={collapsed ? 'Expand properties' : 'Collapse properties'}
+          >
+            {collapsed ? '▲' : '▼'}
+          </button>
+        </div>
       </div>
 
       {!collapsed && (
@@ -373,7 +469,6 @@ export function PropertiesView({ yamlValue, onSave }: PropertiesViewProps): Reac
                   value={newKeyInput}
                   onChange={(e) => setNewKeyInput(e.target.value)}
                   onBlur={() => {
-                    // Only hide if empty (prevents accidental close)
                     if (!newKeyInput.trim()) setShowNewKeyInput(false)
                   }}
                   onKeyDown={(e) => {

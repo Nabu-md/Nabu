@@ -137,10 +137,13 @@ const calloutBodyArb = fc.constantFrom(
   'Short text.',
 )
 
-/** A safe embed target: alphanumeric + dots/hyphens/underscores, no markdown syntax. */
+/** A safe embed target: alphanumeric + dots/hyphens/underscores, no markdown syntax.
+ *  Underscores at start/end are filtered because they trigger emphasis parsing
+ *  inside `![[...]]` (e.g. `_0_` becomes emphasis, breaking the embed pattern). */
 const safeTargetArb = fc
   .string({ minLength: 1, maxLength: 15 })
   .filter((s) => /^[a-zA-Z0-9._-]+$/.test(s))
+  .filter((s) => !s.startsWith('_') && !s.endsWith('_'))
 
 // ---------------------------------------------------------------------------
 // Property: Callout round-trip
