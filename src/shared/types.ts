@@ -23,6 +23,7 @@ export interface WikiLink extends Node {
   type: 'wikiLink';
   target: string; // e.g., "Page Name"
   resolved: boolean; // set by renderer during resolution
+  blockRef?: string; // for [[note#^id]] form, e.g. "block-id"
 }
 
 export interface Callout extends Node {

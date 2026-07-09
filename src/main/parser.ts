@@ -35,6 +35,7 @@ import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
 import { remarkWikiLinks } from './plugins/remarkWikiLinks';
 import { remarkCallouts } from './plugins/remarkCallouts';
 import { remarkEmbeds } from './plugins/remarkEmbeds';
+import { remarkBlockRefs } from './plugins/remarkBlockRefs';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -152,7 +153,8 @@ function buildProcessor() {
     .use(remarkCallouts) //    5. >[!type] blockquotes → Callout nodes
     .use(remarkToggleBlocks) // 6. [toggle] headings → ToggleBlock nodes
     .use(remarkTaskBlocks) //   7. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks); //   8. [[Page Name]] → WikiLink nodes
+    .use(remarkWikiLinks) //   8. [[Page Name]] → WikiLink nodes
+    .use(remarkBlockRefs); // 9. ^id trailing on blocks + [[note#^id]] refs
 }
 
 // ---------------------------------------------------------------------------
@@ -326,7 +328,9 @@ function denormalizeNode(node: any): any {
 
   // ── wikiLink → text ───────────────────────────────────────────────────
   if (node.type === 'wikiLink') {
-    return { type: 'text', value: `[[${node.target}]]` };
+    const linkNode = node as { target: string; blockRef?: string };
+    const suffix = linkNode.blockRef ? `#^${linkNode.blockRef}` : '';
+    return { type: 'text', value: `[[${linkNode.target}${suffix}]]` };
   }
 
   // ── Recurse into standard nodes ───────────────────────────────────────
@@ -335,6 +339,16 @@ function denormalizeNode(node: any): any {
   if (Array.isArray(node.children)) {
     copy.children = denormalizeChildren(node.children);
   }
+
+  // Append trailing `^blockId` to last text child for round-trip
+  const blockId: string | undefined = (node.data as Record<string, unknown> | undefined)?.blockId as string | undefined;
+  if (blockId && Array.isArray(copy.children) && copy.children.length > 0) {
+    const lastChild = copy.children[copy.children.length - 1];
+    if (lastChild?.type === 'text' && typeof lastChild.value === 'string') {
+      lastChild.value += ` ^${blockId}`;
+    }
+  }
+
   // taskItem.children are phrasing content – handled above inside taskList
   // toggleBlock.children handled above
   return copy;

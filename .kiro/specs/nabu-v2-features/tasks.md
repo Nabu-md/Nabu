@@ -143,7 +143,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Recognise `![[target]]`; resolve image → data-URI `<img>` via `asset:read`; note → transcluded AST with depth cap; broken-embed indicator; vault-root path containment in `asset:read`; round-trip.
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
 
-- [ ] 24. Add block-reference parsing (`remarkBlockRefs.ts`)
+- [x] 24. Add block-reference parsing (`remarkBlockRefs.ts`)
   - Trailing `^id` on blocks; `[[note#^id]]` link form; `blockRefs` index build + incremental update.
   - _Requirements: 20.1, 20.2, 20.5, 20.6_
 
