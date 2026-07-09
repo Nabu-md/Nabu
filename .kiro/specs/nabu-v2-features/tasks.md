@@ -252,7 +252,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - On hover over resolved `wikiLink` or `embed` in view mode, show popover with rendered excerpt of target note (same `renderNode` pipeline, truncated); configurable hover delay (default 300ms); "Open" link in popover; no preview on broken links; disabled when user turns off in Settings.
   - _Requirements: 28.1, 28.2, 28.3, 28.4, 28.5, 28.6, 28.7, 28.8_
 
-- [ ] 44. Implement File Recovery via Snapshots (R29)
+- [x] 44. Implement File Recovery via Snapshots (R29)
   - Auto-snapshot note to `.nabu/snapshots/<path>/` before each save; per-note cap (50) and per-vault cap (1000); "File recovery" panel listing snapshots with diff preview; "Restore this version" and "Open as new note" actions; pre-restore snapshot before restore; configurable on/off in Settings; `.nabu/snapshots/` added to `.gitignore` automatically; async via AsyncQueue.
   - _Requirements: 29.1, 29.2, 29.3, 29.4, 29.5, 29.6, 29.7, 29.8, 29.9_
 
