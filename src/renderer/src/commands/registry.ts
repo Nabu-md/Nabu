@@ -79,9 +79,22 @@ export function seedCommands(
     openRandomNote?: () => void
     /** Called to trigger a full vector reindex. */
     reindexVector?: () => void
+    /** Called to toggle favorite state for the current file. */
+    toggleFavorite?: () => void
   },
 ): void {
   const o = options ?? {}
+
+  registerCommand({
+    id: 'favorites.toggle',
+    label: 'Toggle favorite',
+    keywords: ['favorite', 'star', 'bookmark'],
+    run: () => {
+      if (o.toggleFavorite) {
+        o.toggleFavorite()
+      }
+    },
+  })
 
   registerCommand({
     id: 'edit.toggle',

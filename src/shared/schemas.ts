@@ -387,6 +387,42 @@ export const NoteDailyResultSchema = z.object({
 export type NoteDailyPayload = z.infer<typeof NoteDailySchema>;
 export type NoteDailyResult = z.infer<typeof NoteDailyResultSchema>;
 
+// favorites:get (Renderer → Main) — get favorites list for a vault
+export const FavoritesGetSchema = z.object({
+  vaultPath: z.string(),
+});
+
+export const FavoritesGetResultSchema = z.object({
+  favorites: z.array(z.string()),
+});
+
+// favorites:toggle (Renderer → Main) — toggle a file's favorite state
+export const FavoritesToggleSchema = z.object({
+  vaultPath: z.string(),
+  filePath: z.string(),
+});
+
+export const FavoritesToggleResultSchema = z.object({
+  favorites: z.array(z.string()),
+});
+
+// favorites:remove (Renderer → Main) — remove a file from favorites
+export const FavoritesRemoveSchema = z.object({
+  vaultPath: z.string(),
+  filePath: z.string(),
+});
+
+export const FavoritesRemoveResultSchema = z.object({
+  favorites: z.array(z.string()),
+});
+
+export type FavoritesGetPayload = z.infer<typeof FavoritesGetSchema>;
+export type FavoritesGetResult = z.infer<typeof FavoritesGetResultSchema>;
+export type FavoritesTogglePayload = z.infer<typeof FavoritesToggleSchema>;
+export type FavoritesToggleResult = z.infer<typeof FavoritesToggleResultSchema>;
+export type FavoritesRemovePayload = z.infer<typeof FavoritesRemoveSchema>;
+export type FavoritesRemoveResult = z.infer<typeof FavoritesRemoveResultSchema>;
+
 export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;

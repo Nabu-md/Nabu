@@ -32,6 +32,7 @@ import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
 import { PropertiesView } from './blocks/PropertiesView'
 import { renderInlineTagText } from './blocks/InlineTagChip'
+import { FavoriteToggle } from './FavoriteToggle'
 import katex from 'katex'
 
 // ---------------------------------------------------------------------------
@@ -1192,6 +1193,9 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         <>
           {/* View/edit toolbar */}
           <div className="flex items-center justify-end gap-2 px-8 pt-4">
+            {currentFile && (
+              <FavoriteToggle filePath={currentFile} size="md" />
+            )}
             <button
               type="button"
               aria-label="Export as PDF"

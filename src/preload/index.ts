@@ -45,6 +45,14 @@ const electronAPI = {
     daily: (vaultPath: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.NOTE_DAILY, { vaultPath }),
   },
+  favorites: {
+    get: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_GET, { vaultPath }),
+    toggle: (vaultPath: string, filePath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_TOGGLE, { vaultPath, filePath }),
+    remove: (vaultPath: string, filePath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_REMOVE, { vaultPath, filePath }),
+  },
   templates: {
     list: (vaultPath: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.TEMPLATES_LIST, { vaultPath }),
