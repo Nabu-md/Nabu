@@ -3,6 +3,8 @@ export enum IPCChannel {
   VAULT_OPEN_IN_NEW_WINDOW = 'vault:open-in-new-window',
   VAULT_SCAN = 'vault:scan',
   VAULT_CLOSE = 'vault:close',
+  VAULT_SWITCH = 'vault:switch',
+  VAULT_GET_RECENTS = 'vault:get-recents',
   FILE_GET = 'file:get',
   FILE_WATCH = 'file:watch',
   NOTE_LOADED = 'note:loaded',

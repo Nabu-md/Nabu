@@ -5,7 +5,12 @@ import { IPCChannel } from '../shared/channels'
 const electronAPI = {
   vault: {
     open: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VAULT_OPEN),
-    close: (): Promise<void> => ipcRenderer.invoke(IPCChannel.VAULT_CLOSE),
+    close: (vaultId?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_CLOSE, { vaultId }),
+    switch: (vaultId: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_SWITCH, { vaultId }),
+    getRecents: (): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_GET_RECENTS, {}),
     getCurrent: (): Promise<unknown> => ipcRenderer.invoke('vault:get-current'),
     create: (parentPath: string, name: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.VAULT_CREATE, { parentPath, name }),

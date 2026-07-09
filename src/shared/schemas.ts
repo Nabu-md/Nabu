@@ -17,13 +17,41 @@ export const VaultScanResultSchema = z.object({
 });
 
 // vault:close (Renderer → Main)
-export const VaultCloseSchema = z.object({});
+export const VaultCloseSchema = z.object({
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
+});
+
+// vault:switch (Renderer → Main) — switch active vault
+export const VaultSwitchSchema = z.object({
+  vaultId: z.string(),
+});
+
+const VaultSwitchResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional(),
+});
+
+export type VaultSwitchPayload = z.infer<typeof VaultSwitchSchema>;
+export type VaultSwitchResult = z.infer<typeof VaultSwitchResultSchema>;
+
+// vault:get-recents (Renderer → Main) — get recent vaults list
+export const VaultGetRecentsSchema = z.object({});
+
+const VaultGetRecentsResultSchema = z.object({
+  recents: z.array(z.object({
+    path: z.string(),
+    name: z.string(),
+    lastOpened: z.number(),
+  })),
+});
+
+export type VaultGetRecentsResult = z.infer<typeof VaultGetRecentsResultSchema>;
 
 // file:get (Renderer → Main)
 export const FileGetSchema = z.object({
   path: z.string(),
   vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
-})
+});
 
 export const FileGetResultSchema = z.object({
   path: z.string(),
@@ -275,6 +303,7 @@ export const IndexBuildSchema = z.object({
 // search:query (Renderer → Main)
 export const SearchQuerySchema = z.object({
   query: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 const SearchMatchSchema = z.object({
