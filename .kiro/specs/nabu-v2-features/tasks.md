@@ -182,7 +182,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Clicking a property value in PropertiesView filters results.
   - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
 
-- [ ] 31. Inline tags + nested tag pane
+- [x] 31. Inline tags + nested tag pane
   - Render inline `#tag` as clickable chips (skip inside code); hierarchical tag pane with namespaced nesting + counts; parent-tag namespace filtering; unified tag index.
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
