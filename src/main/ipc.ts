@@ -587,10 +587,25 @@ export function registerIPCHandlers(
 
     const { text, excludePath } = validation.data;
 
+    // Check vector index status before searching. If disabled or empty, return
+    // an honest `disabled` flag so the renderer surfaces a clear message
+    // instead of silently showing no results (Requirement 1.7).
+    try {
+      const status = await vectorManager.getStatus();
+      if (status.disabled) {
+        return { results: [], disabled: true, reason: status.reason ?? 'Embedding model not loaded' };
+      }
+      if (status.items === 0) {
+        return { results: [], disabled: true, reason: 'Vector index is empty — save some notes to populate it' };
+      }
+    } catch (err) {
+      emitActivityLog('warn', `[IPC] context:query status check failed: ${String(err)}`);
+      // Fall through to search — let it fail normally if there's a real problem
+    }
+
     try {
       const rawResults = await vectorManager.search(text, 5, excludePath);
-      const response = ContextSearchResultSchema.parse({ results: rawResults });
-      return response;
+      return ContextSearchResultSchema.parse({ results: rawResults });
     } catch (err) {
       const msg = `[IPC] context:query handler error: ${String(err)}`;
       console.error(msg);
@@ -645,13 +660,13 @@ export function registerIPCHandlers(
     }
 
     try {
-      const status = vectorManager.getStatus();
+      const status = await vectorManager.getStatus();
       return VectorStatusResultSchema.parse(status);
     } catch (err) {
       const msg = `[IPC] vector:status handler error: ${String(err)}`;
       console.error(msg);
       emitActivityLog('error', msg);
-      return { disabled: true, reason: String(err) };
+      return { disabled: true, reason: String(err), items: 0 };
     }
   });
 

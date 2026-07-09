@@ -45,9 +45,9 @@ declare global {
         toggle(path: string, lineIndex: number): Promise<void>
       }
       context: {
-        query(text: string): Promise<SearchResult[]>
+        query(text: string): Promise<SearchResult[] | { results: SearchResult[]; disabled?: boolean; reason?: string }>
         reindex(vaultPath: string): Promise<{ processed: number; error?: string }>
-        status(): Promise<{ disabled: boolean; reason: string | null }>
+        status(): Promise<{ disabled: boolean; reason: string | null; items: number }>
       }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void

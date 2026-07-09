@@ -182,14 +182,25 @@ export class VectorManager {
    * Return the current status of the vector index.
    *
    * When embeddings are disabled (model did not load), returns `disabled: true`
-   * with a human-readable reason.
+   * with a human-readable reason. Also reports the number of items in the index
+   * so callers can detect an empty index (Requirement 1.7).
    *
-   * Requirements: 1.5, 1.6
+   * Requirements: 1.5, 1.6, 1.7
    */
-  getStatus(): { disabled: boolean; reason: string | null } {
+  async getStatus(): Promise<{ disabled: boolean; reason: string | null; items: number }> {
+    let items = 0;
+    if (this.index && !this.embeddingsDisabled) {
+      try {
+        const stats = await this.index.getIndexStats();
+        items = stats.items;
+      } catch {
+        // Index stats unavailable — leave items as 0
+      }
+    }
     return {
       disabled: this.embeddingsDisabled || !this.index,
       reason: this.disabledReason,
+      items,
     };
   }
 

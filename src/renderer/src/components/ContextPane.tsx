@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Node, Root, Text } from 'mdast'
+import { SearchResult } from '../../../shared/types'
 import { useAppContext } from '../App'
 
 // ---------------------------------------------------------------------------
@@ -73,9 +74,26 @@ export function ContextPane(): React.JSX.Element {
     const text = currentAST ? astToPlainText(currentAST) : currentFile
     if (!text) return
 
-    window.electron.context.query(text).catch((err: unknown) => {
-      console.error('[ContextPane] context.query failed:', err)
-    })
+    window.electron.context.query(text)
+      .then((response) => {
+        // response is either SearchResult[] (v1 compat) or { results, disabled?, reason? }
+        const data = Array.isArray(response)
+          ? { results: response }
+          : response as { results: SearchResult[]; disabled?: boolean; reason?: string }
+
+        dispatch({ type: 'CONTEXT_RESULTS', payload: data.results })
+
+        // Surface disabled/empty index state (Requirement 1.7)
+        if (data.disabled) {
+          dispatch({
+            type: 'VECTOR_STATUS_UPDATED',
+            payload: { disabled: true, reason: data.reason ?? null }
+          })
+        }
+      })
+      .catch((err: unknown) => {
+        console.error('[ContextPane] context.query failed:', err)
+      })
   }, [currentFile, currentAST])
 
   // ---- Toggle handler ----

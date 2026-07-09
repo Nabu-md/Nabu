@@ -90,7 +90,7 @@ const mockVectorManager = {
   setLogCallback: vi.fn(),
   generateEmbedding: vi.fn().mockResolvedValue([]),
   removeFile: vi.fn().mockResolvedValue(undefined),
-  getStatus: vi.fn().mockReturnValue({ disabled: false, reason: null }),
+  getStatus: vi.fn().mockResolvedValue({ disabled: false, reason: null, items: 0 }),
   reindexAll: vi.fn().mockResolvedValue(10),
 };
 
@@ -359,19 +359,22 @@ describe('Schema Validation — all 14 channels (Req 13.2)', () => {
       expect(() => VectorStatusSchema.parse({})).not.toThrow();
     });
     it('accepts result with disabled=false', () => {
-      expect(() => VectorStatusResultSchema.parse({ disabled: false, reason: null })).not.toThrow();
+      expect(() => VectorStatusResultSchema.parse({ disabled: false, reason: null, items: 0 })).not.toThrow();
     });
     it('accepts result with disabled=true and reason', () => {
-      expect(() => VectorStatusResultSchema.parse({ disabled: true, reason: 'Model not found' })).not.toThrow();
+      expect(() => VectorStatusResultSchema.parse({ disabled: true, reason: 'Model not found', items: 0 })).not.toThrow();
     });
     it('rejects result missing disabled', () => {
-      expect(() => VectorStatusResultSchema.parse({})).toThrow(ZodError);
+      expect(() => VectorStatusResultSchema.parse({ reason: null, items: 0 })).toThrow(ZodError);
     });
     it('rejects result missing reason', () => {
-      expect(() => VectorStatusResultSchema.parse({ disabled: false })).toThrow(ZodError);
+      expect(() => VectorStatusResultSchema.parse({ disabled: false, items: 0 })).toThrow(ZodError);
     });
     it('rejects non-boolean disabled', () => {
-      expect(() => VectorStatusResultSchema.parse({ disabled: 'yes', reason: null })).toThrow(ZodError);
+      expect(() => VectorStatusResultSchema.parse({ disabled: 'yes', reason: null, items: 0 })).toThrow(ZodError);
+    });
+    it('rejects result missing items', () => {
+      expect(() => VectorStatusResultSchema.parse({ disabled: false, reason: null })).toThrow(ZodError);
     });
   });
 
@@ -635,6 +638,7 @@ describe('note:toggle handler (Req 13.3)', () => {
 describe('context:query handler (Req 13.3)', () => {
   it('calls vectorManager.search and returns results', async () => {
     const mockResults = [{ path: '/vault/related.md', score: 0.92, tokenCount: 150 }];
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: false, reason: null, items: 5 });
     mockVectorManager.search.mockResolvedValueOnce(mockResults);
 
     const result = await invokeHandler(IPCChannel.CONTEXT_QUERY, {
@@ -646,6 +650,7 @@ describe('context:query handler (Req 13.3)', () => {
   });
 
   it('passes excludePath to vectorManager.search', async () => {
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: false, reason: null, items: 5 });
     mockVectorManager.search.mockResolvedValueOnce([]);
 
     await invokeHandler(IPCChannel.CONTEXT_QUERY, {
@@ -664,6 +669,7 @@ describe('context:query handler (Req 13.3)', () => {
   });
 
   it('returns empty results array when vectorManager.search throws', async () => {
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: false, reason: null, items: 5 });
     mockVectorManager.search.mockRejectedValueOnce(new Error('index unavailable'));
 
     const result = await invokeHandler(IPCChannel.CONTEXT_QUERY, { text: 'query' }) as any;
@@ -703,20 +709,20 @@ describe('context:reindex handler (Req 1.5, 1.6)', () => {
 
 describe('vector:status handler (Req 1.5, 1.6)', () => {
   it('returns vector status from vectorManager.getStatus', async () => {
-    mockVectorManager.getStatus.mockReturnValueOnce({ disabled: false, reason: null });
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: false, reason: null, items: 5 });
 
     const result = await invokeHandler(IPCChannel.VECTOR_STATUS, {}) as any;
 
     expect(mockVectorManager.getStatus).toHaveBeenCalled();
-    expect(result).toMatchObject({ disabled: false, reason: null });
+    expect(result).toMatchObject({ disabled: false, reason: null, items: 5 });
   });
 
   it('returns disabled=true with reason when model failed to load', async () => {
-    mockVectorManager.getStatus.mockReturnValueOnce({ disabled: true, reason: 'Model not found' });
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: true, reason: 'Model not found', items: 0 });
 
     const result = await invokeHandler(IPCChannel.VECTOR_STATUS, {}) as any;
 
-    expect(result).toMatchObject({ disabled: true, reason: 'Model not found' });
+    expect(result).toMatchObject({ disabled: true, reason: 'Model not found', items: 0 });
   });
 });
 
@@ -936,6 +942,7 @@ describe('Zod validation applied before dispatch — round-trip (Req 13.3, 13.4)
     expect(mockVectorManager.search).not.toHaveBeenCalled();
 
     // Valid
+    mockVectorManager.getStatus.mockResolvedValueOnce({ disabled: false, reason: null, items: 5 });
     mockVectorManager.search.mockResolvedValueOnce([]);
     const good = await invokeHandler(IPCChannel.CONTEXT_QUERY, { text: 'real query' }) as any;
     expect(good).toMatchObject({ results: [] });

@@ -90,7 +90,11 @@ export const ContextSearchResultSchema = z.object({
       score: z.number().min(0).max(1),
       tokenCount: z.number().int().nonnegative()
     })
-  )
+  ),
+  /** Set to true when the vector index is disabled or empty (Requirement 1.7). */
+  disabled: z.boolean().optional(),
+  /** Human-readable reason why results are unavailable (Requirement 1.7). */
+  reason: z.string().optional()
 });
 
 // context:reindex (Renderer → Main) — trigger full re-embed of all vault files
@@ -107,7 +111,8 @@ export const VectorStatusSchema = z.object({});
 
 export const VectorStatusResultSchema = z.object({
   disabled: z.boolean(),
-  reason: z.string().nullable()
+  reason: z.string().nullable(),
+  items: z.number().int().nonnegative()
 });
 
 // activity:log (bidirectional)
