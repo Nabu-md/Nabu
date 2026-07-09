@@ -182,17 +182,18 @@ export function registerMenu(mainWindow: BrowserWindow): void {
         },
         { type: 'separator' },
         {
-          // v2 stub: tab bar at top of window for switching between open vaults
-          // each vault managed in its own renderer context with separate AppState instance per tab
+          // v2: open vault in a new window (Requirement 22.7)
           label: 'Open in New Window',
-          click: (): void => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'Multi-vault (v2)',
-              message: 'Multi-vault support is planned for v2',
-              detail: 'Each vault will open in its own tab at the top of the window.',
-              buttons: ['OK'],
-            }).catch(() => {})
+          click: async (): Promise<void> => {
+            const result = await dialog.showOpenDialog(mainWindow, {
+              properties: ['openDirectory'],
+              title: 'Open Vault in New Window',
+              buttonLabel: 'Open',
+            }).catch(() => ({ canceled: true, filePaths: [] }))
+            if (result.canceled || result.filePaths.length === 0) return
+            mainWindow.webContents.send(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, {
+              path: result.filePaths[0],
+            })
           },
         },
         { type: 'separator' },
