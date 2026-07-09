@@ -227,11 +227,11 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - `note:random` returns one path from the active vault file list (respecting tag filter); empty-vault guard; Command Palette registration.
   - _Requirements: 19.1, 19.2, 19.3, 19.4_
 
-- [ ] 40. Implement Note Composer
+- [x] 40. Implement Note Composer
   - Multi-select merge dialog; `## <name>` headings; union tags; warn on scalar conflicts; archive/delete originals optional; preview before write; Pending_Write_Lock via note-create path.
   - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5_
 
-- [ ] 41. Phase 5 verification
+- [x] 41. Phase 5 verification
   - Unit tests: daily-note path derivation, favorites/bookmarks persistence + cleanup, composer merge.
   - E2E: open daily note (create then reopen), favorite a note and verify it persists, run random note, compose two notes.
   - Full Vitest suite green.
