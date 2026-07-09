@@ -163,7 +163,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
 
 ### Phase 4 — Metadata & Properties
 
-- [ ] 27. Build `PropertiesView.tsx`
+- [x] 27. Build `PropertiesView.tsx`
   - Render frontmatter `yaml` node as a two-column table (replaces the silent skip in `renderNode`); inline edit string/number/boolean/list; add/remove property; "Add properties" when none.
   - Use the `yaml` npm library for parse/serialise (preserving unknown keys).
   - _Requirements: 12.1, 12.2, 12.3, 12.5, 12.6_

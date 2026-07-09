@@ -30,6 +30,7 @@ import { CodeBlock } from './blocks/CodeBlock'
 import { MermaidBlock } from './blocks/MermaidBlock'
 import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
+import { PropertiesView } from './blocks/PropertiesView'
 import katex from 'katex'
 
 // ---------------------------------------------------------------------------
@@ -57,6 +58,31 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
       }
     )
   })
+}
+
+/**
+ * Replace the YAML frontmatter section in raw markdown content.
+ *
+ * If the content starts with `---\n...\n---`, that section is replaced with
+ * the new YAML string.  If no frontmatter exists, the new YAML is prepended.
+ * Passing an empty YAML string removes the frontmatter section entirely.
+ */
+function replaceFrontmatter(raw: string, newYaml: string): string {
+  const FRONTMATTER_RE = /^---\n[\s\S]*?\n---(?:\n|$)/
+
+  if (!newYaml.trim()) {
+    // Remove frontmatter if it exists, otherwise return raw unchanged
+    return raw.replace(FRONTMATTER_RE, '')
+  }
+
+  const yamlBlock = `---\n${newYaml.trim()}\n---\n`
+
+  if (FRONTMATTER_RE.test(raw)) {
+    return raw.replace(FRONTMATTER_RE, yamlBlock)
+  }
+
+  // No existing frontmatter — prepend
+  return yamlBlock + raw
 }
 
 // ---------------------------------------------------------------------------
@@ -570,7 +596,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
     return <br key={key} />
   }
 
-  // ---- YAML frontmatter (remark-frontmatter) — skip silently ----
+  // ---- YAML frontmatter (remark-frontmatter) — handled by PropertiesView ----
   if (type === 'yaml' || type === 'toml') {
     return null
   }
@@ -1004,6 +1030,23 @@ export function NoteView(): React.JSX.Element {
     [dispatch]
   )
 
+  // ---- Properties save handler ----
+  const handlePropertiesSave = useCallback(
+    async (newYaml: string) => {
+      if (!currentFile) return
+      try {
+        const rawResult = await window.electron.note.getRaw(currentFile)
+        if (!rawResult || typeof rawResult.content !== 'string') return
+        const newContent = replaceFrontmatter(rawResult.content, newYaml)
+        if (newContent === rawResult.content) return // no change
+        await window.electron.note.save(currentFile, newContent)
+      } catch (err) {
+        console.error('[NoteView] properties save error:', err)
+      }
+    },
+    [currentFile]
+  )
+
   // ---- Article ref for HTML export ----
   const articleRef = useRef<HTMLElement>(null)
 
@@ -1185,7 +1228,23 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
             className="note-content max-w-2xl mx-auto px-8 py-6"
             aria-label="Note content"
           >
-            {currentAST.children.map((child, i) => renderNode(child, renderCtx, i))}
+            {/* YAML frontmatter → PropertiesView */}
+            {(() => {
+              const yamlNode = currentAST.children.find(
+                (c) => c.type === 'yaml' || c.type === 'toml',
+              ) as { value?: string } | undefined
+              const yamlValue = yamlNode?.value ?? null
+              return (
+                <PropertiesView
+                  key="properties"
+                  yamlValue={yamlValue}
+                  onSave={handlePropertiesSave}
+                />
+              )
+            })()}
+            {currentAST.children
+              .filter((child) => child.type !== 'yaml' && child.type !== 'toml')
+              .map((child, i) => renderNode(child, renderCtx, i))}
             <OutgoingLinksPanel />
             <BacklinksPanel />
           </article>
