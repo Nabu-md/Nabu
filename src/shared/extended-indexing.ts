@@ -323,6 +323,8 @@ function addNamespacedParentTags(tagIndex: Map<string, Set<string>>, tag: string
 
   for (let i = 1; i < parts.length; i++) {
     const parentTag = parts.slice(0, i).join('/');
+    // Skip empty parent segments (e.g. when the tag starts with '/')
+    if (parentTag.length === 0) continue;
     addToSetMap(tagIndex, parentTag, filePath);
   }
 }

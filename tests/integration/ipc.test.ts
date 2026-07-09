@@ -31,6 +31,7 @@ import {
   VectorStatusSchema,
   VectorStatusResultSchema,
   ActivityLogSchema,
+  IndexBuildSchema,
 } from '@shared/schemas';
 
 // ---------------------------------------------------------------------------
@@ -959,5 +960,46 @@ describe('Zod validation applied before dispatch — round-trip (Req 13.3, 13.4)
     sendToRenderer(IPCChannel.NOTE_LOADED, { path: '/v/a.md', ast: {} });
     const sentGood = mockWebContents.send.mock.calls.filter(([ch]) => ch === IPCChannel.NOTE_LOADED);
     expect(sentGood).toHaveLength(1);
+  });
+
+  // --- index:build schema with extendedIndex ---
+  describe('IndexBuildSchema with extendedIndex (Req 2.6, 2.8)', () => {
+    const validExtendedIndex = {
+      positions: { hello: { '/v/a.md': [1, 2] } },
+      lineSnippets: { '/v/a.md': ['hello world'] },
+      tagIndex: { tag1: ['/v/a.md'] },
+      aliasIndex: { 'my-alias': ['/v/a.md'] },
+      propertyIndex: { author: { pablo: ['/v/a.md'] } },
+      blockRefs: { '/v/a.md': { '^ref1': 'L5' } },
+    };
+
+    it('accepts full payload with extendedIndex', () => {
+      const payload = {
+        ftIndex: { hello: ['/v/a.md'] },
+        tagIndex: { tag1: ['/v/a.md'] },
+        edges: [{ source: '/v/a.md', target: '/v/b.md', snippet: 'a' }],
+        extendedIndex: validExtendedIndex,
+      };
+      expect(() => IndexBuildSchema.parse(payload)).not.toThrow();
+    });
+
+    it('rejects payload missing extendedIndex', () => {
+      const payload = {
+        ftIndex: { hello: ['/v/a.md'] },
+        tagIndex: { tag1: ['/v/a.md'] },
+        edges: [{ source: '/v/a.md', target: '/v/b.md', snippet: 'a' }],
+      };
+      expect(() => IndexBuildSchema.parse(payload)).toThrow(ZodError);
+    });
+
+    it('rejects extendedIndex with invalid positions value type', () => {
+      const payload = {
+        ftIndex: { hello: ['/v/a.md'] },
+        tagIndex: { tag1: ['/v/a.md'] },
+        edges: [{ source: '/v/a.md', target: '/v/b.md', snippet: 'a' }],
+        extendedIndex: { ...validExtendedIndex, positions: { hello: { '/v/a.md': ['not-a-number'] } } },
+      };
+      expect(() => IndexBuildSchema.parse(payload)).toThrow(ZodError);
+    });
   });
 });
