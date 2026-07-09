@@ -77,6 +77,8 @@ export function getActiveVault(state: AppState): VaultMetadata | null {
 
 export type AppAction =
   | { type: 'VAULT_OPENED'; payload: VaultMetadata }
+  | { type: 'VAULT_SWITCHED'; payload: { vaultId: string; vault: VaultMetadata } }
+  | { type: 'VAULT_CLOSED'; payload: { vaultId: string } }
   | { type: 'FILE_LOADED'; payload: { path: string; ast: Root } }
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
   | { type: 'TOGGLE_BLOCK'; payload: { filePath: string; headingId: string; isOpen: boolean } }
@@ -147,8 +149,51 @@ const initialState: AppState = {
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'VAULT_OPENED':
-      return { ...state, vault: action.payload, showSetup: false, currentFile: null, currentAST: null }
+    case 'VAULT_OPENED': {
+      // Ensure the vault is in openVaults array
+      const existingVault = state.openVaults.find(v => v.path === action.payload.path)
+      const openVaults = existingVault
+        ? state.openVaults
+        : [...state.openVaults, { id: action.payload.path, path: action.payload.path, name: action.payload.path.split('/').pop() ?? 'vault' }]
+      return {
+        ...state,
+        openVaults,
+        activeVaultId: action.payload.path,
+        vault: action.payload,
+        showSetup: false,
+        currentFile: null,
+        currentAST: null
+      }
+    }
+
+    case 'VAULT_SWITCHED': {
+      const { vaultId, vault } = action.payload
+      const existingVault = state.openVaults.find(v => v.id === vaultId)
+      const openVaults = existingVault
+        ? state.openVaults
+        : [...state.openVaults, { id: vaultId, path: vault.path, name: vault.path.split('/').pop() ?? 'vault' }]
+      return {
+        ...state,
+        openVaults,
+        activeVaultId: vaultId,
+        vault,
+        currentFile: null,
+        currentAST: null
+      }
+    }
+
+    case 'VAULT_CLOSED': {
+      const { vaultId } = action.payload
+      const openVaults = state.openVaults.filter(v => v.id !== vaultId)
+      return {
+        ...state,
+        openVaults,
+        activeVaultId: state.activeVaultId === vaultId ? (openVaults.length > 0 ? openVaults[0].id : null) : state.activeVaultId,
+        vault: state.activeVaultId === vaultId ? (openVaults.length > 0 ? state.vault : null) : state.vault,
+        currentFile: null,
+        currentAST: null
+      }
+    }
 
     case 'FILE_LOADED': {
       // Track recently opened notes (capped at 10, deduped)
