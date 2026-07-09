@@ -28,6 +28,7 @@ import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
 import { CodeBlock } from './blocks/CodeBlock'
 import { MermaidBlock } from './blocks/MermaidBlock'
+import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
 import katex from 'katex'
 
@@ -177,6 +178,7 @@ interface RenderContext {
   onToggle: (lineIndex: number) => void
   onNavigate: (filePath: string) => void
   vaultFiles: import('@shared/types').FileEntry[]
+  embedDepth: number
 }
 
 function renderNode(node: Node, ctx: RenderContext, key: string | number): React.ReactNode {
@@ -266,6 +268,22 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
           {body}
         </div>
       </div>
+    )
+  }
+
+  if (type === 'embed') {
+    const n = node as unknown as { target: string }
+    return (
+      <EmbedBlock
+        key={key}
+        target={n.target}
+        embedDepth={ctx.embedDepth}
+        renderNodes={(nodes, fp) =>
+          nodes.map((child, i) =>
+            renderNode(child, { ...ctx, embedDepth: ctx.embedDepth + 1, filePath: fp }, i)
+          )
+        }
+      />
     )
   }
 
@@ -999,7 +1017,8 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
     optimisticToggles,
     onToggle: handleTaskToggle,
     onNavigate: handleNavigate,
-    vaultFiles: state.vault?.files ?? []
+    vaultFiles: state.vault?.files ?? [],
+    embedDepth: 0,
   }
 
   // ---- Render ----

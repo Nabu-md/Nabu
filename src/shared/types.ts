@@ -95,6 +95,11 @@ export interface GraphNode {
   vy?: number;
 }
 
+export interface Embed extends Node {
+  type: 'embed';
+  target: string;
+}
+
 // Template type
 export interface Template {
   name: string;

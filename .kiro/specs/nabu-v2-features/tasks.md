@@ -139,7 +139,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - In `renderNode`, route `code` with `lang === 'mermaid'` to `MermaidBlock`; lazy-load `mermaid`; loading state; parse-error message + source; theme-aware re-render; serialise SVG for HTML export.
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 23. Add embeds (`remarkEmbeds.ts` + renderer)
+- [x] 23. Add embeds (`remarkEmbeds.ts` + renderer)
   - Recognise `![[target]]`; resolve image → data-URI `<img>` via `asset:read`; note → transcluded AST with depth cap; broken-embed indicator; vault-root path containment in `asset:read`; round-trip.
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
 

@@ -34,6 +34,7 @@ import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
 import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
 import { remarkWikiLinks } from './plugins/remarkWikiLinks';
 import { remarkCallouts } from './plugins/remarkCallouts';
+import { remarkEmbeds } from './plugins/remarkEmbeds';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -147,10 +148,11 @@ function buildProcessor() {
     .use(remarkFrontmatter) // 1. YAML / TOML front matter
     .use(remarkGfm) //          2. GFM tables, strikethrough, task lists syntax
     .use(remarkMath) //         3. $...$ / $$...$$ → inlineMath / math nodes
-    .use(remarkCallouts) //    4. >[!type] blockquotes → Callout nodes
-    .use(remarkToggleBlocks) // 5. [toggle] headings → ToggleBlock nodes
-    .use(remarkTaskBlocks) //   6. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks); //   7. [[Page Name]] → WikiLink nodes
+    .use(remarkEmbeds) //      4. ![[target]] → embed nodes (must precede wikiLink)
+    .use(remarkCallouts) //    5. >[!type] blockquotes → Callout nodes
+    .use(remarkToggleBlocks) // 6. [toggle] headings → ToggleBlock nodes
+    .use(remarkTaskBlocks) //   7. - [ ] / - [x] → TaskList / TaskItem nodes
+    .use(remarkWikiLinks); //   8. [[Page Name]] → WikiLink nodes
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +317,11 @@ function denormalizeNode(node: any): any {
       spread: false,
       children: items,
     };
+  }
+
+  // ── embed → text ─────────────────────────────────────────────────────
+  if (node.type === 'embed') {
+    return { type: 'text', value: `![[${(node as { target: string }).target}]]` };
   }
 
   // ── wikiLink → text ───────────────────────────────────────────────────
