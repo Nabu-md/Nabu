@@ -226,7 +226,11 @@ export class StateManager {
     const files = this.currentVault?.files ?? [];
     const getAST = (p: string): Root | undefined => this.astStore.get(p);
 
-    const edges = buildGraph(files, getAST);
+    // Build extended index first so aliasIndex is available for graph (Req 15.2)
+    this.extendedIndex = buildExtendedIndex(files, getAST);
+
+    // Build graph edges with alias resolution
+    const edges = buildGraph(files, getAST, this.extendedIndex.aliasIndex);
 
     // Store built indexes in instance fields for incremental updates later
     this.fullTextIndex = buildFullTextIndex(files, getAST);
@@ -257,9 +261,6 @@ export class StateManager {
 
     const tagIndexObj: Record<string, string[]> = {};
     for (const [k, v] of this.tagIndex) tagIndexObj[k] = Array.from(v);
-
-    // Build and store the extended search index (Req 2.6, 2.8)
-    this.extendedIndex = buildExtendedIndex(files, getAST);
 
     // Serialise extended index Maps → Records for IPC transport
     const extendedIndexObj = serializeExtendedIndex(this.extendedIndex);
@@ -341,10 +342,10 @@ export class StateManager {
     // 4. Incrementally update the extended search index (Req 2.6)
     updateExtendedIndexForFile(this.extendedIndex, filePath, getAST(filePath));
 
-    // 5. Rebuild the complete edge list and refresh snippets for edges whose
-    //    source is the changed file
+    // 5. Rebuild the complete edge list with alias resolution (Req 15.2)
+    //    and refresh snippets for edges whose source is the changed file
     const allFiles = this.currentVault?.files ?? [];
-    const edges = buildGraph(allFiles, getAST);
+    const edges = buildGraph(allFiles, getAST, this.extendedIndex.aliasIndex);
 
     for (const edge of edges) {
       const sourceAST = getAST(edge.source);

@@ -186,7 +186,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Render inline `#tag` as clickable chips (skip inside code); hierarchical tag pane with namespaced nesting + counts; parent-tag namespace filtering; unified tag index.
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
-- [ ] 32. Wire aliases into resolution paths
+- [x] 32. Wire aliases into resolution paths
   - Wiki-link resolver, graph edge builder, and Quick Switcher consult `aliasIndex`; shortest-path tie-break + ambiguity surfacing; incremental alias re-index.
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6_
 

@@ -105,11 +105,25 @@ export function QuickSwitcher(): React.JSX.Element | null {
   const fuzzyItems: FuzzyItem[] = useMemo(() => {
     if (!vault) return []
 
+    // Build a reverse alias index: filePath → aliases[] (Req 15.4)
+    const aliasReverse = new Map<string, string[]>()
+    if (state.extendedIndex?.aliasIndex) {
+      for (const [alias, paths] of state.extendedIndex.aliasIndex) {
+        for (const p of paths) {
+          const existing = aliasReverse.get(p)
+          if (existing) {
+            if (!existing.includes(alias)) existing.push(alias)
+          } else {
+            aliasReverse.set(p, [alias])
+          }
+        }
+      }
+    }
+
     return vault.files.map((file) => {
       const name = file.name.replace(/\.md$/i, '')
       const relPath = relativePath(vault.path, file.path)
-      const aliases =
-        state.extendedIndex?.aliasIndex?.get(file.path) ?? undefined
+      const aliases = aliasReverse.get(file.path) ?? undefined
       return { name, path: relPath, aliases }
     })
   }, [vault, state.extendedIndex])

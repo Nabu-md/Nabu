@@ -17,17 +17,22 @@ interface ResolvedLink {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a lookup index from lowercase basename (without `.md`) → list of absolute paths.
+ * Build a lookup index from lowercase basename (without `.md`) → list of absolute
+ * paths.  Optionally incorporates aliases from the alias index so that wiki-link
+ * targets pointing to aliases resolve to the owning note (Req 15.2).
  *
  * This runs in O(n) on vault size and is memoised by the component so it is
  * effectively O(1) per lookup after the first render with a given `vaultFiles`
  * reference.
  */
-function buildIndex(vaultFiles: FileEntry[]): Map<string, string[]> {
+function buildIndex(
+  vaultFiles: FileEntry[],
+  aliasIndex?: Map<string, string[]>,
+): Map<string, string[]> {
   const index = new Map<string, string[]>()
+
+  // 1. Index by file name
   for (const entry of vaultFiles) {
-    // `FileEntry.name` is already the basename without extension (per shared/types.ts).
-    // Guard against entries that still carry the extension.
     const key = entry.name.replace(/\.md$/i, '').toLowerCase()
     const existing = index.get(key)
     if (existing) {
@@ -36,6 +41,22 @@ function buildIndex(vaultFiles: FileEntry[]): Map<string, string[]> {
       index.set(key, [entry.path])
     }
   }
+
+  // 2. Merge aliases into the same index (Req 15.2)
+  if (aliasIndex) {
+    for (const [alias, paths] of aliasIndex) {
+      const existing = index.get(alias)
+      if (existing) {
+        // Append any paths not already present
+        for (const p of paths) {
+          if (!existing.includes(p)) existing.push(p)
+        }
+      } else {
+        index.set(alias, [...paths])
+      }
+    }
+  }
+
   return index
 }
 
@@ -69,17 +90,19 @@ export interface WikiLinkProps {
   node: WikiLinkNode
   vaultFiles: FileEntry[]
   onNavigate: (filePath: string, blockRef?: string) => void
+  /** Optional alias index for resolving wiki-link targets that match aliases (Req 15.2). */
+  aliasIndex?: Map<string, string[]>
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React.JSX.Element {
+export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkProps): React.JSX.Element {
   const [tooltipVisible, setTooltipVisible] = useState(false)
 
-  // Build the index once per unique `vaultFiles` reference
-  const index = useMemo(() => buildIndex(vaultFiles), [vaultFiles])
+  // Build the index once per unique `vaultFiles` reference (aliasIndex is stable across renders)
+  const index = useMemo(() => buildIndex(vaultFiles, aliasIndex), [vaultFiles, aliasIndex])
 
   const resolved = resolveWikiLink(node.target, index)
 
