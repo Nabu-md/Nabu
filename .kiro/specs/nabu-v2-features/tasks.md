@@ -268,15 +268,15 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - "Import notes" command (Command Palette + Settings); support Notion JSON/ZIP export, Roam JSON, Evernote ENEX; convert to Nabu markdown preserving headings/lists/bold-italic/code/links/images; map source metadata to frontmatter; dry-run preview before write; filename conflict handling (rename/skip/overwrite); main-process async with progress IPC pushes; modular per-format in `src/main/importers/`.
   - _Requirements: 32.1, 32.2, 32.3, 32.4, 32.5, 32.6, 32.7, 32.8, 32.9_
 
-- [ ] 48. Implement Bases — Database Views (R33)
+- [x] 48. Implement Bases — Database Views (R33)
   - Base View renders note collection as sortable/filterable table (each row = note, columns = frontmatter properties); user-selectable columns with drag-and-drop reorder; sort by column asc/desc; filter by column value; inline property editing via `properties:write`; multiple view types (table/board-kanban/gallery-card); query-defined (tag/folder/property condition); config persistable as named base in `.nabu/bases.json`; reflective updates when matching notes change.
   - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7, 33.8_
 
-- [ ] 49. Implement Web Viewer (R34)
+- [x] 49. Implement Web Viewer (R34)
   - External link click opens in embedded browser view (BrowserView or `<webview>`) instead of system browser; navigation controls (back/forward/reload/open in system browser); dismissible (close button/Esc); Settings option "Open links in" (Nabu web viewer vs system browser, default system); clear cookies/session state on close; block `file://` and `localhost` URLs.
   - _Requirements: 34.1, 34.2, 34.3, 34.4, 34.5, 34.6_
 
-- [ ] 50. Implement Audio Recorder (R35)
+- [x] 50. Implement Audio Recorder (R35)
   - "Insert audio recording" command (edit mode + Command Palette); record from default input with timer indicator; save as `.mp3`/`.ogg` to configurable assets dir (default `.nabu/audio/`); insert `![[recording.mp3]]` at cursor; render as `<audio controls>` via asset bridge; non-blocking async recording; graceful error on no microphone / permission denied.
   - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7_
 
