@@ -21,6 +21,7 @@ import { ActivityTimeline } from './components/ActivityTimeline'
 import { SetupWizard } from './components/SetupWizard'
 import { SearchPanel } from './components/SearchPanel'
 import { QuickSwitcher } from './components/QuickSwitcher'
+import { seedCommands } from './commands/registry'
 import type { SearchQueryResult } from '../../shared/search-query'
 
 // ---------------------------------------------------------------------------
@@ -551,6 +552,9 @@ function App(): React.JSX.Element {
     window.electron.context.status().then((status) => {
       dispatch({ type: 'VECTOR_STATUS_UPDATED', payload: status })
     }).catch(console.error)
+
+    // Seed the command registry with built-in actions (Req 5.2, 5.3)
+    seedCommands(dispatch)
 
     return cleanup
   }, [wireListeners])
