@@ -36,4 +36,7 @@ export enum IPCChannel {
   FAVORITES_GET = 'favorites:get',
   FAVORITES_TOGGLE = 'favorites:toggle',
   FAVORITES_REMOVE = 'favorites:remove',
+  BOOKMARKS_GET = 'bookmarks:get',
+  BOOKMARKS_ADD = 'bookmarks:add',
+  BOOKMARKS_REMOVE = 'bookmarks:remove',
 }
