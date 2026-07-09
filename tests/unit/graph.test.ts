@@ -108,6 +108,37 @@ describe('buildGraph — property-based tests', () => {
     )
   })
 
+  it('Property 4.5: alias resolution — wiki-link target matching an alias creates an edge', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fileEntryArb, { minLength: 2, maxLength: 4 }),
+        (files) => {
+          const unique: FileEntry[] = []
+          const seen = new Set<string>()
+          for (const f of files) {
+            if (!seen.has(f.path) && !seen.has(f.name)) { seen.add(f.path); seen.add(f.name); unique.push(f) }
+          }
+          if (unique.length < 2) return true
+
+          const [source, target] = unique
+          // Create an alias for the target file
+          const aliasName = `alias-for-${target.name}`
+          const aliasIndex = new Map<string, string[]>()
+          aliasIndex.set(aliasName.toLowerCase(), [target.path])
+
+          // Source links to the alias name, not the file name
+          const getAST = (path: string): Root | undefined => {
+            if (path === source.path) return makeAST([aliasName])
+            return makeAST([])
+          }
+
+          const edges = buildGraph(unique, getAST, aliasIndex)
+          return edges.some(e => e.source === source.path && e.target === target.path)
+        }
+      )
+    )
+  })
+
   it('Property 4: subset on file removal — removing a file removes its edges', () => {
     fc.assert(
       fc.property(

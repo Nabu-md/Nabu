@@ -190,6 +190,7 @@ interface RenderContext {
   onNavigate: (filePath: string, blockRef?: string) => void
   vaultFiles: import('@shared/types').FileEntry[]
   embedDepth: number
+  aliasIndex?: Map<string, string[]>
 }
 
 /** Extract a block identifier from a node's data, if present. */
@@ -239,6 +240,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         node={n}
         vaultFiles={ctx.vaultFiles}
         onNavigate={ctx.onNavigate}
+        aliasIndex={ctx.aliasIndex}
       />
     )
   }
@@ -1109,6 +1111,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
     onNavigate: handleNavigate,
     vaultFiles: state.vault?.files ?? [],
     embedDepth: 0,
+    aliasIndex: state.extendedIndex?.aliasIndex,
   }
 
   // ---- Render ----
