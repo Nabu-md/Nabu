@@ -75,6 +75,7 @@ import { search } from '../shared/search-query';
 import { loadSettings, saveSettings } from './settings';
 import { substituteVariables } from './templates';
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites';
+import { vaultRegistry } from './vault-registry';
 
 import type { StateManager } from './state';
 import type { VectorManager } from './vector';
