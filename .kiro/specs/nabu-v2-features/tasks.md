@@ -332,7 +332,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - `src/main/vault-registry.ts`; per-vault `StateManager`/`VectorManager`/`VaultWatcher`; make v1 singletons delegate to the active session.
   - _Requirements: 22.2, 22.10_
 
-- [ ] 59. Thread `vaultId` through content IPC handlers
+- [x] 59. Thread `vaultId` through content IPC handlers
   - Add `vaultId` (defaulting to active when omitted) to content channels; Zod-validate on every channel; dispatch via the registry.
   - _Requirements: 22.3, 22.9, 26.1_
 

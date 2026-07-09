@@ -21,9 +21,10 @@ declare global {
         getCurrent(): Promise<VaultMetadata | null>
         create(parentPath: string, name: string): Promise<VaultMetadata>
         scan(): Promise<VaultMetadata>
+        openInNewWindow(path: string): Promise<{ success: boolean; path?: string; error?: string }>
       }
       file: {
-        get(path: string): Promise<FileAST>
+        get(path: string, vaultId?: string): Promise<FileAST>
         readAsset(path: string): Promise<{ path: string; dataUri?: string; error?: string }>
       }
       folder: {
@@ -46,17 +47,17 @@ declare global {
       templates: {
         list(vaultPath: string): Promise<{ templates: Template[] }>
       }
-settings: {
-    get(key: string): Promise<{ value?: unknown }>
-    set(key: string, value: unknown): Promise<{ success: boolean; error?: string }>
-    getFeatureToggles(): Promise<{
-      toggles: Array<{ id: string; label: string; description: string; enabled: boolean }>
-    }>
-    setFeatureToggle(id: string, enabled: boolean): Promise<{
-      success: boolean
-      error?: string
-    }>
-  }
+      settings: {
+        get(key: string): Promise<{ value?: unknown }>
+        set(key: string, value: unknown): Promise<{ success: boolean; error?: string }>
+        getFeatureToggles(): Promise<{
+          toggles: Array<{ id: string; label: string; description: string; enabled: boolean }>
+        }>
+        setFeatureToggle(id: string, enabled: boolean): Promise<{
+          success: boolean
+          error?: string
+        }>
+      }
       task: {
         toggle(path: string, lineIndex: number): Promise<void>
       }

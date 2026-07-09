@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ZodError } from 'zod';
-import { IPCChannel } from '@shared/channels';
+import { IPCChannel } from '../../src/shared/channels';
 import {
   VaultOpenSchema,
   VaultScanResultSchema,
@@ -32,7 +32,7 @@ import {
   VectorStatusResultSchema,
   ActivityLogSchema,
   IndexBuildSchema,
-} from '@shared/schemas';
+} from '../../src/shared/schemas';
 
 // ---------------------------------------------------------------------------
 // Mock Electron modules — must happen before any import that pulls in ipc.ts
@@ -75,14 +75,14 @@ vi.mock('electron', () => ({
 // ---------------------------------------------------------------------------
 
 const mockStateManager = {
-  openVault: vi.fn().mockResolvedValue({ path: '/vault', files: [] }),
-  getCurrentVault: vi.fn().mockReturnValue(null),
-  getAST: vi.fn().mockResolvedValue({ type: 'root', children: [] }),
-  toggleTask: vi.fn().mockResolvedValue(undefined),
-  hasPendingWrite: vi.fn().mockReturnValue(false),
-  setPendingWrite: vi.fn(),
-  clearPendingWrite: vi.fn(),
-};
+   openVault: vi.fn().mockResolvedValue({ path: '/vault', files: [] }),
+   getCurrentVault: vi.fn().mockReturnValue({ path: '/vault', files: [] }),
+   getAST: vi.fn().mockResolvedValue({ type: 'root', children: [] }),
+   toggleTask: vi.fn().mockResolvedValue(undefined),
+   hasPendingWrite: vi.fn().mockReturnValue(false),
+   setPendingWrite: vi.fn(),
+   clearPendingWrite: vi.fn(),
+ };
 
 const mockVectorManager = {
   search: vi.fn().mockResolvedValue([]),
@@ -104,7 +104,7 @@ const mockWatcher = {
 // Import ipc.ts AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { registerIPCHandlers, sendToRenderer } from '@main/ipc';
+import { registerIPCHandlers, sendToRenderer, setLegacyManagers } from '../../src/main/ipc';
 
 // ---------------------------------------------------------------------------
 // Helper: invoke a registered ipcMain handler as if called from renderer
@@ -126,6 +126,13 @@ beforeEach(() => {
   mockSentMessages.length = 0;
 
   registerIPCHandlers(
+    mockStateManager as any,
+    mockVectorManager as any,
+    mockWatcher as any,
+  );
+
+  // Set legacy managers for backward compatibility dispatch (Req 22.3)
+  setLegacyManagers(
     mockStateManager as any,
     mockVectorManager as any,
     mockWatcher as any,

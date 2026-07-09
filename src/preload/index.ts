@@ -15,10 +15,12 @@ const electronAPI = {
     create: (parentPath: string, name: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.VAULT_CREATE, { parentPath, name }),
     scan: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VAULT_SCAN, {}),
+    openInNewWindow: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, { path }),
   },
   file: {
-    get: (path: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.FILE_GET, { path }),
+    get: (path: string, vaultId?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FILE_GET, { path, vaultId }),
     readAsset: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.ASSET_READ, { path }),
   },

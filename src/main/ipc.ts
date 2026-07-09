@@ -5,7 +5,7 @@
  * channels with Zod validation, and provides `sendToRenderer()` for
  * Main→Renderer push messages.
  *
- * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 16.1, 16.2, 16.3, 16.4, 16.6
+ * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 16.1, 16.2, 16.3, 16.4, 16.6, 22.3, 22.9
  */
 
 import { ipcMain, dialog, BrowserWindow, app } from 'electron'
@@ -85,12 +85,39 @@ import type { VectorManager } from './vector';
 import type { VaultWatcher, WatcherConfig } from './watcher';
 
 // ---------------------------------------------------------------------------
+// Legacy singleton managers — used for backward compatibility during migration
+// ---------------------------------------------------------------------------
+
+let legacyStateManager: StateManager | null = null;
+let legacyVectorManager: VectorManager | null = null;
+let legacyWatcher: VaultWatcher | null = null;
+
+/**
+ * Set the legacy singleton managers for backward compatibility.
+ * Called from index.ts on app initialization.
+ */
+export function setLegacyManagers(
+  stateManager: StateManager,
+  vectorManager: VectorManager,
+  watcher: VaultWatcher,
+): void {
+  legacyStateManager = stateManager;
+  legacyVectorManager = vectorManager;
+  legacyWatcher = watcher;
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers to get managers from registry or legacy singletons
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
 // vaultId dispatch helper
 // ---------------------------------------------------------------------------
 
 /**
  * Get the appropriate session managers for the given vaultId.
  * If vaultId is omitted, returns the active vault's managers.
+ * Falls back to legacy singletons during v1→v2 migration.
  * If the specified vault is not open, throws an error.
  *
  * Requirements: 22.3, 22.9
@@ -100,24 +127,36 @@ function getSessionForVault(vaultId: string | undefined): {
   vectorManager: VectorManager
   vaultPath: string | null
 } {
-  const session = vaultRegistry.get(vaultId)
-  if (!session) {
-    const activeSession = vaultRegistry.getActive()
-    if (activeSession) {
-      // Return active session for backward compatibility when vaultId omitted
-      return {
-        stateManager: activeSession.stateManager as unknown as StateManager,
-        vectorManager: activeSession.vectorManager as unknown as VectorManager,
-        vaultPath: activeSession.vaultPath,
-      }
-    }
-    throw new Error('No vault is currently open')
+  // Try the vault registry first
+  const session = vaultRegistry.get(vaultId);
+  if (session) {
+    return {
+      stateManager: session.stateManager as unknown as StateManager,
+      vectorManager: session.vectorManager as unknown as VectorManager,
+      vaultPath: session.vaultPath,
+    };
   }
-  return {
-    stateManager: session.stateManager as unknown as StateManager,
-    vectorManager: session.vectorManager as unknown as VectorManager,
-    vaultPath: session.vaultPath,
+
+  // Fallback to legacy singletons (v1 compatibility during migration)
+  if (legacyStateManager && legacyVectorManager) {
+    return {
+      stateManager: legacyStateManager,
+      vectorManager: legacyVectorManager,
+      vaultPath: legacyStateManager.getCurrentVault()?.path ?? null,
+    };
   }
+
+  // Try to get the active session (in case vaultId was omitted)
+  const activeSession = vaultRegistry.getActive();
+  if (activeSession) {
+    return {
+      stateManager: activeSession.stateManager as unknown as StateManager,
+      vectorManager: activeSession.vectorManager as unknown as VectorManager,
+      vaultPath: activeSession.vaultPath,
+    };
+  }
+
+  throw new Error('No vault is currently open');
 }
 
 // ---------------------------------------------------------------------------
@@ -653,9 +692,10 @@ export function registerIPCHandlers(
       return { error: reason };
     }
 
-    const { path: filePath } = validation.data;
+    const { path: filePath, vaultId } = validation.data;
 
     try {
+      const { stateManager } = getSessionForVault(vaultId);
       const ast = await stateManager.getAST(filePath);
       const response = FileGetResultSchema.parse({ path: filePath, ast });
       return response;
@@ -702,9 +742,10 @@ export function registerIPCHandlers(
       return TaskToggleResultSchema.parse({ success: false, error: reason });
     }
 
-    const { path: filePath, lineIndex } = validation.data;
+    const { path: filePath, lineIndex, vaultId } = validation.data;
 
     try {
+      const { stateManager } = getSessionForVault(vaultId);
       await stateManager.toggleTask(filePath, lineIndex);
       return TaskToggleResultSchema.parse({ success: true });
     } catch (err) {
