@@ -336,11 +336,11 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Add `vaultId` (defaulting to active when omitted) to content channels; Zod-validate on every channel; dispatch via the registry.
   - _Requirements: 22.3, 22.9, 26.1_
 
-- [ ] 60. Add multi-vault renderer state
+- [x] 60. Add multi-vault renderer state
   - `openVaults`/`activeVaultId` in `AppState`; sidebar/tree/noteview reflect the active vault; vault switcher (sidebar header + Command Palette).
   - _Requirements: 22.4, 22.5_
 
-- [ ] 61. Implement vault open/close lifecycle
+- [x] 61. Implement vault open/close lifecycle
   - Open/create vault → instantiate session; switch active vault → renderer swap; close vault → stop watcher + release state.
   - _Requirements: 22.5, 22.6_
 
