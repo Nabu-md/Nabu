@@ -344,15 +344,15 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Open/create vault → instantiate session; switch active vault → renderer swap; close vault → stop watcher + release state.
   - _Requirements: 22.5, 22.6_
 
-- [ ] 62. Replace "Open in New Window" placeholder
+- [x] 62. Replace "Open in New Window" placeholder
   - Open the chosen vault in a second `BrowserWindow` backed by the same registry.
   - _Requirements: 22.7_
 
-- [ ] 63. Setup wizard + auto-restore for multi-vault
+- [x] 63. Setup wizard + auto-restore for multi-vault
   - Wizard renders when `openVaults.length === 0`; auto-restore reopens the most recently active vault set on launch.
   - _Requirements: 22.8_
 
-- [ ] 64. Phase 8 verification
+- [x] 64. Phase 8 verification
   - Unit tests: `vault-registry.test.ts` (open/close, id dispatch, recents cap).
   - Property tests: vault isolation; multi-vault IPC validation.
   - E2E: open a second vault, switch active, verify independent indexes; open in new window.

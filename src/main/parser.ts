@@ -10,7 +10,6 @@
 
 import { readFile } from 'fs/promises';
 import { unified } from 'unified';
-import _remarkParse from 'remark-parse';
 import _remarkStringify from 'remark-stringify';
 import _remarkFrontmatter from 'remark-frontmatter';
 import _remarkGfm from 'remark-gfm';
@@ -24,18 +23,13 @@ import type { VFile } from 'vfile';
 function unwrap<T>(mod: any): T {
   return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod
 }
-const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
 const remarkFrontmatter = unwrap<typeof _remarkFrontmatter>(_remarkFrontmatter)
 const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
 const remarkMath = unwrap<typeof _remarkMath>(_remarkMath)
 
-import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
-import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
-import { remarkWikiLinks } from './plugins/remarkWikiLinks';
-import { remarkCallouts } from './plugins/remarkCallouts';
-import { remarkEmbeds } from './plugins/remarkEmbeds';
-import { remarkBlockRefs } from './plugins/remarkBlockRefs';
+// Import the shared buildProcessor for the markdown pipeline
+import { buildProcessor } from '../shared/markdown';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -133,28 +127,6 @@ function detectAndDecode(buffer: Buffer): { content: string; encoding: EncodingL
       encoding: 'system',
     };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Remark pipeline factory
-// ---------------------------------------------------------------------------
-
-/**
- * Builds a processor with the canonical plugin pipeline in the required order:
- *   remarkFrontmatter → remarkGfm → remarkCallouts → remarkToggleBlocks → remarkTaskBlocks → remarkWikiLinks
- */
-function buildProcessor() {
-  return unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter) // 1. YAML / TOML front matter
-    .use(remarkGfm) //          2. GFM tables, strikethrough, task lists syntax
-    .use(remarkMath) //         3. $...$ / $$...$$ → inlineMath / math nodes
-    .use(remarkEmbeds) //      4. ![[target]] → embed nodes (must precede wikiLink)
-    .use(remarkCallouts) //    5. >[!type] blockquotes → Callout nodes
-    .use(remarkToggleBlocks) // 6. [toggle] headings → ToggleBlock nodes
-    .use(remarkTaskBlocks) //   7. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks) //   8. [[Page Name]] → WikiLink nodes
-    .use(remarkBlockRefs); // 9. ^id trailing on blocks + [[note#^id]] refs
 }
 
 // ---------------------------------------------------------------------------
