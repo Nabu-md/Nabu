@@ -8,6 +8,9 @@
  */
 
 import type { VaultMetadata } from '../shared/types'
+import type { StateManager } from './state'
+import type { VectorManager } from './vector'
+import type { VaultWatcher } from './watcher'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,17 +21,11 @@ export interface VaultSession {
   vaultId: string
   vaultPath: string
   /** StateManager for this vault — see src/main/state.ts */
-  stateManager: {
-    getCurrentVault(): { path: string; files: unknown[] } | null
-  }
+  stateManager: StateManager
   /** VectorManager for this vault — see src/main/vector.ts */
-  vectorManager: {
-    getStatus(): Promise<{ disabled: boolean; reason: string | null; items: number }>
-  }
+  vectorManager: VectorManager
   /** VaultWatcher for this vault — see src/main/watcher.ts */
-  watcher: {
-    stop(): void
-  }
+  watcher: VaultWatcher
   isActive: boolean
 }
 
@@ -51,9 +48,9 @@ export class VaultRegistry {
   register(
     vaultId: string,
     vaultPath: string,
-    stateManager: VaultSession['stateManager'],
-    vectorManager: VaultSession['vectorManager'],
-    watcher: VaultSession['watcher'],
+    stateManager: StateManager,
+    vectorManager: VectorManager,
+    watcher: VaultWatcher,
   ): VaultSession {
     const session: VaultSession = {
       vaultId,

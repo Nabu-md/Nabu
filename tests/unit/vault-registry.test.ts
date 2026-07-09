@@ -8,26 +8,44 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { VaultRegistry, type VaultSession } from '../../src/main/vault-registry'
-import type { VaultMetadata } from '../../src/shared/types'
-import type { FileEntry } from '../../src/shared/types'
+import type { VaultMetadata, FileEntry } from '../../src/shared/types'
+
+// Mock types for testing - partial interfaces
+type MockStateManager = {
+  getCurrentVault(): VaultMetadata | null
+  getExtendedIndex(): unknown
+  invalidateAST(_path: string): void
+  hasPendingWrite(_path: string): boolean
+}
+
+type MockVectorManager = {
+  getStatus(): Promise<{ disabled: boolean; reason: string | null; items: number }>
+}
+
+type MockWatcher = {
+  stop(): void
+}
 
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
 
-function createMockStateManager(vaultPath: string, files: FileEntry[] = []): VaultSession['stateManager'] {
+function createMockStateManager(vaultPath: string, files: FileEntry[] = []): MockStateManager {
   return {
     getCurrentVault: (): VaultMetadata => ({ path: vaultPath, files }),
+    getExtendedIndex: () => null,
+    invalidateAST: () => {},
+    hasPendingWrite: () => false,
   }
 }
 
-function createMockVectorManager(): VaultSession['vectorManager'] {
+function createMockVectorManager(): MockVectorManager {
   return {
     getStatus: async () => ({ disabled: false, reason: null, items: 0 }),
   }
 }
 
-function createMockWatcher() {
+function createMockWatcher(): MockWatcher {
   return {
     stop: () => {},
   }
@@ -49,9 +67,9 @@ describe('VaultRegistry', () => {
       const session = registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       expect(session.vaultId).toBe('vault-1')
@@ -63,16 +81,16 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.register(
         'vault-1',
         '/vault/one-updated',
-        createMockStateManager('/vault/one-updated'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one-updated') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       expect(registry.getVaultCount()).toBe(1)
@@ -92,9 +110,9 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       const session = registry.get('vault-1')
@@ -108,16 +126,16 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.register(
         'vault-2',
         '/vault/two',
-        createMockStateManager('/vault/two'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/two') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       const active = registry.setActive('vault-1')
@@ -132,16 +150,16 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.register(
         'vault-2',
         '/vault/two',
-        createMockStateManager('/vault/two'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/two') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       registry.setActive('vault-1')
@@ -158,9 +176,9 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.setActive('vault-1')
       registry.setActive(null)
@@ -178,9 +196,9 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        mockWatcher,
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        mockWatcher as VaultSession['watcher'],
       )
       registry.setActive('vault-1')
 
@@ -194,9 +212,9 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one'),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one') as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.setActive('vault-1')
       registry.close('vault-1')
@@ -210,16 +228,16 @@ describe('VaultRegistry', () => {
       registry.register(
         'vault-1',
         '/vault/one',
-        createMockStateManager('/vault/one', []),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/one', []) as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
       registry.register(
         'vault-2',
         '/vault/two',
-        createMockStateManager('/vault/two', []),
-        createMockVectorManager(),
-        createMockWatcher(),
+        createMockStateManager('/vault/two', []) as VaultSession['stateManager'],
+        createMockVectorManager() as VaultSession['vectorManager'],
+        createMockWatcher() as VaultSession['watcher'],
       )
 
       const vaults = registry.getAllVaults()

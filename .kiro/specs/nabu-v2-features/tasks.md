@@ -328,7 +328,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - `Array<{ path, name, lastOpened }>` capped to a bounded size; migration keeps the v1 `lastVaultPath` as the first entry.
   - _Requirements: 22.1, 22.10_
 
-- [ ] 58. Build `Vault_Registry` + `VaultSession`
+- [x] 58. Build `Vault_Registry` + `VaultSession`
   - `src/main/vault-registry.ts`; per-vault `StateManager`/`VectorManager`/`VaultWatcher`; make v1 singletons delegate to the active session.
   - _Requirements: 22.2, 22.10_
 
