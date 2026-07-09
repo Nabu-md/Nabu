@@ -176,9 +176,15 @@ interface RenderContext {
   filePath: string
   optimisticToggles: Record<number, boolean>
   onToggle: (lineIndex: number) => void
-  onNavigate: (filePath: string) => void
+  onNavigate: (filePath: string, blockRef?: string) => void
   vaultFiles: import('@shared/types').FileEntry[]
   embedDepth: number
+}
+
+/** Extract a block identifier from a node's data, if present. */
+function blockIdFrom(node: Node): string | undefined {
+  const data = (node as Record<string, unknown>).data as Record<string, unknown> | undefined
+  return data?.blockId as string | undefined
 }
 
 function renderNode(node: Node, ctx: RenderContext, key: string | number): React.ReactNode {
@@ -310,11 +316,13 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
       5: 'text-sm font-semibold mt-3 mb-1 text-white/70',
       6: 'text-xs font-semibold mt-2 mb-1 text-white/65'
     }
+    const bid = blockIdFrom(node)
     return (
       <Tag
         key={key}
         id={`outline-heading-${key}`}
         className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}
+        data-block-id={bid}
       >
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </Tag>
@@ -323,8 +331,9 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'paragraph') {
     const n = node as Paragraph
+    const bid = blockIdFrom(node)
     return (
-      <p key={key} className="my-2 leading-relaxed text-white/75 text-sm">
+      <p key={key} className="my-2 leading-relaxed text-white/75 text-sm" data-block-id={bid}>
         {n.children.map((child, i) => renderNode(child, ctx, i))}
       </p>
     )
@@ -345,8 +354,9 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'listItem') {
     const n = node as ListItem
+    const bid = blockIdFrom(node)
     return (
-      <li key={key} className="leading-relaxed">
+      <li key={key} className="leading-relaxed" data-block-id={bid}>
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </li>
     )
@@ -354,18 +364,28 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'code') {
     const n = node as Code
+    const bid = blockIdFrom(node)
     // Route mermaid diagrams to the dedicated MermaidBlock
     if (n.lang === 'mermaid') {
-      return <MermaidBlock key={key} value={n.value} />
+      return (
+        <div key={key} data-block-id={bid}>
+          <MermaidBlock value={n.value} />
+        </div>
+      )
     }
-    return <CodeBlock key={key} node={n} />
+    return (
+      <div key={key} data-block-id={bid}>
+        <CodeBlock node={n} />
+      </div>
+    )
   }
 
   if (type === 'table') {
     const n = node as Table
+    const bid = blockIdFrom(node)
     const [headerRow, ...bodyRows] = n.children as TableRow[]
     return (
-      <div key={key} className="overflow-x-auto my-4">
+      <div key={key} className="overflow-x-auto my-4" data-block-id={bid}>
         <table className="min-w-full text-sm text-white/75 border-collapse">
           <thead>
             <tr>
@@ -402,10 +422,12 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'blockquote') {
     const n = node as Blockquote
+    const bid = blockIdFrom(node)
     return (
       <blockquote
         key={key}
         className="border-l-2 border-white/25 pl-4 my-3 text-white/55 italic text-sm"
+        data-block-id={bid}
       >
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </blockquote>
@@ -760,6 +782,9 @@ export function NoteView(): React.JSX.Element {
   // Optimistic toggle state: lineIndex → overridden checked value
   const [optimisticToggles, setOptimisticToggles] = useState<Record<number, boolean>>({})
 
+  // Block reference navigation: stored while waiting for the target AST to render
+  const [pendingBlockRef, setPendingBlockRef] = useState<string | null>(null)
+
   // Edit mode local state
   const [editContent, setEditContent] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -779,6 +804,7 @@ export function NoteView(): React.JSX.Element {
     if (!currentFile) {
       setIsLoading(false)
       setError(null)
+      setPendingBlockRef(null)
       return
     }
 
@@ -828,6 +854,27 @@ export function NoteView(): React.JSX.Element {
     })
     return cleanup
   }, [dispatch])
+
+  // ---- Scroll to block reference after AST render ----
+  useEffect(() => {
+    if (!pendingBlockRef || !currentAST) return
+
+    // Use requestAnimationFrame to wait for the DOM to update after the AST render
+    const raf = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-block-id="${CSS.escape(pendingBlockRef)}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Brief highlight
+        el.classList.add('ring-2', 'ring-yellow-500/40', 'rounded')
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-yellow-500/40', 'rounded')
+        }, 2000)
+      }
+      setPendingBlockRef(null)
+    })
+
+    return () => cancelAnimationFrame(raf)
+  }, [pendingBlockRef, currentAST])
 
   // ---- Initialise editContent when entering edit mode ----
   useEffect(() => {
@@ -944,9 +991,14 @@ export function NoteView(): React.JSX.Element {
   // ---- Wiki link navigation handler ----
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
-    (filePath: string) => {
+    (filePath: string, blockRef?: string) => {
       window.electron.file.get(filePath).then((fileAST) => {
         dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+        if (blockRef) {
+          // After the AST is dispatched, the next render will trigger the
+          // scroll-to-block effect in the useEffect below.
+          setPendingBlockRef(blockRef)
+        }
       }).catch(console.error)
     },
     [dispatch]

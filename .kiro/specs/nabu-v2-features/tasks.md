@@ -147,7 +147,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Trailing `^id` on blocks; `[[note#^id]]` link form; `blockRefs` index build + incremental update.
   - _Requirements: 20.1, 20.2, 20.5, 20.6_
 
-- [ ] 25. Render block-reference clicks
+- [x] 25. Render block-reference clicks
   - Click opens target note and scrolls/highlights the block; broken-reference indicator.
   - _Requirements: 20.3, 20.4_
 

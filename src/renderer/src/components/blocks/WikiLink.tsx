@@ -68,7 +68,7 @@ function resolveWikiLink(
 export interface WikiLinkProps {
   node: WikiLinkNode
   vaultFiles: FileEntry[]
-  onNavigate: (filePath: string) => void
+  onNavigate: (filePath: string, blockRef?: string) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +83,9 @@ export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React
 
   const resolved = resolveWikiLink(node.target, index)
 
+  // Compute display suffix for block reference links
+  const displaySuffix = node.blockRef ? `#^${node.blockRef}` : ''
+
   // ---- Broken / unresolved link ----
   if (!resolved) {
     return (
@@ -92,7 +95,7 @@ export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React
         aria-label={`Broken wiki link: ${node.target} not found`}
       >
         <span aria-hidden="true">⚠</span>
-        {' '}[[{node.target}]]
+        {' '}[[{node.target}{displaySuffix}]]
       </span>
     )
   }
@@ -101,7 +104,7 @@ export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React
 
   const handleClick = (e: React.MouseEvent): void => {
     e.preventDefault()
-    onNavigate(resolved.path)
+    onNavigate(resolved.path, node.blockRef)
   }
 
   const linkClasses =
@@ -121,7 +124,7 @@ export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React
         title={resolved.path}
         aria-label={`Wiki link: ${node.target}`}
       >
-        [[{node.target}]]
+        [[{node.target}{displaySuffix}]]
       </a>
     )
   }
@@ -141,10 +144,10 @@ export function WikiLink({ node, vaultFiles, onNavigate }: WikiLinkProps): React
         className={linkClasses + ' after:ml-0.5 after:text-[#8B5CF6]/60 after:text-xs after:content-["↕"]'}
         onClick={handleClick}
         onKeyDown={(e) => e.key === 'Enter' && handleClick(e as unknown as React.MouseEvent)}
-        aria-label={`Wiki link: ${node.target} (${resolved.matches.length} matches)`}
+        aria-label={`Wiki link: ${node.target}${displaySuffix} (${resolved.matches.length} matches)`}
         aria-describedby={tooltipVisible ? `wl-tooltip-${node.target}` : undefined}
       >
-        [[{node.target}]]
+        [[{node.target}{displaySuffix}]]
       </a>
 
       {/* CSS tooltip listing all matching paths */}
