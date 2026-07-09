@@ -15,7 +15,9 @@ declare global {
     electron: {
       vault: {
         open(): Promise<VaultMetadata>
-        close(): Promise<void>
+        close(vaultId?: string): Promise<{ success: boolean }>
+        switch(vaultId: string): Promise<{ success: boolean }>
+        getRecents(): Promise<{ recents: Array<{ path: string; name: string; lastOpened: number }> }>
         getCurrent(): Promise<VaultMetadata | null>
         create(parentPath: string, name: string): Promise<VaultMetadata>
         scan(): Promise<VaultMetadata>

@@ -19,6 +19,8 @@ import {
   // Incoming schemas (Renderer → Main)
   VaultOpenSchema,
   VaultCloseSchema,
+  VaultSwitchSchema,
+  VaultGetRecentsSchema,
   FileGetSchema,
   TaskToggleSchema,
   ContextQuerySchema,
