@@ -34,6 +34,7 @@ declare global {
         delete(path: string): Promise<{ success: boolean; error?: string }>
         getRaw(path: string): Promise<{ path: string; content?: string; error?: string }>
         exportHtml(path: string, html: string): Promise<{ success: boolean; savedPath?: string; error?: string }>
+        daily(vaultPath: string): Promise<{ path: string; ast: Root; created: boolean; error?: string }>
       }
       templates: {
         list(vaultPath: string): Promise<{ templates: Template[] }>

@@ -32,4 +32,5 @@ export enum IPCChannel {
   SEARCH_QUERY = 'search:query',
   PROPERTIES_READ = 'properties:read',
   PROPERTIES_WRITE = 'properties:write',
+  NOTE_DAILY = 'note:daily',
 }

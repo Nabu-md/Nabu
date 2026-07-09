@@ -5,7 +5,7 @@
  * Extracted into its own module to avoid circular imports between index.ts
  * and ipc.ts.
  *
- * Requirements: 11.7, 12.7, 12.9, 16.5
+ * Requirements: 11.7, 12.7, 12.9, 16.5, 17.3
  */
 
 import { app } from 'electron'
@@ -22,6 +22,12 @@ export interface AppSettings {
   theme: 'dark' | 'light' | 'system'
   /** Automatically inject `created` / `modified` timestamps in frontmatter (Req 16.5). */
   autoProperties: boolean
+  /** Date format for daily note filenames (e.g. "YYYY-MM-DD"). Default: "YYYY-MM-DD" (Req 17.3). */
+  dailyNoteDateFormat: string
+  /** Folder path (relative to vault root) for daily notes. Default: "Daily" (Req 17.3). */
+  dailyNoteFolder: string
+  /** Template name (without .md extension) for daily notes. Empty = no template (Req 17.3). */
+  dailyNoteTemplate: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,6 +35,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   windowBounds: null,
   theme: 'dark',
   autoProperties: true,
+  dailyNoteDateFormat: 'YYYY-MM-DD',
+  dailyNoteFolder: 'Daily',
+  dailyNoteTemplate: '',
 }
 
 export function settingsPath(): string {
@@ -48,6 +57,9 @@ export async function loadSettings(): Promise<AppSettings> {
       windowBounds: parsed.windowBounds ?? null,
       theme: parsed.theme ?? 'dark',
       autoProperties: parsed.autoProperties ?? true,
+      dailyNoteDateFormat: parsed.dailyNoteDateFormat ?? 'YYYY-MM-DD',
+      dailyNoteFolder: parsed.dailyNoteFolder ?? 'Daily',
+      dailyNoteTemplate: parsed.dailyNoteTemplate ?? '',
     }
   } catch {
     return { ...DEFAULT_SETTINGS }

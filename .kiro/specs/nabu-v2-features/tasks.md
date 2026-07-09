@@ -199,7 +199,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Pending_Write_Lock honoured; no re-parse storm.
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
 
-- [ ] 35. Phase 4 verification
+- [x] 35. Phase 4 verification
   - Unit tests: `properties.test.ts`, `auto-properties.test.ts`, alias-resolution test.
   - Property tests: Properties round-trip; alias resolution consistency; auto-property idempotence.
   - E2E: edit a property in Properties view, reload, verify round-trip; property search returns matches; inline tag chip filters tree.

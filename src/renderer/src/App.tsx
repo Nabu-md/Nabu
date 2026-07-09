@@ -588,7 +588,21 @@ function App(): React.JSX.Element {
     }).catch(console.error)
 
     // Seed the command registry with built-in actions (Req 5.2, 5.3)
-    seedCommands(dispatch)
+    seedCommands(dispatch, {
+      createDailyNote: async () => {
+        const v = state.vault
+        if (!v) return
+        try {
+          const result = await window.electron.note.daily(v.path)
+          if (result && (result as { path: string }).path) {
+            const { path, ast } = result as { path: string; ast: Root }
+            dispatch({ type: 'FILE_LOADED', payload: { path, ast } })
+          }
+        } catch (err) {
+          console.error('[App] Failed to open daily note:', err)
+        }
+      },
+    })
 
     // Register outline-specific command (Req 7.6)
     registerCommand({

@@ -55,6 +55,8 @@ import {
   PropertiesReadResultSchema,
   PropertiesWriteSchema,
   PropertiesWriteResultSchema,
+  NoteDailySchema,
+  NoteDailyResultSchema,
 } from '../shared/schemas';
 
 import { search } from '../shared/search-query';
@@ -1318,6 +1320,101 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { success: false, error: String(err) };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // note:daily — open or create today's daily note
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.NOTE_DAILY, async (_event, rawPayload) => {
+    const validation = NoteDailySchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] note:daily validation failed: ${reason}`);
+      return { path: '', ast: null, created: false, error: reason };
+    }
+
+    const { vaultPath } = validation.data;
+
+    try {
+      const settings = await loadSettings();
+      const now = new Date();
+
+      // Derive daily note filename from configured date format (Req 17.4)
+      // Supported tokens: YYYY, MM, DD (simple substitution)
+      const dateFormat = settings.dailyNoteDateFormat || 'YYYY-MM-DD';
+      const dateStr = dateFormat
+        .replace('YYYY', String(now.getFullYear()))
+        .replace('MM', String(now.getMonth() + 1).padStart(2, '0'))
+        .replace('DD', String(now.getDate()).padStart(2, '0'));
+
+      const folder = settings.dailyNoteFolder || 'Daily';
+      const dirPath = path.join(vaultPath, folder);
+      const filePath = path.join(dirPath, `${dateStr}.md`);
+
+      // Check if file already exists
+      let created = false;
+      let content: string;
+      try {
+        await fs.access(filePath);
+        // File exists — read it
+        content = await fs.readFile(filePath, 'utf-8');
+      } catch {
+        // File does not exist — create it
+        created = true;
+
+        // Ensure the daily note folder exists
+        await fs.mkdir(dirPath, { recursive: true });
+
+        // Prepare content from template or default heading
+        const templateName = settings.dailyNoteTemplate || '';
+        if (templateName) {
+          // Look up the template file in _templates/
+          const templatesDir = path.join(vaultPath, '_templates');
+          const templatePath = path.join(templatesDir, `${templateName}.md`);
+          try {
+            const templateContent = await fs.readFile(templatePath, 'utf-8');
+            const dateFormatted = now.toISOString().slice(0, 10);
+            const timeFormatted = now.toTimeString().slice(0, 5);
+            content = substituteVariables(templateContent, {
+              title: dateStr,
+              date: dateFormatted,
+              time: timeFormatted,
+            });
+          } catch {
+            // Template not found — fall back to empty note
+            content = `# ${dateStr}\n\n`;
+          }
+        } else {
+          content = `# ${dateStr}\n\n`;
+        }
+
+        // Auto-properties: inject `created` timestamp if absent (Req 16.1)
+        const dnSettings = await loadSettings();
+        if (dnSettings.autoProperties) {
+          content = injectAutoProperty(content, 'created', now.toISOString(), true);
+        }
+
+        stateManager.setPendingWrite(filePath);
+        try {
+          await fs.writeFile(filePath, content, 'utf-8');
+        } finally {
+          stateManager.clearPendingWrite(filePath);
+        }
+      }
+
+      // Get AST and return
+      const ast = await stateManager.getAST(filePath);
+      return NoteDailyResultSchema.parse({
+        path: filePath,
+        ast,
+        created,
+      });
+    } catch (err) {
+      const msg = `[IPC] note:daily handler error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { path: '', ast: null, created: false, error: String(err) };
     }
   });
 

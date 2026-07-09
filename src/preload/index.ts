@@ -42,6 +42,8 @@ const electronAPI = {
       ipcRenderer.invoke(IPCChannel.NOTE_GET_RAW, { path }),
     exportHtml: (path: string, html: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.NOTE_EXPORT_HTML, { path, html }),
+    daily: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.NOTE_DAILY, { vaultPath }),
   },
   templates: {
     list: (vaultPath: string): Promise<unknown> =>

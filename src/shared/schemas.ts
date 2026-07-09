@@ -372,6 +372,21 @@ export const PropertiesWriteResultSchema = z.object({
   error: z.string().optional()
 });
 
+// note:daily (Renderer → Main) — open or create today's daily note
+export const NoteDailySchema = z.object({
+  vaultPath: z.string(),
+});
+
+export const NoteDailyResultSchema = z.object({
+  path: z.string(),
+  ast: z.any(),
+  created: z.boolean(),
+  error: z.string().optional(),
+});
+
+export type NoteDailyPayload = z.infer<typeof NoteDailySchema>;
+export type NoteDailyResult = z.infer<typeof NoteDailyResultSchema>;
+
 export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;
