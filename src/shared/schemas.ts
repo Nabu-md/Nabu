@@ -438,6 +438,26 @@ export const NoteRandomResultSchema = z.object({
 export type NoteRandomPayload = z.infer<typeof NoteRandomSchema>;
 export type NoteRandomResult = z.infer<typeof NoteRandomResultSchema>;
 
+// note:compose (Renderer → Main) — merge multiple notes into one
+export const NoteComposeSchema = z.object({
+  vaultPath: z.string(),
+  sourcePaths: z.array(z.string()),
+  targetName: z.string(),
+  headingLevel: z.number().int().min(1).max(6).optional(),
+  deleteAfterMerge: z.boolean().optional(),
+});
+
+export const NoteComposeResultSchema = z.object({
+  path: z.string().optional(),
+  ast: z.any().optional(),
+  error: z.string().optional(),
+  previewMarkdown: z.string().optional(),
+  conflicts: z.array(z.string()).optional(),
+});
+
+export type NoteComposePayload = z.infer<typeof NoteComposeSchema>;
+export type NoteComposeResult = z.infer<typeof NoteComposeResultSchema>;
+
 export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;
