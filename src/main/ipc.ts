@@ -8,10 +8,11 @@
  * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 16.1, 16.2, 16.3, 16.4, 16.6
  */
 
-import { ipcMain, dialog, BrowserWindow, app } from 'electron';
-import { ZodError } from 'zod';
-import path from 'path';
-import fs from 'fs/promises';
+import { ipcMain, dialog, BrowserWindow, app } from 'electron'
+import { ZodError } from 'zod'
+import path from 'path'
+import fs from 'fs/promises'
+import { join } from 'path'
 
 import { IPCChannel } from '../shared/channels';
 import {
@@ -472,6 +473,7 @@ export function registerIPCHandlers(
   // registered" errors on hot-reload or second-window initialization.
   const channels = [
     IPCChannel.VAULT_OPEN,
+    IPCChannel.VAULT_OPEN_IN_NEW_WINDOW,
     IPCChannel.VAULT_SCAN,
     IPCChannel.VAULT_CLOSE,
     IPCChannel.FILE_GET,
@@ -866,34 +868,79 @@ export function registerIPCHandlers(
   });
 
   // -------------------------------------------------------------------------
-  // properties:read — read YAML frontmatter properties for a file
+  // vault:open-in-new-window — open vault in a second BrowserWindow
   // -------------------------------------------------------------------------
-  ipcMain.handle(IPCChannel.PROPERTIES_READ, async (_event, rawPayload) => {
-    const validation = PropertiesReadSchema.safeParse(rawPayload);
+  ipcMain.handle(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, async (_event, rawPayload) => {
+    const validation = VaultOpenSchema.safeParse(rawPayload ?? {})
     if (!validation.success) {
-      const reason = formatZodError(validation.error);
-      emitActivityLog('warn', `[IPC] properties:read validation failed: ${reason}`);
-      return { path: '', properties: {}, yaml: '' };
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] vault:open-in-new-window validation failed: ${reason}`)
+      return { error: reason }
     }
 
-    const { path: filePath } = validation.data;
+    const vaultPath = validation.data.path
+    if (!vaultPath) {
+      return { error: 'No vault path provided' }
+    }
 
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const frontmatter = extractFrontmatter(content);
-      return PropertiesReadResultSchema.parse({
-        path: filePath,
-        properties: frontmatter.parsed,
-        yaml: frontmatter.yaml,
-      });
-    } catch (err) {
-      const msg = `[IPC] properties:read error for "${filePath}": ${String(err)}`;
-      console.error(msg);
-      emitActivityLog('error', msg);
-      return { path: filePath, properties: {}, yaml: '' };
-    }
-  });
+      // Check path is accessible
+      await fs.access(vaultPath, fs.constants.R_OK)
 
+      // Open the vault in the registry
+      const vaultMeta = await stateManager.openVault(vaultPath)
+
+      // Copy default templates on first open (non-fatal)
+      try {
+        await copyDefaultTemplates(vaultPath)
+      } catch (copyErr) {
+        emitActivityLog('warn', `[IPC] vault:open-in-new-window — failed to copy default templates: ${String(copyErr)}`)
+      }
+
+      // Start the file watcher for this vault
+      watcher.start(buildWatcherConfig(stateManager, vectorManager, vaultPath, vaultMeta))
+
+      // Create a new BrowserWindow for this vault (Req 22.7)
+      const newWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        show: false,
+        autoHideMenuBar: false,
+        webPreferences: {
+          preload: join(__dirname, '../preload/index.js'),
+          sandbox: false,
+          contextIsolation: true,
+          nodeIntegration: false,
+        },
+      })
+
+      // Load renderer in the new window
+      if (process.env['VITE_DEV_SERVER_URL']) {
+        await newWindow.loadURL(process.env['VITE_DEV_SERVER_URL'])
+      } else {
+        await newWindow.loadFile(join(__dirname, '../renderer/index.html'))
+      }
+
+      newWindow.on('ready-to-show', () => {
+        newWindow.show()
+      })
+
+      // Send vault state to the new window
+      newWindow.webContents.once('did-finish-load', () => {
+        sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath, files: vaultMeta.files })
+      })
+
+      return { success: true, path: vaultPath }
+    } catch (err) {
+      const msg = `[IPC] vault:open-in-new-window handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { error: String(err) }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // vault:scan — re-scan the current vault and return updated metadata
   // -------------------------------------------------------------------------
   // properties:write — rewrite YAML frontmatter properties for a file
   // -------------------------------------------------------------------------
