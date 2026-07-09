@@ -21,6 +21,7 @@ import { ActivityTimeline } from './components/ActivityTimeline'
 import { SetupWizard } from './components/SetupWizard'
 import { SearchPanel } from './components/SearchPanel'
 import { QuickSwitcher } from './components/QuickSwitcher'
+import { CommandPalette } from './components/CommandPalette'
 import { seedCommands } from './commands/registry'
 import type { SearchQueryResult } from '../../shared/search-query'
 
@@ -53,6 +54,7 @@ export interface AppState {
   searchQuery: string
   searchResults: SearchQueryResult[]
   quickSwitcherOpen: boolean
+  commandPaletteOpen: boolean
   recentNotes: string[]
 }
 
@@ -88,6 +90,9 @@ export type AppAction =
   | { type: 'QUICK_SWITCHER_TOGGLE' }
   | { type: 'QUICK_SWITCHER_OPEN' }
   | { type: 'QUICK_SWITCHER_CLOSE' }
+  | { type: 'COMMAND_PALETTE_TOGGLE' }
+  | { type: 'COMMAND_PALETTE_OPEN' }
+  | { type: 'COMMAND_PALETTE_CLOSE' }
   | { type: 'RECENT_NOTE_OPENED'; payload: string }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +125,7 @@ const initialState: AppState = {
   searchQuery: '',
   searchResults: [],
   quickSwitcherOpen: false,
+  commandPaletteOpen: false,
   recentNotes: [],
 }
 
@@ -247,6 +253,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'QUICK_SWITCHER_CLOSE':
       return { ...state, quickSwitcherOpen: false }
 
+    case 'COMMAND_PALETTE_TOGGLE':
+      return { ...state, commandPaletteOpen: !state.commandPaletteOpen }
+
+    case 'COMMAND_PALETTE_OPEN':
+      return { ...state, commandPaletteOpen: true }
+
+    case 'COMMAND_PALETTE_CLOSE':
+      return { ...state, commandPaletteOpen: false }
+
     case 'RECENT_NOTE_OPENED': {
       const recentNotes = [
         action.payload,
@@ -343,6 +358,10 @@ function App(): React.JSX.Element {
       if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
         e.preventDefault()
         dispatch({ type: 'QUICK_SWITCHER_TOGGLE' })
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        dispatch({ type: 'COMMAND_PALETTE_TOGGLE' })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -619,6 +638,7 @@ function App(): React.JSX.Element {
       )}
       {state.settingsPanelOpen && <SettingsPanel />}
       {state.quickSwitcherOpen && <QuickSwitcher />}
+      {state.commandPaletteOpen && <CommandPalette />}
     </AppContext.Provider>
   )
 }
