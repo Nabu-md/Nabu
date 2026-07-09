@@ -30,4 +30,6 @@ export enum IPCChannel {
   CONTEXT_REINDEX = 'context:reindex',
   VECTOR_STATUS = 'vector:status',
   SEARCH_QUERY = 'search:query',
+  PROPERTIES_READ = 'properties:read',
+  PROPERTIES_WRITE = 'properties:write',
 }
