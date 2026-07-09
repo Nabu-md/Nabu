@@ -458,6 +458,20 @@ export const NoteComposeResultSchema = z.object({
 export type NoteComposePayload = z.infer<typeof NoteComposeSchema>;
 export type NoteComposeResult = z.infer<typeof NoteComposeResultSchema>;
 
+// note:unique (Renderer → Main) — create a note with unique timestamp name
+export const NoteUniqueSchema = z.object({
+  vaultPath: z.string(),
+});
+
+export const NoteUniqueResultSchema = z.object({
+  path: z.string().optional(),
+  ast: z.any().optional(),
+  error: z.string().optional(),
+});
+
+export type NoteUniquePayload = z.infer<typeof NoteUniqueSchema>;
+export type NoteUniqueResult = z.infer<typeof NoteUniqueResultSchema>;
+
 export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;

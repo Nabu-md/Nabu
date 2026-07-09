@@ -244,7 +244,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
 
 These 9 features correspond to Obsidian core plugins (R27–35). Each is independent, additive, and ships behind its own toggle. They are grouped into a single phase because none depends on the architectural lifts (multi-vault, live preview, split panes).
 
-- [ ] 42. Implement Unique Note Creator (R27)
+- [x] 42. Implement Unique Note Creator (R27)
   - Command "Create unique note" with configurable timestamp format (default `YYYYMMDDHHmmss`); injects filename as `title` frontmatter + H1; uses template system with `_templates/unique-note.md` fallback; Command Palette registration.
   - _Requirements: 27.1, 27.2, 27.3, 27.4, 27.5_
 
