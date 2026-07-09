@@ -5,7 +5,7 @@
  * Extracted into its own module to avoid circular imports between index.ts
  * and ipc.ts.
  *
- * Requirements: 11.7, 12.7, 12.9, 16.5, 17.3
+ * Requirements: 11.7, 12.7, 12.9, 16.5, 17.3, 22.1, 22.10
  */
 
 import { app } from 'electron'
@@ -15,6 +15,12 @@ import fs from 'fs/promises'
 // ---------------------------------------------------------------------------
 // AppSettings — persisted to userData/settings.json
 // ---------------------------------------------------------------------------
+
+export interface RecentVaultEntry {
+  path: string
+  name: string
+  lastOpened: number
+}
 
 export interface AppSettings {
   lastVaultPath: string | null
@@ -28,6 +34,8 @@ export interface AppSettings {
   dailyNoteFolder: string
   /** Template name (without .md extension) for daily notes. Empty = no template (Req 17.3). */
   dailyNoteTemplate: string
+  /** List of recently opened vaults for multi-vault support (Req 22.1). */
+  recentVaults: RecentVaultEntry[]
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -38,6 +46,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyNoteDateFormat: 'YYYY-MM-DD',
   dailyNoteFolder: 'Daily',
   dailyNoteTemplate: '',
+  recentVaults: [],
 }
 
 export function settingsPath(): string {
@@ -60,10 +69,44 @@ export async function loadSettings(): Promise<AppSettings> {
       dailyNoteDateFormat: parsed.dailyNoteDateFormat ?? 'YYYY-MM-DD',
       dailyNoteFolder: parsed.dailyNoteFolder ?? 'Daily',
       dailyNoteTemplate: parsed.dailyNoteTemplate ?? '',
+      recentVaults: parsed.recentVaults ?? [],
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Recent Vault Helpers
+// ---------------------------------------------------------------------------
+
+/** Maximum number of recent vaults to store. */
+const MAX_RECENT_VAULTS = 20
+
+/**
+ * Add or update a vault in the recent vaults list.
+ * Migrates v1 `lastVaultPath` to the `recentVaults` list on first load.
+ *
+ * Requirements: 22.1, 22.10
+ */
+export function updateRecentVaults(
+  settings: AppSettings,
+  vaultPath: string,
+  vaultName: string,
+): AppSettings {
+  const now = Date.now()
+  const existing = settings.recentVaults ?? []
+
+  // Filter out this vault if it already exists (to re-add at top)
+  const filtered = existing.filter((v) => v.path !== vaultPath)
+
+  // Add the new entry at the front
+  const updated = [
+    { path: vaultPath, name: vaultName, lastOpened: now },
+    ...filtered,
+  ].slice(0, MAX_RECENT_VAULTS)
+
+  return { ...settings, recentVaults: updated, lastVaultPath: vaultPath }
 }
 
 /**
