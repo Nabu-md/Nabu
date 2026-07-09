@@ -280,7 +280,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - "Insert audio recording" command (edit mode + Command Palette); record from default input with timer indicator; save as `.mp3`/`.ogg` to configurable assets dir (default `.nabu/audio/`); insert `![[recording.mp3]]` at cursor; render as `<audio controls>` via asset bridge; non-blocking async recording; graceful error on no microphone / permission denied.
   - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7_
 
-- [ ] 51. Phase 6 verification
+- [x] 51. Phase 6 verification
   - Unit tests for each of the 9 features (parser/serializer logic, command registration, persistence).
   - E2E: unique note creates properly named file; page preview appears on hover; file recovery snapshots and restores; slash commands insert correct syntax; footnotes render and navigate; format converter imports a fixture; bases view displays properties; web viewer opens external URL; audio recorder creates and embeds recording.
   - Full Vitest suite green.
