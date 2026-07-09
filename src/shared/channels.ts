@@ -39,4 +39,5 @@ export enum IPCChannel {
   BOOKMARKS_GET = 'bookmarks:get',
   BOOKMARKS_ADD = 'bookmarks:add',
   BOOKMARKS_REMOVE = 'bookmarks:remove',
+  NOTE_RANDOM = 'note:random',
 }

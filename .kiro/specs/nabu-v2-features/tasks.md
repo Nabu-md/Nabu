@@ -215,15 +215,15 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - `note:daily` command; configurable `dateFormat`/`folder`/`template` in Settings; create-if-missing using template substitution + note-create; register in Command Palette.
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
-- [ ] 37. Implement favorites
+- [x] 37. Implement favorites
   - Per-vault `.nabu/favorites.json`; sidebar Favorites section; toolbar toggle + context-menu toggle; cleanup on rename/delete; Command Palette command.
   - _Requirements: 18.1, 18.2, 18.3, 18.5, 18.6_
 
-- [ ] 38. Implement bookmarks
+- [x] 38. Implement bookmarks
   - Named bookmark lists per-vault (`.nabu/bookmarks.json`); sidebar collection; cleanup on rename/delete; Command Palette command.
   - _Requirements: 18.4, 18.5, 18.6_
 
-- [ ] 39. Implement random note
+- [x] 39. Implement random note
   - `note:random` returns one path from the active vault file list (respecting tag filter); empty-vault guard; Command Palette registration.
   - _Requirements: 19.1, 19.2, 19.3, 19.4_
 

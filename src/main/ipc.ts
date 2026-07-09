@@ -57,6 +57,8 @@ import {
   PropertiesWriteResultSchema,
   NoteDailySchema,
   NoteDailyResultSchema,
+  NoteRandomSchema,
+  NoteRandomResultSchema,
   FavoritesGetSchema,
   FavoritesGetResultSchema,
   FavoritesToggleSchema,
@@ -1488,6 +1490,52 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { path: '', ast: null, created: false, error: String(err) };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // note:random — open a random note from the vault
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.NOTE_RANDOM, async (_event, rawPayload) => {
+    const validation = NoteRandomSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] note:random validation failed: ${reason}`);
+      return { error: reason };
+    }
+    const { vaultPath, tagFilter } = validation.data;
+    try {
+      // Get files from the vault - need to access the vault's file list
+      // For now, we'll use a simple approach: get files from StateManager
+      const vault = stateManager.getCurrentVault();
+      if (!vault || vault.path !== vaultPath) {
+        return { error: 'Vault not open' };
+      }
+      const files = vault.files ?? [];
+      // Filter by tag if provided
+      let candidates = files;
+      if (tagFilter && tagFilter.length > 0) {
+        const tagPaths = stateManager.getExtendedIndex()?.tagIndex?.get(tagFilter);
+        if (tagPaths) {
+          candidates = files.filter((f) => tagPaths.has(f.path));
+        } else {
+          candidates = [];
+        }
+      }
+      if (candidates.length === 0) {
+        return { error: 'No notes found in vault' };
+      }
+      const randomFile = candidates[Math.floor(Math.random() * candidates.length)];
+      const result = await stateManager.getAST(randomFile.path);
+      return NoteRandomResultSchema.parse({
+        path: randomFile.path,
+        ast: result,
+      });
+    } catch (err) {
+      const msg = `[IPC] note:random error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { error: String(err) };
     }
   });
 

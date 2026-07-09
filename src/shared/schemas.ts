@@ -423,6 +423,21 @@ export type FavoritesToggleResult = z.infer<typeof FavoritesToggleResultSchema>;
 export type FavoritesRemovePayload = z.infer<typeof FavoritesRemoveSchema>;
 export type FavoritesRemoveResult = z.infer<typeof FavoritesRemoveResultSchema>;
 
+// note:random (Renderer → Main) — open a random note
+export const NoteRandomSchema = z.object({
+  vaultPath: z.string(),
+  tagFilter: z.string().optional(),
+});
+
+export const NoteRandomResultSchema = z.object({
+  path: z.string().optional(),
+  ast: z.any().optional(),
+  error: z.string().optional(),
+});
+
+export type NoteRandomPayload = z.infer<typeof NoteRandomSchema>;
+export type NoteRandomResult = z.infer<typeof NoteRandomResultSchema>;
+
 export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;
