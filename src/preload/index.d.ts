@@ -53,6 +53,10 @@ declare global {
       search: {
         query(query: string): Promise<SearchResponse>
       }
+      properties: {
+        read(path: string): Promise<{ path: string; properties: Record<string, unknown>; yaml: string }>
+        write(path: string, yaml: string): Promise<{ success: boolean; error?: string }>
+      }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
         noteUpdated(

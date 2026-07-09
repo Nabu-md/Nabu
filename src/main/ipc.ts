@@ -51,6 +51,10 @@ import {
   AssetReadSchema,
   SearchQuerySchema,
   SearchResponseSchema,
+  PropertiesReadSchema,
+  PropertiesReadResultSchema,
+  PropertiesWriteSchema,
+  PropertiesWriteResultSchema,
 } from '../shared/schemas';
 
 import { search } from '../shared/search-query';
@@ -95,6 +99,69 @@ function emitActivityLog(
  */
 function formatZodError(err: ZodError): string {
   return err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+}
+
+// ---------------------------------------------------------------------------
+// Frontmatter helpers
+// ---------------------------------------------------------------------------
+
+/** Regex to match YAML frontmatter delimiters. */
+const FRONTMATTER_RE = /^---\n[\s\S]*?\n---(?:\n|$)/;
+
+/** Result of extracting frontmatter from raw content. */
+interface FrontmatterResult {
+  yaml: string;           // raw YAML string (without delimiters)
+  parsed: Record<string, unknown>; // parsed YAML object
+}
+
+/**
+ * Extract YAML frontmatter from raw markdown content.
+ * Returns the raw YAML string and parsed object, or empty values if no frontmatter exists.
+ */
+function extractFrontmatter(content: string): FrontmatterResult {
+  const match = content.match(FRONTMATTER_RE);
+  if (!match) {
+    return { yaml: '', parsed: {} };
+  }
+
+  const yamlStr = match[0]
+    .replace(/^---\n/, '')
+    .replace(/\n---(?:\n|$)/, '');
+
+  try {
+    // Use dynamic import for the ESM-compatible yaml package
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { parse } = require('yaml');
+    const parsed = parse(yamlStr);
+    return {
+      yaml: yamlStr,
+      parsed: (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed))
+        ? parsed as Record<string, unknown>
+        : {},
+    };
+  } catch {
+    return { yaml: yamlStr, parsed: {} };
+  }
+}
+
+/**
+ * Replace the YAML frontmatter section in raw markdown content.
+ * If the content has no frontmatter, prepend one.
+ * If yaml is empty, remove the frontmatter section entirely.
+ */
+function replaceFrontmatterRaw(raw: string, yamlStr: string): string {
+  if (!yamlStr.trim()) {
+    return raw.replace(FRONTMATTER_RE, '');
+  }
+
+  const yamlBlock = `---\n${yamlStr.trim()}\n---\n`;
+
+  if (FRONTMATTER_RE.test(raw)) {
+    return raw.replace(FRONTMATTER_RE, yamlBlock);
+  }
+
+  // No existing frontmatter — prepend
+  return yamlBlock + raw;
 }
 
 // ---------------------------------------------------------------------------
@@ -341,6 +408,8 @@ export function registerIPCHandlers(
     IPCChannel.CONTEXT_REINDEX,
     IPCChannel.VECTOR_STATUS,
     IPCChannel.SEARCH_QUERY,
+    IPCChannel.PROPERTIES_READ,
+    IPCChannel.PROPERTIES_WRITE,
     'vault:get-current' as IPCChannel,
   ];
   for (const ch of channels) {
@@ -706,6 +775,79 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { results: [] };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // properties:read — read YAML frontmatter properties for a file
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PROPERTIES_READ, async (_event, rawPayload) => {
+    const validation = PropertiesReadSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] properties:read validation failed: ${reason}`);
+      return { path: '', properties: {}, yaml: '' };
+    }
+
+    const { path: filePath } = validation.data;
+
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const frontmatter = extractFrontmatter(content);
+      return PropertiesReadResultSchema.parse({
+        path: filePath,
+        properties: frontmatter.parsed,
+        yaml: frontmatter.yaml,
+      });
+    } catch (err) {
+      const msg = `[IPC] properties:read error for "${filePath}": ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { path: filePath, properties: {}, yaml: '' };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // properties:write — rewrite YAML frontmatter properties for a file
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PROPERTIES_WRITE, async (_event, rawPayload) => {
+    const validation = PropertiesWriteSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] properties:write validation failed: ${reason}`);
+      return PropertiesWriteResultSchema.parse({ success: false, error: reason });
+    }
+
+    const { path: filePath, yaml: newYaml } = validation.data;
+
+    // Validate the YAML before writing
+    try {
+      const yaml = await import('yaml');
+      yaml.parse(newYaml);
+    } catch (err) {
+      const reason = `Invalid YAML: ${err instanceof Error ? err.message : String(err)}`;
+      emitActivityLog('warn', `[IPC] properties:write rejected: ${reason}`);
+      return PropertiesWriteResultSchema.parse({ success: false, error: reason });
+    }
+
+    try {
+      // Read current file content
+      const content = await fs.readFile(filePath, 'utf-8');
+      const newContent = replaceFrontmatterRaw(content, newYaml);
+
+      // Write under Pending_Write_Lock (same pattern as note:save)
+      stateManager.setPendingWrite(filePath);
+      await fs.writeFile(filePath, newContent, 'utf-8');
+      stateManager.invalidateAST(filePath);
+      stateManager.clearPendingWrite(filePath);
+
+      return PropertiesWriteResultSchema.parse({ success: true });
+    } catch (err) {
+      stateManager.clearPendingWrite(filePath);
+      const msg = `[IPC] properties:write error for "${filePath}": ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return PropertiesWriteResultSchema.parse({ success: false, error: String(err) });
     }
   });
 

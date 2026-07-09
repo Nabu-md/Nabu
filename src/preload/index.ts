@@ -69,6 +69,12 @@ const electronAPI = {
     query: (queryString: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.SEARCH_QUERY, { query: queryString }),
   },
+  properties: {
+    read: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PROPERTIES_READ, { path }),
+    write: (path: string, yaml: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PROPERTIES_WRITE, { path, yaml }),
+  },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void =>

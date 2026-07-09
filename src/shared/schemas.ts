@@ -349,3 +349,30 @@ export const AssetReadResultSchema = z.object({
 
 export type AssetReadPayload = z.infer<typeof AssetReadSchema>;
 export type AssetReadResult = z.infer<typeof AssetReadResultSchema>;
+
+// properties:read (Renderer → Main) — read YAML frontmatter properties
+export const PropertiesReadSchema = z.object({
+  path: z.string()
+});
+
+export const PropertiesReadResultSchema = z.object({
+  path: z.string(),
+  properties: z.record(z.unknown()),
+  yaml: z.string()
+});
+
+// properties:write (Renderer → Main) — write YAML frontmatter properties
+export const PropertiesWriteSchema = z.object({
+  path: z.string(),
+  yaml: z.string()
+});
+
+export const PropertiesWriteResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+});
+
+export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
+export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
+export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;
+export type PropertiesWriteResult = z.infer<typeof PropertiesWriteResultSchema>;

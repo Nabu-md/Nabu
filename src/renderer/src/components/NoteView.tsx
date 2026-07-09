@@ -67,23 +67,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * the new YAML string.  If no frontmatter exists, the new YAML is prepended.
  * Passing an empty YAML string removes the frontmatter section entirely.
  */
-function replaceFrontmatter(raw: string, newYaml: string): string {
-  const FRONTMATTER_RE = /^---\n[\s\S]*?\n---(?:\n|$)/
-
-  if (!newYaml.trim()) {
-    // Remove frontmatter if it exists, otherwise return raw unchanged
-    return raw.replace(FRONTMATTER_RE, '')
-  }
-
-  const yamlBlock = `---\n${newYaml.trim()}\n---\n`
-
-  if (FRONTMATTER_RE.test(raw)) {
-    return raw.replace(FRONTMATTER_RE, yamlBlock)
-  }
-
-  // No existing frontmatter — prepend
-  return yamlBlock + raw
-}
+/** Note: replaceFrontmatter has moved to src/main/ipc.ts as replaceFrontmatterRaw */
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder
@@ -1035,11 +1019,10 @@ export function NoteView(): React.JSX.Element {
     async (newYaml: string) => {
       if (!currentFile) return
       try {
-        const rawResult = await window.electron.note.getRaw(currentFile)
-        if (!rawResult || typeof rawResult.content !== 'string') return
-        const newContent = replaceFrontmatter(rawResult.content, newYaml)
-        if (newContent === rawResult.content) return // no change
-        await window.electron.note.save(currentFile, newContent)
+        const result = await window.electron.properties.write(currentFile, newYaml)
+        if (!result.success) {
+          console.error('[NoteView] properties write error:', result.error)
+        }
       } catch (err) {
         console.error('[NoteView] properties save error:', err)
       }

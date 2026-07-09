@@ -168,7 +168,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Use the `yaml` npm library for parse/serialise (preserving unknown keys).
   - _Requirements: 12.1, 12.2, 12.3, 12.5, 12.6_
 
-- [ ] 28. Add `properties:read` / `properties:write` IPC channels
+- [x] 28. Add `properties:read` / `properties:write` IPC channels
   - Zod schemas; handler rewrites only the frontmatter block under the Pending_Write_Lock; invalid YAML is rejected pre-write.
   - Reload + warn on external frontmatter change while the view is open.
   - _Requirements: 12.4, 12.7, 12.8, 13B.1, 13B.2, 13B.3, 26.1_
