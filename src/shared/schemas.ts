@@ -154,7 +154,8 @@ export const NoteCreateResultSchema = FileGetResultSchema;
 // note:save (Renderer → Main)
 export const NoteSaveSchema = z.object({
   path: z.string(),
-  content: z.string()
+  content: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const NoteSaveResultSchema = z.object({
@@ -165,7 +166,8 @@ export const NoteSaveResultSchema = z.object({
 // note:rename (Renderer → Main)
 export const NoteRenameSchema = z.object({
   oldPath: z.string(),
-  newPath: z.string()
+  newPath: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const NoteRenameResultSchema = z.object({
@@ -175,7 +177,8 @@ export const NoteRenameResultSchema = z.object({
 
 // note:delete (Renderer → Main)
 export const NoteDeleteSchema = z.object({
-  path: z.string()
+  path: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const NoteDeleteResultSchema = z.object({
