@@ -70,7 +70,8 @@ export const NotesLoadedSchema = z.object({
 // task:toggle (Renderer → Main)
 export const TaskToggleSchema = z.object({
   path: z.string(),
-  lineIndex: z.number().int().nonnegative()
+  lineIndex: z.number().int().nonnegative(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const TaskToggleResultSchema = z.object({
