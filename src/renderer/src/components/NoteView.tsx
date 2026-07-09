@@ -440,6 +440,107 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 }
 
 // ---------------------------------------------------------------------------
+// OutgoingLinksPanel
+// ---------------------------------------------------------------------------
+
+function OutgoingLinksPanel(): React.JSX.Element | null {
+  const { state, dispatch } = useAppContext()
+  const [isExpanded, setIsExpanded] = useState(true)
+
+  const outgoingLinks = useMemo(() => {
+    if (!state.currentFile) return []
+    // Deduplicate by target (Req 6.2).
+    const seen = new Set<string>()
+    return state.graphEdges
+      .filter((e) => e.source === state.currentFile)
+      .filter((e) => {
+        if (seen.has(e.target)) return false
+        seen.add(e.target)
+        return true
+      })
+      .map((e) => ({
+        targetPath: e.target,
+        name:
+          state.vault?.files.find((f) => f.path === e.target)?.name ??
+          e.target.split('/').pop()?.replace('.md', '') ??
+          e.target,
+        snippet: e.snippet,
+      }))
+  }, [state.currentFile, state.graphEdges, state.vault])
+
+  if (outgoingLinks.length === 0) return null
+
+  return (
+    <section className="outgoing-links-panel mt-8 border-t border-white/10 pt-4" aria-label="Outgoing links">
+      <button
+        type="button"
+        aria-expanded={isExpanded}
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white/80 transition-colors w-full text-left mb-2"
+      >
+        <span>Outgoing links ({outgoingLinks.length})</span>
+        <span aria-hidden="true" className="text-xs">{isExpanded ? '▲' : '▼'}</span>
+      </button>
+      {isExpanded && (
+        <ul role="list" className="space-y-1">
+          {outgoingLinks.map((ol) => {
+            const isBroken = !state.vault?.files.some((f) => f.path === ol.targetPath)
+            return (
+              <li key={ol.targetPath}>
+                <button
+                  type="button"
+                  disabled={isBroken}
+                  onClick={() => {
+                    if (isBroken) return
+                    window.electron.file
+                      .get(ol.targetPath)
+                      .then((fileAST) => {
+                        dispatch({
+                          type: 'FILE_LOADED',
+                          payload: { path: fileAST.path, ast: fileAST.ast },
+                        })
+                      })
+                      .catch(console.error)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors group ${
+                    isBroken
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'hover:bg-white/8 cursor-pointer'
+                  }`}
+                >
+                  <span
+                    className={`block font-semibold text-sm ${
+                      isBroken
+                        ? 'text-red-400/60'
+                        : 'text-white/80 group-hover:text-white/95'
+                    }`}
+                  >
+                    {ol.name}
+                    {isBroken && (
+                      <span
+                        className="ml-2 text-xs text-red-400/50"
+                        title="Target note not found"
+                      >
+                        (broken)
+                      </span>
+                    )}
+                  </span>
+                  {ol.snippet && !isBroken && (
+                    <span className="block text-xs text-white/40 mt-0.5 truncate">
+                      {ol.snippet}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // BacklinksPanel
 // ---------------------------------------------------------------------------
 
@@ -889,6 +990,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
             aria-label="Note content"
           >
             {currentAST.children.map((child, i) => renderNode(child, renderCtx, i))}
+            <OutgoingLinksPanel />
             <BacklinksPanel />
           </article>
         </>
