@@ -29,8 +29,16 @@ import type { SearchQueryResult } from '../../shared/search-query'
 // State shape
 // ---------------------------------------------------------------------------
 
+export interface OpenVault {
+  id: string // vaultId
+  path: string
+  name: string
+}
+
 export interface AppState {
-  vault: VaultMetadata | null
+  openVaults: OpenVault[] // all open vaults (multi-vault)
+  activeVaultId: string | null // currently active vault
+  vault: VaultMetadata | null // active vault for backward compatibility
   currentFile: string | null
   currentAST: Root | null
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
@@ -56,6 +64,11 @@ export interface AppState {
   quickSwitcherOpen: boolean
   commandPaletteOpen: boolean
   recentNotes: string[]
+}
+
+// Backward-compatible accessor (getter function)
+export function getActiveVault(state: AppState): VaultMetadata | null {
+  return state.vault
 }
 
 // ---------------------------------------------------------------------------
@@ -101,6 +114,8 @@ export type AppAction =
 // ---------------------------------------------------------------------------
 
 const initialState: AppState = {
+  openVaults: [],
+  activeVaultId: null,
   vault: null,
   currentFile: null,
   currentAST: null,
