@@ -20,6 +20,7 @@ import { ContextPane } from './components/ContextPane'
 import { ActivityTimeline } from './components/ActivityTimeline'
 import { SetupWizard } from './components/SetupWizard'
 import { SearchPanel } from './components/SearchPanel'
+import { QuickSwitcher } from './components/QuickSwitcher'
 import type { SearchQueryResult } from '../../shared/search-query'
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,8 @@ export interface AppState {
   searchPanelOpen: boolean
   searchQuery: string
   searchResults: SearchQueryResult[]
+  quickSwitcherOpen: boolean
+  recentNotes: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +84,10 @@ export type AppAction =
   | { type: 'SEARCH_PANEL_OPEN' }
   | { type: 'SEARCH_PANEL_CLOSE' }
   | { type: 'SEARCH_RESULTS_UPDATED'; payload: { query: string; results: SearchQueryResult[] } }
+  | { type: 'QUICK_SWITCHER_TOGGLE' }
+  | { type: 'QUICK_SWITCHER_OPEN' }
+  | { type: 'QUICK_SWITCHER_CLOSE' }
+  | { type: 'RECENT_NOTE_OPENED'; payload: string }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -111,6 +118,8 @@ const initialState: AppState = {
   searchPanelOpen: false,
   searchQuery: '',
   searchResults: [],
+  quickSwitcherOpen: false,
+  recentNotes: [],
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -118,12 +127,19 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'VAULT_OPENED':
       return { ...state, vault: action.payload, showSetup: false, currentFile: null, currentAST: null }
 
-    case 'FILE_LOADED':
+    case 'FILE_LOADED': {
+      // Track recently opened notes (capped at 10, deduped)
+      const recentNotes = [
+        action.payload.path,
+        ...state.recentNotes.filter((p) => p !== action.payload.path),
+      ].slice(0, 10)
       return {
         ...state,
         currentFile: action.payload.path,
-        currentAST: action.payload.ast
+        currentAST: action.payload.ast,
+        recentNotes,
       }
+    }
 
     case 'AST_UPDATED': {
       const updatedToggleStates = new Map(state.toggleStates)
@@ -221,6 +237,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'SEARCH_RESULTS_UPDATED':
       return { ...state, searchQuery: action.payload.query, searchResults: action.payload.results }
 
+    case 'QUICK_SWITCHER_TOGGLE':
+      return { ...state, quickSwitcherOpen: !state.quickSwitcherOpen }
+
+    case 'QUICK_SWITCHER_OPEN':
+      return { ...state, quickSwitcherOpen: true }
+
+    case 'QUICK_SWITCHER_CLOSE':
+      return { ...state, quickSwitcherOpen: false }
+
+    case 'RECENT_NOTE_OPENED': {
+      const recentNotes = [
+        action.payload,
+        ...state.recentNotes.filter((p) => p !== action.payload),
+      ].slice(0, 10)
+      return { ...state, recentNotes }
+    }
+
     default:
       return state
   }
@@ -305,6 +338,10 @@ function App(): React.JSX.Element {
       if ((e.metaKey || e.ctrlKey) && e.key === 'g') {
         e.preventDefault()
         dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+        e.preventDefault()
+        dispatch({ type: 'QUICK_SWITCHER_TOGGLE' })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -577,6 +614,7 @@ function App(): React.JSX.Element {
         </div>
       )}
       {state.settingsPanelOpen && <SettingsPanel />}
+      {state.quickSwitcherOpen && <QuickSwitcher />}
     </AppContext.Provider>
   )
 }
