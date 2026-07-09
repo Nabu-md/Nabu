@@ -21,8 +21,9 @@ export const VaultCloseSchema = z.object({});
 
 // file:get (Renderer → Main)
 export const FileGetSchema = z.object({
-  path: z.string()
-});
+  path: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
+})
 
 export const FileGetResultSchema = z.object({
   path: z.string(),
@@ -357,9 +358,9 @@ export const PropertiesReadSchema = z.object({
 
 export const PropertiesReadResultSchema = z.object({
   path: z.string(),
-  properties: z.record(z.unknown()),
+  properties: z.record(z.string(), z.unknown()),
   yaml: z.string()
-});
+})
 
 // properties:write (Renderer → Main) — write YAML frontmatter properties
 export const PropertiesWriteSchema = z.object({
