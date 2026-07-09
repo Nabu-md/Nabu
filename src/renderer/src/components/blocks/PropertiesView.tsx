@@ -4,7 +4,10 @@
  * Renders YAML frontmatter as a two-column editable table, with a toggle
  * to switch between table view and raw-YAML textarea editor.
  *
- * Requirements: 12.1, 12.2, 12.3, 12.5, 12.6, 12.7
+ * The `aliases` key receives a dedicated chip-based list editor (AliasEditor)
+ * that renders each alias as a removable chip with add/remove capability.
+ *
+ * Requirements: 12.1, 12.2, 12.3, 12.5, 12.6, 12.7, 15B.1, 15B.2, 15B.3
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -130,6 +133,108 @@ function ValueInput({ value, onChange, onBlur, autoFocus }: ValueInputProps): Re
       autoFocus={autoFocus}
       className="w-full bg-transparent border-b border-white/20 text-sm text-white/90 outline-none focus:border-blue-400/60 transition-colors px-1 py-0.5"
     />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AliasEditor sub-component
+// ---------------------------------------------------------------------------
+
+/** AliasEditor props — mirrors ValueInput but for an array of strings. */
+interface AliasEditorProps {
+  /** The array of alias strings. */
+  aliases: string[]
+  /** Called when the alias list changes (new full array). */
+  onChange: (newAliases: string[]) => void
+  /** Called when editing finishes (blur / enter accepted). */
+  onBlur: () => void
+}
+
+/**
+ * Chip-based list editor for the `aliases` frontmatter key.
+ * Each alias renders as a removable chip; a trailing input allows adding new
+ * aliases. Duplicate detection is case-insensitive.
+ *
+ * Requirements: 15B.1, 15B.2, 15B.3
+ */
+function AliasEditor({ aliases, onChange, onBlur }: AliasEditorProps): React.JSX.Element {
+  const [input, setInput] = useState('')
+  const [showDupWarning, setShowDupWarning] = useState(false)
+  const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clean up duplicate-warning timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dupTimerRef.current) clearTimeout(dupTimerRef.current)
+    }
+  }, [])
+
+  const handleAdd = useCallback((): void => {
+    const trimmed = input.trim()
+    if (!trimmed) return
+    if (aliases.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
+      setShowDupWarning(true)
+      if (dupTimerRef.current) clearTimeout(dupTimerRef.current)
+      dupTimerRef.current = setTimeout(() => setShowDupWarning(false), 2000)
+      return
+    }
+    const updated = [...aliases, trimmed]
+    onChange(updated)
+    setInput('')
+  }, [input, aliases, onChange])
+
+  const handleRemove = useCallback(
+    (index: number): void => {
+      const updated = aliases.filter((_, i) => i !== index)
+      onChange(updated)
+    },
+    [aliases, onChange],
+  )
+
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAdd()
+    }
+    if (e.key === 'Escape') {
+      setInput('')
+      onBlur()
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {aliases.map((alias, idx) => (
+        <span
+          key={`${alias}-${idx}`}
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs rounded bg-purple-900/30 border border-purple-700/30 text-purple-300 group/chip"
+        >
+          {alias}
+          <button
+            type="button"
+            onClick={() => handleRemove(idx)}
+            className="text-purple-400/50 hover:text-red-400 transition-colors opacity-0 group-hover/chip:opacity-100"
+            aria-label={`Remove alias "${alias}"`}
+            title={`Remove "${alias}"`}
+          >
+            ✕
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => onBlur()}
+        placeholder={aliases.length === 0 ? 'Add alias…' : ''}
+        className="w-20 min-w-[60px] bg-transparent border-b border-white/10 text-xs text-white/70 outline-none focus:border-purple-400/50 transition-colors px-0.5 py-0"
+        aria-label="Add alias"
+      />
+      {showDupWarning && (
+        <span className="text-[10px] text-yellow-400/70">Duplicate alias</span>
+      )}
+    </div>
   )
 }
 
@@ -441,13 +546,25 @@ export function PropertiesView({ yamlValue, onSave, onPropertySearch }: Properti
               {/* Value cell */}
               <div className="flex items-center min-h-[24px] gap-1">
                 <div className="flex-1">
-                  <ValueInput
-                    value={entry.value}
-                    onChange={(newVal) => handleValueChange(entry.key, newVal)}
-                    onBlur={() => setEditingKey(null)}
-                  />
+                  {entry.key === 'aliases' && (Array.isArray(entry.value) || typeof entry.value === 'string') ? (
+                    <AliasEditor
+                      aliases={Array.isArray(entry.value)
+                        ? entry.value.map(String)
+                        : typeof entry.value === 'string' && entry.value
+                          ? [entry.value]
+                          : []}
+                      onChange={(newAliases) => handleValueChange(entry.key, newAliases.length === 0 ? '' : newAliases)}
+                      onBlur={() => setEditingKey(null)}
+                    />
+                  ) : (
+                    <ValueInput
+                      value={entry.value}
+                      onChange={(newVal) => handleValueChange(entry.key, newVal)}
+                      onBlur={() => setEditingKey(null)}
+                    />
+                  )}
                 </div>
-                {onPropertySearch && (
+                {onPropertySearch && entry.key !== 'aliases' && (
                   <button
                     type="button"
                     onClick={() => onPropertySearch(entry.key, valueToString(entry.value))}
