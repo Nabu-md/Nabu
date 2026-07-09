@@ -190,11 +190,11 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Wiki-link resolver, graph edge builder, and Quick Switcher consult `aliasIndex`; shortest-path tie-break + ambiguity surfacing; incremental alias re-index.
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6_
 
-- [ ] 33. Edit aliases via Properties view
+- [x] 33. Edit aliases via Properties view
   - Aliases as editable list; preserve original syntax when unedited; re-index after write.
   - _Requirements: 15B.1, 15B.2, 15B.3_
 
-- [ ] 34. Implement auto-properties
+- [x] 34. Implement auto-properties
   - On `note:create`, inject `created` (ISO) if absent; on `note:save`, update `modified`; settings flag `autoProperties` (default on); create minimal frontmatter when none.
   - Pending_Write_Lock honoured; no re-parse storm.
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_

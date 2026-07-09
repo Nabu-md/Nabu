@@ -5,7 +5,7 @@
  * Extracted into its own module to avoid circular imports between index.ts
  * and ipc.ts.
  *
- * Requirements: 11.7, 12.7, 12.9
+ * Requirements: 11.7, 12.7, 12.9, 16.5
  */
 
 import { app } from 'electron'
@@ -20,12 +20,15 @@ export interface AppSettings {
   lastVaultPath: string | null
   windowBounds: { x: number; y: number; width: number; height: number } | null
   theme: 'dark' | 'light' | 'system'
+  /** Automatically inject `created` / `modified` timestamps in frontmatter (Req 16.5). */
+  autoProperties: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   lastVaultPath: null,
   windowBounds: null,
   theme: 'dark',
+  autoProperties: true,
 }
 
 export function settingsPath(): string {
@@ -44,6 +47,7 @@ export async function loadSettings(): Promise<AppSettings> {
       lastVaultPath: parsed.lastVaultPath ?? null,
       windowBounds: parsed.windowBounds ?? null,
       theme: parsed.theme ?? 'dark',
+      autoProperties: parsed.autoProperties ?? true,
     }
   } catch {
     return { ...DEFAULT_SETTINGS }

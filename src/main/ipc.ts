@@ -5,7 +5,7 @@
  * channels with Zod validation, and provides `sendToRenderer()` for
  * Main→Renderer push messages.
  *
- * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6
+ * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 16.1, 16.2, 16.3, 16.4, 16.6
  */
 
 import { ipcMain, dialog, BrowserWindow, app } from 'electron';
@@ -162,6 +162,42 @@ function replaceFrontmatterRaw(raw: string, yamlStr: string): string {
 
   // No existing frontmatter — prepend
   return yamlBlock + raw;
+}
+
+/**
+ * Inject or update a single frontmatter property into raw markdown content.
+ *
+ * When `onlyIfAbsent` is true (e.g. for `created`), the value is only set if
+ * the key does not already exist — preserving user-set values (Req 16.3).
+ * When `onlyIfAbsent` is false (e.g. for `modified`), the value is always
+ * written, overwriting any existing value.
+ *
+ * Uses `extractFrontmatter` + `replaceFrontmatterRaw` to splice into content.
+ * If no frontmatter exists, a minimal one is created.
+ *
+ * Requirements: 16.1, 16.2, 16.3, 16.4
+ */
+function injectAutoProperty(
+  content: string,
+  key: string,
+  value: string,
+  onlyIfAbsent: boolean,
+): string {
+  const { parsed } = extractFrontmatter(content);
+
+  if (onlyIfAbsent && key in parsed) {
+    // Key already set by user — do not overwrite (Req 16.3)
+    return content;
+  }
+
+  // Set or update the property
+  const updated = { ...parsed, [key]: value };
+
+  // Use dynamic import for the ESM-compatible yaml package (same pattern as extractFrontmatter)
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { stringify } = require('yaml');
+  const newYaml = stringify(updated);
+  return replaceFrontmatterRaw(content, newYaml);
 }
 
 // ---------------------------------------------------------------------------
@@ -1027,11 +1063,17 @@ export function registerIPCHandlers(
       const timeStr = now.toTimeString().slice(0, 5);
 
       const rawContent = templateContent ?? `# ${normalisedName}\n`;
-      const content = substituteVariables(rawContent, {
+      let content = substituteVariables(rawContent, {
         title: normalisedName,
         date: dateStr,
         time: timeStr,
       });
+
+      // Auto-properties: inject `created` timestamp if absent (Req 16.1, 16.2)
+      const settings = await loadSettings();
+      if (settings.autoProperties) {
+        content = injectAutoProperty(content, 'created', now.toISOString(), true);
+      }
 
       // Write file with pending write lock
       stateManager.setPendingWrite(filePath);
@@ -1071,8 +1113,14 @@ export function registerIPCHandlers(
     const { path: filePath, content } = validation.data;
 
     try {
+      // Auto-properties: inject/update `modified` timestamp (Req 16.1, 16.2)
+      const settings = await loadSettings();
+      const finalContent = settings.autoProperties
+        ? injectAutoProperty(content, 'modified', new Date().toISOString(), false)
+        : content;
+
       stateManager.setPendingWrite(filePath);
-      await fs.writeFile(filePath, content, 'utf-8');
+      await fs.writeFile(filePath, finalContent, 'utf-8');
       stateManager.invalidateAST(filePath);
       stateManager.clearPendingWrite(filePath);
 
