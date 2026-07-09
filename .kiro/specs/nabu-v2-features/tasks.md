@@ -324,7 +324,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 8 — Multi-Vault
 
-- [ ] 57. Add `recentVaults` to `AppSettings`
+- [x] 57. Add `recentVaults` to `AppSettings`
   - `Array<{ path, name, lastOpened }>` capped to a bounded size; migration keeps the v1 `lastVaultPath` as the first entry.
   - _Requirements: 22.1, 22.10_
 
