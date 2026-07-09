@@ -11,6 +11,7 @@ import React, {
 } from 'react'
 import { Root } from 'mdast'
 import { VaultMetadata, ActivityEntry, SearchResult, Edge } from '../../shared/types'
+import type { ExtendedSearchIndex } from '../../shared/extended-indexing'
 import { Sidebar, SidebarHandle } from './components/Sidebar'
 import { NoteView } from './components/NoteView'
 import { GraphView } from './components/GraphView'
@@ -43,6 +44,7 @@ export interface AppState {
   theme: 'dark' | 'light' | 'system'
   vectorDisabled: boolean
   vectorDisabledReason: string | null
+  extendedIndex: ExtendedSearchIndex | null
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,7 @@ export type AppAction =
   | { type: 'GRAPH_VIEW_TOGGLE' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
   | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
+  | { type: 'EXTENDED_INDEX_BUILT'; payload: ExtendedSearchIndex }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -94,7 +97,8 @@ const initialState: AppState = {
   graphViewOpen: false,
   theme: 'dark',
   vectorDisabled: false,
-  vectorDisabledReason: null
+  vectorDisabledReason: null,
+  extendedIndex: null
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -189,6 +193,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'VECTOR_STATUS_UPDATED':
       return { ...state, vectorDisabled: action.payload.disabled, vectorDisabledReason: action.payload.reason }
+
+    case 'EXTENDED_INDEX_BUILT':
+      return { ...state, extendedIndex: action.payload }
 
     default:
       return state
@@ -342,12 +349,53 @@ function App(): React.JSX.Element {
     })
 
     const offIndexBuild = electron.on.indexBuild((data) => {
-      const p = data as { ftIndex: Record<string, string[]>; tagIndex: Record<string, string[]>; edges: unknown[] }
+      const p = data as {
+        ftIndex: Record<string, string[]>;
+        tagIndex: Record<string, string[]>;
+        edges: unknown[];
+        extendedIndex: {
+          positions: Record<string, Record<string, number[]>>;
+          lineSnippets: Record<string, string[]>;
+          tagIndex: Record<string, string[]>;
+          aliasIndex: Record<string, string[]>;
+          propertyIndex: Record<string, Record<string, string[]>>;
+          blockRefs: Record<string, Record<string, string>>;
+        };
+      }
       const ftIndex = new Map(Object.entries(p.ftIndex).map(([k, v]) => [k, new Set(v)]))
       const tagIndex = new Map(Object.entries(p.tagIndex).map(([k, v]) => [k, new Set(v)]))
       dispatch({ type: 'FULL_TEXT_INDEX_BUILT', payload: ftIndex })
       dispatch({ type: 'TAG_INDEX_BUILT', payload: tagIndex })
       dispatch({ type: 'GRAPH_UPDATED', payload: p.edges as Edge[] })
+
+      // Deserialise extended index from JSON-safe payload to Maps/Sets
+      const ext = p.extendedIndex
+      const positions = new Map<string, Map<string, number[]>>()
+      for (const [word, fileMap] of Object.entries(ext.positions)) {
+        positions.set(word, new Map(Object.entries(fileMap)))
+      }
+      const lineSnippets = new Map(Object.entries(ext.lineSnippets))
+      const extTagIndex = new Map<string, Set<string>>()
+      for (const [tag, paths] of Object.entries(ext.tagIndex)) {
+        extTagIndex.set(tag, new Set(paths))
+      }
+      const aliasIndex = new Map(Object.entries(ext.aliasIndex))
+      const propertyIndex = new Map<string, Map<string, Set<string>>>()
+      for (const [propName, valueMap] of Object.entries(ext.propertyIndex)) {
+        const inner = new Map<string, Set<string>>()
+        for (const [value, paths] of Object.entries(valueMap)) {
+          inner.set(value, new Set(paths))
+        }
+        propertyIndex.set(propName, inner)
+      }
+      const blockRefs = new Map<string, Map<string, string>>()
+      for (const [filePath, refs] of Object.entries(ext.blockRefs)) {
+        blockRefs.set(filePath, new Map(Object.entries(refs)))
+      }
+      dispatch({
+        type: 'EXTENDED_INDEX_BUILT',
+        payload: { positions, lineSnippets, tagIndex: extTagIndex, aliasIndex, propertyIndex, blockRefs },
+      })
     })
 
     const offOpenSettings = electron.on.openSettings(() => {

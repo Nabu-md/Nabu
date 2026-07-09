@@ -16,6 +16,8 @@ import { visit } from 'unist-util-visit';
 import { parseFile } from './parser';
 import { buildGraph } from '../shared/graph';
 import { buildFullTextIndex, buildTagIndex } from '../shared/indexing';
+import { buildExtendedIndex, updateExtendedIndexForFile, createEmptyIndex } from '../shared/extended-indexing';
+import type { ExtendedSearchIndex } from '../shared/extended-indexing';
 import type { VaultMetadata, FileEntry, Edge } from '../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -46,6 +48,13 @@ export class StateManager {
    * Mutated incrementally by `updateIndexesForFile()`.
    */
   private tagIndex: Map<string, Set<string>> = new Map();
+
+  /**
+   * Extended search index: token positions, line snippets, unified tag index,
+   * alias map, property index, and block references.
+   * Mutated incrementally by `updateIndexesForFile()`.
+   */
+  private extendedIndex: ExtendedSearchIndex = createEmptyIndex();
 
   // -------------------------------------------------------------------------
   // Vault operations
@@ -185,25 +194,34 @@ export class StateManager {
   // -------------------------------------------------------------------------
 
   /**
-   * Build the full-text index, tag index, and knowledge-graph edges for the
-   * currently open vault.
+   * Build the full-text index, tag index, knowledge-graph edges, and extended
+   * search index for the currently open vault.
    *
    * - Uses the synchronous AST accessor so no additional I/O is performed for
    *   already-cached files.
-   * - Stores the built indexes in the `fullTextIndex` and `tagIndex` instance
-   *   fields so that `updateIndexesForFile()` can perform incremental updates.
+   * - Stores the built indexes in the `fullTextIndex`, `tagIndex`, and
+   *   `extendedIndex` instance fields so that `updateIndexesForFile()` can
+   *   perform incremental updates.
    * - Populates `edge.snippet` by finding the first `paragraph` node in the
    *   source AST, gathering all nested `text` node values, joining them, and
    *   truncating to 80 characters.
    * - Serialises the `Map<string, Set<string>>` indexes to plain
    *   `Record<string, string[]>` objects for IPC transport.
    *
-   * Requirements: 6.3, 7.6, 8.6
+   * Requirements: 2.6, 2.8, 6.3, 7.6, 8.6
    */
   async buildIndexes(): Promise<{
     ftIndex: Record<string, string[]>;
     tagIndex: Record<string, string[]>;
     edges: Edge[];
+    extendedIndex: {
+      positions: Record<string, Record<string, number[]>>;
+      lineSnippets: Record<string, string[]>;
+      tagIndex: Record<string, string[]>;
+      aliasIndex: Record<string, string[]>;
+      propertyIndex: Record<string, Record<string, string[]>>;
+      blockRefs: Record<string, Record<string, string>>;
+    };
   }> {
     const files = this.currentVault?.files ?? [];
     const getAST = (p: string): Root | undefined => this.astStore.get(p);
@@ -240,12 +258,18 @@ export class StateManager {
     const tagIndexObj: Record<string, string[]> = {};
     for (const [k, v] of this.tagIndex) tagIndexObj[k] = Array.from(v);
 
-    return { ftIndex: ftIndexObj, tagIndex: tagIndexObj, edges };
+    // Build and store the extended search index (Req 2.6, 2.8)
+    this.extendedIndex = buildExtendedIndex(files, getAST);
+
+    // Serialise extended index Maps → Records for IPC transport
+    const extendedIndexObj = serializeExtendedIndex(this.extendedIndex);
+
+    return { ftIndex: ftIndexObj, tagIndex: tagIndexObj, edges, extendedIndex: extendedIndexObj };
   }
 
   /**
-   * Incrementally update the full-text index, tag index, and graph edges after
-   * a single file changes (e.g. `note:save`).
+   * Incrementally update the full-text index, tag index, graph edges, and
+   * extended search index after a single file changes (e.g. `note:save`).
    *
    * Avoids re-tokenising all vault files on every keystroke by:
    *   1. Invalidating and re-fetching the AST for `filePath` only.
@@ -255,16 +279,26 @@ export class StateManager {
    *   3. Re-indexing the single file using the same tokenisation / tag-parsing
    *      logic as `buildFullTextIndex` / `buildTagIndex` (by calling both with
    *      a single-element file list).
-   *   4. Rebuilding the edges for `filePath` with refreshed snippets.
-   *   5. Serialising and returning the updated indexes in the same shape as
+   *   4. Incrementally updating the extended search index via
+   *      `updateExtendedIndexForFile`.
+   *   5. Rebuilding the edges for `filePath` with refreshed snippets.
+   *   6. Serialising and returning the updated indexes in the same shape as
    *      `buildIndexes()`.
    *
-   * Requirements: 6.3, 7.6, 8.6
+   * Requirements: 2.6, 2.8, 6.3, 7.6, 8.6
    */
   async updateIndexesForFile(filePath: string): Promise<{
     ftIndex: Record<string, string[]>;
     tagIndex: Record<string, string[]>;
     edges: Edge[];
+    extendedIndex: {
+      positions: Record<string, Record<string, number[]>>;
+      lineSnippets: Record<string, string[]>;
+      tagIndex: Record<string, string[]>;
+      aliasIndex: Record<string, string[]>;
+      propertyIndex: Record<string, Record<string, string[]>>;
+      blockRefs: Record<string, Record<string, string>>;
+    };
   }> {
     // 1. Invalidate stale AST and re-parse from disk
     this.invalidateAST(filePath);
@@ -304,7 +338,10 @@ export class StateManager {
       }
     }
 
-    // 4. Rebuild the complete edge list and refresh snippets for edges whose
+    // 4. Incrementally update the extended search index (Req 2.6)
+    updateExtendedIndexForFile(this.extendedIndex, filePath, getAST(filePath));
+
+    // 5. Rebuild the complete edge list and refresh snippets for edges whose
     //    source is the changed file
     const allFiles = this.currentVault?.files ?? [];
     const edges = buildGraph(allFiles, getAST);
@@ -329,14 +366,16 @@ export class StateManager {
       edge.snippet = snippet;
     }
 
-    // 5. Serialise Maps → Records for IPC transport
+    // 6. Serialise Maps → Records for IPC transport
     const ftIndexObj: Record<string, string[]> = {};
     for (const [k, v] of this.fullTextIndex) ftIndexObj[k] = Array.from(v);
 
     const tagIndexObj: Record<string, string[]> = {};
     for (const [k, v] of this.tagIndex) tagIndexObj[k] = Array.from(v);
 
-    return { ftIndex: ftIndexObj, tagIndex: tagIndexObj, edges };
+    const extendedIndexObj = serializeExtendedIndex(this.extendedIndex);
+
+    return { ftIndex: ftIndexObj, tagIndex: tagIndexObj, edges, extendedIndex: extendedIndexObj };
   }
 
   // -------------------------------------------------------------------------
@@ -438,6 +477,55 @@ export class StateManager {
   getCurrentVault(): VaultMetadata | null {
     return this.currentVault;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Extended index serialisation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Serialise an ExtendedSearchIndex (which uses Maps and Sets) into plain
+ * JSON-safe objects for IPC transport to the renderer.
+ */
+function serializeExtendedIndex(index: ExtendedSearchIndex): {
+  positions: Record<string, Record<string, number[]>>;
+  lineSnippets: Record<string, string[]>;
+  tagIndex: Record<string, string[]>;
+  aliasIndex: Record<string, string[]>;
+  propertyIndex: Record<string, Record<string, string[]>>;
+  blockRefs: Record<string, Record<string, string>>;
+} {
+  const positions: Record<string, Record<string, number[]>> = {};
+  for (const [word, fileMap] of index.positions) {
+    const obj: Record<string, number[]> = {};
+    for (const [filePath, lines] of fileMap) obj[filePath] = lines;
+    positions[word] = obj;
+  }
+
+  const lineSnippets: Record<string, string[]> = {};
+  for (const [filePath, snippets] of index.lineSnippets) lineSnippets[filePath] = snippets;
+
+  const tagIndex: Record<string, string[]> = {};
+  for (const [tag, paths] of index.tagIndex) tagIndex[tag] = Array.from(paths);
+
+  const aliasIndex: Record<string, string[]> = {};
+  for (const [alias, paths] of index.aliasIndex) aliasIndex[alias] = paths;
+
+  const propertyIndex: Record<string, Record<string, string[]>> = {};
+  for (const [propName, valueMap] of index.propertyIndex) {
+    const obj: Record<string, string[]> = {};
+    for (const [value, paths] of valueMap) obj[value] = Array.from(paths);
+    propertyIndex[propName] = obj;
+  }
+
+  const blockRefs: Record<string, Record<string, string>> = {};
+  for (const [filePath, refs] of index.blockRefs) {
+    const obj: Record<string, string> = {};
+    for (const [blockId, nodeKey] of refs) obj[blockId] = nodeKey;
+    blockRefs[filePath] = obj;
+  }
+
+  return { positions, lineSnippets, tagIndex, aliasIndex, propertyIndex, blockRefs };
 }
 
 // ---------------------------------------------------------------------------

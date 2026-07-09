@@ -239,6 +239,19 @@ export const SettingsSetResultSchema = z.object({
   error: z.string().optional()
 });
 
+/**
+ * Serialised shape of ExtendedSearchIndex for IPC transport.
+ * All Maps/Sets are converted to plain objects/arrays.
+ */
+const ExtendedIndexPayloadSchema = z.object({
+  positions: z.record(z.string(), z.record(z.string(), z.array(z.number()))),
+  lineSnippets: z.record(z.string(), z.array(z.string())),
+  tagIndex: z.record(z.string(), z.array(z.string())),
+  aliasIndex: z.record(z.string(), z.array(z.string())),
+  propertyIndex: z.record(z.string(), z.record(z.string(), z.array(z.string()))),
+  blockRefs: z.record(z.string(), z.record(z.string(), z.string())),
+});
+
 // index:build (Main → Renderer push channel)
 export const IndexBuildSchema = z.object({
   ftIndex: z.record(z.string(), z.array(z.string())),
@@ -249,7 +262,9 @@ export const IndexBuildSchema = z.object({
       target: z.string(),
       snippet: z.string()
     })
-  )
+  ),
+  /** Extended search index (token positions, line snippets, aliases, properties, block refs). */
+  extendedIndex: ExtendedIndexPayloadSchema,
 });
 
 // TypeScript type inference
