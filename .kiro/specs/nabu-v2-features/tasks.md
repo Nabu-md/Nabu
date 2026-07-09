@@ -248,7 +248,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Command "Create unique note" with configurable timestamp format (default `YYYYMMDDHHmmss`); injects filename as `title` frontmatter + H1; uses template system with `_templates/unique-note.md` fallback; Command Palette registration.
   - _Requirements: 27.1, 27.2, 27.3, 27.4, 27.5_
 
-- [ ] 43. Implement Page Preview on Hover (R28)
+- [x] 43. Implement Page Preview on Hover (R28)
   - On hover over resolved `wikiLink` or `embed` in view mode, show popover with rendered excerpt of target note (same `renderNode` pipeline, truncated); configurable hover delay (default 300ms); "Open" link in popover; no preview on broken links; disabled when user turns off in Settings.
   - _Requirements: 28.1, 28.2, 28.3, 28.4, 28.5, 28.6, 28.7, 28.8_
 
