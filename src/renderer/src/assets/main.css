@@ -454,6 +454,123 @@ button,
   cursor: pointer;
 }
 
+/* ============================================================
+   Quick Switcher — overlay modal (Cmd+O)
+   ============================================================ */
+
+.quick-switcher__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.quick-switcher {
+  width: 520px;
+  max-width: 90vw;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--nabu-bg);
+  border: 1px solid var(--nabu-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.quick-switcher__input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--nabu-border);
+}
+
+.quick-switcher__search-icon {
+  flex-shrink: 0;
+  color: var(--nabu-text-muted);
+}
+
+.quick-switcher__input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--nabu-text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+
+.quick-switcher__input::placeholder {
+  color: var(--nabu-text-faint);
+}
+
+.quick-switcher__results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.quick-switcher__section-label {
+  padding: 6px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nabu-text-faint);
+}
+
+.quick-switcher__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 80ms;
+}
+
+.quick-switcher__result:hover,
+.quick-switcher__result--selected {
+  background: var(--nabu-bg-mute);
+}
+
+.quick-switcher__result-name {
+  font-size: 14px;
+  color: var(--nabu-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-switcher__result-path {
+  font-size: 11px;
+  color: var(--nabu-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.quick-switcher__mark {
+  background: var(--nabu-accent);
+  color: var(--nabu-bg);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.quick-switcher__empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--nabu-text-muted);
+  font-size: 13px;
+}
+
 /* Subtle scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
