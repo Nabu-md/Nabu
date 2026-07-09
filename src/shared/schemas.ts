@@ -357,7 +357,8 @@ export type AssetReadResult = z.infer<typeof AssetReadResultSchema>;
 
 // properties:read (Renderer → Main) — read YAML frontmatter properties
 export const PropertiesReadSchema = z.object({
-  path: z.string()
+  path: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const PropertiesReadResultSchema = z.object({
@@ -369,7 +370,8 @@ export const PropertiesReadResultSchema = z.object({
 // properties:write (Renderer → Main) — write YAML frontmatter properties
 export const PropertiesWriteSchema = z.object({
   path: z.string(),
-  yaml: z.string()
+  yaml: z.string(),
+  vaultId: z.string().optional(), // defaults to active vault when omitted (Req 22.9)
 });
 
 export const PropertiesWriteResultSchema = z.object({
