@@ -19,6 +19,8 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { ContextPane } from './components/ContextPane'
 import { ActivityTimeline } from './components/ActivityTimeline'
 import { SetupWizard } from './components/SetupWizard'
+import { SearchPanel } from './components/SearchPanel'
+import type { SearchQueryResult } from '../../shared/search-query'
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -45,6 +47,9 @@ export interface AppState {
   vectorDisabled: boolean
   vectorDisabledReason: string | null
   extendedIndex: ExtendedSearchIndex | null
+  searchPanelOpen: boolean
+  searchQuery: string
+  searchResults: SearchQueryResult[]
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +77,10 @@ export type AppAction =
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
   | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
   | { type: 'EXTENDED_INDEX_BUILT'; payload: ExtendedSearchIndex }
+  | { type: 'SEARCH_PANEL_TOGGLE' }
+  | { type: 'SEARCH_PANEL_OPEN' }
+  | { type: 'SEARCH_PANEL_CLOSE' }
+  | { type: 'SEARCH_RESULTS_UPDATED'; payload: { query: string; results: SearchQueryResult[] } }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -98,7 +107,10 @@ const initialState: AppState = {
   theme: 'dark',
   vectorDisabled: false,
   vectorDisabledReason: null,
-  extendedIndex: null
+  extendedIndex: null,
+  searchPanelOpen: false,
+  searchQuery: '',
+  searchResults: [],
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -197,6 +209,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'EXTENDED_INDEX_BUILT':
       return { ...state, extendedIndex: action.payload }
 
+    case 'SEARCH_PANEL_TOGGLE':
+      return { ...state, searchPanelOpen: !state.searchPanelOpen }
+
+    case 'SEARCH_PANEL_OPEN':
+      return { ...state, searchPanelOpen: true }
+
+    case 'SEARCH_PANEL_CLOSE':
+      return { ...state, searchPanelOpen: false }
+
+    case 'SEARCH_RESULTS_UPDATED':
+      return { ...state, searchQuery: action.payload.query, searchResults: action.payload.results }
+
     default:
       return state
   }
@@ -276,7 +300,7 @@ function App(): React.JSX.Element {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
         e.preventDefault()
-        sidebarRef.current?.focusSearch()
+        dispatch({ type: 'SEARCH_PANEL_TOGGLE' })
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'g') {
         e.preventDefault()
@@ -501,7 +525,7 @@ function App(): React.JSX.Element {
           <SetupWizard />
         </div>
       ) : (
-        <div className="app-container">
+        <div className={`app-container${state.searchPanelOpen ? ' app-container--search-open' : ''}`}>
           <Sidebar ref={sidebarRef} />
 
           <main className="note-container">
@@ -537,6 +561,19 @@ function App(): React.JSX.Element {
 
           <ContextPane />
           <ActivityTimeline />
+          {state.searchPanelOpen && (
+            <SearchPanel
+              query={state.searchQuery}
+              results={state.searchResults}
+              onQueryChange={(query) => {
+                dispatch({ type: 'SEARCH_RESULTS_UPDATED', payload: { query, results: state.searchResults } })
+              }}
+              onResultsChange={(results) => {
+                dispatch({ type: 'SEARCH_RESULTS_UPDATED', payload: { query: state.searchQuery, results } })
+              }}
+              onClose={() => dispatch({ type: 'SEARCH_PANEL_CLOSE' })}
+            />
+          )}
         </div>
       )}
       {state.settingsPanelOpen && <SettingsPanel />}
