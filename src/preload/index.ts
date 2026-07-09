@@ -62,6 +62,10 @@ const electronAPI = {
       ipcRenderer.invoke(IPCChannel.SETTINGS_GET, { key }),
     set: (key: string, value: unknown): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.SETTINGS_SET, { key, value }),
+    getFeatureToggles: (): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SETTINGS_GET_FEATURE_TOGGLES),
+    setFeatureToggle: (id: string, enabled: boolean): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SETTINGS_SET_FEATURE_TOGGLE, { id, enabled }),
   },
   task: {
     toggle: (path: string, lineIndex: number): Promise<void> =>

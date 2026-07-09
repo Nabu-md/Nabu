@@ -44,10 +44,17 @@ declare global {
       templates: {
         list(vaultPath: string): Promise<{ templates: Template[] }>
       }
-      settings: {
-        get(key: string): Promise<{ value?: unknown }>
-        set(key: string, value: unknown): Promise<{ success: boolean; error?: string }>
-      }
+settings: {
+    get(key: string): Promise<{ value?: unknown }>
+    set(key: string, value: unknown): Promise<{ success: boolean; error?: string }>
+    getFeatureToggles(): Promise<{
+      toggles: Array<{ id: string; label: string; description: string; enabled: boolean }>
+    }>
+    setFeatureToggle(id: string, enabled: boolean): Promise<{
+      success: boolean
+      error?: string
+    }>
+  }
       task: {
         toggle(path: string, lineIndex: number): Promise<void>
       }

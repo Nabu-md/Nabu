@@ -299,7 +299,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Invocable from Command Palette ("Import file...") and "File > Import" menu via native file-open dialog filtered by supported extensions.
   - _Requirements: 36.2, 36.3, 36.4, 36.5, 36.6, 36.7, 36.8, 36.9_
 
-- [ ] 54. Build the feature toggle registry + Settings UI (R37)
+- [x] 54. Build the feature toggle registry + Settings UI (R37)
   - Implement `src/shared/feature-toggles.ts` with registry pattern: each toggleable feature registers `{ id, label, description, setup: () => void, teardown: () => void }`.
   - Add `settings:getFeatureToggles` / `settings:setFeatureToggle` IPC channels with Zod schemas.
   - Settings panel gets an "Optional Features" section rendering every registered toggle as a labelled switch.
@@ -307,14 +307,14 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - On toggle on: register commands, show panels, add shortcuts, call `setup()`.
   - _Requirements: 37.1, 37.4, 37.5, 37.6, 37.8_
 
-- [ ] 55. Register all optional features in the toggle system (R37)
+- [x] 55. Register all optional features in the toggle system (R37)
   - Register: Daily Notes, Templates, Random Note, Unique Note Creator, Slash Commands, Page Preview, Audio Recorder, Word Count, File Recovery, Format Converter, Format Import.
   - Each registration wires the feature's existing Command Palette entries, panels, and shortcuts into the toggle lifecycle.
   - Persist default-off for new features; default-on for established v1 features (templates, word count).
   - Features that create files on activation (Daily Notes, Unique Note Creator) prompt on first enable rather than acting silently.
   - _Requirements: 37.2, 37.3, 37.7, 37.9_
 
-- [ ] 56. Phase 7 verification
+- [x] 56. Phase 7 verification
   - Unit tests: each importer round-trips a fixture; feature toggle registry setup/teardown callbacks fire correctly.
   - E2E: import a PDF, DOCX, and CSV → verify they become .md notes; toggle a feature off → verify its commands disappear from the palette; toggle back on → verify commands reappear.
   - Full Vitest suite green.

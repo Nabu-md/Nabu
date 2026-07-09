@@ -476,3 +476,34 @@ export type PropertiesReadPayload = z.infer<typeof PropertiesReadSchema>;
 export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>;
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>;
 export type PropertiesWriteResult = z.infer<typeof PropertiesWriteResultSchema>;
+
+// ---------------------------------------------------------------------------
+// Feature toggle schemas
+// ---------------------------------------------------------------------------
+
+/** Feature toggle entry for IPC transport */
+export const FeatureToggleSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  enabled: z.boolean(),
+});
+
+export const FeatureTogglesResultSchema = z.object({
+  toggles: z.array(FeatureToggleSchema),
+});
+
+export const SetFeatureToggleSchema = z.object({
+  id: z.string(),
+  enabled: z.boolean(),
+});
+
+export const SetFeatureToggleResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional(),
+});
+
+export type FeatureToggle = z.infer<typeof FeatureToggleSchema>;
+export type FeatureTogglesResult = z.infer<typeof FeatureTogglesResultSchema>;
+export type SetFeatureTogglePayload = z.infer<typeof SetFeatureToggleSchema>;
+export type SetFeatureToggleResult = z.infer<typeof SetFeatureToggleResultSchema>;

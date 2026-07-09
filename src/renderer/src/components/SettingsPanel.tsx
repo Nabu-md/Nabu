@@ -7,6 +7,7 @@ import { useAppContext } from '../App'
 // Modal overlay for app settings. Covers:
 //  - Vault management (switch, re-index)
 //  - Theme selection (dark / light / system)
+//  - Optional Features (feature toggles)
 // ---------------------------------------------------------------------------
 
 export function SettingsPanel(): React.JSX.Element | null {
@@ -15,6 +16,19 @@ export function SettingsPanel(): React.JSX.Element | null {
 
   const [isReindexing, setIsReindexing] = useState(false)
   const [reindexError, setReindexError] = useState<string | null>(null)
+  const [featureToggles, setFeatureToggles] = useState<
+    Array<{ id: string; label: string; description: string; enabled: boolean }>
+  >([])
+  const [toggleErrors, setToggleErrors] = useState<Record<string, string>>({})
+
+  // Fetch feature toggles on mount and when panel opens
+  useEffect(() => {
+    if (settingsPanelOpen) {
+      window.electron.settings.getFeatureToggles().then(({ toggles }) => {
+        setFeatureToggles(toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>)
+      }).catch(console.error)
+    }
+  }, [settingsPanelOpen])
 
   // Trap focus and handle Escape key while panel is open
   const panelRef = useRef<HTMLDivElement>(null)
@@ -74,6 +88,29 @@ export function SettingsPanel(): React.JSX.Element | null {
       await window.electron.settings.set('theme', newTheme)
     } catch (err) {
       console.error('[SettingsPanel] Failed to persist theme:', err)
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Feature Toggle Handlers
+  // ---------------------------------------------------------------------------
+
+  const handleFeatureToggle = async (id: string, enabled: boolean): Promise<void> => {
+    try {
+      const result = await window.electron.settings.setFeatureToggle(id, enabled)
+      if (result.success) {
+        // Update local state
+        setFeatureToggles((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, enabled } : t))
+        )
+      } else {
+        setToggleErrors((prev) => ({ ...prev, [id]: result.error ?? 'Unknown error' }))
+      }
+    } catch (err) {
+      setToggleErrors((prev) => ({
+        ...prev,
+        [id]: err instanceof Error ? err.message : String(err),
+      }))
     }
   }
 
@@ -244,6 +281,58 @@ export function SettingsPanel(): React.JSX.Element | null {
                 rel="noreferrer noopener"
               >nabu.app</a>.
             </p>
+          </section>
+
+          {/* ----------------------------------------------------------------
+              Optional Features section
+          ---------------------------------------------------------------- */}
+          <section aria-labelledby="settings-features-heading">
+            <h3
+              id="settings-features-heading"
+              className="text-xs font-medium uppercase tracking-wider
+                         text-nabu-text-muted mb-3"
+            >
+              Optional Features
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              {featureToggles.length === 0 ? (
+                <p className="text-xs text-nabu-text-muted">Loading features…</p>
+              ) : (
+                featureToggles.map((toggle) => (
+                  <div key={toggle.id} className="flex items-start gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={toggle.enabled}
+                        onChange={(e) => handleFeatureToggle(toggle.id, e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-9 h-5 rounded-full transition-colors ${
+                          toggle.enabled ? 'bg-nabu-accent' : 'bg-nabu-border'
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
+                            toggle.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                          } mt-0.5`}
+                        />
+                      </div>
+                    </label>
+                    <div>
+                      <p className="text-sm text-nabu-text">{toggle.label}</p>
+                      <p className="text-xs text-nabu-text-muted">{toggle.description}</p>
+                      {toggleErrors[toggle.id] && (
+                        <p className="text-xs text-red-400 mt-1" role="alert">
+                          {toggleErrors[toggle.id]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </section>
         </div>
       </div>

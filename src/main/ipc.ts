@@ -26,6 +26,9 @@ import {
   ActivityLogSchema,
   SettingsGetSchema,
   SettingsSetSchema,
+  FeatureTogglesResultSchema,
+  SetFeatureToggleSchema,
+  SetFeatureToggleResultSchema,
   VaultCreateSchema,
   FolderCreateSchema,
   NoteCreateSchema,
@@ -1580,6 +1583,51 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { templates: [] };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // settings:getFeatureToggles — get all feature toggles for the Settings UI
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.SETTINGS_GET_FEATURE_TOGGLES, async (_event) => {
+    try {
+      const { getFeatureToggles, getDefaultState } = await import('../shared/feature-toggles');
+      const toggles = getFeatureToggles();
+      const result = toggles.map((t) => ({
+        ...t,
+        enabled: getDefaultState(t.id),
+      }));
+      return FeatureTogglesResultSchema.parse({ toggles: result });
+    } catch (err) {
+      const msg = `[IPC] settings:getFeatureToggles error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { toggles: [] };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // settings:setFeatureToggle — toggle a feature on/off
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.SETTINGS_SET_FEATURE_TOGGLE, async (_event, rawPayload) => {
+    const validation = SetFeatureToggleSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] settings:setFeatureToggle validation failed: ${reason}`);
+      return SetFeatureToggleResultSchema.parse({ success: false, error: reason });
+    }
+
+    const { id, enabled } = validation.data;
+
+    try {
+      const { setFeatureEnabled } = await import('../shared/feature-toggles');
+      setFeatureEnabled(id, enabled);
+      return SetFeatureToggleResultSchema.parse({ success: true });
+    } catch (err) {
+      const msg = `[IPC] settings:setFeatureToggle error for "${id}": ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return SetFeatureToggleResultSchema.parse({ success: false, error: String(err) });
     }
   });
 }
