@@ -25,6 +25,23 @@ export interface WikiLink extends Node {
   resolved: boolean; // set by renderer during resolution
 }
 
+export interface Callout extends Node {
+  type: 'callout';
+  /** The callout type (e.g. "note", "warning", "tip"). Lowercased. */
+  calloutType: string;
+  /** Optional title text after the type declaration. */
+  title?: string;
+  /**
+   * Collapsible suffix:
+   *   '+' → expanded by default, toggleable
+   *   '-' → collapsed by default, toggleable
+   *   undefined → not collapsible
+   */
+  toggle?: '+' | '-';
+  /** The callout body (paragraphs, lists, etc.). */
+  children: Node[];
+}
+
 // Core vault and file types
 export interface VaultMetadata {
   path: string;

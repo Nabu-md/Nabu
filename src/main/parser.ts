@@ -31,6 +31,7 @@ const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
 import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
 import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
 import { remarkWikiLinks } from './plugins/remarkWikiLinks';
+import { remarkCallouts } from './plugins/remarkCallouts';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -136,16 +137,17 @@ function detectAndDecode(buffer: Buffer): { content: string; encoding: EncodingL
 
 /**
  * Builds a processor with the canonical plugin pipeline in the required order:
- *   remarkFrontmatter → remarkGfm → remarkToggleBlocks → remarkTaskBlocks → remarkWikiLinks
+ *   remarkFrontmatter → remarkGfm → remarkCallouts → remarkToggleBlocks → remarkTaskBlocks → remarkWikiLinks
  */
 function buildProcessor() {
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter) // 1. YAML / TOML front matter
     .use(remarkGfm) //          2. GFM tables, strikethrough, task lists syntax
-    .use(remarkToggleBlocks) // 3. [toggle] headings → ToggleBlock nodes
-    .use(remarkTaskBlocks) //   4. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks); //   5. [[Page Name]] → WikiLink nodes
+    .use(remarkCallouts) //    3. >[!type] blockquotes → Callout nodes
+    .use(remarkToggleBlocks) // 4. [toggle] headings → ToggleBlock nodes
+    .use(remarkTaskBlocks) //   5. - [ ] / - [x] → TaskList / TaskItem nodes
+    .use(remarkWikiLinks); //   6. [[Page Name]] → WikiLink nodes
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +233,7 @@ export async function parseFile(
  * standard mdast nodes that remark-stringify understands.
  *
  * Custom nodes produced by our plugins:
+ *   • callout      → blockquote with > [!type] marker (and +/- toggle) restored
  *   • toggleBlock  → heading (with "[toggle] " prefix restored) + children
  *   • taskList     → list of listItems with `checked` property
  *   • wikiLink     → text node containing the original [[target]] syntax
@@ -239,6 +242,35 @@ export async function parseFile(
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function denormalizeNode(node: any): any {
+  // ── callout → blockquote with restored marker ─────────────────────────
+  if (node.type === 'callout') {
+    const toggleSuffix = node.toggle ?? '';
+    const markerText = `[!${node.calloutType}${toggleSuffix}]${node.title ? ' ' + node.title : ''}`;
+
+    // Denormalize body children (recurses into nested structures).
+    const bodyChildren = denormalizeChildren(node.children ?? []);
+
+    // First paragraph contains the marker as a text node, followed by
+    // any inline content that was part of the original first line.
+    // If the first body child is a paragraph we inline its children here
+    // so they appear on the same `> [!type] Title` line.
+    const firstParaChildren: unknown[] = [{ type: 'text', value: markerText }];
+
+    if (bodyChildren.length > 0 && bodyChildren[0]?.type === 'paragraph') {
+      firstParaChildren.push(...(bodyChildren[0].children ?? []));
+    }
+
+    const blockquoteChildren: unknown[] = [
+      { type: 'paragraph', children: firstParaChildren },
+      ...bodyChildren.slice(1),
+    ];
+
+    return {
+      type: 'blockquote',
+      children: blockquoteChildren,
+    };
+  }
+
   // ── toggleBlock → heading + sibling children ──────────────────────────
   // We can't expand one node into multiple at this level, so we wrap in a
   // "virtual root" that will be spliced in by the parent.  The caller
