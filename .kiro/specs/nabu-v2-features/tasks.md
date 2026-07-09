@@ -120,7 +120,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
 
 ### Phase 3 — Markdown Rendering
 
-- [ ] 19. Add `remarkCallouts.ts` plugin
+- [x] 19. Add `remarkCallouts.ts` plugin
   - Pure plugin producing `callout` nodes from `> [!type]` blockquotes; `-`/`+` collapse suffix; renderer-safe.
   - Add `Callout` type to `shared/types.ts`.
   - _Requirements: 8.1, 8.3, 8.6_
@@ -135,7 +135,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Round-trip via `denormalizeNode`; do not parse math inside code.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-- [ ] 22. Add `MermaidBlock.tsx`
+- [x] 22. Add `MermaidBlock.tsx`
   - In `renderNode`, route `code` with `lang === 'mermaid'` to `MermaidBlock`; lazy-load `mermaid`; loading state; parse-error message + source; theme-aware re-render; serialise SVG for HTML export.
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 

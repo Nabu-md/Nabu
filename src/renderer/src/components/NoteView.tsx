@@ -27,6 +27,7 @@ import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
 import { CodeBlock } from './blocks/CodeBlock'
+import { MermaidBlock } from './blocks/MermaidBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
 import katex from 'katex'
 
@@ -335,6 +336,10 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'code') {
     const n = node as Code
+    // Route mermaid diagrams to the dedicated MermaidBlock
+    if (n.lang === 'mermaid') {
+      return <MermaidBlock key={key} value={n.value} />
+    }
     return <CodeBlock key={key} node={n} />
   }
 
