@@ -256,7 +256,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Auto-snapshot note to `.nabu/snapshots/<path>/` before each save; per-note cap (50) and per-vault cap (1000); "File recovery" panel listing snapshots with diff preview; "Restore this version" and "Open as new note" actions; pre-restore snapshot before restore; configurable on/off in Settings; `.nabu/snapshots/` added to `.gitignore` automatically; async via AsyncQueue.
   - _Requirements: 29.1, 29.2, 29.3, 29.4, 29.5, 29.6, 29.7, 29.8, 29.9_
 
-- [ ] 45. Implement Slash Commands (R30)
+- [x] 45. Implement Slash Commands (R30)
   - Typing `/` at line start (or after whitespace) in edit mode shows inline autocomplete menu; fuzzy-filter commands; insert template on selection; registry with heading/bullet list/numbered list/task list/callout/code block/math block/table/hr/embed commands; extensible registry; Esc to dismiss; no trigger inside code blocks; also works in Live Preview (CodeMirror).
   - _Requirements: 30.1, 30.2, 30.3, 30.4, 30.5, 30.6, 30.7_
 
