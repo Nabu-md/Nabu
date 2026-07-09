@@ -267,6 +267,30 @@ export const IndexBuildSchema = z.object({
   extendedIndex: ExtendedIndexPayloadSchema,
 });
 
+// search:query (Renderer → Main)
+export const SearchQuerySchema = z.object({
+  query: z.string(),
+});
+
+const SearchMatchSchema = z.object({
+  line: z.number().int().nonnegative(),
+  snippet: z.string(),
+  startCol: z.number().int().nonnegative(),
+  endCol: z.number().int().nonnegative(),
+});
+
+const SearchResultItemSchema = z.object({
+  filePath: z.string(),
+  name: z.string(),
+  relativePath: z.string(),
+  score: z.number().int().nonnegative(),
+  matches: z.array(SearchMatchSchema),
+});
+
+export const SearchResponseSchema = z.object({
+  results: z.array(SearchResultItemSchema),
+});
+
 // TypeScript type inference
 export type VaultOpenPayload = z.infer<typeof VaultOpenSchema>;
 export type VaultScanResult = z.infer<typeof VaultScanResultSchema>;
@@ -309,6 +333,8 @@ export type SettingsGetResult = z.infer<typeof SettingsGetResultSchema>;
 export type SettingsSetPayload = z.infer<typeof SettingsSetSchema>;
 export type SettingsSetResult = z.infer<typeof SettingsSetResultSchema>;
 export type IndexBuild = z.infer<typeof IndexBuildSchema>;
+export type SearchQueryPayload = z.infer<typeof SearchQuerySchema>;
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;
 
 // asset:read (Sandboxed HTML → Main) — read a local file as base64 for the sandboxed iframe
 export const AssetReadSchema = z.object({

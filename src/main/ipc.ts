@@ -49,7 +49,11 @@ import {
   TemplatesListResultSchema,
   IndexBuildSchema,
   AssetReadSchema,
+  SearchQuerySchema,
+  SearchResponseSchema,
 } from '../shared/schemas';
+
+import { search } from '../shared/search-query';
 
 import { loadSettings, saveSettings } from './settings';
 import { substituteVariables } from './templates';
@@ -336,6 +340,7 @@ export function registerIPCHandlers(
     IPCChannel.ASSET_READ,
     IPCChannel.CONTEXT_REINDEX,
     IPCChannel.VECTOR_STATUS,
+    IPCChannel.SEARCH_QUERY,
     'vault:get-current' as IPCChannel,
   ];
   for (const ch of channels) {
@@ -667,6 +672,40 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { disabled: true, reason: String(err), items: 0 };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // search:query — execute a text search against the extended search index
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.SEARCH_QUERY, async (_event, rawPayload) => {
+    const validation = SearchQuerySchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] search:query validation failed: ${reason}`);
+      return { results: [] };
+    }
+
+    const { query } = validation.data;
+    const vault = stateManager.getCurrentVault();
+    if (!vault) {
+      return { results: [] };
+    }
+
+    try {
+      const results = search(
+        query,
+        vault.files,
+        vault.path,
+        stateManager.getExtendedIndex(),
+        (p) => stateManager.getASTSync(p),
+      );
+      return SearchResponseSchema.parse({ results });
+    } catch (err) {
+      const msg = `[IPC] search:query handler error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { results: [] };
     }
   });
 

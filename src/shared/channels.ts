@@ -29,4 +29,5 @@ export enum IPCChannel {
   ASSET_READ = 'asset:read',
   CONTEXT_REINDEX = 'context:reindex',
   VECTOR_STATUS = 'vector:status',
+  SEARCH_QUERY = 'search:query',
 }

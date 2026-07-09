@@ -477,6 +477,11 @@ export class StateManager {
   getCurrentVault(): VaultMetadata | null {
     return this.currentVault;
   }
+
+  /** Return the extended search index for the current vault. */
+  getExtendedIndex(): ExtendedSearchIndex {
+    return this.extendedIndex;
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import {
   Edge,
   Template,
 } from '../shared/types'
+import type { SearchResponse } from '../shared/schemas'
 
 declare global {
   interface Window {
@@ -48,6 +49,9 @@ declare global {
         query(text: string): Promise<SearchResult[] | { results: SearchResult[]; disabled?: boolean; reason?: string }>
         reindex(vaultPath: string): Promise<{ processed: number; error?: string }>
         status(): Promise<{ disabled: boolean; reason: string | null; items: number }>
+      }
+      search: {
+        query(query: string): Promise<SearchResponse>
       }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
