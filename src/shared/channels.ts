@@ -33,4 +33,7 @@ export enum IPCChannel {
   PROPERTIES_READ = 'properties:read',
   PROPERTIES_WRITE = 'properties:write',
   NOTE_DAILY = 'note:daily',
+  FAVORITES_GET = 'favorites:get',
+  FAVORITES_TOGGLE = 'favorites:toggle',
+  FAVORITES_REMOVE = 'favorites:remove',
 }

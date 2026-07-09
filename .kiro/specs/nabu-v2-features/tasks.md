@@ -211,7 +211,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
 
 ### Phase 5 — Quick Wins & Utilities
 
-- [ ] 36. Implement daily notes
+- [x] 36. Implement daily notes
   - `note:daily` command; configurable `dateFormat`/`folder`/`template` in Settings; create-if-missing using template substitution + note-create; register in Command Palette.
   - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 

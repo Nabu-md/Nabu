@@ -36,6 +36,11 @@ declare global {
         exportHtml(path: string, html: string): Promise<{ success: boolean; savedPath?: string; error?: string }>
         daily(vaultPath: string): Promise<{ path: string; ast: Root; created: boolean; error?: string }>
       }
+      favorites: {
+        get(vaultPath: string): Promise<{ favorites: string[] }>
+        toggle(vaultPath: string, filePath: string): Promise<{ favorites: string[] }>
+        remove(vaultPath: string, filePath: string): Promise<{ favorites: string[] }>
+      }
       templates: {
         list(vaultPath: string): Promise<{ templates: Template[] }>
       }

@@ -57,12 +57,19 @@ import {
   PropertiesWriteResultSchema,
   NoteDailySchema,
   NoteDailyResultSchema,
+  FavoritesGetSchema,
+  FavoritesGetResultSchema,
+  FavoritesToggleSchema,
+  FavoritesToggleResultSchema,
+  FavoritesRemoveSchema,
+  FavoritesRemoveResultSchema,
 } from '../shared/schemas';
 
 import { search } from '../shared/search-query';
 
 import { loadSettings, saveSettings } from './settings';
 import { substituteVariables } from './templates';
+import { readFavorites, toggleFavorite, removeFavorite } from './favorites';
 
 import type { StateManager } from './state';
 import type { VectorManager } from './vector';
@@ -1320,6 +1327,72 @@ export function registerIPCHandlers(
       console.error(msg);
       emitActivityLog('error', msg);
       return { success: false, error: String(err) };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // favorites:get — get favorites list for a vault
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.FAVORITES_GET, async (_event, rawPayload) => {
+    const validation = FavoritesGetSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] favorites:get validation failed: ${reason}`);
+      return { favorites: [] };
+    }
+    const { vaultPath } = validation.data;
+    try {
+      const favorites = await readFavorites(vaultPath);
+      return { favorites };
+    } catch (err) {
+      const msg = `[IPC] favorites:get error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { favorites: [] };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // favorites:toggle — toggle a file's favorite state
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.FAVORITES_TOGGLE, async (_event, rawPayload) => {
+    const validation = FavoritesToggleSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] favorites:toggle validation failed: ${reason}`);
+      return { favorites: [] };
+    }
+    const { vaultPath, filePath } = validation.data;
+    try {
+      const favorites = await toggleFavorite(vaultPath, filePath);
+      return { favorites };
+    } catch (err) {
+      const msg = `[IPC] favorites:toggle error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { favorites: [] };
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // favorites:remove — remove a file from favorites
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.FAVORITES_REMOVE, async (_event, rawPayload) => {
+    const validation = FavoritesRemoveSchema.safeParse(rawPayload);
+    if (!validation.success) {
+      const reason = formatZodError(validation.error);
+      emitActivityLog('warn', `[IPC] favorites:remove validation failed: ${reason}`);
+      return { favorites: [] };
+    }
+    const { vaultPath, filePath } = validation.data;
+    try {
+      const favorites = await removeFavorite(vaultPath, filePath);
+      return { favorites };
+    } catch (err) {
+      const msg = `[IPC] favorites:remove error: ${String(err)}`;
+      console.error(msg);
+      emitActivityLog('error', msg);
+      return { favorites: [] };
     }
   });
 
