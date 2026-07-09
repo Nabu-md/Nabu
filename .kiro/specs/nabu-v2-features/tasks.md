@@ -151,7 +151,7 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Click opens target note and scrolls/highlights the block; broken-reference indicator.
   - _Requirements: 20.3, 20.4_
 
-- [ ] 26. Phase 3 verification
+- [x] 26. Phase 3 verification
   - Unit tests: `remarkCallouts.test.ts`, `remarkEmbeds.test.ts`, `remarkBlockRefs.test.ts`, math round-trip.
   - Property tests: callout round-trip; math round-trip; embed path containment.
   - E2E: a note with callout + math + mermaid + embed + block-ref renders all five.
