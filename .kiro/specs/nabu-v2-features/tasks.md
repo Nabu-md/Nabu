@@ -125,12 +125,12 @@ Numbering is a single increasing integer across all phases (it is not reset per 
   - Add `Callout` type to `shared/types.ts`.
   - _Requirements: 8.1, 8.3, 8.6_
 
-- [ ] 20. Render callouts in `renderNode`
+- [x] 20. Render callouts in `renderNode`
   - Map calloutType → icon + colour (note/info/tip/success/warning/danger/error/question/example/quote/abstract); render body as full markdown; unknown type falls back to `note`.
   - Round-trip via `denormalizeNode`.
   - _Requirements: 8.2, 8.4, 8.5, 8.7_
 
-- [ ] 21. Add math rendering (KaTeX)
+- [x] 21. Add math rendering (KaTeX)
   - Add `remark-math` to the pipeline (main + renderer); `inlineMath`/`math` branches in `renderNode` using `katex.renderToString`; import KaTeX CSS once; graceful parse-error fallback.
   - Round-trip via `denormalizeNode`; do not parse math inside code.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_

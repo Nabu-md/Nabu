@@ -14,6 +14,7 @@ import _remarkParse from 'remark-parse';
 import _remarkStringify from 'remark-stringify';
 import _remarkFrontmatter from 'remark-frontmatter';
 import _remarkGfm from 'remark-gfm';
+import _remarkMath from 'remark-math';
 import type { Root } from 'mdast';
 import type { VFile } from 'vfile';
 
@@ -27,6 +28,7 @@ const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
 const remarkFrontmatter = unwrap<typeof _remarkFrontmatter>(_remarkFrontmatter)
 const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
+const remarkMath = unwrap<typeof _remarkMath>(_remarkMath)
 
 import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
 import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
@@ -144,10 +146,11 @@ function buildProcessor() {
     .use(remarkParse)
     .use(remarkFrontmatter) // 1. YAML / TOML front matter
     .use(remarkGfm) //          2. GFM tables, strikethrough, task lists syntax
-    .use(remarkCallouts) //    3. >[!type] blockquotes → Callout nodes
-    .use(remarkToggleBlocks) // 4. [toggle] headings → ToggleBlock nodes
-    .use(remarkTaskBlocks) //   5. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks); //   6. [[Page Name]] → WikiLink nodes
+    .use(remarkMath) //         3. $...$ / $$...$$ → inlineMath / math nodes
+    .use(remarkCallouts) //    4. >[!type] blockquotes → Callout nodes
+    .use(remarkToggleBlocks) // 5. [toggle] headings → ToggleBlock nodes
+    .use(remarkTaskBlocks) //   6. - [ ] / - [x] → TaskList / TaskItem nodes
+    .use(remarkWikiLinks); //   7. [[Page Name]] → WikiLink nodes
 }
 
 // ---------------------------------------------------------------------------
@@ -378,7 +381,8 @@ export async function serializeAST(ast: Root): Promise<string> {
       listItemIndent: 'one',
     })
     .use(remarkFrontmatter)
-    .use(remarkGfm);
+    .use(remarkGfm)
+    .use(remarkMath); // stringify math/inlineMath nodes → $...$ / $$...$$
 
   // Convert custom plugin nodes back to standard mdast before stringifying
   const standardAst = toStandardAST(ast);

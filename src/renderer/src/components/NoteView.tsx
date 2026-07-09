@@ -28,6 +28,7 @@ import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
 import { CodeBlock } from './blocks/CodeBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
+import katex from 'katex'
 
 // ---------------------------------------------------------------------------
 // Timeout constant
@@ -435,6 +436,51 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         {n.value}
       </code>
     )
+  }
+
+  // ---- Math (KaTeX) ----
+
+  if (type === 'inlineMath') {
+    const n = node as unknown as { value: string }
+    try {
+      const html = katex.renderToString(n.value, { throwOnError: false })
+      return (
+        <span
+          key={key}
+          className="math math-inline"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      )
+    } catch {
+      return (
+        <span key={key} className="text-red-400/80 text-sm italic">
+          ${n.value}$
+        </span>
+      )
+    }
+  }
+
+  if (type === 'math') {
+    const n = node as unknown as { value: string; meta?: string | null }
+    try {
+      const html = katex.renderToString(n.value, { throwOnError: false, displayMode: true })
+      return (
+        <div
+          key={key}
+          className="math math-block my-4 overflow-x-auto text-center"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      )
+    } catch {
+      return (
+        <pre
+          key={key}
+          className="text-red-400/80 text-sm p-3 rounded bg-white/5 my-3 overflow-x-auto font-mono"
+        >
+          {'$$\n'}{n.value}{'\n$$'}
+        </pre>
+      )
+    }
   }
 
   if (type === 'delete') {
