@@ -221,7 +221,11 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
       6: 'text-xs font-semibold mt-2 mb-1 text-white/65'
     }
     return (
-      <Tag key={key} className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}>
+      <Tag
+        key={key}
+        id={`outline-heading-${key}`}
+        className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}
+      >
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </Tag>
     )

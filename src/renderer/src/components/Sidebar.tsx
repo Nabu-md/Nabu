@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react'
 import { FileTree, FileTreeHandle } from './FileTree'
 import { TagsPanel } from './TagsPanel'
+import { OutlinePanel } from './OutlinePanel'
 import { useAppContext } from '../App'
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ export const Sidebar = forwardRef<SidebarHandle>(function Sidebar(_props, ref) {
     >
       <FileTree ref={fileTreeRef} tagFilteredPaths={tagFilteredPaths} />
       <TagsPanel />
+      <OutlinePanel />
     </aside>
   )
 })

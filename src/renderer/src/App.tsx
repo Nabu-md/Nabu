@@ -22,7 +22,7 @@ import { SetupWizard } from './components/SetupWizard'
 import { SearchPanel } from './components/SearchPanel'
 import { QuickSwitcher } from './components/QuickSwitcher'
 import { CommandPalette } from './components/CommandPalette'
-import { seedCommands } from './commands/registry'
+import { seedCommands, registerCommand } from './commands/registry'
 import type { SearchQueryResult } from '../../shared/search-query'
 
 // ---------------------------------------------------------------------------
@@ -363,6 +363,17 @@ function App(): React.JSX.Element {
         e.preventDefault()
         dispatch({ type: 'COMMAND_PALETTE_TOGGLE' })
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'o') {
+        e.preventDefault()
+        // Focus the outline panel in the sidebar.
+        const panel = document.querySelector('.outline-panel')
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        } else {
+          // No outline available — dispatch a hint for the user
+          console.info('[App] No outline to focus (note has no headings)')
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -574,6 +585,19 @@ function App(): React.JSX.Element {
 
     // Seed the command registry with built-in actions (Req 5.2, 5.3)
     seedCommands(dispatch)
+
+    // Register outline-specific command (Req 7.6)
+    registerCommand({
+      id: 'outline.focus',
+      label: 'Focus outline',
+      keywords: ['outline', 'headings', 'toc', 'table of contents'],
+      run: () => {
+        const panel = document.querySelector('.outline-panel')
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+      },
+    })
 
     return cleanup
   }, [wireListeners])
