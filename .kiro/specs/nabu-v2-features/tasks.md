@@ -260,7 +260,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Typing `/` at line start (or after whitespace) in edit mode shows inline autocomplete menu; fuzzy-filter commands; insert template on selection; registry with heading/bullet list/numbered list/task list/callout/code block/math block/table/hr/embed commands; extensible registry; Esc to dismiss; no trigger inside code blocks; also works in Live Preview (CodeMirror).
   - _Requirements: 30.1, 30.2, 30.3, 30.4, 30.5, 30.6, 30.7_
 
-- [ ] 46. Implement Footnotes View (R31)
+- [x] 46. Implement Footnotes View (R31)
   - Parse `[^label]` / `[^label]:` footnote syntax; inline references as clickable superscript links; Footnotes sidebar panel listing definitions; click reference scrolls to definition and vice versa; hidden when no footnotes; round-trip on save; no parsing inside code blocks.
   - _Requirements: 31.1, 31.2, 31.3, 31.4, 31.5, 31.6_
 
