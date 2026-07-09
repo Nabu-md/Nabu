@@ -563,6 +563,7 @@ export function registerIPCHandlers(
 
   // -------------------------------------------------------------------------
   // vault:open — open a vault by path, or prompt with native folder picker
+  // Requirements: 22.5, 22.6
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_OPEN, async (_event, rawPayload) => {
     let parsedPath: string | undefined;
@@ -577,7 +578,7 @@ export function registerIPCHandlers(
 
     parsedPath = validation.data.path;
 
-    // If no path provided, show native folder picker (Req 13.3)
+    // If no path provided, show native folder picker
     if (!parsedPath) {
       const focusedWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
       const result = await dialog.showOpenDialog(focusedWindow, {
@@ -603,6 +604,18 @@ export function registerIPCHandlers(
         emitActivityLog('warn', `[IPC] vault:open — failed to copy default templates: ${String(copyErr)}`);
       }
 
+      // Register vault session in the registry (Req 22.5)
+      // For now, we use the legacy singleton managers as the default session
+      // This will be enhanced when we fully migrate to per-vault managers
+      vaultRegistry.register(
+        parsedPath, // vaultId is the vault path
+        parsedPath,
+        stateManager,
+        vectorManager,
+        watcher,
+      );
+      vaultRegistry.setActive(parsedPath);
+
       // Start the file watcher (uses shared config with vector embedding)
       watcher.start(buildWatcherConfig(stateManager, vectorManager, parsedPath, vaultMeta));
 
@@ -617,6 +630,9 @@ export function registerIPCHandlers(
       } catch {
         // buildIndexes not yet available — silently ignore
       }
+
+      // Notify renderer that vault was opened (via validated channel)
+      sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: parsedPath, files: vaultMeta.files });
 
       return response;
     } catch (err) {
@@ -661,6 +677,7 @@ export function registerIPCHandlers(
 
   // -------------------------------------------------------------------------
   // vault:close — stop the watcher and release vault state
+  // Requirements: 22.5, 22.6
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_CLOSE, async (_event, rawPayload) => {
     const validation = VaultCloseSchema.safeParse(rawPayload ?? {});
@@ -670,8 +687,16 @@ export function registerIPCHandlers(
       return { error: reason };
     }
 
+    const vaultId = validation.data.vaultId;
+
     try {
-      watcher.stop();
+      // Close vault session in registry if vaultId provided
+      if (vaultId) {
+        vaultRegistry.close(vaultId);
+      } else {
+        // Fall back to stopping the legacy watcher
+        watcher.stop();
+      }
       return { success: true };
     } catch (err) {
       const msg = `[IPC] vault:close handler error: ${String(err)}`;
