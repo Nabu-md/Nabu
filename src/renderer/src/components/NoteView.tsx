@@ -21,7 +21,7 @@ import {
   Blockquote,
   Html
 } from 'mdast'
-import { ToggleBlock as ToggleBlockNode, TaskList as TaskListNode, WikiLink as WikiLinkNode } from '@shared/types'
+import { ToggleBlock as ToggleBlockNode, TaskList as TaskListNode, WikiLink as WikiLinkNode, Callout } from '@shared/types'
 import { useAppContext } from '../App'
 import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
@@ -141,6 +141,31 @@ function NoteEmpty(): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
+// Callout configuration — type → icon + colour
+// ---------------------------------------------------------------------------
+
+interface CalloutStyle {
+  border: string
+  bg: string
+  text: string
+  icon: string
+}
+
+const CALLOUT_CONFIG: Record<string, CalloutStyle> = {
+  note:     { border: 'border-l-blue-500',   bg: 'bg-blue-950/20',   text: 'text-blue-400',   icon: 'ℹ️' },
+  info:     { border: 'border-l-sky-500',    bg: 'bg-sky-950/20',    text: 'text-sky-400',    icon: 'ℹ️' },
+  tip:      { border: 'border-l-emerald-500', bg: 'bg-emerald-950/20', text: 'text-emerald-400', icon: '💡' },
+  success:  { border: 'border-l-green-500',  bg: 'bg-green-950/20',  text: 'text-green-400',  icon: '✅' },
+  warning:  { border: 'border-l-amber-500',   bg: 'bg-amber-950/20',  text: 'text-amber-400',  icon: '⚠️' },
+  danger:   { border: 'border-l-red-500',     bg: 'bg-red-950/20',    text: 'text-red-400',    icon: '🔴' },
+  error:    { border: 'border-l-rose-500',    bg: 'bg-rose-950/20',   text: 'text-rose-400',   icon: '✖️' },
+  question: { border: 'border-l-violet-500',  bg: 'bg-violet-950/20', text: 'text-violet-400', icon: '❓' },
+  example:  { border: 'border-l-purple-500',  bg: 'bg-purple-950/20', text: 'text-purple-400', icon: '📋' },
+  quote:    { border: 'border-l-gray-500',    bg: 'bg-white/5',       text: 'text-gray-400',   icon: '💬' },
+  abstract: { border: 'border-l-teal-500',    bg: 'bg-teal-950/20',   text: 'text-teal-400',   icon: '📄' },
+}
+
+// ---------------------------------------------------------------------------
 // Recursive AST renderer
 // ---------------------------------------------------------------------------
 
@@ -194,6 +219,51 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         vaultFiles={ctx.vaultFiles}
         onNavigate={ctx.onNavigate}
       />
+    )
+  }
+
+  if (type === 'callout') {
+    const n = node as Callout
+    const style = CALLOUT_CONFIG[n.calloutType] ?? CALLOUT_CONFIG.note
+    const isCollapsible = n.toggle != null
+    const expandedByDefault = n.toggle === '+'
+
+    const header = (
+      <div className={`flex items-center gap-2 text-sm font-semibold ${style.text} select-none`}>
+        <span className="text-base leading-none">{style.icon}</span>
+        {n.title && <span>{n.title}</span>}
+      </div>
+    )
+
+    const body = n.children.map((child, i) => renderNode(child, ctx, `${key}-body-${i}`))
+
+    if (isCollapsible) {
+      return (
+        <details
+          key={key}
+          open={expandedByDefault}
+          className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg} ${style.text}`}
+        >
+          <summary className="cursor-pointer px-4 py-2 rounded-r-lg hover:bg-white/[0.03]">
+            {header}
+          </summary>
+          <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">
+            {body}
+          </div>
+        </details>
+      )
+    }
+
+    return (
+      <div
+        key={key}
+        className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg}`}
+      >
+        <div className="px-4 pt-2">{header}</div>
+        <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">
+          {body}
+        </div>
+      </div>
     )
   }
 
