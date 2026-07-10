@@ -809,6 +809,9 @@ export function NoteView(): React.JSX.Element {
   // useRef avoids stale closures inside the textarea onChange debounce
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Live Preview mode state (Req 23.4, 23.5)
+  const [livePreviewContent, setLivePreviewContent] = useState('')
+  const livePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Ref to the current filePath so IPC callbacks can reference the latest value
   const currentFileRef = useRef<string | null>(currentFile)
   useEffect(() => {
