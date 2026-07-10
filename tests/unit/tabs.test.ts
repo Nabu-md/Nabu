@@ -26,6 +26,8 @@ function createInitialState(overrides: Partial<AppState> = {}): AppState {
     openTabs: [],
     activeTabId: null,
     paneLayout: 'single',
+    workspaces: [],
+    tabGroups: [],
     currentFile: null,
     currentAST: null,
     toggleStates: new Map(),

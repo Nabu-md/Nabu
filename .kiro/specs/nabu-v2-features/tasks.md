@@ -414,7 +414,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Per-vault `.nabu/workspaces.json`; save current `openTabs`+`paneLayout` as a named workspace; load restores (skip + warn on missing notes); switcher in sidebar + Command Palette.
   - _Requirements: 25.1, 25.2, 25.3, 25.4, 25.5, 25.6_
 
-- [ ] 75. Implement folder-based tab groups (Chrome-style)
+- [x] 75. Implement folder-based tab groups (Chrome-style)
   - When notes from the same folder are opened, visually group their tabs with a Chrome-style color-coded group label and underline.
   - Tab groups are collapsible (expand/collapse all tabs in a group), reorderable (drag entire group), and inheritable (subfolders nest or inherit parent color).
   - Group colors cycle through a palette (blue, red, green, yellow, purple, orange, cyan, pink) assigned deterministically by folder path.

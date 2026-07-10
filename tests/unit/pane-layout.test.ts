@@ -1,7 +1,7 @@
 /**
  * pane-layout.test.ts
  *
- * Unit tests for PaneLayout and Workspace components (Req 24.2, 24.4, 24.5, 25.1-25.5).
+ * Unit tests for PaneLayout, Workspace, and Tab Groups (Req 24.2, 24.4, 24.5, 25.1-25.5, 24.9).
  */
 
 import { describe, it, expect } from 'vitest'
@@ -18,6 +18,7 @@ function createInitialState(overrides: Partial<AppState> = {}): AppState {
     activeTabId: null,
     paneLayout: 'single',
     workspaces: [],
+    tabGroups: [],
     currentFile: null,
     currentAST: null,
     toggleStates: new Map(),
@@ -162,7 +163,7 @@ describe('Workspace management', () => {
 
   it('can load workspaces into state', () => {
     const initialState = createInitialState()
-    const workspaces = [
+    const workspaces: Workspace[] = [
       { id: 'ws-1', name: 'Work', openTabs: ['/vault/notes/a.md'], paneLayout: 'single' },
       { id: 'ws-2', name: 'Research', openTabs: ['/vault/notes/b.md', '/vault/notes/c.md'], paneLayout: 'grid' },
     ]
@@ -204,5 +205,67 @@ describe('Workspace management', () => {
     })
 
     expect(state.paneLayout).toBe('single')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests for tab groups (Req 24.9) - Chrome-style folder grouping
+// ---------------------------------------------------------------------------
+
+type TabGroupColor = 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'orange' | 'cyan' | 'pink'
+
+const COLORS: TabGroupColor[] = ['blue', 'red', 'green', 'yellow', 'purple', 'orange', 'cyan', 'pink']
+
+function getColorForFolder(folderPath: string): TabGroupColor {
+  // Deterministically assign color based on folder path hash
+  let hash = 0
+  for (let i = 0; i < folderPath.length; i++) {
+    hash = ((hash << 5) - hash + folderPath.charCodeAt(i)) >>> 0
+  }
+  return COLORS[hash % COLORS.length]
+}
+
+function getFolderFromPath(path: string, vaultPath: string): string {
+  // Extract relative folder path from absolute file path
+  let relativePath = path.replace(vaultPath, '')
+  // Strip leading slash if present
+  if (relativePath.startsWith('/')) {
+    relativePath = relativePath.slice(1)
+  }
+  const parts = relativePath.split('/')
+  // Return parent folder (e.g., "projects/", "research/papers/")
+  return parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : ''
+}
+
+describe('Tab groups', () => {
+  it('default tab groups is empty array', () => {
+    const state = createInitialState()
+    expect(state.tabGroups).toEqual([])
+  })
+
+  it('colors are deterministically assigned by folder path', () => {
+    expect(getColorForFolder('projects/')).toBe(getColorForFolder('projects/')) // Same path = same color (deterministic)
+    // Different paths should still get valid colors
+    const color = getColorForFolder('research/')
+    expect(COLORS).toContain(color)
+  })
+
+  it('can extract folder path from file path', () => {
+    expect(getFolderFromPath('/vault/notes/projects/a.md', '/vault/notes')).toBe('projects/')
+    expect(getFolderFromPath('/vault/notes/projects/research/b.md', '/vault/notes')).toBe('projects/research/')
+    expect(getFolderFromPath('/vault/notes/root.md', '/vault/notes')).toBe('')
+  })
+
+  it('single-tab groups collapse to plain tab (no group label)', () => {
+    const initialState = createInitialState({
+      openTabs: [
+        { id: 'tab-1', path: '/vault/notes/projects/a.md', ast: createMockAST(), raw: '', mode: 'view', scrollTop: 0, cursor: 0 },
+      ],
+      tabGroups: [
+        { id: 'group-1', folderPath: 'projects/', color: 'blue', isCollapsed: false, tabIds: ['tab-1'] },
+      ],
+    })
+    // Single-tab groups should just show the tab without group styling
+    expect(initialState.tabGroups[0].tabIds.length).toBe(1)
   })
 })

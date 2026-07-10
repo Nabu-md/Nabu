@@ -57,6 +57,20 @@ export interface Workspace {
   paneLayout: PaneLayout
 }
 
+// ---------------------------------------------------------------------------
+// Tab groups types (Req 24.9) - Chrome-style folder grouping
+// ---------------------------------------------------------------------------
+
+export type TabGroupColor = 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'orange' | 'cyan' | 'pink'
+
+export interface TabGroup {
+  id: string // unique group ID
+  folderPath: string // relative folder path (e.g., "projects/", "research/papers/")
+  color: TabGroupColor
+  isCollapsed: boolean
+  tabIds: string[] // ordered tab IDs in this group
+}
+
 export type PaneLayout = 'single' | 'split-horizontal' | 'split-vertical' | 'grid'
 
 export interface AppState {
@@ -67,6 +81,7 @@ export interface AppState {
   activeTabId: string | null // currently active tab
   paneLayout: PaneLayout // current layout type - Req 24.2
   workspaces: Workspace[] // saved workspaces per vault - Req 25.1
+  tabGroups: TabGroup[] // folder-based tab groups - Req 24.9
   currentFile: string | null // compat alias: openTabs[activeTabId]?.path
   currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
@@ -164,6 +179,7 @@ const initialState: AppState = {
   activeTabId: null,
   paneLayout: 'single',
   workspaces: [],
+  tabGroups: [],
   currentFile: null,
   currentAST: null,
   toggleStates: new Map(),
