@@ -7,7 +7,7 @@
  * Requirements: Phase 5 (Web Clipper)
  */
 
-import { app, protocol } from 'electron'
+import { protocol } from 'electron'
 import { join } from 'path'
 import fs from 'fs/promises'
 

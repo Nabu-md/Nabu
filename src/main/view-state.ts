@@ -7,7 +7,6 @@
  * Requirements: Phase 2 (Collapsible Headings)
  */
 
-import { app } from 'electron'
 import { join } from 'path'
 import fs from 'fs/promises'
 

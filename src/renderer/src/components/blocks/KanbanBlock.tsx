@@ -25,15 +25,17 @@ interface KanbanCardProps {
   content: string
   tags: string[]
   onDragStart: (filePath: string, status: string) => void
-  onDragEnd: () => void
-  onDrop: (filePath: string, newStatus: string) => void
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onDragEnd?: () => void
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onDrop?: (filePath: string, newStatus: string) => void
 }
 
 // ---------------------------------------------------------------------------
 // Card Component
 // ---------------------------------------------------------------------------
 
-function KanbanCard({ filePath, title, content, tags, onDragStart, onDragEnd, onDrop }: KanbanCardProps): React.JSX.Element {
+function KanbanCard({ filePath, title, content, tags, onDragStart }: KanbanCardProps): React.JSX.Element {
   const handleDragStart = useCallback((e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', filePath)
@@ -73,10 +75,11 @@ interface KanbanColumnProps {
   onDragOver: (status: string) => void
   onDrop: (newStatus: string) => void
   onDragStart: (filePath: string, status: string) => void
-  onDragEnd: () => void
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onDragEnd?: () => void
 }
 
-function KanbanColumn({ status, cards, onDragOver, onDrop, onDragStart, onDragEnd }: KanbanColumnProps): React.JSX.Element {
+function KanbanColumn({ status, cards, onDragOver, onDrop, onDragStart }: KanbanColumnProps): React.JSX.Element {
   const [isDragOver, setIsDragOver] = useState(false)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -108,10 +111,11 @@ function KanbanColumn({ status, cards, onDragOver, onDrop, onDragStart, onDragEn
         {cards.map((card) => (
           <KanbanCard
             key={card.filePath}
-            {...card}
+            filePath={card.filePath}
+            title={card.title}
+            content={card.content}
+            tags={card.tags}
             onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onDrop={() => {}}
           />
         ))}
       </div>
@@ -124,7 +128,9 @@ function KanbanColumn({ status, cards, onDragOver, onDrop, onDragStart, onDragEn
 // ---------------------------------------------------------------------------
 
 export function KanbanBlock({ node, onStatusChange }: KanbanBlockProps): React.JSX.Element {
-  const { statuses, folderPath } = node
+  const { statuses } = node
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  void node.folderPath // Used for future vault scanning
   const [draggedFile, setDraggedFile] = useState<string | null>(null)
 
   const defaultStatuses = ['Backlog', 'In Progress', 'Done']
@@ -145,10 +151,6 @@ export function KanbanBlock({ node, onStatusChange }: KanbanBlockProps): React.J
 
   const handleDragStart = useCallback((filePath: string, _status: string) => {
     setDraggedFile(filePath)
-  }, [])
-
-  const handleDragEnd = useCallback(() => {
-    setDraggedFile(null)
   }, [])
 
   const handleDragOver = useCallback((_status: string) => {
@@ -172,7 +174,6 @@ export function KanbanBlock({ node, onStatusChange }: KanbanBlockProps): React.J
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
         />
       ))}
     </div>

@@ -38,8 +38,10 @@ export function CytoscapeGraphView({
   edges,
   currentFile,
   searchQuery = '',
-  mode = 'global'
+  mode
 }: CytoscapeGraphViewProps): React.JSX.Element {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  void mode // For future use with local/global filtering
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<ReturnType<typeof cytoscape> | null>(null)
 
