@@ -189,14 +189,15 @@ export function executeQuery(
   const parsed = promoteBarePropertyTerms(query, extIndex);
 
   // 1. Determine candidate files from fast index-based filters
-  let candidates = getCandidatesByIndexChecks(parsed, extIndex, files, vaultPath);
+  const candidatePaths = getCandidatesByIndexChecks(parsed, extIndex, files, vaultPath);
 
   // 2. For line:/content:/regex, also require the text to appear in snippets
+  let candidates: SearchQueryResult[];
   if (parsed.line !== undefined || parsed.content !== undefined || parsed.regex !== undefined || parsed.bareTerms.length > 0) {
-    candidates = filterBySnippetScan(candidates, parsed, extIndex, vaultPath);
+    candidates = filterBySnippetScan(candidatePaths, parsed, extIndex, vaultPath);
   } else {
     // No text-based filtering needed — build results from index-only matches
-    candidates = candidates.map((filePath) => {
+    candidates = candidatePaths.map((filePath) => {
       const file = fileMap.get(filePath);
       if (!file) return null;
       const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath;
@@ -205,7 +206,7 @@ export function executeQuery(
         name: file.name,
         relativePath,
         score: 1,
-        matches: [],
+        matches: [] as SearchQueryMatch[],
       };
     }).filter((r): r is SearchQueryResult => r !== null);
   }
@@ -361,6 +362,7 @@ function filterBySnippetScan(
   for (const filePath of candidates) {
     const snippets = extIndex.lineSnippets.get(filePath);
     if (!snippets) continue;
+    const _snippets: string[] = snippets;
 
     const file = { path: filePath, name: getNameFromPath(filePath) };
     const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath;
@@ -371,7 +373,7 @@ function filterBySnippetScan(
     function addMatch(lineIdx: number, startCol: number, endCol: number): void {
       if (seenLines.has(lineIdx)) return;
       seenLines.add(lineIdx);
-      const snippet = snippets[lineIdx]?.slice(0, SNIPPET_MAX_LENGTH) ?? '';
+      const snippet = (_snippets[lineIdx]?.slice(0, SNIPPET_MAX_LENGTH) ?? '');
       matches.push({
         line: lineIdx + 1, // convert 0-indexed array to 1-indexed line
         snippet,

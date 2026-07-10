@@ -34,14 +34,14 @@ export interface FuzzyRange {
 }
 
 /** A fuzzy-match result against a single field (name, path, or alias). */
-interface FieldMatch {
+export interface FieldMatch {
   score: number
   ranges: FuzzyRange[]
 }
 
 /** A ranked fuzzy-match result. */
-export interface FuzzyMatch {
-  item: FuzzyItem
+export interface FuzzyMatch<T extends FuzzyItem = FuzzyItem> {
+  item: T
   /** Aggregate score (0–1). Higher is better. */
   score: number
   /** Character ranges to highlight in the best-matching field. */
@@ -206,27 +206,30 @@ function isLowercase(ch: string): boolean {
  * @param opts   Optional `maxResults` and `threshold`.
  * @returns Ranked results, best match first.
  */
-export function fuzzySearch(
+export function fuzzySearch<T extends FuzzyItem>(
   query: string,
-  items: FuzzyItem[],
+  items: T[],
   opts?: FuzzyOptions,
-): FuzzyMatch[] {
+): FuzzyMatch<T>[] {
   if (!query.trim()) return []
 
   const threshold = opts?.threshold ?? 0
   const maxResults = opts?.maxResults ?? 0
 
-  const scored: FuzzyMatch[] = []
+  const scored: FuzzyMatch<T>[] = []
 
-  for (const item of items) {
+   for (const item of items) {
     let best: FieldMatch | null = null
-    let matchField: FuzzyMatch['matchField'] = 'name'
+    let matchField: 'name' | 'path' | 'alias' | 'keyword' = 'name'
+
+    // Helper to get current weighted score
+    const getCurrentWeighted = (): number => best !== null ? best.score * getFieldWeight(matchField) : -1
 
     // Check name (highest weight).
     const nameMatch = matchScore(query, item.name)
     if (nameMatch) {
       const weighted = nameMatch.score * NAME_WEIGHT
-      if (!best || weighted > best.score * (matchField === 'name' ? NAME_WEIGHT : getFieldWeight(matchField))) {
+      if (weighted > getCurrentWeighted()) {
         best = nameMatch
         matchField = 'name'
       }
@@ -236,8 +239,7 @@ export function fuzzySearch(
     const pathMatch = matchScore(query, item.path)
     if (pathMatch) {
       const weighted = pathMatch.score * PATH_WEIGHT
-      const currentWeighted = best ? best.score * getFieldWeight(matchField) : -1
-      if (weighted > currentWeighted) {
+      if (weighted > getCurrentWeighted()) {
         best = pathMatch
         matchField = 'path'
       }
@@ -249,8 +251,7 @@ export function fuzzySearch(
         const aliasMatch = matchScore(query, alias)
         if (aliasMatch) {
           const weighted = aliasMatch.score * ALIAS_WEIGHT
-          const currentWeighted = best ? best.score * getFieldWeight(matchField) : -1
-          if (weighted > currentWeighted) {
+          if (weighted > getCurrentWeighted()) {
             best = aliasMatch
             matchField = 'alias'
           }
@@ -264,8 +265,7 @@ export function fuzzySearch(
         const kwMatch = matchScore(query, kw)
         if (kwMatch) {
           const weighted = kwMatch.score * KEYWORD_WEIGHT
-          const currentWeighted = best ? best.score * getFieldWeight(matchField) : -1
-          if (weighted > currentWeighted) {
+          if (weighted > getCurrentWeighted()) {
             best = kwMatch
             matchField = 'keyword'
           }
@@ -273,13 +273,16 @@ export function fuzzySearch(
       }
     }
 
-    if (best && best.score * getFieldWeight(matchField) >= threshold) {
-      scored.push({
-        item,
-        score: best.score * getFieldWeight(matchField),
-        ranges: best.ranges,
-        matchField,
-      })
+    if (best !== null) {
+      const finalScore = best.score * getFieldWeight(matchField)
+      if (finalScore >= threshold) {
+        scored.push({
+          item,
+          score: finalScore,
+          ranges: best.ranges,
+          matchField,
+        })
+      }
     }
   }
 

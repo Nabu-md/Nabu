@@ -69,8 +69,8 @@ export function unregisterCommand(id: string): void {
  * @param options   Optional overrides (see below).
  */
 export function seedCommands(
-  dispatch: React.Dispatch<AppAction>,
-  options?: {
+   dispatch: React.Dispatch<AppAction>,
+   options?: {
     /** Called when the Quick Switcher should open (Cmd+O). */
     openQuickSwitcher?: () => void
     /** Called when "Create daily note" is invoked. */
@@ -191,7 +191,7 @@ export function seedCommands(
 // ---------------------------------------------------------------------------
 
 export function seedPaneCommands(
-  dispatch: React.Dispatch<AppAction>,
+  _dispatch: React.Dispatch<AppAction>,
   options?: {
     /** Close the current tab. */
     closeCurrentTab?: () => void

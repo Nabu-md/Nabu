@@ -11,7 +11,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useAppContext } from '../App'
 import type { Root, Heading } from 'mdast'
-import type { Parent } from 'unist'
+// Parent type from unist - used for AST type checking
 
 // ---------------------------------------------------------------------------
 // Types

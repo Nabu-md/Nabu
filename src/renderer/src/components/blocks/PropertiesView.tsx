@@ -11,7 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { parse, stringify, Document, YAMLMap, YAMLSeq, Scalar } from 'yaml'
+import { parse, stringify } from 'yaml'
 
 // ---------------------------------------------------------------------------
 // Types

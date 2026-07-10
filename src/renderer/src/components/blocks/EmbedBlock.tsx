@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Node } from 'mdast'
+import { Node, Parent } from 'mdast'
 import { FileEntry } from '@shared/types'
 import { useAppContext } from '../../App'
 
@@ -150,7 +150,7 @@ export function EmbedBlock({ target, embedDepth, renderNodes }: EmbedBlockProps)
         const fileResult = await withTimeout(
           window.electron.file
             .get(resolvedPath)
-            .then((r: unknown) => r as { path: string; ast: Node }),
+            .then((r: unknown) => r as { path: string; ast: Parent }),
           IPC_TIMEOUT_MS,
         )
 

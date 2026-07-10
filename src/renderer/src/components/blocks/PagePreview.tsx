@@ -7,7 +7,7 @@
  * Requirements: 28.1, 28.2, 28.3, 28.4, 28.5, 28.6, 28.7, 28.8
  */
 
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 
 interface PagePreviewProps {
   filePath: string
@@ -19,7 +19,6 @@ export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): R
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
-  const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!isActive) {
@@ -31,8 +30,7 @@ export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): R
     const timer = window.setTimeout(() => {
       if (!filePath) return
       setLoading(true)
-      window.electron.file.get(filePath).then((result) => {
-        const data = result as { path: string; ast?: unknown }
+      window.electron.file.get(filePath).then(() => {
         // For now, just store that we loaded - real implementation would
         // render via renderNode pipeline
         setContent('Preview...')

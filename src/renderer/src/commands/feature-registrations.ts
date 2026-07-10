@@ -7,7 +7,7 @@
  * Requirements: 37.2, 37.3, 37.7, 37.9
  */
 
-import { registerFeatureToggle, unregisterFeatureToggle, initializeEnabledFeatures, resetFeatureToggles } from '../../../shared/feature-toggles'
+import { registerFeatureToggle } from '../../../shared/feature-toggles'
 import { registerCommand, unregisterCommand } from './registry'
 
 // Track registered command IDs per feature for teardown

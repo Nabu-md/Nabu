@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react'
-import type { SearchQueryResult, SearchQueryMatch } from '../../shared/search-query'
+import type { SearchQueryResult, SearchQueryMatch } from '@shared/search-query'
 import { useAppContext } from '../App'
 
 // ---------------------------------------------------------------------------

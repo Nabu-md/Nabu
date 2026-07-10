@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import { useAppContext } from '../App'
-import { fuzzySearch, type FuzzyItem, type FuzzyMatch } from '../utils/fuzzy'
+import { fuzzySearch, type FuzzyItem, type FuzzyMatch, type FuzzyRange } from '../utils/fuzzy'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -128,35 +128,35 @@ export function QuickSwitcher(): React.JSX.Element | null {
     })
   }, [vault, state.extendedIndex])
 
-  // --- Compute ranked results ---
-  const results = useMemo((): FuzzyMatch[] => {
-    if (!debouncedQuery.trim()) {
-      // Empty query → show recent notes (Req 4.6).
-      // Map recent paths to FuzzyItem matches with a perfect score.
-      return state.recentNotes
-        .map((path) => {
-          const file = fuzzyItems.find((f) => f.path === path || f.name === path)
-          if (!file) return null
+   // --- Compute ranked results ---
+   const results = useMemo((): FuzzyMatch<FuzzyItem>[] => {
+     if (!debouncedQuery.trim()) {
+       // Empty query → show recent notes (Req 4.6).
+       // Map recent paths to FuzzyItem matches with a perfect score.
+       const recentResults: FuzzyMatch<FuzzyItem>[] = []
+       for (const path of state.recentNotes) {
+         const file = fuzzyItems.find((f) => f.path === path || f.name === path)
+         if (!file) continue
 
-          // Find the item to get the real path
-          const vaultFile = vault?.files.find((f) => f.path === path || f.name.replace(/\.md$/i, '') === path)
-          const actualPath = vaultFile ? relativePath(vault?.path ?? '', vaultFile.path) : path
+         // Find the item to get the real path
+         const vaultFile = vault?.files.find((f) => f.path === path || f.name.replace(/\.md$/i, '') === path)
+         const actualPath = vaultFile ? relativePath(vault?.path ?? '', vaultFile.path) : path
 
-          return {
-            item: { ...file, path: actualPath },
-            score: 1,
-            ranges: [],
-            matchField: 'name' as const,
-          }
-        })
-        .filter((r): r is FuzzyMatch => r !== null)
-    }
+         recentResults.push({
+           item: { ...file, path: actualPath },
+           score: 1,
+           ranges: [] as FuzzyRange[],
+           matchField: 'name' as const,
+         })
+       }
+       return recentResults
+     }
 
-    return fuzzySearch(debouncedQuery, fuzzyItems, {
-      maxResults: MAX_RESULTS,
-      threshold: 0.05,
-    })
-  }, [debouncedQuery, fuzzyItems, state.recentNotes, vault])
+     return fuzzySearch(debouncedQuery, fuzzyItems, {
+       maxResults: MAX_RESULTS,
+       threshold: 0.05,
+     })
+   }, [debouncedQuery, fuzzyItems, state.recentNotes, vault])
 
   // --- Open a note ---
   const openNote = useCallback(

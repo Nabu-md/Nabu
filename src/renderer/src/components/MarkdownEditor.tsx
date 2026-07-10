@@ -68,11 +68,10 @@ const nabuDarkTheme = EditorView.theme({
 // ---------------------------------------------------------------------------
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
-  value,
-  onChange,
-  readOnly = false,
-  placeholder,
-}) => {
+   value,
+   onChange,
+   readOnly = false,
+ }) => {
   // Create extensions once
   const extensions = useMemo<Extension[]>(() => {
     return [

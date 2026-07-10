@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import { useAppContext } from '../App'
 import { getCommands, type Command } from '../commands/registry'
-import { matchScore } from '../utils/fuzzy'
+import { matchScore, type FuzzyRange } from '../utils/fuzzy'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -27,7 +27,7 @@ const MAX_RESULTS = 20
 interface ScoredCommand {
   command: Command
   score: number
-  ranges: { start: number; end: number }[]
+  ranges: FuzzyRange[]
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ function HighlightedText({
 // ---------------------------------------------------------------------------
 
 export function CommandPalette(): React.JSX.Element | null {
-  const { state, dispatch } = useAppContext()
+  const { dispatch } = useAppContext()
 
   // --- Local state ---
   const [query, setQuery] = React.useState('')
@@ -116,32 +116,36 @@ export function CommandPalette(): React.JSX.Element | null {
     const scored: ScoredCommand[] = []
 
     for (const cmd of commands) {
-      let best: { score: number; ranges: { start: number; end: number }[] } | null = null
+      let bestScore = -1
+      let bestRanges: FuzzyRange[] = []
 
       // Match against label.
       const labelMatch = matchScore(debouncedQuery, cmd.label)
-      if (labelMatch && (!best || labelMatch.score > best.score)) {
-        best = labelMatch
+      if (labelMatch && labelMatch.score > bestScore) {
+        bestScore = labelMatch.score
+        bestRanges = labelMatch.ranges
       }
 
       // Match against id (e.g. "edit.toggle").
       const idMatch = matchScore(debouncedQuery, cmd.id)
-      if (idMatch && (!best || idMatch.score > best.score)) {
-        best = idMatch
+      if (idMatch && idMatch.score > bestScore) {
+        bestScore = idMatch.score
+        bestRanges = idMatch.ranges
       }
 
       // Match against keywords.
       if (cmd.keywords) {
         for (const kw of cmd.keywords) {
           const kwMatch = matchScore(debouncedQuery, kw)
-          if (kwMatch && (!best || kwMatch.score > best.score)) {
-            best = kwMatch
+          if (kwMatch && kwMatch.score > bestScore) {
+            bestScore = kwMatch.score
+            bestRanges = kwMatch.ranges
           }
         }
       }
 
-      if (best) {
-        scored.push({ command: cmd, score: best.score, ranges: best.ranges })
+      if (bestScore >= 0) {
+        scored.push({ command: cmd, score: bestScore, ranges: bestRanges })
       }
     }
 

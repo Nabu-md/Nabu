@@ -7,7 +7,7 @@
  * Requirements: 30.1, 30.2, 30.3, 30.4, 30.5, 30.6, 30.7
  */
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface SlashCommand {
   id: string

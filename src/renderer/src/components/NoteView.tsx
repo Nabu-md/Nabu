@@ -35,7 +35,8 @@ import { renderInlineTagText } from './blocks/InlineTagChip'
 import { FavoriteToggle } from './FavoriteToggle'
 import { MarkdownEditor } from './MarkdownEditor'
 import katex from 'katex'
-import { parseMarkdown } from '../markdown/pipeline'
+// parseMarkdown imported but used via IPC for Live Preview mode
+// import { parseMarkdown } from '../markdown/pipeline'
 
 // ---------------------------------------------------------------------------
 // Timeout constant
@@ -198,7 +199,7 @@ interface RenderContext {
 
 /** Extract a block identifier from a node's data, if present. */
 function blockIdFrom(node: Node): string | undefined {
-  const data = (node as Record<string, unknown>).data as Record<string, unknown> | undefined
+  const data = (node as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined
   return data?.blockId as string | undefined
 }
 
@@ -954,16 +955,6 @@ export function NoteView(): React.JSX.Element {
   }, [currentFile, dispatch])
 
   // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
-  const enterLivePreviewMode = useCallback(async (): Promise<void> => {
-    if (!currentFile) return
-    try {
-      const result = await window.electron.note.getRaw(currentFile)
-      dispatch({ type: 'LIVE_PREVIEW_MODE_ENTER', payload: result.content ?? '' })
-    } catch (err) {
-      console.error('[NoteView] getRaw error for Live Preview:', err)
-    }
-  }, [currentFile, dispatch])
-
   const exitLivePreviewMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     // Clear debounced parse timer
@@ -1302,7 +1293,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
             {/* YAML frontmatter → PropertiesView */}
             {(() => {
               const yamlNode = currentAST.children.find(
-                (c) => c.type === 'yaml' || c.type === 'toml',
+                (c) => c.type === 'yaml' || (c as unknown as { type: string }).type === 'toml',
               ) as { value?: string } | undefined
               const yamlValue = yamlNode?.value ?? null
               return (
@@ -1315,7 +1306,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               )
             })()}
             {currentAST.children
-              .filter((child) => child.type !== 'yaml' && child.type !== 'toml')
+              .filter((child) => child.type !== 'yaml' && (child as unknown as { type: string }).type !== 'toml')
               .map((child, i) => renderNode(child, renderCtx, i))}
             <OutgoingLinksPanel />
             <BacklinksPanel />
