@@ -405,7 +405,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - `paneLayout: 'single'|'split-horizontal'|'split-vertical'|'grid'`; each pane bound to an open tab; independent scroll/mode/cursor; active pane visually distinguished.
   - _Requirements: 24.2, 24.4, 24.5_
 
-- [ ] 73. Pane open/close/drag interactions
+- [x] 73. Pane open/close/drag interactions
   - Cmd-click / "Open in new pane"; close panes individually; drag text between panes inserts at cursor.
   - Command Palette commands: Close tab, Next pane, Move tab.
   - _Requirements: 24.3, 24.6, 24.7_

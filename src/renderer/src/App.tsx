@@ -103,6 +103,7 @@ export type AppAction =
   | { type: 'TAB_UPDATED'; payload: { tabId: string; patch: Partial<Tab> } }
   | { type: 'PANE_LAYOUT_CHANGED'; payload: { layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' } }
   | { type: 'TAB_CLOSE_ALL' }
+  | { type: 'TAB_SPLIT'; payload: { tabId: string } }
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
   | { type: 'TOGGLE_BLOCK'; payload: { filePath: string; headingId: string; isOpen: boolean } }
   | { type: 'CONTEXT_PANE_TOGGLE' }

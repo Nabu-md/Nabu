@@ -186,6 +186,57 @@ export function seedCommands(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Pane commands (Req 24.3, 24.6, 24.7)
+// ---------------------------------------------------------------------------
+
+export function seedPaneCommands(
+  dispatch: React.Dispatch<AppAction>,
+  options?: {
+    /** Close the current tab. */
+    closeCurrentTab?: () => void
+    /** Move tab to a new pane. */
+    moveToNewPane?: () => void
+    /** Focus next pane. */
+    focusNextPane?: () => void
+  },
+): void {
+  const o = options ?? {}
+
+  registerCommand({
+    id: 'pane.close-tab',
+    label: 'Close tab',
+    keywords: ['tab', 'close', 'pane'],
+    run: () => {
+      if (o.closeCurrentTab) {
+        o.closeCurrentTab()
+      }
+    },
+  })
+
+  registerCommand({
+    id: 'pane.next',
+    label: 'Next pane',
+    keywords: ['pane', 'next', 'focus'],
+    run: () => {
+      if (o.focusNextPane) {
+        o.focusNextPane()
+      }
+    },
+  })
+
+  registerCommand({
+    id: 'pane.move-tab',
+    label: 'Move tab to new pane',
+    keywords: ['tab', 'move', 'pane', 'split'],
+    run: () => {
+      if (o.moveToNewPane) {
+        o.moveToNewPane()
+      }
+    },
+  })
+}
+
 /**
  * Remove all built-in seed commands.
  * Used for testing or full reset.
