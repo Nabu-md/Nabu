@@ -118,6 +118,72 @@ export function SettingsPanel(): React.JSX.Element | null {
   }
 
   // ---------------------------------------------------------------------------
+  // Widget Shortcut State
+  // ---------------------------------------------------------------------------
+
+  const [widgetShortcut, setWidgetShortcut] = useState<string>('')
+  const [isCapturingShortcut, setIsCapturingShortcut] = useState(false)
+
+  // Load current shortcut on mount
+  useEffect(() => {
+    if (settingsPanelOpen) {
+      window.electron.settings
+        .get('clipboardShortcut')
+        .then((result) => {
+          setWidgetShortcut((result.value as string) ?? 'CmdOrCtrl+§')
+        })
+        .catch(console.error)
+    }
+  }, [settingsPanelOpen])
+
+  const handleStartCapture = (): void => {
+    setIsCapturingShortcut(true)
+  }
+
+  const handleCaptureKeydown = (e: React.KeyboardEvent): void => {
+    if (!isCapturingShortcut) return
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Build accelerator string from the pressed combo
+    const parts: string[] = []
+    if (e.metaKey) parts.push('CmdOrCtrl')
+    else if (e.ctrlKey) parts.push('CmdOrCtrl')
+    if (e.altKey) parts.push('Option')
+    if (e.shiftKey) parts.push('Shift')
+
+    // Ignore bare modifier keys
+    const isModifierOnly = ['Alt', 'Shift', 'Control', 'Meta'].includes(e.key)
+    if (!isModifierOnly) {
+      let key = e.key === '§' ? '§' : e.key
+      // Map common keys
+      if (key === ' ' || key === 'Space') key = 'Space'
+      if (key === 'Enter') key = 'Enter'
+      if (key === 'Escape') key = 'Escape'
+      if (key === 'Tab') key = 'Tab'
+      if (/^[a-zA-Z0-9]$/.test(key)) key = key.toUpperCase()
+
+      parts.push(key)
+      const combo = parts.join('+')
+      setWidgetShortcut(combo)
+      setIsCapturingShortcut(false)
+
+      // Persist and apply
+      window.electron.settings
+        .set('clipboardShortcut', combo)
+        .catch(console.error)
+      window.electron.widget.setShortcut(combo).catch(console.error)
+    }
+  }
+
+  const handleResetShortcut = (): void => {
+    const defaultShortcut = 'CmdOrCtrl+§'
+    setWidgetShortcut(defaultShortcut)
+    window.electron.settings.set('clipboardShortcut', defaultShortcut).catch(console.error)
+    window.electron.widget.setShortcut(defaultShortcut).catch(console.error)
+  }
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -327,6 +393,58 @@ export function SettingsPanel(): React.JSX.Element | null {
                   </div>
                 ))
               )}
+            </div>
+          </section>
+
+          {/* ----------------------------------------------------------------
+              Widget section
+          ---------------------------------------------------------------- */}
+          <section aria-labelledby="settings-widget-heading">
+            <h3
+              id="settings-widget-heading"
+              className="text-xs font-medium uppercase tracking-wider
+                         text-nabu-text-muted mb-3"
+            >
+              Clipboard Widget
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              {/* Shortcut rebinding */}
+              <div>
+                <p className="text-xs text-nabu-text-muted mb-2">
+                  Keyboard shortcut to toggle the clipboard widget
+                </p>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Click to set keyboard shortcut"
+                  onClick={isCapturingShortcut ? undefined : handleStartCapture}
+                  onKeyDown={isCapturingShortcut ? handleCaptureKeydown : undefined}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded text-sm
+                    border transition-colors cursor-pointer font-mono
+                    ${isCapturingShortcut
+                      ? 'bg-nabu-accent/20 border-nabu-accent text-nabu-accent animate-pulse'
+                      : 'bg-nabu-bg-mute border-nabu-border text-nabu-text hover:bg-nabu-border'
+                    }`}
+                >
+                  {isCapturingShortcut ? (
+                    <>Press keys…</>
+                  ) : (
+                    <span>{widgetShortcut || 'CmdOrCtrl+§'}</span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleResetShortcut}
+                    className="text-xs text-nabu-text-muted hover:text-nabu-text
+                               px-2 py-1 rounded border border-nabu-border
+                               bg-nabu-bg-mute transition-colors"
+                  >
+                    Reset default
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
         </div>

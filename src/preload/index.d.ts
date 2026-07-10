@@ -131,9 +131,14 @@ declare global {
         toggle(): Promise<void>
         move(dx: number, dy: number): Promise<void>
         resize(opts: { width: number; height: number }): Promise<void>
+        createNote(opts: { name: string; content: string; timestamp?: boolean }): Promise<{ success: boolean; error?: string; path?: string }>
+        fetchTitle(url: string): Promise<{ title: string }>
+        openNote(path: string): Promise<void>
+        setShortcut(shortcut: string): Promise<void>
       }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
+        noteOpenRequested(callback: (data: { path: string }) => void): () => void
         noteUpdated(
           callback: (data: { path: string; ast: Root; isExternal: boolean }) => void
         ): () => void
@@ -149,6 +154,7 @@ declare global {
         setupCreate(callback: () => void): () => void
         setupOpen(callback: () => void): () => void
         indexBuild(callback: (data: unknown) => void): () => void
+        showClipboard(callback: () => void): () => void
       }
     }
   }
