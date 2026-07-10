@@ -712,6 +712,18 @@ function App(): React.JSX.Element {
       dispatch({ type: 'FILE_DELETED', payload: { path } })
     })
 
+    const offNoteOpenRequested = electron.on.noteOpenRequested(({ path }) => {
+      window.electron.file
+        .get(path)
+        .then((fileAST) => {
+          dispatch({
+            type: 'FILE_LOADED',
+            payload: { path: fileAST.path, ast: fileAST.ast }
+          })
+        })
+        .catch((err) => console.error('[App] widget open-note failed:', err))
+    })
+
     const offContextSearch = electron.on.contextSearch((data) => {
       const payload = data as Record<string, unknown>
       const results = (payload['results'] ?? data) as import('../../shared/types').SearchResult[]
@@ -822,6 +834,7 @@ function App(): React.JSX.Element {
       offNoteLoaded()
       offNoteUpdated()
       offNoteDeleted()
+      offNoteOpenRequested()
       offContextSearch()
       offActivityLog()
       offVaultOpened()

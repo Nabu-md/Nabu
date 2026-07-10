@@ -114,13 +114,26 @@ const electronAPI = {
     move: (dx: number, dy: number): Promise<void> =>
       ipcRenderer.invoke('widget:move', { dx, dy }),
     resize: (opts: { width: number; height: number }): Promise<void> =>
-      ipcRenderer.invoke('widget:resize', opts)
+      ipcRenderer.invoke('widget:resize', opts),
+    createNote: (opts: { name: string; content: string; timestamp?: boolean }): Promise<unknown> =>
+      ipcRenderer.invoke('widget:create-note', opts),
+    fetchTitle: (url: string): Promise<unknown> =>
+      ipcRenderer.invoke('widget:fetch-title', { url }),
+    openNote: (path: string): Promise<void> =>
+      ipcRenderer.invoke('widget:open-note', { path }),
+    setShortcut: (shortcut: string): Promise<void> =>
+      ipcRenderer.invoke('widget:set-shortcut', { shortcut })
   },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.NOTE_LOADED, listener)
       return () => ipcRenderer.removeListener(IPCChannel.NOTE_LOADED, listener)
+    },
+    noteOpenRequested: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:open-note-request', listener)
+      return () => ipcRenderer.removeListener('widget:open-note-request', listener)
     },
     noteUpdated: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
@@ -171,6 +184,11 @@ const electronAPI = {
       const listener = (): void => callback()
       ipcRenderer.on('setup:open', listener)
       return () => ipcRenderer.removeListener('setup:open', listener)
+    },
+    showClipboard: (callback: () => void): (() => void) => {
+      const listener = (): void => callback()
+      ipcRenderer.on('widget:show-clipboard', listener)
+      return () => ipcRenderer.removeListener('widget:show-clipboard', listener)
     },
     indexBuild: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)

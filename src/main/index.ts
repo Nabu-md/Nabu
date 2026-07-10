@@ -17,7 +17,7 @@ import {
   ipcMain,
   MenuItemConstructorOptions
 } from 'electron'
-import { join } from 'path'
+import * as path from 'path'
 import fs from 'fs/promises'
 
 import { StateManager } from './state'
@@ -29,6 +29,7 @@ import { loadSettings, saveSettings } from './settings'
 import type { AppSettings } from './settings'
 import { ClipboardHistory } from './clipboard-history'
 import { WidgetManager } from './widget-manager'
+import { vaultRegistry } from './vault-registry'
 
 // ---------------------------------------------------------------------------
 // createWindow
@@ -53,7 +54,7 @@ export function createWindow(bounds?: AppSettings['windowBounds']): BrowserWindo
     show: false,
     autoHideMenuBar: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -86,7 +87,7 @@ export function createWindow(bounds?: AppSettings['windowBounds']): BrowserWindo
       console.error('[Window] Failed to load dev server URL:', err)
     })
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html')).catch((err) => {
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html')).catch((err) => {
       console.error('[Window] Failed to load renderer HTML:', err)
     })
   }
@@ -427,13 +428,13 @@ app.whenReady().then(async () => {
 
   // ---- Deferred: initialise vector index after window is visible ----
   mainWindow.once('ready-to-show', () => {
-    const nabuDir = join(app.getPath('userData'), '.nabu')
+    const nabuDir = path.join(app.getPath('userData'), '.nabu')
     // Resolve model path based on packaging state (Req 12.4):
     //   - Packaged: models are extracted to <Resources>/models/ by electron-builder extraResources
     //   - Development: models live under resources/models/ in the repo root
     const modelPath = app.isPackaged
-      ? join(process.resourcesPath, 'models', 'bge-micro-v2')
-      : join(__dirname, '..', '..', '..', 'resources', 'models', 'bge-micro-v2')
+      ? path.join(process.resourcesPath, 'models', 'bge-micro-v2')
+      : path.join(__dirname, '..', '..', '..', 'resources', 'models', 'bge-micro-v2')
 
     vectorManager
       .initialize({ indexPath: nabuDir, modelPath })
@@ -462,12 +463,61 @@ app.whenReady().then(async () => {
 
     const widgetManager = new WidgetManager()
     widgetManager.registerIPCHandlers()
-    // Widget starts enabled by default (user can disable in Settings)
-    widgetManager.setEnabled(true)
+    // Widget starts enabled by default with saved shortcut
+    loadSettings().then((s) => {
+      widgetManager.setEnabled(true, s.clipboardShortcut)
+    }).catch((err) => {
+      console.error('[App] Failed to load widget shortcut:', err)
+      widgetManager.setEnabled(true)
+    })
+
+    // Listen for shortcut changes from the Settings panel
+    ipcMain.handle('widget:set-shortcut', async (_event, { shortcut }: { shortcut: string }) => {
+      widgetManager.setShortcut(shortcut)
+    })
 
     // Wire feature-toggle changes for clipboard-widget to WidgetManager
     onWidgetToggle((enabled: boolean) => {
       widgetManager.setEnabled(enabled)
+    })
+
+    // ---- Widget: create-note — saves a quick note to the active vault ----
+    ipcMain.handle('widget:create-note', async (_event, { name, content, timestamp }) => {
+      try {
+        const session = vaultRegistry.getActive()
+        if (!session) return { success: false, error: 'No vault open' }
+        const vaultPath = session.vaultPath
+        const now = new Date()
+        const safeName = timestamp
+          ? `${name} ${now.toISOString().slice(0, 10)} ${now.toTimeString().slice(0, 8).replace(/:/g, '-')}`
+          : name
+        const filePath = path.join(vaultPath, `${safeName}.md`)
+        await fs.writeFile(filePath, content, 'utf-8')
+        void session.stateManager.invalidateAST(filePath)
+        return { success: true, path: filePath }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    })
+
+    // ---- Widget: fetch-title — fetch a URL and extract the page title ----
+    ipcMain.handle('widget:fetch-title', async (_event, { url }) => {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+        const response = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeout)
+        const html = await response.text()
+        const match = html.match(/<title[^>]*>([^<]*)<\/title>/i)
+        return { title: match ? match[1].trim() : url }
+      } catch {
+        return { title: url }
+      }
+    })
+
+    // ---- Widget: open-note — tell the main window to open a file ----
+    ipcMain.handle('widget:open-note', (_event, { path: filePath }) => {
+      mainWindow.webContents.send('widget:open-note-request', { path: filePath })
     })
   })
 

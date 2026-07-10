@@ -36,6 +36,8 @@ export interface AppSettings {
   dailyNoteTemplate: string
   /** List of recently opened vaults for multi-vault support (Req 22.1). */
   recentVaults: RecentVaultEntry[]
+  /** Keyboard shortcut for the clipboard widget. Default: "CmdOrCtrl+§". */
+  clipboardShortcut: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -46,7 +48,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyNoteDateFormat: 'YYYY-MM-DD',
   dailyNoteFolder: 'Daily',
   dailyNoteTemplate: '',
-  recentVaults: []
+  recentVaults: [],
+  clipboardShortcut: 'CmdOrCtrl+§'
 }
 
 export function settingsPath(): string {
@@ -69,7 +72,8 @@ export async function loadSettings(): Promise<AppSettings> {
       dailyNoteDateFormat: parsed.dailyNoteDateFormat ?? 'YYYY-MM-DD',
       dailyNoteFolder: parsed.dailyNoteFolder ?? 'Daily',
       dailyNoteTemplate: parsed.dailyNoteTemplate ?? '',
-      recentVaults: parsed.recentVaults ?? []
+      recentVaults: parsed.recentVaults ?? [],
+      clipboardShortcut: parsed.clipboardShortcut ?? 'CmdOrCtrl+§'
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
