@@ -364,19 +364,19 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 9 — Live Preview
 
-- [ ] 65. Extract shared `buildProcessor` to `src/shared/markdown.ts`
+- [x] 65. Extract shared `buildProcessor` to `src/shared/markdown.ts`
   - Single source of truth for the plugin pipeline used by main and renderer.
   - _Requirements: 23.3, 23.7_
 
-- [ ] 66. Build the Renderer_Remark_Pipeline
+- [x] 66. Build the Renderer_Remark_Pipeline
   - `src/renderer/src/markdown/pipeline.ts` using the shared `buildProcessor`; bundle `remark-parse` + plugins + `remark-math` + callouts into the renderer bundle.
   - _Requirements: 23.3_
 
-- [ ] 67. Add CodeMirror 6 editor
+- [x] 67. Add CodeMirror 6 editor
   - `@uiw/react-codemirror` + `@codemirror/lang-markdown` + a Nabu theme; replace the `<textarea>` at `NoteView.tsx:835` for Live Preview mode.
   - _Requirements: 23.1, 23.2_
 
-- [ ] 68. Render inline on debounced doc change
+- [x] 68. Render inline on debounced doc change
   - Re-parse via the renderer pipeline; render visible regions inline (headings, bold, links, wiki-links, code, lists, callouts, math, task checkboxes).
   - _Requirements: 23.4, 23.6, 23.7_
 

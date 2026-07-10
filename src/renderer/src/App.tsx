@@ -261,12 +261,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, editMode: true, currentRaw: action.payload }
 
     case 'EDIT_MODE_EXIT':
+      return { ...state, editMode: false, currentRaw: null }
+
     case 'LIVE_PREVIEW_MODE_ENTER':
       return { ...state, livePreviewMode: true, currentRaw: action.payload }
 
     case 'LIVE_PREVIEW_MODE_EXIT':
       return { ...state, livePreviewMode: false, currentRaw: null }
-      return { ...state, editMode: false, currentRaw: null }
 
     case 'GRAPH_UPDATED':
       return { ...state, graphEdges: action.payload }
