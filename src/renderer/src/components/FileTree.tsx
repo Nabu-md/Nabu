@@ -81,8 +81,7 @@ function buildTree(files: FileEntry[], vaultRoot: string): TreeNode[] {
         let folder = current.children.find((c) => c.type === 'folder' && c.name === seg)
         if (!folder) {
           // reconstruct folder path
-          const folderPath =
-            vaultRoot + '/' + segments.slice(0, i + 1).join('/')
+          const folderPath = vaultRoot + '/' + segments.slice(0, i + 1).join('/')
           folder = { name: seg, path: folderPath, type: 'folder', children: [] }
           current.children.push(folder)
         }
@@ -305,7 +304,9 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
   const noteNameInputRef = useRef<HTMLInputElement>(null)
 
   // Context menu state
-  const [contextMenuTarget, setContextMenuTarget] = useState<{ path: string; name: string } | null>(null)
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ path: string; name: string } | null>(
+    null
+  )
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [showRenameInput, setShowRenameInput] = useState(false)
   const [renameValue, setRenameValue] = useState('')
@@ -603,16 +604,16 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
         }
       }
       // Sort by match count descending, then return matching TreeNodes
-      const allFiles = flattenTree(tree).filter(n => n.type === 'file')
+      const allFiles = flattenTree(tree).filter((n) => n.type === 'file')
       return Array.from(matchCounts.entries())
         .sort((a, b) => b[1] - a[1])
-        .map(([p]) => allFiles.find(n => n.path === p))
+        .map(([p]) => allFiles.find((n) => n.path === p))
         .filter((n): n is TreeNode => n !== undefined)
     }
 
     // Fallback: name-based filter
     const q = query.toLowerCase()
-    return flattenTree(tree).filter(n => n.type === 'file' && n.name.toLowerCase().includes(q))
+    return flattenTree(tree).filter((n) => n.type === 'file' && n.name.toLowerCase().includes(q))
   }, [tree, query, state.fullTextIndex])
 
   return (
@@ -693,9 +694,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               {folderError}
             </p>
           )}
-          {folderLoading && (
-            <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>
-          )}
+          {folderLoading && <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>}
           {!folderLoading && !folderError && folderName.trim() === '' && (
             <p className="mt-1 text-xs text-nabu-text-faint">Enter a folder name.</p>
           )}
@@ -768,9 +767,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 role="button"
                 tabIndex={0}
                 onClick={() => setSelectedTemplate(tpl)}
-                onKeyDown={(e) =>
-                  (e.key === 'Enter' || e.key === ' ') && setSelectedTemplate(tpl)
-                }
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedTemplate(tpl)}
                 className={[
                   'flex items-center gap-2 px-2 py-0.5 rounded cursor-pointer text-xs transition-colors',
                   selectedTemplate?.path === tpl.path
@@ -817,9 +814,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
               {noteError}
             </p>
           )}
-          {noteLoading && (
-            <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>
-          )}
+          {noteLoading && <p className="mt-1 text-xs text-nabu-text-faint">Creating…</p>}
 
           {/* Action buttons */}
           <div className="flex gap-1 mt-2">
@@ -866,7 +861,11 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
       </div>
 
       {/* Tree or filtered flat list */}
-      <div className="flex-1 overflow-y-auto py-1" role={filteredNodes !== null ? 'listbox' : 'tree'} aria-label="Vault files">
+      <div
+        className="flex-1 overflow-y-auto py-1"
+        role={filteredNodes !== null ? 'listbox' : 'tree'}
+        aria-label="Vault files"
+      >
         {state.vault === null ? (
           <p className="px-3 py-2 text-xs text-nabu-text-faint">No vault open</p>
         ) : filteredNodes !== null ? (
@@ -939,7 +938,10 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
                 ref={renameInputRef}
                 type="text"
                 value={renameValue}
-                onChange={(e) => { setRenameValue(e.target.value); setRenameError(null) }}
+                onChange={(e) => {
+                  setRenameValue(e.target.value)
+                  setRenameError(null)
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                 disabled={menuLoading}
                 className="w-full px-2 py-0.5 text-xs rounded bg-nabu-bg border border-nabu-border text-nabu-text focus:outline-none focus:border-nabu-accent"
@@ -967,7 +969,9 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           )}
           {showDeleteConfirm && (
             <div role="dialog" aria-modal="true" className="px-2 py-1">
-              <p className="text-xs text-nabu-text mb-1">Delete &ldquo;{contextMenuTarget.name}&rdquo;?</p>
+              <p className="text-xs text-nabu-text mb-1">
+                Delete &ldquo;{contextMenuTarget.name}&rdquo;?
+              </p>
               {renameError && <p className="text-xs text-red-400 mb-1">{renameError}</p>}
               <div className="flex gap-1">
                 <button

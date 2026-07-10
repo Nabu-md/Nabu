@@ -8,10 +8,10 @@
  * Requirements: 7.1, 8.1
  */
 
-import { visit, SKIP } from 'unist-util-visit';
-import type { VisitorResult } from 'unist-util-visit';
-import type { Root, Yaml } from 'mdast';
-import type { FileEntry } from './types';
+import { visit, SKIP } from 'unist-util-visit'
+import type { VisitorResult } from 'unist-util-visit'
+import type { Root, Yaml } from 'mdast'
+import type { FileEntry } from './types'
 
 // ---------------------------------------------------------------------------
 // Full-text index
@@ -35,45 +35,45 @@ import type { FileEntry } from './types';
  */
 export function buildFullTextIndex(
   files: FileEntry[],
-  getAST: (path: string) => Root | undefined,
+  getAST: (path: string) => Root | undefined
 ): Map<string, Set<string>> {
-  const ftIndex = new Map<string, Set<string>>();
+  const ftIndex = new Map<string, Set<string>>()
 
   for (const file of files) {
-    const root = getAST(file.path);
-    if (root === undefined) continue;
+    const root = getAST(file.path)
+    if (root === undefined) continue
 
     visit(root, (node): VisitorResult => {
       // For yaml/toml nodes: don't descend into children (frontmatter is
       // excluded from the full-text index; tags are handled by buildTagIndex)
-      const nodeType = (node as { type: string }).type;
+      const nodeType = (node as { type: string }).type
       if (nodeType === 'yaml' || nodeType === 'toml') {
-        return SKIP;
+        return SKIP
       }
 
       // Extract textual value from content-bearing leaf nodes
       if (node.type === 'text' || node.type === 'inlineCode' || node.type === 'code') {
-        const value = (node as { value: string }).value;
-        if (!value) return;
+        const value = (node as { value: string }).value
+        if (!value) return
 
         const words = value
           .toLowerCase()
           .split(/[\s\p{P}]+/u)
-          .filter((w) => w.length > 0);
+          .filter((w) => w.length > 0)
 
         for (const word of words) {
-          let paths = ftIndex.get(word);
+          let paths = ftIndex.get(word)
           if (paths === undefined) {
-            paths = new Set<string>();
-            ftIndex.set(word, paths);
+            paths = new Set<string>()
+            ftIndex.set(word, paths)
           }
-          paths.add(file.path);
+          paths.add(file.path)
         }
       }
-    });
+    })
   }
 
-  return ftIndex;
+  return ftIndex
 }
 
 // ---------------------------------------------------------------------------
@@ -95,36 +95,36 @@ export function buildFullTextIndex(
  */
 export function buildTagIndex(
   files: FileEntry[],
-  getAST: (path: string) => Root | undefined,
+  getAST: (path: string) => Root | undefined
 ): Map<string, Set<string>> {
-  const tagIndex = new Map<string, Set<string>>();
+  const tagIndex = new Map<string, Set<string>>()
 
   for (const file of files) {
-    const root = getAST(file.path);
-    if (root === undefined) continue;
+    const root = getAST(file.path)
+    if (root === undefined) continue
 
     // Find the first yaml frontmatter node
-    let yamlNode: Yaml | undefined;
+    let yamlNode: Yaml | undefined
     visit(root, 'yaml', (node: Yaml) => {
-      yamlNode = node;
-      return SKIP; // stop after the first one
-    });
+      yamlNode = node
+      return SKIP // stop after the first one
+    })
 
-    if (yamlNode === undefined) continue;
+    if (yamlNode === undefined) continue
 
-    const tags = extractTagsFromYaml(yamlNode.value);
+    const tags = extractTagsFromYaml(yamlNode.value)
 
     for (const tag of tags) {
-      let paths = tagIndex.get(tag);
+      let paths = tagIndex.get(tag)
       if (paths === undefined) {
-        paths = new Set<string>();
-        tagIndex.set(tag, paths);
+        paths = new Set<string>()
+        tagIndex.set(tag, paths)
       }
-      paths.add(file.path);
+      paths.add(file.path)
     }
   }
 
-  return tagIndex;
+  return tagIndex
 }
 
 // ---------------------------------------------------------------------------
@@ -141,59 +141,59 @@ export function buildTagIndex(
  * Returns a deduplicated array of non-empty trimmed tag strings.
  */
 function extractTagsFromYaml(yaml: string): string[] {
-  const tags: string[] = [];
+  const tags: string[] = []
 
   // Try to find the tags line
-  const lines = yaml.split('\n');
-  let tagsLineIndex = -1;
+  const lines = yaml.split('\n')
+  let tagsLineIndex = -1
 
   for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart();
+    const trimmed = lines[i].trimStart()
     if (/^tags\s*:/i.test(trimmed)) {
-      tagsLineIndex = i;
-      break;
+      tagsLineIndex = i
+      break
     }
   }
 
-  if (tagsLineIndex === -1) return tags;
+  if (tagsLineIndex === -1) return tags
 
-  const tagsLine = lines[tagsLineIndex];
+  const tagsLine = lines[tagsLineIndex]
 
   // Check for inline array format: tags: [t1, t2]
-  const inlineMatch = tagsLine.match(/^[^:]*:\s*\[([^\]]*)\]/);
+  const inlineMatch = tagsLine.match(/^[^:]*:\s*\[([^\]]*)\]/)
   if (inlineMatch) {
-    const items = inlineMatch[1].split(',');
+    const items = inlineMatch[1].split(',')
     for (const item of items) {
-      const tag = item.trim();
-      if (tag.length > 0) tags.push(tag);
+      const tag = item.trim()
+      if (tag.length > 0) tags.push(tag)
     }
-    return tags;
+    return tags
   }
 
   // Check if there's a value after the colon (non-array scalar — skip block mode check)
-  const afterColon = tagsLine.replace(/^[^:]*:/, '').trim();
+  const afterColon = tagsLine.replace(/^[^:]*:/, '').trim()
   if (afterColon.length > 0 && !afterColon.startsWith('-')) {
     // Single scalar value on same line (not a standard tags format, skip)
-    return tags;
+    return tags
   }
 
   // Block list format: subsequent lines starting with `  - `
   for (let i = tagsLineIndex + 1; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]
     // A block list item has leading whitespace followed by `- `
-    const blockItemMatch = line.match(/^\s+-\s+(.*)/);
+    const blockItemMatch = line.match(/^\s+-\s+(.*)/)
     if (blockItemMatch) {
-      const tag = blockItemMatch[1].trim();
-      if (tag.length > 0) tags.push(tag);
+      const tag = blockItemMatch[1].trim()
+      if (tag.length > 0) tags.push(tag)
     } else {
       // Non-list line encountered — block list is finished
       // Only stop if the line is non-empty and not a continuation
-      const trimmedLine = line.trim();
+      const trimmedLine = line.trim()
       if (trimmedLine.length > 0 && !trimmedLine.startsWith('#')) {
-        break;
+        break
       }
     }
   }
 
-  return tags;
+  return tags
 }

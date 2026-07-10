@@ -135,11 +135,7 @@ ${INTERNAL_STYLES}
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function SandboxedHtml({
-  html,
-  maxHeight = 400,
-  className = '',
-}: SandboxedHtmlProps) {
+export function SandboxedHtml({ html, maxHeight = 400, className = '' }: SandboxedHtmlProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [expanded, setExpanded] = useState(false)
 
@@ -227,10 +223,7 @@ export function SandboxedHtml({
     try {
       const body = iframeRef.current.contentDocument?.body
       const docEl = iframeRef.current.contentDocument?.documentElement
-      const height = Math.max(
-        body?.scrollHeight ?? 0,
-        docEl?.scrollHeight ?? 0,
-      )
+      const height = Math.max(body?.scrollHeight ?? 0, docEl?.scrollHeight ?? 0)
       if (height > 0) {
         const cap = expanded ? height : Math.min(height, maxHeight)
         iframeRef.current.style.height = `${cap}px`
@@ -251,9 +244,7 @@ export function SandboxedHtml({
 
   return (
     <div
-      className={
-        `nabu-sandbox-html my-3 rounded-lg overflow-hidden border border-white/10 relative group ${className}`
-      }
+      className={`nabu-sandbox-html my-3 rounded-lg overflow-hidden border border-white/10 relative group ${className}`}
     >
       <iframe
         ref={iframeRef}
@@ -263,7 +254,7 @@ export function SandboxedHtml({
         className="w-full"
         style={{
           border: 'none',
-          height: `${Math.min(200, maxHeight)}px`,
+          height: `${Math.min(200, maxHeight)}px`
         }}
         onLoad={handleLoad}
       />

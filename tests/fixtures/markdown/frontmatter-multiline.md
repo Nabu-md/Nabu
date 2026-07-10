@@ -1,9 +1,9 @@
 ---
-title: "This is a title with special: characters"
-description: "A longer description that
+title: 'This is a title with special: characters'
+description: 'A longer description that
   spans multiple lines with
-  continuation"
-author: "Jane Doe"
+  continuation'
+author: 'Jane Doe'
 tags: [one, two, three]
 ---
 

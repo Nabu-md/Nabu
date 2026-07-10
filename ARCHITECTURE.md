@@ -92,10 +92,7 @@ Nabu is an Electron desktop app with three layers: **main process** (system), **
 User-authored HTML content (embedded in markdown notes) is rendered inside a **sandboxed iframe**. The iframe uses the `sandbox` attribute with minimal permissions:
 
 ```html
-<iframe
-  sandbox="allow-scripts"
-  src="about:blank"
-></iframe>
+<iframe sandbox="allow-scripts" src="about:blank"></iframe>
 ```
 
 - `nodeIntegration` is **disabled** — no access to Node.js APIs.

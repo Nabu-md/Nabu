@@ -8,53 +8,52 @@
  * Requirements: 2.1 – 2.10
  */
 
-import { readFile } from 'fs/promises';
-import { unified } from 'unified';
-import _remarkParse from 'remark-parse';
-import _remarkStringify from 'remark-stringify';
-import _remarkFrontmatter from 'remark-frontmatter';
-import _remarkGfm from 'remark-gfm';
-import type { Root } from 'mdast';
-import type { VFile } from 'vfile';
+import { readFile } from 'fs/promises'
+import { unified } from 'unified'
+import _remarkStringify from 'remark-stringify'
+import _remarkFrontmatter from 'remark-frontmatter'
+import _remarkGfm from 'remark-gfm'
+import _remarkMath from 'remark-math'
+import type { Root } from 'mdast'
+import type { VFile } from 'vfile'
 
 // CJS/ESM interop: electron-vite bundles ESM packages as CJS require() calls
 // which return { __esModule: true, default: fn }. Unwrap .default if needed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unwrap<T>(mod: any): T {
-  return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod
+  return mod && mod.__esModule && mod.default !== undefined ? mod.default : mod
 }
-const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
 const remarkFrontmatter = unwrap<typeof _remarkFrontmatter>(_remarkFrontmatter)
 const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
+const remarkMath = unwrap<typeof _remarkMath>(_remarkMath)
 
-import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
-import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
-import { remarkWikiLinks } from './plugins/remarkWikiLinks';
+// Import the shared buildProcessor for the markdown pipeline
+import { buildProcessor } from '../shared/markdown'
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export type EncodingLabel = 'utf-8' | 'utf-16' | 'system';
+export type EncodingLabel = 'utf-8' | 'utf-16' | 'system'
 
 export interface ParseOptions {
   /** Whether to attempt automatic encoding detection. Default: true */
-  detectEncoding?: boolean;
+  detectEncoding?: boolean
 }
 
 export interface ParserResult {
   /** mdast Root node (may be partial if a parse error occurred) */
-  ast: Root;
+  ast: Root
   /** Present when the file could not be fully parsed */
-  error?: { line: number; column: number; message: string };
+  error?: { line: number; column: number; message: string }
 }
 
 /** Stored alongside the AST in the AST store (used by state.ts) */
 export interface ASTStoreEntry {
-  ast: Root;
-  lastParsed: number;
-  encoding: EncodingLabel;
+  ast: Root
+  lastParsed: number
+  encoding: EncodingLabel
 }
 
 // ---------------------------------------------------------------------------
@@ -63,22 +62,22 @@ export interface ASTStoreEntry {
 
 /** Symbol used to attach parser metadata to the Root node without polluting
  *  the serialised output. */
-const META_KEY = Symbol('parserMeta');
+const META_KEY = Symbol('parserMeta')
 
 interface ParserMeta {
-  encoding: EncodingLabel;
+  encoding: EncodingLabel
 }
 
 /** Attach encoding info to the AST root (survives in-process use; not serialised). */
 function attachMeta(ast: Root, meta: ParserMeta): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (ast as any)[META_KEY] = meta;
+  ;(ast as any)[META_KEY] = meta
 }
 
 /** Retrieve encoding info previously attached to the AST root. */
 export function getASTMeta(ast: Root): ParserMeta | undefined {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (ast as any)[META_KEY] as ParserMeta | undefined;
+  return (ast as any)[META_KEY] as ParserMeta | undefined
 }
 
 // ---------------------------------------------------------------------------
@@ -100,52 +99,31 @@ function detectAndDecode(buffer: Buffer): { content: string; encoding: EncodingL
     // UTF-8 BOM – strip it and decode as UTF-8
     return {
       content: buffer.slice(3).toString('utf8'),
-      encoding: 'utf-8',
-    };
+      encoding: 'utf-8'
+    }
   }
 
-  if (
-    (buffer[0] === 0xff && buffer[1] === 0xfe) ||
-    (buffer[0] === 0xfe && buffer[1] === 0xff)
-  ) {
+  if ((buffer[0] === 0xff && buffer[1] === 0xfe) || (buffer[0] === 0xfe && buffer[1] === 0xff)) {
     // UTF-16 BOM
-    const bom = buffer[0] === 0xff ? 'utf16le' : 'utf16le'; // Node only supports LE natively
+    const bom = buffer[0] === 0xff ? 'utf16le' : 'utf16le' // Node only supports LE natively
     return {
       content: buffer.toString(bom),
-      encoding: 'utf-16',
-    };
+      encoding: 'utf-16'
+    }
   }
 
   // --- Attempt strict UTF-8 ---
   try {
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    const content = decoder.decode(buffer);
-    return { content, encoding: 'utf-8' };
+    const decoder = new TextDecoder('utf-8', { fatal: true })
+    const content = decoder.decode(buffer)
+    return { content, encoding: 'utf-8' }
   } catch {
     // --- Fall back to system locale (latin1 / binary) ---
     return {
       content: buffer.toString('latin1'),
-      encoding: 'system',
-    };
+      encoding: 'system'
+    }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Remark pipeline factory
-// ---------------------------------------------------------------------------
-
-/**
- * Builds a processor with the canonical plugin pipeline in the required order:
- *   remarkFrontmatter → remarkGfm → remarkToggleBlocks → remarkTaskBlocks → remarkWikiLinks
- */
-function buildProcessor() {
-  return unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter) // 1. YAML / TOML front matter
-    .use(remarkGfm) //          2. GFM tables, strikethrough, task lists syntax
-    .use(remarkToggleBlocks) // 3. [toggle] headings → ToggleBlock nodes
-    .use(remarkTaskBlocks) //   4. - [ ] / - [x] → TaskList / TaskItem nodes
-    .use(remarkWikiLinks); //   5. [[Page Name]] → WikiLink nodes
 }
 
 // ---------------------------------------------------------------------------
@@ -159,67 +137,67 @@ function buildProcessor() {
  */
 export async function parseFile(
   filePath: string,
-  options: ParseOptions = {},
+  options: ParseOptions = {}
 ): Promise<ParserResult> {
-  const detectEncoding = options.detectEncoding !== false; // default true
+  const detectEncoding = options.detectEncoding !== false // default true
 
   // 1. Read raw bytes
-  const buffer = await readFile(filePath);
+  const buffer = await readFile(filePath)
 
   // 2. Encoding detection (Requirement 2.3)
   const { content, encoding } = detectEncoding
     ? detectAndDecode(buffer)
-    : { content: buffer.toString('utf8'), encoding: 'utf-8' as EncodingLabel };
+    : { content: buffer.toString('utf8'), encoding: 'utf-8' as EncodingLabel }
 
   // 3. Build pipeline and attempt parse (Requirement 2.1, 2.2)
-  const processor = buildProcessor();
+  const processor = buildProcessor()
 
-  let ast: Root;
-  let parseError: ParserResult['error'];
+  let ast: Root
+  let parseError: ParserResult['error']
 
   try {
     // unified's parse step is synchronous; run is async (transforms)
-    const rawAst = processor.parse(content) as Root;
-    ast = (await processor.run(rawAst)) as Root;
+    const rawAst = processor.parse(content) as Root
+    ast = (await processor.run(rawAst)) as Root
   } catch (err) {
     // 4. Error recovery – return partial AST + error node (Requirement 2.8)
-    const message = err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error ? err.message : String(err)
 
     // Try to extract line/column from the error (unified wraps VFile messages)
-    let line = 1;
-    let column = 1;
+    let line = 1
+    let column = 1
 
     if (err instanceof Error) {
       // unified errors sometimes embed position in the message
-      const posMatch = /(\d+):(\d+)/.exec(err.message);
+      const posMatch = /(\d+):(\d+)/.exec(err.message)
       if (posMatch) {
-        line = parseInt(posMatch[1], 10);
-        column = parseInt(posMatch[2], 10);
+        line = parseInt(posMatch[1], 10)
+        column = parseInt(posMatch[2], 10)
       }
 
       // Check VFile-style error with .position property
-      const vfileErr = err as Error & { position?: { start?: { line?: number; column?: number } } };
+      const vfileErr = err as Error & { position?: { start?: { line?: number; column?: number } } }
       if (vfileErr.position?.start) {
-        line = vfileErr.position.start.line ?? line;
-        column = vfileErr.position.start.column ?? column;
+        line = vfileErr.position.start.line ?? line
+        column = vfileErr.position.start.column ?? column
       }
     }
 
-    parseError = { line, column, message };
+    parseError = { line, column, message }
 
     // Build a best-effort partial AST from whatever was parsed
     try {
-      ast = processor.parse(content) as Root;
+      ast = processor.parse(content) as Root
     } catch {
       // Absolute fallback: empty root
-      ast = { type: 'root', children: [] };
+      ast = { type: 'root', children: [] }
     }
   }
 
   // 5. Store encoding in AST metadata (Requirement 2.3, 2.4)
-  attachMeta(ast, { encoding });
+  attachMeta(ast, { encoding })
 
-  return { ast, error: parseError };
+  return { ast, error: parseError }
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +209,7 @@ export async function parseFile(
  * standard mdast nodes that remark-stringify understands.
  *
  * Custom nodes produced by our plugins:
+ *   • callout      → blockquote with > [!type] marker (and +/- toggle) restored
  *   • toggleBlock  → heading (with "[toggle] " prefix restored) + children
  *   • taskList     → list of listItems with `checked` property
  *   • wikiLink     → text node containing the original [[target]] syntax
@@ -239,6 +218,35 @@ export async function parseFile(
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function denormalizeNode(node: any): any {
+  // ── callout → blockquote with restored marker ─────────────────────────
+  if (node.type === 'callout') {
+    const toggleSuffix = node.toggle ?? ''
+    const markerText = `[!${node.calloutType}${toggleSuffix}]${node.title ? ' ' + node.title : ''}`
+
+    // Denormalize body children (recurses into nested structures).
+    const bodyChildren = denormalizeChildren(node.children ?? [])
+
+    // First paragraph contains the marker as a text node, followed by
+    // any inline content that was part of the original first line.
+    // If the first body child is a paragraph we inline its children here
+    // so they appear on the same `> [!type] Title` line.
+    const firstParaChildren: unknown[] = [{ type: 'text', value: markerText }]
+
+    if (bodyChildren.length > 0 && bodyChildren[0]?.type === 'paragraph') {
+      firstParaChildren.push(...(bodyChildren[0].children ?? []))
+    }
+
+    const blockquoteChildren: unknown[] = [
+      { type: 'paragraph', children: firstParaChildren },
+      ...bodyChildren.slice(1)
+    ]
+
+    return {
+      type: 'blockquote',
+      children: blockquoteChildren
+    }
+  }
+
   // ── toggleBlock → heading + sibling children ──────────────────────────
   // We can't expand one node into multiple at this level, so we wrap in a
   // "virtual root" that will be spliced in by the parent.  The caller
@@ -250,15 +258,13 @@ function denormalizeNode(node: any): any {
       children: [
         {
           type: 'text',
-          value: `[toggle] ${
-            node.heading?.children?.[0]?.value ?? ''
-          }`.trimEnd(),
+          value: `[toggle] ${node.heading?.children?.[0]?.value ?? ''}`.trimEnd()
         },
-        ...(node.heading?.children?.slice(1) ?? []),
-      ],
-    });
-    const kids = denormalizeChildren(node.children ?? []);
-    return { __expanded: true, nodes: [heading, ...kids] };
+        ...(node.heading?.children?.slice(1) ?? [])
+      ]
+    })
+    const kids = denormalizeChildren(node.children ?? [])
+    return { __expanded: true, nodes: [heading, ...kids] }
   }
 
   // ── taskList → GFM list ───────────────────────────────────────────────
@@ -270,46 +276,64 @@ function denormalizeNode(node: any): any {
       children: [
         {
           type: 'paragraph',
-          children: denormalizeChildren(item.children ?? []),
-        },
-      ],
-    }));
+          children: denormalizeChildren(item.children ?? [])
+        }
+      ]
+    }))
     return {
       type: 'list',
       ordered: false,
       spread: false,
-      children: items,
-    };
+      children: items
+    }
+  }
+
+  // ── embed → text ─────────────────────────────────────────────────────
+  if (node.type === 'embed') {
+    return { type: 'text', value: `![[${(node as { target: string }).target}]]` }
   }
 
   // ── wikiLink → text ───────────────────────────────────────────────────
   if (node.type === 'wikiLink') {
-    return { type: 'text', value: `[[${node.target}]]` };
+    const linkNode = node as { target: string; blockRef?: string }
+    const suffix = linkNode.blockRef ? `#^${linkNode.blockRef}` : ''
+    return { type: 'text', value: `[[${linkNode.target}${suffix}]]` }
   }
 
   // ── Recurse into standard nodes ───────────────────────────────────────
-  const copy: any = { ...node };
+  const copy: any = { ...node }
 
   if (Array.isArray(node.children)) {
-    copy.children = denormalizeChildren(node.children);
+    copy.children = denormalizeChildren(node.children)
   }
+
+  // Append trailing `^blockId` to last text child for round-trip
+  const blockId: string | undefined = (node.data as Record<string, unknown> | undefined)
+    ?.blockId as string | undefined
+  if (blockId && Array.isArray(copy.children) && copy.children.length > 0) {
+    const lastChild = copy.children[copy.children.length - 1]
+    if (lastChild?.type === 'text' && typeof lastChild.value === 'string') {
+      lastChild.value += ` ^${blockId}`
+    }
+  }
+
   // taskItem.children are phrasing content – handled above inside taskList
   // toggleBlock.children handled above
-  return copy;
+  return copy
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function denormalizeChildren(children: any[]): any[] {
-  const result: any[] = [];
+  const result: any[] = []
   for (const child of children) {
-    const converted = denormalizeNode(child);
+    const converted = denormalizeNode(child)
     if (converted?.__expanded) {
-      result.push(...converted.nodes);
+      result.push(...converted.nodes)
     } else {
-      result.push(converted);
+      result.push(converted)
     }
   }
-  return result;
+  return result
 }
 
 /**
@@ -319,8 +343,8 @@ function denormalizeChildren(children: any[]): any[] {
 function toStandardAST(ast: Root): Root {
   return {
     type: 'root',
-    children: denormalizeChildren(ast.children),
-  } as Root;
+    children: denormalizeChildren(ast.children)
+  } as Root
 }
 
 // ---------------------------------------------------------------------------
@@ -343,19 +367,20 @@ export async function serializeAST(ast: Root): Promise<string> {
       strong: '*',
       fence: '`',
       fences: true,
-      listItemIndent: 'one',
+      listItemIndent: 'one'
     })
     .use(remarkFrontmatter)
-    .use(remarkGfm);
+    .use(remarkGfm)
+    .use(remarkMath) // stringify math/inlineMath nodes → $...$ / $$...$$
 
   // Convert custom plugin nodes back to standard mdast before stringifying
-  const standardAst = toStandardAST(ast);
+  const standardAst = toStandardAST(ast)
 
   // unified stringify is synchronous but we expose async for forward-compat
   const vfile: VFile = await processor.run(standardAst).then((transformedAst) => {
-    return processor.stringify(transformedAst as Root) as unknown as VFile;
-  });
+    return processor.stringify(transformedAst as Root) as unknown as VFile
+  })
 
   // processor.stringify returns a string (VFile-compatible)
-  return String(vfile);
+  return String(vfile)
 }

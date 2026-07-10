@@ -100,11 +100,7 @@ function ensureStyles(): void {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ToggleBlock({
-  node,
-  filePath,
-  renderNodes
-}: ToggleBlockProps): React.JSX.Element {
+export function ToggleBlock({ node, filePath, renderNodes }: ToggleBlockProps): React.JSX.Element {
   // Inject CSS once on first render
   React.useLayoutEffect(() => {
     ensureStyles()
@@ -171,9 +167,7 @@ export function ToggleBlock({
         aria-hidden={!isOpen}
       >
         <div className="toggle-content-inner pl-4">
-          {node.children.length > 0 && renderNodes
-            ? renderNodes(node.children, filePath)
-            : null}
+          {node.children.length > 0 && renderNodes ? renderNodes(node.children, filePath) : null}
         </div>
       </div>
     </div>

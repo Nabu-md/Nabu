@@ -6,4 +6,4 @@
 
 Normal ~~struck~~ and **bold** and ~~**combined**~~ text.
 
-Some *italic* and ~~strikethrough~~ in same paragraph.
+Some _italic_ and ~~strikethrough~~ in same paragraph.

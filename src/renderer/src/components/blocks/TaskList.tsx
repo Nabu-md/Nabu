@@ -98,17 +98,11 @@ export function TaskList({
   renderChildren
 }: TaskListProps): React.JSX.Element {
   return (
-    <ul
-      className="task-list list-none pl-0 my-2 space-y-0.5"
-      role="list"
-      aria-label="Task list"
-    >
+    <ul className="task-list list-none pl-0 my-2 space-y-0.5" role="list" aria-label="Task list">
       {node.items.map((item) => {
         // Determine effective checked state: optimistic override takes precedence
         const checked =
-          item.lineIndex in optimisticToggles
-            ? optimisticToggles[item.lineIndex]
-            : item.checked
+          item.lineIndex in optimisticToggles ? optimisticToggles[item.lineIndex] : item.checked
 
         return (
           <TaskItem

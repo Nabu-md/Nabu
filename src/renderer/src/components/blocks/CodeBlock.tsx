@@ -30,7 +30,7 @@ export function CodeBlock({ node }: CodeBlockProps): React.JSX.Element {
             margin: 0,
             borderRadius: node.lang ? '0 4px 4px 4px' : '4px',
             fontSize: '0.875rem',
-            lineHeight: '1.625',
+            lineHeight: '1.625'
           }}
           codeTagProps={{ style: { fontFamily: 'inherit' } }}
           PreTag="div"

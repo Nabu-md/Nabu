@@ -5,6 +5,7 @@ This directory will contain the BGE-micro ONNX model files for embedding generat
 The model files will be downloaded from `Xenova/bge-micro-v2` and bundled with the application for offline operation.
 
 Required files:
+
 - `bge-micro-v2/onnx/model_quantized.onnx`
 - `bge-micro-v2/tokenizer.json`
 - `bge-micro-v2/tokenizer_config.json`

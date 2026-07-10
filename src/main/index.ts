@@ -8,14 +8,22 @@
  * Requirements: 1.1, 1.6, 1.7, 1.8, 14.1, 14.2, 14.3, 14.4, 14.5
  */
 
-import { app, BrowserWindow, Menu, dialog, shell, ipcMain, MenuItemConstructorOptions } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  dialog,
+  shell,
+  ipcMain,
+  MenuItemConstructorOptions
+} from 'electron'
 import { join } from 'path'
 import fs from 'fs/promises'
 
 import { StateManager } from './state'
 import { VectorManager } from './vector'
 import { VaultWatcher } from './watcher'
-import { registerIPCHandlers, sendToRenderer } from './ipc'
+import { registerIPCHandlers, sendToRenderer, buildWatcherConfig } from './ipc'
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './settings'
 import type { AppSettings } from './settings'
@@ -46,8 +54,8 @@ export function createWindow(bounds?: AppSettings['windowBounds']): BrowserWindo
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false,
-    },
+      nodeIntegration: false
+    }
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -114,7 +122,7 @@ export function registerMenu(mainWindow: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+,',
           click: (): void => {
             mainWindow.webContents.send('open:settings')
-          },
+          }
         },
         { type: 'separator' },
         { role: 'services' },
@@ -123,7 +131,7 @@ export function registerMenu(mainWindow: BrowserWindow): void {
         { role: 'hideOthers' },
         { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' },
+        { role: 'quit' }
       ]
     : [
         {
@@ -131,8 +139,8 @@ export function registerMenu(mainWindow: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+,',
           click: (): void => {
             mainWindow.webContents.send('open:settings')
-          },
-        },
+          }
+        }
       ]
 
   const template: MenuItemConstructorOptions[] = [
@@ -156,44 +164,47 @@ export function registerMenu(mainWindow: BrowserWindow): void {
                   .showOpenDialog(mainWindow, {
                     properties: ['openDirectory'],
                     title: 'Open Vault',
-                    buttonLabel: 'Open',
+                    buttonLabel: 'Open'
                   })
                   .then(async (result) => {
                     if (result.canceled || result.filePaths.length === 0) return
                     mainWindow.webContents.send(IPCChannel.VAULT_OPEN, {
-                      path: result.filePaths[0],
+                      path: result.filePaths[0]
                     })
                   })
                   .catch((err) => console.error('[Menu] Open Vault dialog error:', err))
               })
-          },
+          }
         },
         {
           label: 'Create Vault…',
           click: (): void => {
             mainWindow.webContents.send('setup:create')
-          },
+          }
         },
         {
           label: 'Switch Vault',
           click: (): void => {
             mainWindow.webContents.send('setup:open')
-          },
+          }
         },
         { type: 'separator' },
         {
-          // v2 stub: tab bar at top of window for switching between open vaults
-          // each vault managed in its own renderer context with separate AppState instance per tab
+          // v2: open vault in a new window (Requirement 22.7)
           label: 'Open in New Window',
-          click: (): void => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'Multi-vault (v2)',
-              message: 'Multi-vault support is planned for v2',
-              detail: 'Each vault will open in its own tab at the top of the window.',
-              buttons: ['OK'],
-            }).catch(() => {})
-          },
+          click: async (): Promise<void> => {
+            const result = await dialog
+              .showOpenDialog(mainWindow, {
+                properties: ['openDirectory'],
+                title: 'Open Vault in New Window',
+                buttonLabel: 'Open'
+              })
+              .catch(() => ({ canceled: true, filePaths: [] }))
+            if (result.canceled || result.filePaths.length === 0) return
+            mainWindow.webContents.send(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, {
+              path: result.filePaths[0]
+            })
+          }
         },
         { type: 'separator' },
         {
@@ -202,9 +213,9 @@ export function registerMenu(mainWindow: BrowserWindow): void {
           click: (): void => {
             // Req 14.2 — close the main window
             mainWindow.close()
-          },
-        },
-      ],
+          }
+        }
+      ]
     },
 
     // ---- View menu ----
@@ -223,7 +234,7 @@ export function registerMenu(mainWindow: BrowserWindow): void {
                 win.webContents.send('focus:search')
               }
             }
-          },
+          }
         },
         { type: 'separator' },
         { role: 'reload' },
@@ -234,8 +245,8 @@ export function registerMenu(mainWindow: BrowserWindow): void {
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
+        { role: 'togglefullscreen' }
+      ]
     },
 
     // ---- Window menu ----
@@ -249,11 +260,11 @@ export function registerMenu(mainWindow: BrowserWindow): void {
               { type: 'separator' as const },
               { role: 'front' as const },
               { type: 'separator' as const },
-              { role: 'window' as const },
+              { role: 'window' as const }
             ]
-          : [{ role: 'close' as const }]),
-      ],
-    },
+          : [{ role: 'close' as const }])
+      ]
+    }
   ]
 
   const menu = Menu.buildFromTemplate(template)
@@ -277,8 +288,9 @@ export function registerMenu(mainWindow: BrowserWindow): void {
  */
 async function restoreVault(
   stateManager: StateManager,
+  vectorManager: VectorManager,
   watcher: VaultWatcher,
-  mainWindow: BrowserWindow,
+  mainWindow: BrowserWindow
 ): Promise<void> {
   const settings = await loadSettings()
 
@@ -299,7 +311,7 @@ async function restoreVault(
         title: 'Vault Not Found',
         message: 'Could not reopen last vault',
         detail: `"${settings.lastVaultPath}" no longer exists or is not readable.\n\nPlease select a different vault.`,
-        buttons: ['OK'],
+        buttons: ['OK']
       })
       .catch(() => {})
 
@@ -314,32 +326,10 @@ async function restoreVault(
   try {
     const vaultMeta = await stateManager.openVault(settings.lastVaultPath)
 
-    // Start the file watcher for the restored vault
-    watcher.start({
-      vaultPath: settings.lastVaultPath,
-      ignored: /^\.|\.nabu/,
-      awaitWriteFinish: { stabilityThreshold: 50 },
-      onFileChanged: (filePath, isExternal) => {
-        stateManager.invalidateAST(filePath)
-        stateManager
-          .getAST(filePath)
-          .then((ast) => {
-            sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal })
-          })
-          .catch((err) => {
-            console.error(`[Watcher] Failed to re-parse "${filePath}":`, err)
-          })
-      },
-      onFileAdded: (_filePath) => {
-        sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: settings.lastVaultPath!, files: vaultMeta.files })
-      },
-      onFileDeleted: (filePath) => {
-        sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
-      },
-      onError: (error) => {
-        console.error('[Watcher] Error:', error)
-      },
-    })
+    // Start the file watcher for the restored vault (uses shared config with vector embedding)
+    watcher.start(
+      buildWatcherConfig(stateManager, vectorManager, settings.lastVaultPath, vaultMeta)
+    )
   } catch (err) {
     console.error('[restoreVault] Failed to open vault:', err)
 
@@ -349,7 +339,7 @@ async function restoreVault(
         title: 'Vault Error',
         message: 'Failed to open vault',
         detail: `${String(err)}\n\nPlease select a different vault.`,
-        buttons: ['OK'],
+        buttons: ['OK']
       })
       .catch(() => {})
 
@@ -388,7 +378,7 @@ app.whenReady().then(async () => {
     if (major < 13) {
       dialog.showErrorBox(
         'macOS Version Not Supported',
-        'Nabu requires macOS 13.0 (Ventura) or later.',
+        'Nabu requires macOS 13.0 (Ventura) or later.'
       )
       app.quit()
       return
@@ -405,7 +395,10 @@ app.whenReady().then(async () => {
     vectorManager = new VectorManager()
     watcher = new VaultWatcher()
   } catch (err) {
-    dialog.showErrorBox('Initialization Error', `Failed to initialize core modules:\n\n${String(err)}`)
+    dialog.showErrorBox(
+      'Initialization Error',
+      `Failed to initialize core modules:\n\n${String(err)}`
+    )
     app.quit()
     return
   }
@@ -450,41 +443,25 @@ app.whenReady().then(async () => {
     // Support NABU_TEST_VAULT env var for E2E test injection (bypasses persisted settings)
     const testVaultPath = process.env['NABU_TEST_VAULT']
     if (testVaultPath) {
-      stateManager.openVault(testVaultPath)
+      stateManager
+        .openVault(testVaultPath)
         .then((vaultMeta) => {
-          watcher.start({
-            vaultPath: testVaultPath,
-            ignored: /^\.|\.nabu/,
-            awaitWriteFinish: { stabilityThreshold: 50 },
-            onFileChanged: (filePath, isExternal) => {
-              stateManager.invalidateAST(filePath)
-              stateManager.getAST(filePath)
-                .then((ast) => {
-                  sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal })
-                })
-                .catch((err) => console.error('[Watcher] re-parse failed:', err))
-            },
-            onFileAdded: (_filePath) => {
-              sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: testVaultPath, files: vaultMeta.files })
-            },
-            onFileDeleted: (filePath) => {
-              sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
-            },
-            onError: (error) => {
-              console.error('[Watcher] Error:', error)
-            },
-          })
+          // Start the file watcher (uses shared config with vector embedding)
+          watcher.start(buildWatcherConfig(stateManager, vectorManager, testVaultPath, vaultMeta))
           // Push vault state to the renderer. This may arrive before or after
           // React mounts. The renderer also polls via vault:get-current so
           // whichever path succeeds first wins.
-          sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: testVaultPath, files: vaultMeta.files })
+          sendToRenderer(IPCChannel.NOTES_LOADED, {
+            vaultPath: testVaultPath,
+            files: vaultMeta.files
+          })
         })
         .catch((err) => {
           console.error('[App] NABU_TEST_VAULT open failed:', err)
         })
       return
     }
-    restoreVault(stateManager, watcher, mainWindow).catch((err) => {
+    restoreVault(stateManager, vectorManager, watcher, mainWindow).catch((err) => {
       console.error('[App] restoreVault error:', err)
     })
   })

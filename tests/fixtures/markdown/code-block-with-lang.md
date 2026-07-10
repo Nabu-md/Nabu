@@ -2,13 +2,13 @@
 
 ```typescript
 interface User {
-  id: number;
-  name: string;
-  email: string;
+  id: number
+  name: string
+  email: string
 }
 
 function greet(user: User): string {
-  return `Hello, ${user.name}!`;
+  return `Hello, ${user.name}!`
 }
 ```
 

@@ -7,6 +7,7 @@ import { useAppContext } from '../App'
 // Modal overlay for app settings. Covers:
 //  - Vault management (switch, re-index)
 //  - Theme selection (dark / light / system)
+//  - Optional Features (feature toggles)
 // ---------------------------------------------------------------------------
 
 export function SettingsPanel(): React.JSX.Element | null {
@@ -15,6 +16,24 @@ export function SettingsPanel(): React.JSX.Element | null {
 
   const [isReindexing, setIsReindexing] = useState(false)
   const [reindexError, setReindexError] = useState<string | null>(null)
+  const [featureToggles, setFeatureToggles] = useState<
+    Array<{ id: string; label: string; description: string; enabled: boolean }>
+  >([])
+  const [toggleErrors, setToggleErrors] = useState<Record<string, string>>({})
+
+  // Fetch feature toggles on mount and when panel opens
+  useEffect(() => {
+    if (settingsPanelOpen) {
+      window.electron.settings
+        .getFeatureToggles()
+        .then(({ toggles }) => {
+          setFeatureToggles(
+            toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>
+          )
+        })
+        .catch(console.error)
+    }
+  }, [settingsPanelOpen])
 
   // Trap focus and handle Escape key while panel is open
   const panelRef = useRef<HTMLDivElement>(null)
@@ -78,6 +97,27 @@ export function SettingsPanel(): React.JSX.Element | null {
   }
 
   // ---------------------------------------------------------------------------
+  // Feature Toggle Handlers
+  // ---------------------------------------------------------------------------
+
+  const handleFeatureToggle = async (id: string, enabled: boolean): Promise<void> => {
+    try {
+      const result = await window.electron.settings.setFeatureToggle(id, enabled)
+      if (result.success) {
+        // Update local state
+        setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
+      } else {
+        setToggleErrors((prev) => ({ ...prev, [id]: result.error ?? 'Unknown error' }))
+      }
+    } catch (err) {
+      setToggleErrors((prev) => ({
+        ...prev,
+        [id]: err instanceof Error ? err.message : String(err)
+      }))
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -101,10 +141,7 @@ export function SettingsPanel(): React.JSX.Element | null {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-nabu-border">
-          <h2
-            id="settings-title"
-            className="text-base font-semibold text-nabu-text"
-          >
+          <h2 id="settings-title" className="text-base font-semibold text-nabu-text">
             Settings
           </h2>
           <button
@@ -175,11 +212,7 @@ export function SettingsPanel(): React.JSX.Element | null {
 
               {/* Re-index error */}
               {reindexError && (
-                <p
-                  role="alert"
-                  aria-live="assertive"
-                  className="text-xs text-red-400 mt-1"
-                >
+                <p role="alert" aria-live="assertive" className="text-xs text-red-400 mt-1">
                   {reindexError}
                 </p>
               )}
@@ -198,11 +231,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               Theme
             </h3>
 
-            <div
-              role="radiogroup"
-              aria-label="Theme selection"
-              className="flex gap-2"
-            >
+            <div role="radiogroup" aria-label="Theme selection" className="flex gap-2">
               {(['dark', 'light', 'system'] as const).map((t) => (
                 <button
                   key={t}
@@ -236,14 +265,69 @@ export function SettingsPanel(): React.JSX.Element | null {
             </h3>
 
             <p className="text-xs text-nabu-text-muted mb-3 leading-relaxed">
-              End-to-end encrypted sync is available as a paid add-on at
-              {' '}<a
+              End-to-end encrypted sync is available as a paid add-on at{' '}
+              <a
                 href="https://nabu.app"
                 className="text-nabu-accent hover:underline"
                 target="_blank"
                 rel="noreferrer noopener"
-              >nabu.app</a>.
+              >
+                nabu.app
+              </a>
+              .
             </p>
+          </section>
+
+          {/* ----------------------------------------------------------------
+              Optional Features section
+          ---------------------------------------------------------------- */}
+          <section aria-labelledby="settings-features-heading">
+            <h3
+              id="settings-features-heading"
+              className="text-xs font-medium uppercase tracking-wider
+                         text-nabu-text-muted mb-3"
+            >
+              Optional Features
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              {featureToggles.length === 0 ? (
+                <p className="text-xs text-nabu-text-muted">Loading features…</p>
+              ) : (
+                featureToggles.map((toggle) => (
+                  <div key={toggle.id} className="flex items-start gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={toggle.enabled}
+                        onChange={(e) => handleFeatureToggle(toggle.id, e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-9 h-5 rounded-full transition-colors ${
+                          toggle.enabled ? 'bg-nabu-accent' : 'bg-nabu-border'
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
+                            toggle.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                          } mt-0.5`}
+                        />
+                      </div>
+                    </label>
+                    <div>
+                      <p className="text-sm text-nabu-text">{toggle.label}</p>
+                      <p className="text-xs text-nabu-text-muted">{toggle.description}</p>
+                      {toggleErrors[toggle.id] && (
+                        <p className="text-xs text-red-400 mt-1" role="alert">
+                          {toggleErrors[toggle.id]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </section>
         </div>
       </div>
@@ -264,19 +348,8 @@ function Spinner(): React.JSX.Element {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   )
 }

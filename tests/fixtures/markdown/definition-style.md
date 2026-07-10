@@ -9,4 +9,4 @@
 
 **Term Three**
 : A longer definition that spans multiple lines of text to test how the
-  definition content is handled by the parser and serializer.
+definition content is handled by the parser and serializer.

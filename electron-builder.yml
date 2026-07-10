@@ -1,6 +1,6 @@
 appId: app.nabu.desktop
 productName: Nabu
-copyright: "Copyright © 2024 Nabu Labs"
+copyright: 'Copyright © 2024 Nabu Labs'
 directories:
   buildResources: build
 files:
@@ -20,25 +20,25 @@ mac:
       arch:
         - universal
   identity: null
-  minimumSystemVersion: "13.0"
+  minimumSystemVersion: '13.0'
   category: public.app-category.developer-tools
 dmg:
   combineWithBuild: true
-  title: "Install Nabu"
+  title: 'Install Nabu'
   artifactName: ${productName}-${version}.${ext}
   contents:
     - x: 130
       y: 150
-      type: "file"
+      type: 'file'
     - x: 410
       y: 150
-      type: "link"
-      path: "/Applications"
+      type: 'link'
+      path: '/Applications'
 extraResources:
-  - from: "resources/models/"
-    to: "models/"
+  - from: 'resources/models/'
+    to: 'models/'
     filter:
-      - "bge-micro-v2/**"
-  - from: "resources/default-templates/"
-    to: "default-templates/"
+      - 'bge-micro-v2/**'
+  - from: 'resources/default-templates/'
+    to: 'default-templates/'
 npmRebuild: false

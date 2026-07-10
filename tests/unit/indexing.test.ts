@@ -18,10 +18,7 @@ import type { FileEntry } from '@shared/types'
  * If `tags` is empty, the yaml node omits the tags field entirely.
  */
 function makeRootWithTags(tags: string[]): Root {
-  const yamlValue =
-    tags.length > 0
-      ? `tags: [${tags.join(', ')}]`
-      : 'title: no tags here'
+  const yamlValue = tags.length > 0 ? `tags: [${tags.join(', ')}]` : 'title: no tags here'
 
   return {
     type: 'root',
@@ -29,9 +26,9 @@ function makeRootWithTags(tags: string[]): Root {
       {
         type: 'yaml',
         value: yamlValue,
-        position: undefined,
-      } as any,
-    ],
+        position: undefined
+      } as any
+    ]
   } as Root
 }
 
@@ -39,18 +36,18 @@ function makeRootWithTags(tags: string[]): Root {
 const tagArb = fc
   .string({ minLength: 1, maxLength: 15 })
   // Restrict to characters that are safe inside `tags: [t1, t2]` inline YAML
-  .filter(s => /^[a-zA-Z0-9_-]+$/.test(s))
+  .filter((s) => /^[a-zA-Z0-9_-]+$/.test(s))
 
 /** Generates a unique file path. */
 const filePathArb = (suffix: string) =>
-  fc.string({ minLength: 1, maxLength: 20 }).map(s => `/vault/${s}-${suffix}.md`)
+  fc.string({ minLength: 1, maxLength: 20 }).map((s) => `/vault/${s}-${suffix}.md`)
 
 /** Generates a FileEntry. */
 const fileEntryArb = (suffix: string) =>
   fc.record({
     path: filePathArb(suffix),
     name: fc.string({ minLength: 1, maxLength: 20 }),
-    mtime: fc.nat(),
+    mtime: fc.nat()
   })
 
 // ---- Full-text AST helpers ----
@@ -69,12 +66,12 @@ function makeRootWithText(text: string): Root {
           {
             type: 'text',
             value: text,
-            position: undefined,
-          } as any,
+            position: undefined
+          } as any
         ],
-        position: undefined,
-      } as any,
-    ],
+        position: undefined
+      } as any
+    ]
   } as Root
 }
 
@@ -90,7 +87,7 @@ function makeRootWithYamlAndText(yamlContent: string, bodyText: string): Root {
       {
         type: 'yaml',
         value: yamlContent,
-        position: undefined,
+        position: undefined
       } as any,
       {
         type: 'paragraph',
@@ -98,12 +95,12 @@ function makeRootWithYamlAndText(yamlContent: string, bodyText: string): Root {
           {
             type: 'text',
             value: bodyText,
-            position: undefined,
-          } as any,
+            position: undefined
+          } as any
         ],
-        position: undefined,
-      } as any,
-    ],
+        position: undefined
+      } as any
+    ]
   } as Root
 }
 
@@ -115,13 +112,11 @@ function tokenise(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[\s\p{P}]+/u)
-    .filter(w => w.length > 0)
+    .filter((w) => w.length > 0)
 }
 
 /** Generates a word-like string safe as a standalone token. */
-const wordArb = fc
-  .string({ minLength: 2, maxLength: 12 })
-  .filter(s => /^[a-zA-Z0-9]+$/.test(s))
+const wordArb = fc.string({ minLength: 2, maxLength: 12 }).filter((s) => /^[a-zA-Z0-9]+$/.test(s))
 
 describe('buildFullTextIndex — property-based tests', () => {
   /**
@@ -137,13 +132,13 @@ describe('buildFullTextIndex — property-based tests', () => {
         fc.array(
           fc.tuple(
             fc.record({
-              path: fc.string({ minLength: 1, maxLength: 20 }).map(s => `/vault/${s}-lc.md`),
+              path: fc.string({ minLength: 1, maxLength: 20 }).map((s) => `/vault/${s}-lc.md`),
               name: fc.string({ minLength: 1, maxLength: 15 }),
-              mtime: fc.nat(),
+              mtime: fc.nat()
             }),
-            fc.array(wordArb, { minLength: 0, maxLength: 6 }),
+            fc.array(wordArb, { minLength: 0, maxLength: 6 })
           ),
-          { minLength: 0, maxLength: 8 },
+          { minLength: 0, maxLength: 8 }
         ),
         (fileWordPairs) => {
           // Deduplicate by path
@@ -156,8 +151,8 @@ describe('buildFullTextIndex — property-based tests', () => {
             }
           }
 
-          const files = unique.map(u => u.file)
-          const wordsByPath = new Map(unique.map(u => [u.file.path, u.words]))
+          const files = unique.map((u) => u.file)
+          const wordsByPath = new Map(unique.map((u) => [u.file.path, u.words]))
 
           const getAST = (path: string): Root | undefined => {
             const words = wordsByPath.get(path)
@@ -176,8 +171,8 @@ describe('buildFullTextIndex — property-based tests', () => {
             }
           }
           return true
-        },
-      ),
+        }
+      )
     )
   })
 
@@ -194,13 +189,13 @@ describe('buildFullTextIndex — property-based tests', () => {
         fc.array(
           fc.tuple(
             fc.record({
-              path: fc.string({ minLength: 1, maxLength: 20 }).map(s => `/vault/${s}-cp.md`),
+              path: fc.string({ minLength: 1, maxLength: 20 }).map((s) => `/vault/${s}-cp.md`),
               name: fc.string({ minLength: 1, maxLength: 15 }),
-              mtime: fc.nat(),
+              mtime: fc.nat()
             }),
-            fc.array(wordArb, { minLength: 0, maxLength: 6 }),
+            fc.array(wordArb, { minLength: 0, maxLength: 6 })
           ),
-          { minLength: 0, maxLength: 8 },
+          { minLength: 0, maxLength: 8 }
         ),
         (fileWordPairs) => {
           const seen = new Set<string>()
@@ -212,8 +207,8 @@ describe('buildFullTextIndex — property-based tests', () => {
             }
           }
 
-          const files = unique.map(u => u.file)
-          const wordsByPath = new Map(unique.map(u => [u.file.path, u.words]))
+          const files = unique.map((u) => u.file)
+          const wordsByPath = new Map(unique.map((u) => [u.file.path, u.words]))
 
           const getAST = (path: string): Root | undefined => {
             const words = wordsByPath.get(path)
@@ -232,8 +227,8 @@ describe('buildFullTextIndex — property-based tests', () => {
             }
           }
           return true
-        },
-      ),
+        }
+      )
     )
   })
 
@@ -247,9 +242,9 @@ describe('buildFullTextIndex — property-based tests', () => {
     fc.assert(
       fc.property(
         fc.record({
-          path: fc.string({ minLength: 1, maxLength: 20 }).map(s => `/vault/${s}-fe.md`),
+          path: fc.string({ minLength: 1, maxLength: 20 }).map((s) => `/vault/${s}-fe.md`),
           name: fc.string({ minLength: 1, maxLength: 15 }),
-          mtime: fc.nat(),
+          mtime: fc.nat()
         }),
         // A word that appears only in yaml and NOT in the body
         wordArb,
@@ -258,15 +253,12 @@ describe('buildFullTextIndex — property-based tests', () => {
         (file, yamlOnlyWord, bodyWords) => {
           // Ensure the yaml-only word is absent from the body
           const filteredBody = bodyWords.filter(
-            w => w.toLowerCase() !== yamlOnlyWord.toLowerCase(),
+            (w) => w.toLowerCase() !== yamlOnlyWord.toLowerCase()
           )
 
           const getAST = (path: string): Root | undefined => {
             if (path !== file.path) return undefined
-            return makeRootWithYamlAndText(
-              `secret: ${yamlOnlyWord}`,
-              filteredBody.join(' '),
-            )
+            return makeRootWithYamlAndText(`secret: ${yamlOnlyWord}`, filteredBody.join(' '))
           }
 
           const index = buildFullTextIndex([file], getAST)
@@ -276,8 +268,8 @@ describe('buildFullTextIndex — property-based tests', () => {
           if (paths?.has(file.path)) return false
 
           return true
-        },
-      ),
+        }
+      )
     )
   })
 
@@ -292,12 +284,12 @@ describe('buildFullTextIndex — property-based tests', () => {
     fc.assert(
       fc.property(
         fc.record({
-          path: fc.string({ minLength: 1, maxLength: 20 }).map(s => `/vault/${s}-ci.md`),
+          path: fc.string({ minLength: 1, maxLength: 20 }).map((s) => `/vault/${s}-ci.md`),
           name: fc.string({ minLength: 1, maxLength: 15 }),
-          mtime: fc.nat(),
+          mtime: fc.nat()
         }),
         // Generate a word with at least one uppercase letter
-        wordArb.filter(w => w !== w.toLowerCase()),
+        wordArb.filter((w) => w !== w.toLowerCase()),
         (file, mixedCaseWord) => {
           const getAST = (path: string): Root | undefined => {
             if (path !== file.path) return undefined
@@ -309,8 +301,8 @@ describe('buildFullTextIndex — property-based tests', () => {
           const lowerWord = mixedCaseWord.toLowerCase()
           const paths = index.get(lowerWord)
           return paths?.has(file.path) === true
-        },
-      ),
+        }
+      )
     )
   })
 })
@@ -325,13 +317,10 @@ describe('buildTagIndex — property-based tests', () => {
     fc.assert(
       fc.property(
         // Generate up to 8 files each with up to 4 tags
-        fc.array(
-          fc.tuple(
-            fileEntryArb('p1'),
-            fc.array(tagArb, { minLength: 0, maxLength: 4 }),
-          ),
-          { minLength: 0, maxLength: 8 },
-        ),
+        fc.array(fc.tuple(fileEntryArb('p1'), fc.array(tagArb, { minLength: 0, maxLength: 4 })), {
+          minLength: 0,
+          maxLength: 8
+        }),
         (fileTagPairs) => {
           // Deduplicate by path
           const seen = new Set<string>()
@@ -343,8 +332,8 @@ describe('buildTagIndex — property-based tests', () => {
             }
           }
 
-          const files = unique.map(u => u.file)
-          const tagsByPath = new Map(unique.map(u => [u.file.path, u.tags]))
+          const files = unique.map((u) => u.file)
+          const tagsByPath = new Map(unique.map((u) => [u.file.path, u.tags]))
 
           const getAST = (path: string): Root | undefined => {
             const tags = tagsByPath.get(path)
@@ -362,8 +351,8 @@ describe('buildTagIndex — property-based tests', () => {
             }
           }
           return true
-        },
-      ),
+        }
+      )
     )
   })
 
@@ -374,13 +363,10 @@ describe('buildTagIndex — property-based tests', () => {
   it('Property 2 — Completeness: every (file, tag) pair appears in the index', () => {
     fc.assert(
       fc.property(
-        fc.array(
-          fc.tuple(
-            fileEntryArb('p2'),
-            fc.array(tagArb, { minLength: 0, maxLength: 4 }),
-          ),
-          { minLength: 0, maxLength: 8 },
-        ),
+        fc.array(fc.tuple(fileEntryArb('p2'), fc.array(tagArb, { minLength: 0, maxLength: 4 })), {
+          minLength: 0,
+          maxLength: 8
+        }),
         (fileTagPairs) => {
           const seen = new Set<string>()
           const unique: Array<{ file: FileEntry; tags: string[] }> = []
@@ -391,8 +377,8 @@ describe('buildTagIndex — property-based tests', () => {
             }
           }
 
-          const files = unique.map(u => u.file)
-          const tagsByPath = new Map(unique.map(u => [u.file.path, u.tags]))
+          const files = unique.map((u) => u.file)
+          const tagsByPath = new Map(unique.map((u) => [u.file.path, u.tags]))
 
           const getAST = (path: string): Root | undefined => {
             const tags = tagsByPath.get(path)
@@ -410,8 +396,8 @@ describe('buildTagIndex — property-based tests', () => {
             }
           }
           return true
-        },
-      ),
+        }
+      )
     )
   })
 
@@ -423,13 +409,10 @@ describe('buildTagIndex — property-based tests', () => {
   it('Property 3 — OR filter: union of index entries matches OR-predicate result', () => {
     fc.assert(
       fc.property(
-        fc.array(
-          fc.tuple(
-            fileEntryArb('p3'),
-            fc.array(tagArb, { minLength: 0, maxLength: 4 }),
-          ),
-          { minLength: 0, maxLength: 10 },
-        ),
+        fc.array(fc.tuple(fileEntryArb('p3'), fc.array(tagArb, { minLength: 0, maxLength: 4 })), {
+          minLength: 0,
+          maxLength: 10
+        }),
         // Two tags to use as the OR filter
         tagArb,
         tagArb,
@@ -443,8 +426,8 @@ describe('buildTagIndex — property-based tests', () => {
             }
           }
 
-          const files = unique.map(u => u.file)
-          const tagsByPath = new Map(unique.map(u => [u.file.path, u.tags]))
+          const files = unique.map((u) => u.file)
+          const tagsByPath = new Map(unique.map((u) => [u.file.path, u.tags]))
 
           const getAST = (path: string): Root | undefined => {
             const tags = tagsByPath.get(path)
@@ -467,8 +450,8 @@ describe('buildTagIndex — property-based tests', () => {
           const selectedTags = [t1, t2]
           const orPredicateResult = new Set(
             unique
-              .filter(({ tags }) => selectedTags.some(st => tags.includes(st)))
-              .map(({ file }) => file.path),
+              .filter(({ tags }) => selectedTags.some((st) => tags.includes(st)))
+              .map(({ file }) => file.path)
           )
 
           // Both sets must be identical
@@ -477,8 +460,8 @@ describe('buildTagIndex — property-based tests', () => {
             if (!orPredicateResult.has(p)) return false
           }
           return true
-        },
-      ),
+        }
+      )
     )
   })
 })
