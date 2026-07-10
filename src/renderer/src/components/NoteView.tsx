@@ -1258,7 +1258,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
       )}
 
       {/* Rendered note content (view mode) */}
-      {currentFile && !state.editMode && !isLoading && error === null && currentAST !== null && (
+      {currentFile && !state.editMode && !state.livePreviewMode && !isLoading && error === null && currentAST !== null && (
         <>
           {/* View/edit toolbar */}
           <div className="flex items-center justify-end gap-2 px-8 pt-4">
