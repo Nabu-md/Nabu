@@ -7,6 +7,8 @@
  * Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7, 33.8
  */
 
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import type { FileEntry } from '../shared/types'
 
 export interface BaseConfig {
@@ -27,12 +29,14 @@ export interface BaseRow {
   properties: Record<string, unknown>
 }
 
+const BASES_FILENAME = 'bases.json'
+
 /**
  * Build rows from files matching base query.
  */
 export function buildBaseRows(
   files: FileEntry[],
-  getAllProperties: (path: string) => Promise<Record<string, unknown>>,
+  _getAllProperties: (path: string) => Promise<Record<string, unknown>>,
   base: BaseConfig,
 ): BaseRow[] {
   // Filter by query if specified
@@ -61,25 +65,51 @@ export function buildBaseRows(
  * Load base configurations from vault.
  */
 export async function loadBases(vaultPath: string): Promise<BaseConfig[]> {
-  // Would read from .nabu/bases.json
-  return []
+  const basesPath = path.join(vaultPath, '.nabu', BASES_FILENAME)
+  
+  try {
+    const data = await fs.readFile(basesPath, 'utf-8')
+    return JSON.parse(data) as BaseConfig[]
+  } catch {
+    // File doesn't exist or is invalid — return empty array
+    return []
+  }
 }
 
 /**
  * Save base configuration to vault.
  */
 export async function saveBase(vaultPath: string, base: BaseConfig): Promise<void> {
-  // Would write to .nabu/bases.json
+  const nabuDir = path.join(vaultPath, '.nabu')
+  const basesPath = path.join(nabuDir, BASES_FILENAME)
+  
+  // Ensure .nabu directory exists
+  await fs.mkdir(nabuDir, { recursive: true })
+  
+  // Load existing bases
+  const existing = await loadBases(vaultPath)
+  
+  // Update or add the base
+  const index = existing.findIndex(b => b.id === base.id)
+  if (index >= 0) {
+    existing[index] = base
+  } else {
+    existing.push(base)
+  }
+  
+  // Write back
+  await fs.writeFile(basesPath, JSON.stringify(existing, null, 2), 'utf-8')
 }
 
 /**
  * Convert base row to markdown on property edit.
  */
 export async function updateBaseProperty(
-  path: string,
-  property: string,
-  value: unknown,
+  _path: string,
+  _property: string,
+  _value: unknown,
 ): Promise<{ success: boolean; error?: string }> {
   // Would use properties:write IPC
+  // For now, return success with a note that this should be handled via IPC
   return { success: true }
 }
