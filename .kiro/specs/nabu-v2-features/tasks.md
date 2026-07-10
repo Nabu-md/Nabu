@@ -517,3 +517,281 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 - **Feature toggles (Phase 7) should ship early enough** that Phase 6 features (core plugins) can be registered behind them. If Phase 7 is blocked, Phase 6 features can ship with hardcoded defaults (on) and retrofitting toggles later.
 - **Naming**: this spec uses the `nabu-` prefix (matching the repo rename in commit `893e2f7`); the legacy `onyx-*` spec folders remain authoritative for v1. Cite v1 requirement numbers only when a v2 task extends a v1 behaviour; otherwise cite v2 `N.M`.
 - **Format import (R36)** uses JS-native libraries (pdfjs-dist, mammoth.js, xlsx) bundled with the app, not a Python sidecar. This covers 90%+ of real-world import needs without deployment complexity.
+
+---
+
+### Phase 12 — Graph View Modes (Tag View)
+
+- [x] 83. Add graph mode toggle to GraphView
+   - GraphView currently renders one mode (file nodes + wikilink edges). Add a toggle: `Files | Tags | Blocks`.
+   - Files mode = current behaviour (unchanged).
+   - Tags mode: read `tagIndex` from `AppState.extendedIndex`; render each namespaced tag as a d3-force node; edge = co-occurrence (two tags appear on the same note); node radius = note count for that tag.
+   - Blocks mode: show "Use block references (`^id`) to populate this view" placeholder when `blockRefs` index is empty; real rendering deferred to when block refs have adoption (no new work beyond the placeholder).
+   - Toggle state stored in `AppState.graphMode: 'files' | 'tags' | 'blocks'` (default `'files'`).
+   - _Requirements: 38.1, 38.2, 38.3, 38.4_
+
+  - Clicking a tag node in tags mode: filter file tree to notes carrying that tag (reuse existing `selectedTags` filter path).
+  - Shift-click a second tag node: OR-union with the existing filter (matching v1 multi-tag behaviour).
+  - Right-click on tag node: "Show only notes with this tag" context menu action.
+  - _Requirements: 38.5_
+
+- [ ] 85. Render custom tag node UI in d3
+  - Tag nodes render as rounded pills (not circles) with the tag name inside, sized by note count with a min/max radius.
+  - Color assignment: deterministic hashing of the tag name to a palette color (same palette as the folder-based tab groups from Phase 10, task 75).
+  - Namespaced tags (`parent/child`): render as nested pills or a single pill with a shortened name + tooltip showing the full path.
+  - Hover tooltip: shows tag name, note count, a preview of the 3 most recently modified notes.
+  - _Requirements: 38.4, 38.6_
+
+- [ ] 86. Phase 12 verification
+  - Unit tests: tag-edge computation from `tagIndex` (co-occurrence correctness, isomorphic to file-edge graph); mode toggle reducer test.
+  - E2E: open vault with tagged notes → switch to Tags mode in graph → verify tag nodes and edges render → click a tag node → verify file tree filters → switch back to Files mode → verify original graph restores.
+  - Full Vitest suite green.
+  - **Validates: Requirements 38.1, 38.3, 38.4, 38.5, 38.6**
+
+---
+
+### Phase 13 — macOS Vision OCR Pipeline
+
+- [ ] 87. Build Swift OCR helper (`scripts/ocr.swift`)
+  - Spawned as a child process from Electron (same pattern as `scripts/fn-monitor.swift`).
+  - Receives an image file path as argument.
+  - Uses `VNRecognizeTextRequest` from the macOS Vision framework.
+  - Returns JSON to stdout: `{ text: string, blocks: [{ rect: {x,y,w,h}, text: string, confidence: number }], error?: string }`.
+  - Confidence threshold: minimum 0.3 (discard low-confidence noise).
+  - Language: English + auto-detect (macOS Vision handles multi-language automatically).
+  - Graceful exit: code 0 on success, code 1 on permission error, code 2 on corrupt image.
+  - _Requirements: 39.1, 39.4, 39.6_
+
+- [ ] 88. Wire OCR into vault image asset pipeline
+  - When an image file is added to the vault (via drag-drop, paste, `![]()` embed, or file-tree import), enqueue an OCR job through an `AsyncQueue`.
+  - If OCR succeeds and extracted text is non-empty, save a companion `.ocr.md` note alongside the image: filename derived from image name (e.g. `chart.png` → `chart.ocr.md`), containing:
+    - Frontmatter: `source: [[chart.png]]`, `ocr_date: <ISO timestamp>`, `ocr_model: macOS_Vision`
+    - Body: extracted text as a block quote, with block `^id` for cross-referencing.
+  - If OCR text is empty (blank image, no text found), skip silently without creating a companion note.
+  - The OCR queue is per-vault: process files sequentially to avoid saturating CPU.
+  - _Requirements: 39.2, 39.3, 39.5_
+
+- [ ] 89. Display OCR text in image note view
+  - When viewing a note that contains an image embed (`![[chart.png]]`), if a companion `chart.ocr.md` exists, render a collapsible "Extracted text" panel below the image.
+  - The panel shows the OCR text with a small "OCR (macOS Vision)" badge.
+  - If no companion note exists, no panel shown (silent).
+  - _Requirements: 39.7_
+
+- [ ] 90. Graceful fallback for OCR
+  - Non-macOS platforms: the `scripts/ocr.swift` spawn check fails gracefully; `process.platform !== 'darwin'` guard skips OCR entirely with a single `console.debug` log.
+  - macOS permission denied (code 1): log a warning, do NOT show an error dialog. OCR simply doesn't run.
+  - Corrupt/unreadable image (code 2): log the image path and skip; no companion note created.
+  - Performance: images larger than 4096px on any side are downscaled before OCR (macOS Vision accepts them but at higher RAM cost).
+  - _Requirements: 39.6, 39.8_
+
+- [ ] 91. Phase 13 verification
+  - Unit tests: OCR queue integration test (mock Swift helper, verify companion note created/non-created correctly); image size downscale logic.
+  - Integration: run a PNG with known text through `scripts/ocr.swift`, verify stdout JSON schema.
+  - E2E: drag an image with text into vault → verify `.ocr.md` companion is created → view the image note → verify "Extracted text" panel appears → verify `source` wikilink in companion note resolves.
+  - Full Vitest suite green.
+  - **Validates: Requirements 39.1, 39.2, 39.3, 39.4, 39.5, 39.6, 39.7, 39.8**
+
+---
+
+### Phase 14 — PDF Annotation → Note Cards
+
+- [ ] 92. Build PDF viewer pane using pdfjs-dist
+  - `pdfjs-dist` is already bundled for PDF text import (Phase 7, task 52). Reuse the same library for rendering.
+  - When a `.pdf` file is opened in Nabu (via file tree click, wikilink, or Quick Switcher), render it in a dedicated viewer pane instead of the markdown note view.
+  - PDF viewer features: page navigation (prev/next, jump to page), zoom (fit-width, fit-page, custom), scrolling through multi-page documents.
+  - Lazy-load pages: render only the current visible page + 1 buffer page each direction.
+  - Renderer IPC: `pdf:open` channel takes a vault path, returns `{ totalPages, metadata: { title, author } }`; `pdf:render-page` takes `{ path, pageNumber, scale }`, returns a base64 PNG data URI of the rendered page.
+  - The viewer pane reuses the existing `openTabs` system: a PDF open creates a new tab with a special `Tab.type = 'pdf'` field.
+  - _Requirements: 40.1, 40.2, 40.3_
+
+- [ ] 93. Implement annotation overlay
+  - When a PDF tab is active, text selection on the rendered page canvas triggers an annotation toolbar: "Highlight" and "Create note" buttons.
+  - Highlight: applies a semi-transparent yellow overlay on selected text region (stored per-pdf in `.nabu/pdf-annotations/<pdf-name>.json` as `{ page, rect: {x,y,w,h}, text, color, timestamp }`).
+  - Comment: After highlighting, the user can type a comment in an inline text area that appears below the highlighted region.
+  - Annotations persist across PDF tab open/close cycles (loaded from the JSON file on open, saved on each add/change).
+  - _Requirements: 40.4, 40.5_
+
+- [ ] 94. Create annotation → note card pipeline
+  - When the user clicks "Create note from this annotation," spawn `note:create` with:
+    - Title: auto-generated from first 60 characters of the highlighted text (or user-provided).
+    - Body: blockquote of highlighted text, followed by the user's comment (if any).
+    - Frontmatter: `source: [[pdf-filename.pdf]]`, `page: N`, `annotation_date: <ISO>`.
+    - A wikilink at the end of the body: `Source: [[pdf-filename.pdf#page=N]]`.
+  - The annotation-to-note action is available from:
+    - The annotation toolbar (when text is selected).
+    - A context menu on existing highlights in the annotations sidebar.
+  - Multiple annotations can be created from a single PDF; each creates an independent note.
+  - If the user deletes an annotation (via the annotations sidebar), the corresponding note is NOT auto-deleted (they may have edited it). A "Delete annotation + linked note" option is available as a secondary action.
+  - _Requirements: 40.6, 40.7_
+
+- [ ] 95. Wire annotated PDFs + cards into graph view
+  - PDF files appear as nodes in the graph (both Files and Tags modes).
+  - Each annotation note links back to the PDF via the `source` wikilink, so the graph shows an edge from the note → PDF.
+  - Clicking a note that is an annotation card opens the PDF tab and navigates to the annotated page.
+  - Annotations sidebar in the PDF view: lists all annotations for the current PDF, each showing: highlighted text snippet, comment preview, linked note title. Click an annotation → navigate to that page + scroll to highlight.
+  - _Requirements: 40.7, 40.8_
+
+- [ ] 96. Phase 14 verification
+  - Unit tests: annotation persistence (JSON write/read round-trip); note card template generation; annotation → note title truncation.
+  - E2E: open a PDF in Nabu → verify page renders → select text → highlight → add comment → create note card → verify note appears in file tree with correct frontmatter → switch to graph view → verify PDF node + annotation note nodes + edge between them → open the annotation note → click source link → verify PDF opens to correct page.
+  - Full Vitest suite green.
+  - **Validates: Requirements 40.1, 40.2, 40.3, 40.4, 40.5, 40.6, 40.7, 40.8**
+
+---
+
+### Phase 15 — Audio Dictation (Whisper.cpp)
+
+- [ ] 97. Bundle whisper.cpp with Base model
+  - Integrate [whisper.cpp](https://github.com/ggerganov/whisper.cpp) as a vendored dependency:
+    - Prebuild the `whisper` CLI binary for macOS arm64 + x86_64 (universal binary or per-arch).
+    - Include the `ggml-base.en.bin` model file (~140 MB) in the app's `resources/` directory for production builds.
+    - In development, download the model on first run (or provide a `scripts/download-whisper-model.sh` script).
+  - The whisper.cpp binary is spawned as a child process from Electron (same pattern as fn-monitor and OCR helpers).
+  - The binary receives audio on stdin (16-bit PCM, 16kHz mono) and outputs transcribed text lines to stdout as JSON: `{ text: string, segments: [{ start, end, text }], error?: string }`.
+  - Bundle size addition: ~140 MB (model) + ~2 MB (binary). Acceptable for a developer tool — one-time download.
+  - _Requirements: 41.1, 41.2, 41.6_
+
+- [ ] 98. Build microphone capture + audio streaming bridge
+  - Create a Swift helper (`scripts/mic-capture.swift`) that:
+    - Requests microphone permission (macOS `AVAudioSession`).
+    - Captures audio from the default input device at 16kHz, 16-bit mono PCM.
+    - Streams raw PCM audio data to stdout as a continuous byte stream.
+    - On stop signal (SIGTERM or stdin close), flushes remaining audio and exits.
+  - The Electron main process spawns both `mic-capture.swift` and `whisper` processes, piping the mic output directly into whisper's stdin (no intermediate file needed — streaming transcription).
+  - When transcription is complete (whisper process exits), the main process parses the JSON output from whisper's stdout and sends the transcribed text to the renderer.
+  - _Requirements: 41.3, 42.1_
+
+- [ ] 99. Integrate dictation mode into clipboard widget
+  - The clipboard widget (already wired with fn-monitor in `widget-manager.ts`) gains a third mode alongside its existing clipboard-history mode: **dictation mode**.
+  - When fn is held and the widget appears, the user can switch to dictation mode via a microphone icon button in the widget's toolbar.
+  - Dictation mode UI:
+    - The widget body shows a wiggling waveform animation (CSS keyframes on variable-height bars, like Wispr Flow).
+    - A pulsing "Listening..." label below the waveform.
+    - A "Done" button (for manual stop, though fn-release is the primary trigger).
+    - The waveform animation uses the audio input level as a visual signal (if we have real-time level data from mic-capture) or animates a pleasing default when level data is unavailable.
+  - The widget remains always-on-top, transparent, frameless — same window properties as the clipboard mode.
+  - If the user already has the clipboard widget open and presses the mic button, it switches to dictation mode without closing/reopening.
+  - _Requirements: 41.4, 42.2_
+
+- [ ] 100. Implement fn-release → transcription insertion flow
+  - The fn-monitor already emits `fn-down` and `fn-up` events (see `fn-monitor.ts`).
+  - Extend `widget-manager.ts`:
+    - On `fn-down` while in dictation mode: start audio capture + whisper transcription (streaming).
+    - On `fn-up`: stop audio capture, wait for whisper to finish transcription, receive the transcribed text from the main process.
+    - Insert the transcribed text at the current cursor position (reuse the existing `injectKey` pattern from `widget-manager.ts:149-153` or send text via IPC to the active note's editor).
+    - Auto-hide the widget (same as the existing fn-up hide flow for clipboard mode).
+    - If transcription returns empty (silence detected, nothing spoken), do NOT insert anything — just hide the widget silently.
+  - The dictation flow should feel instantaneous: fn-down → see widget waveform → speak → fn-up → text appears → widget gone. Target: < 1 second from fn-release to text insertion for short dictations (Base model latency ~700-900ms on M-series).
+  - _Requirements: 41.4, 41.5, 42.3_
+
+- [ ] 101. Add Large-V3 Turbo Q5 model download toggle in Settings
+  - Settings panel → "Audio Dictation" section with:
+    - **Dictation model**: dropdown showing "Base (Fast, ~250MB RAM)" and "Enhanced (Large-V3 Turbo Q5, ~1GB RAM)".
+    - **Status indicator**: "Installed" / "Downloading… X%" / "Not installed" for the Enhanced model.
+    - **Download button**: one-click background download of `ggml-large-v3-turbo-q5_0.bin` (~550 MB) from Hugging Face or a CDN mirror.
+  - Implementation:
+    - Download runs in the main process (Electron `net.fetch` or `https` module) with progress pushed to renderer via `settings:download-progress` IPC.
+    - On completion, the model file is saved to `app.getPath('userData')/whisper-models/`.
+    - whisper.cpp hot-swaps on next dictation: the next fn-down → capture cycle spawns whisper with the selected model binary path.
+    - Progress bar in the Settings UI: percentage + estimated time remaining (computed from download speed).
+    - Pause/resume/cancel for the download (using HTTP Range headers for resume support).
+  - Error states: download failure → retry button; corrupted download → hash verification against expected SHA256 before use, re-download if mismatch; disk full → warning with space required.
+  - _Requirements: 42.4, 42.5, 42.6, 43.3_
+
+- [ ] 102. Handle errors: permissions, crash recovery, silence detection, model failures
+  - **Microphone permission**: On first dictation attempt, macOS shows the system mic permission dialog. If denied, the widget shows a one-line notice: "Microphone access required. Enable in System Settings > Privacy & Security > Microphone." Store the permission state so we don't re-prompt every fn-hold.
+  - **Whisper process crash**: If whisper.cpp exits unexpectedly, restart it (max 2 retries per session). Log error with context. If persistent failure, disable dictation mode and show a Settings badge "Dictation unavailable — whisper process error."
+  - **Silence detection**: If the user holds fn but doesn't speak for 15 seconds, auto-finish the dictation (no text inserted, widget hides). This prevents accidental fn-holds from keeping the widget open indefinitely.
+  - **Model file missing**: If `ggml-base.en.bin` is not found on startup, attempt to download it automatically (with a progress indicator). If download fails, show an error in Settings with a manual download link.
+  - **Large model download failure**: Show the error in Settings with retry button. The Base model remains as fallback — the user can still dictate while the Large model download is broken.
+  - _Requirements: 43.1, 43.2, 43.3, 43.4_
+
+- [ ] 103. Phase 15 verification
+  - Unit tests: whisper output parser (JSON → transcribed text); silence-detection timer logic; model file path resolution; download progress calculation.
+  - Integration test: spawn `whisper` binary with a known WAV fixture → verify stdout JSON is parsed correctly → verify transcribed text matches expected output.
+  - E2E: open a note → press fn → widget appears in dictation mode → speak → release fn → verify transcribed text appears at cursor → repeat with Large model selected → verify model switch works.
+  - Full Vitest suite green.
+  - **Validates: Requirements 41.1, 41.2, 41.3, 41.4, 41.5, 41.6, 42.1, 42.2, 42.3, 42.4, 42.5, 42.6, 43.1, 43.2, 43.3, 43.4**
+
+---
+
+### Phase 16 — Hardening & Release
+
+- [ ] 104. Cross-cutting JSDoc + requirement traceability sweep
+  - Ensure every new source file in phases 12-15 cites `Requirements: 38.N, 39.N, 40.N, 41.N, 42.N, 43.N` in its JSDoc header.
+  - Verify no v1 or existing v2 requirement citations were dropped during edits to existing files.
+  - _Requirements: 44.1_
+
+- [ ] 105. Security review
+  - Confirm the OCR Swift helper (`scripts/ocr.swift`) does not expose file system access beyond the provided image path.
+  - Confirm the PDF viewer does not enable `nodeIntegration`, `allow-same-origin`, or sandbox escape in the viewer pane.
+  - Confirm the whisper.cpp child process has no network access beyond the model download path (which is user-initiated).
+  - Confirm audio files (mic capture) are stored in memory only, never written to disk as raw PCM.
+  - Confirm `contextIsolation` remains enabled and no new preload scripts bypass it.
+  - _Requirements: 44.2_
+
+- [ ] 106. Error-handling sweep
+  - Verify no phase 12-15 feature silently swallows errors:
+    - OCR: corrupt images logged, companion note not created, no crash.
+    - PDF annotation: annotation JSON corruption handled gracefully (backup from last save).
+    - Dictation: whisper crash + restart, model download failure + retry, mic permission denial + clear notice.
+  - All user-facing failures surface a message; developer-facing failures log with context.
+  - _Requirements: 44.3_
+
+- [ ] 107. Documentation update
+  - Update `README.md`: add Tag View in graph, Vision OCR, PDF annotation, and Audio Dictation to the feature list.
+  - Update `ARCHITECTURE.md`: document new subsystems — OCR pipeline (`scripts/ocr.swift`, AsyncQueue integration), PDF viewer + annotation store, audio dictation (whisper.cpp, mic-capture, widget integration).
+  - Update `CHANGELOG.md`: entries for each Phase 12-15 feature, one per release.
+  - _Requirements: 44.4_
+
+- [ ] 108. Full regression sweep
+  - Run the entire Vitest suite + all existing Playwright e2e specs.
+  - Confirm no v1 or existing v2 correctness properties are violated by the new features.
+  - Specifically test: existing clipboard widget still works for clipboard history after dictation mode was added (no regression on the `fn-down`/`fn-up` path).
+  - _Requirements: 44.5_
+  - **Validates: Requirements 44.1, 44.2, 44.3, 44.4, 44.5**
+
+---
+
+## Extended Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1", "2", "6"], "note": "Phase 1 foundations" },
+    { "id": 1, "tasks": ["3", "4", "5", "7"], "note": "Phase 1 IPC + integration" },
+    { "id": 2, "tasks": ["8"], "note": "Phase 1 verification gate" },
+    { "id": 3, "tasks": ["9", "12", "14", "16", "24"], "note": "Phase 2/3 pure modules" },
+    { "id": 4, "tasks": ["10", "11", "13", "15", "17", "19", "21", "23", "25"], "note": "Phase 2/3 UI + IPC" },
+    { "id": 5, "tasks": ["20", "22"], "note": "Phase 3 renderers" },
+    { "id": 6, "tasks": ["18", "26"], "note": "Phase 2/3 verification gates" },
+    { "id": 7, "tasks": ["27", "28", "31", "36", "37", "38", "39", "40"], "note": "Phase 4/5 features" },
+    { "id": 8, "tasks": ["29", "30", "32", "33", "34"], "note": "Phase 4 metadata follow-ons" },
+    { "id": 9, "tasks": ["35", "41"], "note": "Phase 4/5 verification gates" },
+    { "id": 10, "tasks": ["42", "43", "44", "45", "46", "47", "48", "49", "50"], "note": "Phase 6 core plugins" },
+    { "id": 11, "tasks": ["51"], "note": "Phase 6 verification gate" },
+    { "id": 12, "tasks": ["52", "53", "54"], "note": "Phase 7 foundations" },
+    { "id": 13, "tasks": ["55"], "note": "Phase 7 feature registration" },
+    { "id": 14, "tasks": ["56"], "note": "Phase 7 verification gate" },
+    { "id": 15, "tasks": ["57", "58", "65"], "note": "Phase 8/9 foundations" },
+    { "id": 16, "tasks": ["59", "60", "66"], "note": "Phase 8/9 wiring" },
+    { "id": 17, "tasks": ["61", "62", "63", "67"], "note": "Phase 8/9 lifecycle + editor" },
+    { "id": 18, "tasks": ["68", "69"], "note": "Phase 9 live-render" },
+    { "id": 19, "tasks": ["64", "70"], "note": "Phase 8/9 verification gates" },
+    { "id": 20, "tasks": ["71"], "note": "Phase 10 openTabs conversion" },
+    { "id": 21, "tasks": ["72", "73"], "note": "Phase 10 PaneLayout" },
+    { "id": 22, "tasks": ["74"], "note": "Phase 10 Workspaces" },
+    { "id": 23, "tasks": ["75"], "note": "Phase 10 Tab Groups" },
+    { "id": 24, "tasks": ["76"], "note": "Phase 10 verification gate" },
+    { "id": 25, "tasks": ["77", "78", "79", "80"], "note": "Phase 11 hardening" },
+    { "id": 26, "tasks": ["81", "82"], "note": "Phase 11 verify" },
+
+    { "id": 27, "tasks": ["83", "87", "92", "97"], "note": "Phase 12-15 foundations: graph toggle, OCR helper, PDF viewer, whisper.cpp bundle (all independent)" },
+    { "id": 28, "tasks": ["84", "85", "88", "93", "98", "99", "101"], "note": "Phase 12-15 core: tag rendering, OCR pipeline, annotation overlay, mic capture, widget dictation UI, model download toggle (OCR depends on 87; widget depends on 97+98; otherwise parallel)" },
+    { "id": 29, "tasks": ["89", "90", "94", "95", "100", "102"], "note": "Phase 12-15 finish: OCR display + fallback, annotation cards, graph wiring, fn-release flow, error handling" },
+    { "id": 30, "tasks": ["86", "91", "96", "103"], "note": "Phase 12-15 verification gates (parallel)" },
+    { "id": 31, "tasks": ["104", "105", "106"], "note": "Phase 16 hardening (parallel-safe)" },
+    { "id": 32, "tasks": ["107", "108"], "note": "Phase 16 docs + regression" }
+  ]
+}
+```
