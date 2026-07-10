@@ -26,8 +26,9 @@ export function substituteVariables(
   template: string,
   vars: { title: string; date: string; time: string },
 ): string {
+  // Use replacer functions to avoid interpreting $&, $1, etc. in the values
   return template
-    .replace(/\{\{title\}\}/g, vars.title)
-    .replace(/\{\{date\}\}/g, vars.date)
-    .replace(/\{\{time\}\}/g, vars.time);
+    .replace(/\{\{title\}\}/g, () => vars.title)
+    .replace(/\{\{date\}\}/g, () => vars.date)
+    .replace(/\{\{time\}\}/g, () => vars.time);
 }

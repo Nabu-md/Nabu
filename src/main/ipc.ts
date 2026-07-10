@@ -19,8 +19,6 @@ import {
   // Incoming schemas (Renderer → Main)
   VaultOpenSchema,
   VaultCloseSchema,
-  VaultSwitchSchema,
-  VaultGetRecentsSchema,
   FileGetSchema,
   TaskToggleSchema,
   ContextQuerySchema,
@@ -57,8 +55,6 @@ import {
   AssetReadSchema,
   SearchQuerySchema,
   SearchResponseSchema,
-  PropertiesReadSchema,
-  PropertiesReadResultSchema,
   PropertiesWriteSchema,
   PropertiesWriteResultSchema,
   NoteDailySchema,
@@ -66,11 +62,8 @@ import {
   NoteRandomSchema,
   NoteRandomResultSchema,
   FavoritesGetSchema,
-  FavoritesGetResultSchema,
   FavoritesToggleSchema,
-  FavoritesToggleResultSchema,
   FavoritesRemoveSchema,
-  FavoritesRemoveResultSchema,
 } from '../shared/schemas';
 
 import { search } from '../shared/search-query';
@@ -90,7 +83,6 @@ import type { VaultWatcher, WatcherConfig } from './watcher';
 
 let legacyStateManager: StateManager | null = null;
 let legacyVectorManager: VectorManager | null = null;
-let legacyWatcher: VaultWatcher | null = null;
 
 /**
  * Set the legacy singleton managers for backward compatibility.
@@ -99,11 +91,10 @@ let legacyWatcher: VaultWatcher | null = null;
 export function setLegacyManagers(
   stateManager: StateManager,
   vectorManager: VectorManager,
-  watcher: VaultWatcher,
+  _watcher: VaultWatcher,
 ): void {
   legacyStateManager = stateManager;
   legacyVectorManager = vectorManager;
-  legacyWatcher = watcher;
 }
 
 // ---------------------------------------------------------------------------

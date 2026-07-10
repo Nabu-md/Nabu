@@ -397,6 +397,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 10 — Split Panes & Workspaces
 
+- [x] 71. Convert `currentFile` to `openTabs`/`activeTabId`
   - `Tab = { id, path, ast, raw, mode, scrollTop, cursor }`; keep `currentFile` as a compat alias for `openTabs[activeTabId]?.path`.
   - Generalise per-note flows (save, task toggle, external edit, properties) to take a `tabId`.
   - _Requirements: 24.1, 24.8_
