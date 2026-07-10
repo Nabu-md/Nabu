@@ -1221,6 +1221,42 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         </div>
       )}
 
+      {/* Live Preview mode UI (Req 23.4, 23.5) */}
+      {currentFile && state.livePreviewMode && (
+        <div className="live-preview-mode flex flex-col h-full px-8 py-6">
+          {/* toolbar */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              aria-label="Switch to view mode"
+              onClick={() => exitLivePreviewMode().catch(console.error)}
+              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+            >
+              View Mode
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Save note"
+                onClick={() => window.electron.note.save(currentFile, livePreviewContent).catch(console.error)}
+                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+          {/* CodeMirror editor in Live Preview mode */}
+          <MarkdownEditor
+            value={livePreviewContent}
+            onChange={(val) => {
+              setLivePreviewContent(val)
+              // Debounced re-parse for Live Preview (Req 23.4)
+              if (livePreviewTimer.current !== null) clearTimeout(livePreviewTimer.current)
+            }}
+          />
+        </div>
+      )}
+
       {/* Rendered note content (view mode) */}
       {currentFile && !state.editMode && !isLoading && error === null && currentAST !== null && (
         <>
