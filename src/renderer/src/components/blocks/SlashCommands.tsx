@@ -9,36 +9,91 @@
 
 import React, { useState, useEffect } from 'react'
 
+// ---------------------------------------------------------------------------
+// Date/Time helpers for /date and /time commands
+// ---------------------------------------------------------------------------
+
+function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
 interface SlashCommand {
   id: string
   label: string
   keywords: string
   insertText: string
+  icon?: string
+  category?: string
+  preview?: () => React.ReactNode
 }
 
 const SLASH_COMMANDS: SlashCommand[] = [
-  { id: 'heading', label: 'Heading 1', keywords: 'h1 heading', insertText: '# ' },
-  { id: 'heading2', label: 'Heading 2', keywords: 'h2 heading', insertText: '## ' },
-  { id: 'heading3', label: 'Heading 3', keywords: 'h3 heading', insertText: '### ' },
-  { id: 'bullet-list', label: 'Bullet List', keywords: 'list ul', insertText: '- ' },
-  { id: 'numbered-list', label: 'Numbered List', keywords: 'list ol', insertText: '1. ' },
-  { id: 'task-list', label: 'Task List', keywords: 'task todo checkbox', insertText: '- [ ] ' },
-  { id: 'callout', label: 'Callout', keywords: 'callout note', insertText: '> [!note] ' },
-  { id: 'code-block', label: 'Code Block', keywords: 'code fence', insertText: '```\n\n```' },
-  { id: 'math-block', label: 'Math Block', keywords: 'math katex', insertText: '$$\n\n$$' },
+  // Headings
+  { id: 'heading', label: 'Heading 1', keywords: 'h1 heading', insertText: '# ', icon: '📝', category: 'Headings' },
+  { id: 'heading2', label: 'Heading 2', keywords: 'h2 heading', insertText: '## ', icon: '📝', category: 'Headings' },
+  { id: 'heading3', label: 'Heading 3', keywords: 'h3 heading', insertText: '### ', icon: '📝', category: 'Headings' },
+  // Lists
+  { id: 'bullet-list', label: 'Bullet List', keywords: 'list ul', insertText: '- ', icon: '📋', category: 'Lists' },
+  { id: 'numbered-list', label: 'Numbered List', keywords: 'list ol', insertText: '1. ', icon: '📋', category: 'Lists' },
+  { id: 'task-list', label: 'Task List', keywords: 'task todo checkbox', insertText: '- [ ] ', icon: '☑️', category: 'Lists' },
+  // Blocks
+  { id: 'callout', label: 'Callout', keywords: 'callout note', insertText: '> [!note] ', icon: '📓', category: 'Blocks' },
+  { id: 'code-block', label: 'Code Block', keywords: 'code fence', insertText: '```\n\n```', icon: '💻', category: 'Blocks' },
+  { id: 'math-block', label: 'Math Block', keywords: 'math katex', insertText: '$$\n\n$$', icon: '∑', category: 'Blocks' },
   {
     id: 'table',
     label: 'Table',
     keywords: 'table grid',
-    insertText: '| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n'
+    insertText: '| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n',
+    icon: '📊',
+    category: 'Blocks'
   },
   {
-    id: 'horizontal-rule',
-    label: 'Horizontal Rule',
-    keywords: 'hr rule divider',
-    insertText: '---\n'
+    id: 'toggle',
+    label: 'Toggle',
+    keywords: 'toggle details fold',
+    insertText: '> [!toggle] \n\n> ',
+    icon: '🔽',
+    category: 'Blocks'
   },
-  { id: 'embed', label: 'Embed', keywords: 'embed transclude', insertText: '![[note]]' }
+  // Inline
+  {
+    id: 'date',
+    label: 'Date',
+    keywords: 'date today',
+    insertText: formatDate(new Date()),
+    icon: '📅',
+    category: 'Inline'
+  },
+  {
+    id: 'time',
+    label: 'Time',
+    keywords: 'time now',
+    insertText: formatTime(new Date()),
+    icon: '⏰',
+    category: 'Inline'
+  },
+  {
+    id: 'reminder',
+    label: 'Reminder',
+    keywords: 'reminder date time',
+    insertText: `📅 ${formatDate(new Date())} ⏰ `,
+    icon: '⏳',
+    category: 'Inline'
+  },
+  { id: 'embed', label: 'Embed', keywords: 'embed transclude', insertText: '![[note]]', icon: '🔗', category: 'Inline' },
+  { id: 'divider', label: 'Divider', keywords: 'hr rule divider', insertText: '---\n', icon: '➖', category: 'Inline' },
+  // Templates
+  { id: 'template', label: 'Template', keywords: 'template insert', insertText: '{{title}}', icon: '📄', category: 'Templates' }
 ]
 
 interface SlashCommandsProps {

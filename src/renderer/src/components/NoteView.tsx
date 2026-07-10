@@ -1001,7 +1001,10 @@ export function NoteView(): React.JSX.Element {
     dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
   }, [currentFile, dispatch])
 
-  // ---- Keyboard shortcuts: Cmd+E and Cmd+S ----
+  // ---- Find/Replace state ----
+  const [showFindReplace, setShowFindReplace] = useState(false)
+
+  // ---- Keyboard shortcuts: Cmd+E, Cmd+S, Cmd+H ----
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
@@ -1018,10 +1021,17 @@ export function NoteView(): React.JSX.Element {
           saveNote().catch(console.error)
         }
       }
+      // Cmd+H / Ctrl+H for find/replace (Phase 0b)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+        e.preventDefault()
+        if (state.editMode || state.livePreviewMode) {
+          setShowFindReplace((prev) => !prev)
+        }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.editMode, enterEditMode, exitEditMode, saveNote])
+  }, [state.editMode, state.livePreviewMode, enterEditMode, exitEditMode, saveNote])
 
   // ---- Cleanup auto-save timer on unmount ----
   useEffect(() => {
@@ -1224,6 +1234,8 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 if (editDirty) saveNote().catch(console.error)
               }, 1000)
             }}
+            showFindReplace={showFindReplace}
+            onToggleFindReplace={setShowFindReplace}
           />
         </div>
       )}
@@ -1262,6 +1274,8 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               // Debounced re-parse for Live Preview (Req 23.4)
               if (livePreviewTimer.current !== null) clearTimeout(livePreviewTimer.current)
             }}
+            showFindReplace={showFindReplace}
+            onToggleFindReplace={setShowFindReplace}
           />
         </div>
       )}

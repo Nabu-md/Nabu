@@ -4,7 +4,7 @@
  * CodeMirror 6 wrapper component for markdown editing.
  * Supports Live Preview mode alongside the standard edit mode.
  *
- * Requirements: 23.1, 23.2
+ * Requirements: 23.1, 23.2, 0b
  */
 
 import React, { useCallback, useMemo } from 'react'
@@ -12,6 +12,7 @@ import CodeMirror from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
 import { EditorView } from '@codemirror/view'
 import { Extension } from '@codemirror/state'
+import { FindReplaceBar } from './FindReplaceBar'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,10 @@ export interface MarkdownEditorProps {
   readOnly?: boolean
   /** Placeholder text when empty */
   placeholder?: string
+  /** Show find/replace bar */
+  showFindReplace?: boolean
+  /** Callback to toggle find/replace visibility */
+  onToggleFindReplace?: (visible: boolean) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +75,9 @@ const nabuDarkTheme = EditorView.theme({
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
-  readOnly = false
+  readOnly = false,
+  showFindReplace = false,
+  onToggleFindReplace
 }) => {
   // Create extensions once
   const extensions = useMemo<Extension[]>(() => {
@@ -89,17 +96,46 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     [onChange]
   )
 
+  // Handle find/replace operations
+  const handleReplace = useCallback((find: string, replace: string, replaceAll = false) => {
+    if (replaceAll) {
+      const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(escaped, 'gi')
+      onChange(value.replace(regex, replace))
+    } else {
+      // For single replace, we just replace the first occurrence
+      const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(escaped, 'i')
+      onChange(value.replace(regex, replace))
+    }
+  }, [value, onChange])
+
+  const handleCloseFindReplace = useCallback(() => {
+    onToggleFindReplace?.(false)
+  }, [onToggleFindReplace])
+
   return (
-    <CodeMirror
-      value={value}
-      height="100%"
-      extensions={extensions}
-      onChange={handleChange}
-      editable={!readOnly}
-      basicSetup={{
-        lineNumbers: false,
-        highlightActiveLine: true
-      }}
-    />
+    <div className="markdown-editor flex flex-col h-full">
+      {showFindReplace && (
+        <FindReplaceBar
+          value={value}
+          onReplace={handleReplace}
+          onClose={handleCloseFindReplace}
+        />
+      )}
+      <div className="flex-1">
+        <CodeMirror
+          value={value}
+          height="100%"
+          extensions={extensions}
+          onChange={handleChange}
+          editable={!readOnly}
+          basicSetup={{
+            lineNumbers: false,
+            highlightActiveLine: true
+          }}
+        />
+      </div>
+    </div>
   )
 }
