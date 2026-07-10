@@ -8,6 +8,8 @@
  */
 
 import type { Importer } from '../importer-base'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mammoth = require('mammoth')
 
 export const docxImporter: Importer = {
   format: 'docx',
@@ -16,9 +18,19 @@ export const docxImporter: Importer = {
     return Buffer.isBuffer(data) || (data instanceof Uint8Array)
   },
 
-  async parse(data: unknown, sourcePath: string): Promise<string> {
-    // Would use mammoth.js to convert DOCX to markdown
+  async parse(_data: unknown, sourcePath: string): Promise<string> {
     const filename = sourcePath.split('/').pop() ?? 'unknown.docx'
+    
+    const fs = await import('fs/promises')
+    const buffer = await fs.readFile(sourcePath)
+    
+    let result: { value: string; messages: unknown[] }
+    try {
+      result = await mammoth.convertToMarkdown({ buffer })
+    } catch (err) {
+      throw new Error(`Failed to convert DOCX: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    
     return `---
 source_format: docx
 original_file: ${filename}
@@ -26,7 +38,7 @@ original_file: ${filename}
 
 # ${filename.replace('.docx', '')}
 
-DOCX import placeholder - content would be extracted via mammoth.js.
-    `
+${result.value || 'No content found in DOCX.'}
+`
   },
 }
