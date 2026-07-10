@@ -35,20 +35,33 @@ export interface OpenVault {
   name: string
 }
 
+/** Tab represents an open note in the tab system (Req 24.1) */
+export interface Tab {
+  id: string // unique tab ID (UUID)
+  path: string // absolute file path
+  ast: Root | null
+  raw: string | null
+  mode: 'view' | 'edit' | 'live-preview'
+  scrollTop: number
+  cursor: number
+}
+
 export interface AppState {
   openVaults: OpenVault[] // all open vaults (multi-vault)
   activeVaultId: string | null // currently active vault
   vault: VaultMetadata | null // active vault for backward compatibility
-  currentFile: string | null
-  currentAST: Root | null
+  openTabs: Tab[] // all open tabs (split-pane system) - Req 24.1
+  activeTabId: string | null // currently active tab
+  currentFile: string | null // compat alias: openTabs[activeTabId]?.path
+  currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
   contextPaneOpen: boolean
   activityLog: ActivityEntry[]
   contextResults: SearchResult[]
   showSetup: boolean
-  editMode: boolean
-  livePreviewMode: boolean
-  currentRaw: string | null
+  editMode: boolean // compat alias: openTabs[activeTabId]?.mode === 'edit'
+  livePreviewMode: boolean // compat alias: openTabs[activeTabId]?.mode === 'live-preview'
+  currentRaw: string | null // compat alias: openTabs[activeTabId]?.raw
   graphEdges: Edge[]
   fullTextIndex: Map<string, Set<string>>
   tagIndex: Map<string, Set<string>>
@@ -81,6 +94,10 @@ export type AppAction =
   | { type: 'VAULT_SWITCHED'; payload: { vaultId: string; vault: VaultMetadata } }
   | { type: 'VAULT_CLOSED'; payload: { vaultId: string } }
   | { type: 'FILE_LOADED'; payload: { path: string; ast: Root } }
+  | { type: 'TAB_OPENED'; payload: { path: string; ast: Root; raw: string } }
+  | { type: 'TAB_CLOSED'; payload: { tabId: string } }
+  | { type: 'TAB_ACTIVATED'; payload: { tabId: string } }
+  | { type: 'TAB_UPDATED'; payload: { tabId: string; patch: Partial<Tab> } }
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
   | { type: 'TOGGLE_BLOCK'; payload: { filePath: string; headingId: string; isOpen: boolean } }
   | { type: 'CONTEXT_PANE_TOGGLE' }
@@ -122,6 +139,8 @@ const initialState: AppState = {
   openVaults: [],
   activeVaultId: null,
   vault: null,
+  openTabs: [],
+  activeTabId: null,
   currentFile: null,
   currentAST: null,
   toggleStates: new Map(),
@@ -149,6 +168,13 @@ const initialState: AppState = {
   quickSwitcherOpen: false,
   commandPaletteOpen: false,
   recentNotes: [],
+}
+
+// Generate a unique tab ID
+function generateTabId(): string {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 11)
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -199,6 +225,103 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
     }
 
+    // Task 71: Tab management actions (Req 24.1)
+    case 'TAB_OPENED': {
+      const { path, ast, raw } = action.payload
+      // Check if tab already exists for this path
+      const existingTab = state.openTabs.find(t => t.path === path)
+      if (existingTab) {
+        // Tab exists, just activate it
+        return {
+          ...state,
+          activeTabId: existingTab.id,
+          currentFile: path,
+          currentAST: ast,
+          currentRaw: raw,
+        }
+      }
+      // Create new tab
+      const newTab: Tab = {
+        id: generateTabId(),
+        path,
+        ast,
+        raw,
+        mode: 'view',
+        scrollTop: 0,
+        cursor: 0,
+      }
+      return {
+        ...state,
+        openTabs: [...state.openTabs, newTab],
+        activeTabId: newTab.id,
+        currentFile: path,
+        currentAST: ast,
+        currentRaw: raw,
+      }
+    }
+
+    case 'TAB_CLOSED': {
+      const { tabId } = action.payload
+      const tabIndex = state.openTabs.findIndex(t => t.id === tabId)
+      const wasActive = state.activeTabId === tabId
+      const remainingTabs = state.openTabs.filter(t => t.id !== tabId)
+
+      // Determine new active tab
+      let newActiveTabId: string | null = state.activeTabId
+      if (wasActive && remainingTabs.length > 0) {
+        // Activate the next tab (or previous if closing last)
+        const newIndex = Math.min(tabIndex, remainingTabs.length - 1)
+        newActiveTabId = remainingTabs[newIndex]?.id ?? null
+      }
+
+      const newActiveTab = remainingTabs.find(t => t.id === newActiveTabId)
+      return {
+        ...state,
+        openTabs: remainingTabs,
+        activeTabId: newActiveTabId,
+        currentFile: wasActive ? (newActiveTab?.path ?? null) : state.currentFile,
+        currentAST: wasActive ? (newActiveTab?.ast ?? null) : state.currentAST,
+        currentRaw: wasActive ? (newActiveTab?.raw ?? null) : state.currentRaw,
+        editMode: wasActive && newActiveTab?.mode !== 'edit' ? false : state.editMode,
+        livePreviewMode: wasActive && newActiveTab?.mode !== 'live-preview' ? false : state.livePreviewMode,
+      }
+    }
+
+    case 'TAB_ACTIVATED': {
+      const { tabId } = action.payload
+      const activatedTab = state.openTabs.find(t => t.id === tabId)
+      if (!activatedTab) return state
+      return {
+        ...state,
+        activeTabId: tabId,
+        currentFile: activatedTab.path,
+        currentAST: activatedTab.ast,
+        currentRaw: activatedTab.raw,
+        editMode: activatedTab.mode === 'edit',
+        livePreviewMode: activatedTab.mode === 'live-preview',
+      }
+    }
+
+    case 'TAB_UPDATED': {
+      const { tabId, patch } = action.payload
+      const updatedTabs = state.openTabs.map(tab =>
+        tab.id === tabId ? { ...tab, ...patch } : tab
+      )
+      const updatedTab = updatedTabs.find(t => t.id === tabId)
+      if (!updatedTab || state.activeTabId !== tabId) {
+        return { ...state, openTabs: updatedTabs }
+      }
+      // If updating the active tab, sync compat aliases
+      return {
+        ...state,
+        openTabs: updatedTabs,
+        currentRaw: patch.raw ?? (patch.mode !== 'edit' && patch.mode !== 'live-preview' ? null : state.currentRaw),
+        editMode: updatedTab.mode === 'edit',
+        livePreviewMode: updatedTab.mode === 'live-preview',
+      }
+    }
+
+    // Backward-compatible FILE_LOADED (used by existing IPC handler)
     case 'FILE_LOADED': {
       // Track recently opened notes (capped at 10, deduped)
       const recentNotes = [

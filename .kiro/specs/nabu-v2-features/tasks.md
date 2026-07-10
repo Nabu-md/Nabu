@@ -380,12 +380,12 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Re-parse via the renderer pipeline; render visible regions inline (headings, bold, links, wiki-links, code, lists, callouts, math, task checkboxes).
   - _Requirements: 23.4, 23.6, 23.7_
 
-- [ ] 69. Generalise mode-switch + save coupling
+- [x] 69. Generalise mode-switch + save coupling
   - Toggling out of Live Preview flushes the in-memory doc through `note:save` (no disk refetch); malformed regions fall back to raw source.
   - Auto-save + external-edit detection continue via the Pending_Write_Lock + watcher.
   - _Requirements: 23.5, 23.8, 23.9_
 
-- [ ] 70. Phase 9 verification
+- [x] 70. Phase 9 verification
   - Unit tests: renderer-pipeline parity with main pipeline on a fixture set.
   - Property tests: Live Preview source preservation (toggle out == source unchanged).
   - E2E: type a wiki-link in Live Preview and see it render inline; switch modes without data loss; external edit reloads.
