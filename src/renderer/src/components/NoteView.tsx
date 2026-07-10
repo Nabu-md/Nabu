@@ -953,6 +953,36 @@ export function NoteView(): React.JSX.Element {
     dispatch({ type: 'EDIT_MODE_EXIT' })
   }, [currentFile, dispatch])
 
+  // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
+  const enterLivePreviewMode = useCallback(async () => {
+    if (!currentFile) return
+    try {
+      const result = await window.electron.note.getRaw(currentFile)
+      dispatch({ type: 'LIVE_PREVIEW_MODE_ENTER', payload: result.content ?? '' })
+    } catch (err) {
+      console.error('[NoteView] getRaw error for Live Preview:', err)
+    }
+  }, [currentFile, dispatch])
+
+  const exitLivePreviewMode = useCallback(async () => {
+    if (!currentFile) return
+    // Clear debounced parse timer
+    if (livePreviewTimer.current !== null) {
+      clearTimeout(livePreviewTimer.current)
+      livePreviewTimer.current = null
+    }
+    // Save before exiting (Req 23.5)
+    try {
+      const result = await window.electron.note.save(currentFile, livePreviewContent)
+      if (!result.success) {
+        console.error('[NoteView] Live Preview save error:', result.error)
+      }
+    } catch (err) {
+      console.error('[NoteView] Live Preview save error:', err)
+    }
+    dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
+  }, [currentFile, dispatch])
+
   // ---- Keyboard shortcuts: Cmd+E and Cmd+S ----
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
