@@ -35,6 +35,7 @@ import { renderInlineTagText } from './blocks/InlineTagChip'
 import { FavoriteToggle } from './FavoriteToggle'
 import { MarkdownEditor } from './MarkdownEditor'
 import katex from 'katex'
+import { parseMarkdown } from '../markdown/pipeline'
 
 // ---------------------------------------------------------------------------
 // Timeout constant
