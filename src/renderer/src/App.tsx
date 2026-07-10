@@ -46,6 +46,17 @@ export interface Tab {
   cursor: number
 }
 
+// ---------------------------------------------------------------------------
+// Workspace types (Req 25.1-25.5)
+// ---------------------------------------------------------------------------
+
+export interface Workspace {
+  id: string
+  name: string
+  openTabs: string[] // array of file paths
+  paneLayout: PaneLayout
+}
+
 export type PaneLayout = 'single' | 'split-horizontal' | 'split-vertical' | 'grid'
 
 export interface AppState {
@@ -55,6 +66,7 @@ export interface AppState {
   openTabs: Tab[] // all open tabs (split-pane system) - Req 24.1
   activeTabId: string | null // currently active tab
   paneLayout: PaneLayout // current layout type - Req 24.2
+  workspaces: Workspace[] // saved workspaces per vault - Req 25.1
   currentFile: string | null // compat alias: openTabs[activeTabId]?.path
   currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
@@ -136,6 +148,9 @@ export type AppAction =
   | { type: 'COMMAND_PALETTE_OPEN' }
   | { type: 'COMMAND_PALETTE_CLOSE' }
   | { type: 'RECENT_NOTE_OPENED'; payload: string }
+  | { type: 'WORKSPACE_SAVE'; payload: { name: string } }
+  | { type: 'WORKSPACE_LOAD'; payload: { workspaceId: string } }
+  | { type: 'WORKSPACES_LOADED'; payload: Workspace[] }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -148,6 +163,7 @@ const initialState: AppState = {
   openTabs: [],
   activeTabId: null,
   paneLayout: 'single',
+  workspaces: [],
   currentFile: null,
   currentAST: null,
   toggleStates: new Map(),
@@ -488,6 +504,34 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         editMode: false,
         livePreviewMode: false,
       }
+
+    // Workspace actions (Req 25.1-25.5)
+    case 'WORKSPACE_SAVE': {
+      const { name } = action.payload
+      const workspace: Workspace = {
+        id: generateTabId(),
+        name,
+        openTabs: state.openTabs.map(t => t.path),
+        paneLayout: state.paneLayout,
+      }
+      return {
+        ...state,
+        workspaces: [...state.workspaces, workspace],
+      }
+    }
+
+    case 'WORKSPACE_LOAD': {
+      const { workspaceId } = action.payload
+      const workspace = state.workspaces.find(w => w.id === workspaceId)
+      if (!workspace) return state
+      return {
+        ...state,
+        paneLayout: workspace.paneLayout,
+      }
+    }
+
+    case 'WORKSPACES_LOADED':
+      return { ...state, workspaces: action.payload }
 
     default:
       return state

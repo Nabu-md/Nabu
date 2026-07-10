@@ -410,7 +410,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Command Palette commands: Close tab, Next pane, Move tab.
   - _Requirements: 24.3, 24.6, 24.7_
 
-- [ ] 74. Implement Workspaces
+- [x] 74. Implement Workspaces
   - Per-vault `.nabu/workspaces.json`; save current `openTabs`+`paneLayout` as a named workspace; load restores (skip + warn on missing notes); switcher in sidebar + Command Palette.
   - _Requirements: 25.1, 25.2, 25.3, 25.4, 25.5, 25.6_
 
