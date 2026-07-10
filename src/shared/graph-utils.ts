@@ -62,32 +62,12 @@ export function computeTagGraph(
   const tagIndex = index.tagIndex
   const fileCount = files.length
 
-  // Build tag -> files map (already in the index)
   // Count notes per tag
-  const tagCounts = new Map<string, number>()
-  for (const [, paths] of tagIndex) {
-    tagCounts.set(tagIndex.entries().next().value?.[0] ?? '', paths.size)
-  }
-
-  // Actually compute counts correctly
   const nodes: TagGraphNode[] = []
   for (const [tag, paths] of tagIndex) {
     const count = paths.size
     const radius = computeTagNodeRadius(count, fileCount)
     nodes.push({ id: tag, label: tag, count, radius })
-  }
-
-  // Compute co-occurrence edges
-  const edges: TagGraphEdge[] = []
-  const tagPairs = new Map<string, Map<string, number>>()
-
-  // For each note, count co-occurring tag pairs
-  for (const [tag, paths] of tagIndex) {
-    for (const path of paths) {
-      if (!tagPairs.has(path)) {
-        tagPairs.set(path, new Map())
-      }
-    }
   }
 
   // Build co-occurrence map: for each file, find all tags it has
@@ -107,6 +87,7 @@ export function computeTagGraph(
   }
 
   // For each file, create edges between all tag pairs
+  const edges: TagGraphEdge[] = []
   const edgeSet = new Set<string>()
   for (const [, tags] of fileToTags) {
     for (let i = 0; i < tags.length; i++) {

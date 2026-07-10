@@ -139,7 +139,7 @@ export function EmbedBlock({
                 className="max-w-full h-auto rounded my-2"
                 loading="lazy"
               />
-              <OCRTextPanel imagePath={resolvedImagePath} vaultPath={vaultPath} />
+              <OCRTextPanel imagePath={resolvedImagePath} />
             </>
           )
           setEmbedState('ready')

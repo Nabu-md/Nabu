@@ -36,13 +36,6 @@ export interface ImageOCROptions {
 }
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const CONFIDENCE_THRESHOLD = 0.3
-const MAX_DIMENSION = 4096 // pixels - for downscaling (Req 39.8)
-
-// ---------------------------------------------------------------------------
 // OCR Queue - processes files sequentially to avoid saturating CPU
 // ---------------------------------------------------------------------------
 
@@ -167,7 +160,7 @@ async function runOCR(imagePath: string): Promise<OCRResult | null> {
 export async function createOCRCompanionNote(
   imagePath: string,
   ocrResult: OCRResult,
-  vaultPath: string
+  _vaultPath: string
 ): Promise<string | null> {
   // Derive companion note path: chart.png -> chart.ocr.md
   const dir = path.dirname(imagePath)

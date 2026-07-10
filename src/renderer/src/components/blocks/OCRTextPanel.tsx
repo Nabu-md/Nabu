@@ -6,22 +6,19 @@
  * Requirements: 39.7
  */
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import path from 'path'
 
 interface OCRTextPanelProps {
   /** The image path from an embed node */
   imagePath: string
-  /** The vault path for resolving relative paths */
-  vaultPath: string
 }
 
 /**
  * Check if an OCR companion note exists for the given image.
  */
 async function checkOCRCompanion(
-  imagePath: string,
-  vaultPath: string
+  imagePath: string
 ): Promise<{ exists: boolean; ocrText?: string }> {
   // Derive companion note path: image.png -> image.ocr.md
   const dir = path.dirname(imagePath)
@@ -59,10 +56,7 @@ async function checkOCRCompanion(
  * OCR Text Panel component.
  * Renders a collapsible panel below an image embed showing extracted OCR text.
  */
-export function OCRTextPanel({
-  imagePath,
-  vaultPath
-}: OCRTextPanelProps): React.JSX.Element | null {
+export function OCRTextPanel({ imagePath }: OCRTextPanelProps): React.JSX.Element | null {
   const [isExpanded, setIsExpanded] = useState(true)
   const [ocrText, setOcrText] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -72,7 +66,7 @@ export function OCRTextPanel({
     let cancelled = false
     setIsLoading(true)
 
-    checkOCRCompanion(imagePath, vaultPath)
+    checkOCRCompanion(imagePath)
       .then((result) => {
         if (!cancelled) {
           setHasCompanion(result.exists)
@@ -90,7 +84,7 @@ export function OCRTextPanel({
     return () => {
       cancelled = true
     }
-  }, [imagePath, vaultPath])
+  }, [imagePath])
 
   // No companion note — don't render anything (Req 39.7)
   if (isLoading || !hasCompanion) {
