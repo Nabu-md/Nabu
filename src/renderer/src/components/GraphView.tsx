@@ -419,9 +419,8 @@ export function GraphView(): React.JSX.Element {
       const node = findNode(cx, cy)
       if (node) {
         if (state.graphMode === 'tags') {
-          // Tags mode: dispatch to filter file tree (handled in task 84)
-          // For now, just log the tag click
-          console.log('Tag clicked:', node.label)
+          // Tags mode: dispatch to filter file tree (Req 38.5)
+          dispatch({ type: 'TAG_FILTER_TOGGLE', payload: node.label })
         } else {
           // Files mode: open the note
           window.electron.file
