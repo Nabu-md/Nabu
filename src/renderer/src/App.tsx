@@ -101,6 +101,8 @@ export type AppAction =
   | { type: 'TAB_CLOSED'; payload: { tabId: string } }
   | { type: 'TAB_ACTIVATED'; payload: { tabId: string } }
   | { type: 'TAB_UPDATED'; payload: { tabId: string; patch: Partial<Tab> } }
+  | { type: 'PANE_LAYOUT_CHANGED'; payload: { layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' } }
+  | { type: 'TAB_CLOSE_ALL' }
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
   | { type: 'TOGGLE_BLOCK'; payload: { filePath: string; headingId: string; isOpen: boolean } }
   | { type: 'CONTEXT_PANE_TOGGLE' }
@@ -470,6 +472,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       ].slice(0, 10)
       return { ...state, recentNotes }
     }
+
+    case 'PANE_LAYOUT_CHANGED':
+      return { ...state, paneLayout: action.payload.layout }
+
+    case 'TAB_CLOSE_ALL':
+      return {
+        ...state,
+        openTabs: [],
+        activeTabId: null,
+        currentFile: null,
+        currentAST: null,
+        currentRaw: null,
+        editMode: false,
+        livePreviewMode: false,
+      }
 
     default:
       return state

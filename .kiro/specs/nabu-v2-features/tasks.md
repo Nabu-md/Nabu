@@ -401,7 +401,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Generalise per-note flows (save, task toggle, external edit, properties) to take a `tabId`.
   - _Requirements: 24.1, 24.8_
 
-- [ ] 72. Build `PaneLayout.tsx`
+- [x] 72. Build `PaneLayout.tsx`
   - `paneLayout: 'single'|'split-horizontal'|'split-vertical'|'grid'`; each pane bound to an open tab; independent scroll/mode/cursor; active pane visually distinguished.
   - _Requirements: 24.2, 24.4, 24.5_
 
