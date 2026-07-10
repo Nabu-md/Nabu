@@ -530,7 +530,8 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
    - Toggle state stored in `AppState.graphMode: 'files' | 'tags' | 'blocks'` (default `'files'`).
    - _Requirements: 38.1, 38.2, 38.3, 38.4_
 
-  - Clicking a tag node in tags mode: filter file tree to notes carrying that tag (reuse existing `selectedTags` filter path).
+- [x] 84. Wire tag-click interactions from graph
+   - Clicking a tag node in tags mode: filter file tree to notes carrying that tag (reuse existing `selectedTags` filter path).
   - Shift-click a second tag node: OR-union with the existing filter (matching v1 multi-tag behaviour).
   - Right-click on tag node: "Show only notes with this tag" context menu action.
   - _Requirements: 38.5_
@@ -794,4 +795,4 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
     { "id": 32, "tasks": ["107", "108"], "note": "Phase 16 docs + regression" }
   ]
 }
-```
+``` f

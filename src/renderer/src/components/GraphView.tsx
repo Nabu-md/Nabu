@@ -18,7 +18,8 @@ import {
   computeTagGraph,
   computeTagNodeRadius,
   getTagNodeColor,
-  getTagDisplayLabel
+  getTagDisplayLabel,
+  getTagRecentNotes
 } from '../../../shared/graph-utils'
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,14 @@ export function GraphView(): React.JSX.Element {
   const [canvasW, setCanvasW] = useState(800)
   const [canvasH, setCanvasH] = useState(600)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
+  // Tooltip state for tag hover (Req 38.4)
+  const [hoveredTag, setHoveredTag] = useState<{
+    label: string
+    count: number
+    x: number
+    y: number
+    recentNotes: FileEntry[]
+  } | null>(null)
 
   // ---------------------------------------------------------------------------
   // Resize observer
@@ -370,6 +379,8 @@ export function GraphView(): React.JSX.Element {
         dragNodeRef.current = node
         node.fx = node.x
         node.fy = node.y
+        // Clear tooltip when dragging starts
+        setHoveredTag(null)
       } else {
         panStartRef.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y }
       }
@@ -379,6 +390,7 @@ export function GraphView(): React.JSX.Element {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
+      // If dragging, don't show tooltip
       if (dragNodeRef.current) {
         const rect = canvasRef.current?.getBoundingClientRect()
         if (!rect) return
@@ -387,7 +399,11 @@ export function GraphView(): React.JSX.Element {
         dragNodeRef.current.fx = wx
         dragNodeRef.current.fy = wy
         simRef.current?.alphaTarget(0.1).restart()
-      } else if (panStartRef.current) {
+        return
+      }
+
+      // If panning, don't show tooltip
+      if (panStartRef.current) {
         const dx = e.clientX - panStartRef.current.x
         const dy = e.clientY - panStartRef.current.y
         setTransform((prev) => ({
@@ -395,9 +411,34 @@ export function GraphView(): React.JSX.Element {
           x: panStartRef.current!.tx + dx,
           y: panStartRef.current!.ty + dy
         }))
+        return
+      }
+
+      // Check for tag hover in tags mode
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const cx = e.clientX - rect.left
+      const cy = e.clientY - rect.top
+      const node = findNode(cx, cy)
+
+      if (state.graphMode === 'tags' && node && state.extendedIndex && node.count !== undefined) {
+        const recentNotes = getTagRecentNotes(
+          node.label,
+          state.vault?.files ?? [],
+          state.extendedIndex.tagIndex
+        )
+        setHoveredTag({
+          label: node.label,
+          count: node.count,
+          x: e.clientX,
+          y: e.clientY,
+          recentNotes
+        })
+      } else {
+        setHoveredTag(null)
       }
     },
-    [transform]
+    [findNode, transform, state.graphMode, state.extendedIndex, state.vault?.files]
   )
 
   const handleMouseUp = useCallback(() => {
@@ -408,6 +449,10 @@ export function GraphView(): React.JSX.Element {
       simRef.current?.alphaTarget(0)
     }
     panStartRef.current = null
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredTag(null)
   }, [])
 
   const handleClick = useCallback(
@@ -421,6 +466,7 @@ export function GraphView(): React.JSX.Element {
         if (state.graphMode === 'tags') {
           // Tags mode: dispatch to filter file tree (Req 38.5)
           dispatch({ type: 'TAG_FILTER_TOGGLE', payload: node.label })
+          setHoveredTag(null)
         } else {
           // Files mode: open the note
           window.electron.file
@@ -448,6 +494,32 @@ export function GraphView(): React.JSX.Element {
   // Handle graph mode toggle
   const handleGraphModeChange = (newMode: 'files' | 'tags' | 'blocks'): void => {
     dispatch({ type: 'GRAPH_MODE_CHANGED', payload: newMode })
+  }
+
+  // Render tooltip for tag hover (Req 38.4)
+  const renderTagTooltip = (): React.JSX.Element | null => {
+    if (!hoveredTag) return null
+
+    return (
+      <div
+        className="absolute pointer-events-none bg-nabu-bg-pop border border-nabu-border rounded px-2 py-1 text-xs shadow-lg z-10"
+        style={{
+          left: hoveredTag.x + 10,
+          top: hoveredTag.y - 10,
+          maxWidth: '250px'
+        }}
+      >
+        <div className="font-semibold text-nabu-accent mb-1">{hoveredTag.label}</div>
+        <div className="text-nabu-text-muted mb-1">
+          {hoveredTag.count} {hoveredTag.count === 1 ? 'note' : 'notes'}
+        </div>
+        {hoveredTag.recentNotes.length > 0 && (
+          <div className="text-nabu-text-faint">
+            Recent: {hoveredTag.recentNotes.map((n) => n.name).join(', ')}
+          </div>
+        )}
+      </div>
+    )
   }
 
   // Render blocks mode placeholder
@@ -563,10 +635,11 @@ export function GraphView(): React.JSX.Element {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           onClick={handleClick}
           onWheel={handleWheel}
         />
+        {renderTagTooltip()}
         {state.vault === null && (
           <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
             No vault open

@@ -9,10 +9,11 @@ import {
   computeTagGraph,
   computeTagNodeRadius,
   getTagNodeColor,
-  getTagDisplayLabel
-} from '@shared/graph-utils'
-import type { ExtendedSearchIndex } from '@shared/extended-indexing'
-import type { FileEntry } from '@shared/types'
+  getTagDisplayLabel,
+  getTagRecentNotes
+} from '../../src/shared/graph-utils'
+import type { ExtendedSearchIndex } from '../../src/shared/extended-indexing'
+import type { FileEntry } from '../../src/shared/types'
 
 describe('computeTagGraph', () => {
   it('returns empty arrays when tagIndex is empty', () => {
@@ -188,5 +189,56 @@ describe('getTagDisplayLabel', () => {
   it('returns last segment for namespaced tags (Req 38.4)', () => {
     expect(getTagDisplayLabel('parent/child')).toBe('child')
     expect(getTagDisplayLabel('parent/child/grandchild')).toBe('grandchild')
+  })
+})
+
+describe('getTagRecentNotes', () => {
+  it('returns empty array when tag not in index', () => {
+    const tagIndex = new Map<string, Set<string>>()
+    const files: FileEntry[] = []
+
+    const result = getTagRecentNotes('nonexistent', files, tagIndex)
+
+    expect(result).toEqual([])
+  })
+
+  it('returns files sorted by mtime descending (Req 38.4)', () => {
+    const tagIndex = new Map<string, Set<string>>([
+      ['project', new Set(['/vault/note1.md', '/vault/note2.md', '/vault/note3.md'])]
+    ])
+    const files: FileEntry[] = [
+      { path: '/vault/note1.md', name: 'note1.md', mtime: 1000 },
+      { path: '/vault/note2.md', name: 'note2.md', mtime: 3000 },
+      { path: '/vault/note3.md', name: 'note3.md', mtime: 2000 }
+    ]
+
+    const result = getTagRecentNotes('project', files, tagIndex)
+
+    // Should be sorted by mtime descending
+    expect(result.length).toBe(3)
+    expect(result[0].name).toBe('note2.md') // mtime 3000
+    expect(result[1].name).toBe('note3.md') // mtime 2000
+    expect(result[2].name).toBe('note1.md') // mtime 1000
+  })
+
+  it('limits results to maxNotes (default 3)', () => {
+    const tagIndex = new Map<string, Set<string>>([
+      [
+        'project',
+        new Set(['/vault/note1.md', '/vault/note2.md', '/vault/note3.md', '/vault/note4.md'])
+      ]
+    ])
+    const files: FileEntry[] = [
+      { path: '/vault/note1.md', name: 'note1.md', mtime: 4000 },
+      { path: '/vault/note2.md', name: 'note2.md', mtime: 3000 },
+      { path: '/vault/note3.md', name: 'note3.md', mtime: 2000 },
+      { path: '/vault/note4.md', name: 'note4.md', mtime: 1000 }
+    ]
+
+    const result = getTagRecentNotes('project', files, tagIndex, 2)
+
+    expect(result.length).toBe(2)
+    expect(result[0].name).toBe('note1.md')
+    expect(result[1].name).toBe('note2.md')
   })
 })

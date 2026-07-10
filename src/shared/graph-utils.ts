@@ -177,6 +177,32 @@ export function getTagDisplayLabel(tag: string): string {
 }
 
 /**
+ * Get the N most recently modified notes for a given tag.
+ *
+ * Used for the hover tooltip in tag graph view.
+ * Returns files sorted by mtime descending, limited to maxNotes.
+ *
+ * Requirements: 38.4, 38.6
+ */
+export function getTagRecentNotes(
+  tag: string,
+  files: FileEntry[],
+  tagIndex: Map<string, Set<string>>,
+  maxNotes: number = 3
+): FileEntry[] {
+  const taggedPaths = tagIndex.get(tag)
+  if (!taggedPaths) return []
+
+  // Filter files to only those with this tag
+  const taggedFiles = files.filter((f) => taggedPaths.has(f.path))
+
+  // Sort by mtime descending (most recent first)
+  return taggedFiles
+    .sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0))
+    .slice(0, maxNotes)
+}
+
+/**
  * Count how many notes have both tags.
  */
 function countTagCooccurrence(
