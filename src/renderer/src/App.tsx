@@ -47,6 +47,7 @@ export interface AppState {
   contextResults: SearchResult[]
   showSetup: boolean
   editMode: boolean
+  livePreviewMode: boolean
   currentRaw: string | null
   graphEdges: Edge[]
   fullTextIndex: Map<string, Set<string>>
@@ -89,6 +90,8 @@ export type AppAction =
   | { type: 'SETUP_TOGGLE' }
   | { type: 'EDIT_MODE_ENTER'; payload: string }
   | { type: 'EDIT_MODE_EXIT' }
+  | { type: 'LIVE_PREVIEW_MODE_ENTER'; payload: string }
+  | { type: 'LIVE_PREVIEW_MODE_EXIT' }
   | { type: 'GRAPH_UPDATED'; payload: Edge[] }
   | { type: 'FULL_TEXT_INDEX_BUILT'; payload: Map<string, Set<string>> }
   | { type: 'TAG_INDEX_BUILT'; payload: Map<string, Set<string>> }
@@ -127,6 +130,7 @@ const initialState: AppState = {
   contextResults: [],
   // vault restore (existing `pollForVault`) dispatches `VAULT_OPENED` which sets `showSetup: false`, so the wizard only shows when no vault is auto-restored
   showSetup: true,
+  livePreviewMode: false,
   editMode: false,
   currentRaw: null,
   graphEdges: [],
@@ -257,6 +261,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, editMode: true, currentRaw: action.payload }
 
     case 'EDIT_MODE_EXIT':
+    case 'LIVE_PREVIEW_MODE_ENTER':
+      return { ...state, livePreviewMode: true, currentRaw: action.payload }
+
+    case 'LIVE_PREVIEW_MODE_EXIT':
+      return { ...state, livePreviewMode: false, currentRaw: null }
       return { ...state, editMode: false, currentRaw: null }
 
     case 'GRAPH_UPDATED':
