@@ -536,7 +536,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Right-click on tag node: "Show only notes with this tag" context menu action.
   - _Requirements: 38.5_
 
-- [ ] 85. Render custom tag node UI in d3
+- [x] 85. Render custom tag node UI in d3
   - Tag nodes render as rounded pills (not circles) with the tag name inside, sized by note count with a min/max radius.
   - Color assignment: deterministic hashing of the tag name to a palette color (same palette as the folder-based tab groups from Phase 10, task 75).
   - Namespaced tags (`parent/child`): render as nested pills or a single pill with a shortened name + tooltip showing the full path.

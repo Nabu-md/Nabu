@@ -197,9 +197,7 @@ export function getTagRecentNotes(
   const taggedFiles = files.filter((f) => taggedPaths.has(f.path))
 
   // Sort by mtime descending (most recent first)
-  return taggedFiles
-    .sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0))
-    .slice(0, maxNotes)
+  return taggedFiles.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0)).slice(0, maxNotes)
 }
 
 /**
