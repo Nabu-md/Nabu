@@ -1,6 +1,8 @@
 import React, { forwardRef } from 'react'
 import { FileTree, FileTreeHandle } from './FileTree'
 import { TagsPanel } from './TagsPanel'
+import { OutlinePanel } from './OutlinePanel'
+import { FavoritesPanel } from './FavoritesPanel'
 import { useAppContext } from '../App'
 
 // ---------------------------------------------------------------------------
@@ -39,12 +41,11 @@ export const Sidebar = forwardRef<SidebarHandle>(function Sidebar(_props, ref) {
   }, [state.selectedTags, state.tagIndex])
 
   return (
-    <aside
-      className="sidebar flex flex-col h-full overflow-hidden"
-      aria-label="Sidebar"
-    >
+    <aside className="sidebar flex flex-col h-full overflow-hidden" aria-label="Sidebar">
+      <FavoritesPanel />
       <FileTree ref={fileTreeRef} tagFilteredPaths={tagFilteredPaths} />
       <TagsPanel />
+      <OutlinePanel />
     </aside>
   )
 })

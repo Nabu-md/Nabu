@@ -2,14 +2,14 @@
 
 This is **bold text** in a sentence.
 
-This is *italic text* in a sentence.
+This is _italic text_ in a sentence.
 
-This is ***bold and italic*** combined.
+This is _**bold and italic**_ combined.
 
 **Bold at start** of a sentence.
 
-Sentence ending with *italic*.
+Sentence ending with _italic_.
 
-_Underscore italic_ and __underscore bold__.
+_Underscore italic_ and **underscore bold**.
 
-Mix of **bold with *nested italic* inside**.
+Mix of **bold with _nested italic_ inside**.

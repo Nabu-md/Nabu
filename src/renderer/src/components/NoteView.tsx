@@ -21,13 +21,27 @@ import {
   Blockquote,
   Html
 } from 'mdast'
-import { ToggleBlock as ToggleBlockNode, TaskList as TaskListNode, WikiLink as WikiLinkNode } from '@shared/types'
+import {
+  ToggleBlock as ToggleBlockNode,
+  TaskList as TaskListNode,
+  WikiLink as WikiLinkNode,
+  Callout
+} from '@shared/types'
 import { useAppContext } from '../App'
 import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
 import { CodeBlock } from './blocks/CodeBlock'
+import { MermaidBlock } from './blocks/MermaidBlock'
+import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
+import { PropertiesView } from './blocks/PropertiesView'
+import { renderInlineTagText } from './blocks/InlineTagChip'
+import { FavoriteToggle } from './FavoriteToggle'
+import { MarkdownEditor } from './MarkdownEditor'
+import katex from 'katex'
+// parseMarkdown imported but used via IPC for Live Preview mode
+// import { parseMarkdown } from '../markdown/pipeline'
 
 // ---------------------------------------------------------------------------
 // Timeout constant
@@ -56,13 +70,26 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   })
 }
 
+/**
+ * Replace the YAML frontmatter section in raw markdown content.
+ *
+ * If the content starts with `---\n...\n---`, that section is replaced with
+ * the new YAML string.  If no frontmatter exists, the new YAML is prepended.
+ * Passing an empty YAML string removes the frontmatter section entirely.
+ */
+/** Note: replaceFrontmatter has moved to src/main/ipc.ts as replaceFrontmatterRaw */
+
 // ---------------------------------------------------------------------------
 // Skeleton placeholder
 // ---------------------------------------------------------------------------
 
 function NoteSkeleton(): React.JSX.Element {
   return (
-    <div className="note-skeleton w-full px-8 py-6 animate-pulse" aria-busy="true" aria-label="Loading note…">
+    <div
+      className="note-skeleton w-full px-8 py-6 animate-pulse"
+      aria-busy="true"
+      aria-label="Loading note…"
+    >
       {/* Title */}
       <div className="h-7 w-2/3 rounded bg-white/10 mb-6" />
       {/* Paragraph lines */}
@@ -108,7 +135,9 @@ function NoteError({ filePath, message, onRetry }: NoteErrorProps): React.JSX.El
       role="alert"
       aria-live="assertive"
     >
-      <div className="text-red-400 text-4xl" aria-hidden="true">⚠</div>
+      <div className="text-red-400 text-4xl" aria-hidden="true">
+        ⚠
+      </div>
       <div>
         <p className="text-sm font-semibold text-white/80 mb-1">Failed to load note</p>
         <p className="text-xs text-white/50 font-mono break-all mb-1">{filePath}</p>
@@ -141,6 +170,56 @@ function NoteEmpty(): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
+// Callout configuration — type → icon + colour
+// ---------------------------------------------------------------------------
+
+interface CalloutStyle {
+  border: string
+  bg: string
+  text: string
+  icon: string
+}
+
+const CALLOUT_CONFIG: Record<string, CalloutStyle> = {
+  note: { border: 'border-l-blue-500', bg: 'bg-blue-950/20', text: 'text-blue-400', icon: 'ℹ️' },
+  info: { border: 'border-l-sky-500', bg: 'bg-sky-950/20', text: 'text-sky-400', icon: 'ℹ️' },
+  tip: {
+    border: 'border-l-emerald-500',
+    bg: 'bg-emerald-950/20',
+    text: 'text-emerald-400',
+    icon: '💡'
+  },
+  success: {
+    border: 'border-l-green-500',
+    bg: 'bg-green-950/20',
+    text: 'text-green-400',
+    icon: '✅'
+  },
+  warning: {
+    border: 'border-l-amber-500',
+    bg: 'bg-amber-950/20',
+    text: 'text-amber-400',
+    icon: '⚠️'
+  },
+  danger: { border: 'border-l-red-500', bg: 'bg-red-950/20', text: 'text-red-400', icon: '🔴' },
+  error: { border: 'border-l-rose-500', bg: 'bg-rose-950/20', text: 'text-rose-400', icon: '✖️' },
+  question: {
+    border: 'border-l-violet-500',
+    bg: 'bg-violet-950/20',
+    text: 'text-violet-400',
+    icon: '❓'
+  },
+  example: {
+    border: 'border-l-purple-500',
+    bg: 'bg-purple-950/20',
+    text: 'text-purple-400',
+    icon: '📋'
+  },
+  quote: { border: 'border-l-gray-500', bg: 'bg-white/5', text: 'text-gray-400', icon: '💬' },
+  abstract: { border: 'border-l-teal-500', bg: 'bg-teal-950/20', text: 'text-teal-400', icon: '📄' }
+}
+
+// ---------------------------------------------------------------------------
 // Recursive AST renderer
 // ---------------------------------------------------------------------------
 
@@ -148,8 +227,17 @@ interface RenderContext {
   filePath: string
   optimisticToggles: Record<number, boolean>
   onToggle: (lineIndex: number) => void
-  onNavigate: (filePath: string) => void
+  onNavigate: (filePath: string, blockRef?: string) => void
   vaultFiles: import('@shared/types').FileEntry[]
+  embedDepth: number
+  aliasIndex?: Map<string, string[]>
+}
+
+/** Extract a block identifier from a node's data, if present. */
+function blockIdFrom(node: Node): string | undefined {
+  const data = (node as unknown as Record<string, unknown>).data as
+    Record<string, unknown> | undefined
+  return data?.blockId as string | undefined
 }
 
 function renderNode(node: Node, ctx: RenderContext, key: string | number): React.ReactNode {
@@ -165,9 +253,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         node={n}
         filePath={ctx.filePath}
         renderNodes={(nodes, fp) =>
-          nodes.map((child, i) =>
-            renderNode(child, { ...ctx, filePath: fp }, i)
-          )
+          nodes.map((child, i) => renderNode(child, { ...ctx, filePath: fp }, i))
         }
       />
     )
@@ -193,6 +279,61 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         node={n}
         vaultFiles={ctx.vaultFiles}
         onNavigate={ctx.onNavigate}
+        aliasIndex={ctx.aliasIndex}
+      />
+    )
+  }
+
+  if (type === 'callout') {
+    const n = node as Callout
+    const style = CALLOUT_CONFIG[n.calloutType] ?? CALLOUT_CONFIG.note
+    const isCollapsible = n.toggle != null
+    const expandedByDefault = n.toggle === '+'
+
+    const header = (
+      <div className={`flex items-center gap-2 text-sm font-semibold ${style.text} select-none`}>
+        <span className="text-base leading-none">{style.icon}</span>
+        {n.title && <span>{n.title}</span>}
+      </div>
+    )
+
+    const body = n.children.map((child, i) => renderNode(child, ctx, `${key}-body-${i}`))
+
+    if (isCollapsible) {
+      return (
+        <details
+          key={key}
+          open={expandedByDefault}
+          className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg} ${style.text}`}
+        >
+          <summary className="cursor-pointer px-4 py-2 rounded-r-lg hover:bg-white/[0.03]">
+            {header}
+          </summary>
+          <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">{body}</div>
+        </details>
+      )
+    }
+
+    return (
+      <div key={key} className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg}`}>
+        <div className="px-4 pt-2">{header}</div>
+        <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">{body}</div>
+      </div>
+    )
+  }
+
+  if (type === 'embed') {
+    const n = node as unknown as { target: string }
+    return (
+      <EmbedBlock
+        key={key}
+        target={n.target}
+        embedDepth={ctx.embedDepth}
+        renderNodes={(nodes, fp) =>
+          nodes.map((child, i) =>
+            renderNode(child, { ...ctx, embedDepth: ctx.embedDepth + 1, filePath: fp }, i)
+          )
+        }
       />
     )
   }
@@ -211,7 +352,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   if (type === 'heading') {
     const n = node as Heading
     const depth = n.depth
-    const Tag = (`h${depth}`) as keyof React.JSX.IntrinsicElements
+    const Tag = `h${depth}` as keyof React.JSX.IntrinsicElements
     const classMap: Record<number, string> = {
       1: 'text-2xl font-bold mt-6 mb-3 text-white/90',
       2: 'text-xl font-semibold mt-5 mb-2 text-white/85',
@@ -220,8 +361,14 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
       5: 'text-sm font-semibold mt-3 mb-1 text-white/70',
       6: 'text-xs font-semibold mt-2 mb-1 text-white/65'
     }
+    const bid = blockIdFrom(node)
     return (
-      <Tag key={key} className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}>
+      <Tag
+        key={key}
+        id={`outline-heading-${key}`}
+        className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}
+        data-block-id={bid}
+      >
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </Tag>
     )
@@ -229,8 +376,9 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'paragraph') {
     const n = node as Paragraph
+    const bid = blockIdFrom(node)
     return (
-      <p key={key} className="my-2 leading-relaxed text-white/75 text-sm">
+      <p key={key} className="my-2 leading-relaxed text-white/75 text-sm" data-block-id={bid}>
         {n.children.map((child, i) => renderNode(child, ctx, i))}
       </p>
     )
@@ -251,8 +399,9 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'listItem') {
     const n = node as ListItem
+    const bid = blockIdFrom(node)
     return (
-      <li key={key} className="leading-relaxed">
+      <li key={key} className="leading-relaxed" data-block-id={bid}>
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </li>
     )
@@ -260,14 +409,28 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'code') {
     const n = node as Code
-    return <CodeBlock key={key} node={n} />
+    const bid = blockIdFrom(node)
+    // Route mermaid diagrams to the dedicated MermaidBlock
+    if (n.lang === 'mermaid') {
+      return (
+        <div key={key} data-block-id={bid}>
+          <MermaidBlock value={n.value} />
+        </div>
+      )
+    }
+    return (
+      <div key={key} data-block-id={bid}>
+        <CodeBlock node={n} />
+      </div>
+    )
   }
 
   if (type === 'table') {
     const n = node as Table
+    const bid = blockIdFrom(node)
     const [headerRow, ...bodyRows] = n.children as TableRow[]
     return (
-      <div key={key} className="overflow-x-auto my-4">
+      <div key={key} className="overflow-x-auto my-4" data-block-id={bid}>
         <table className="min-w-full text-sm text-white/75 border-collapse">
           <thead>
             <tr>
@@ -304,10 +467,12 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'blockquote') {
     const n = node as Blockquote
+    const bid = blockIdFrom(node)
     return (
       <blockquote
         key={key}
         className="border-l-2 border-white/25 pl-4 my-3 text-white/55 italic text-sm"
+        data-block-id={bid}
       >
         {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
       </blockquote>
@@ -322,15 +487,13 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
     const n = node as Html
     // Render HTML content inside a sandboxed iframe with allow-scripts only.
     // See SandboxedHtml.tsx for the full security model.
-    return (
-      <SandboxedHtml key={key} html={n.value} />
-    )
+    return <SandboxedHtml key={key} html={n.value} />
   }
 
   // ---- Inline nodes ----
 
   if (type === 'text') {
-    return (node as Text).value
+    return renderInlineTagText(node as Text)
   }
 
   if (type === 'strong') {
@@ -354,13 +517,53 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   if (type === 'inlineCode') {
     const n = node as InlineCode
     return (
-      <code
-        key={key}
-        className="font-mono text-xs bg-white/10 rounded px-1 py-0.5 text-white/80"
-      >
+      <code key={key} className="font-mono text-xs bg-white/10 rounded px-1 py-0.5 text-white/80">
         {n.value}
       </code>
     )
+  }
+
+  // ---- Math (KaTeX) ----
+
+  if (type === 'inlineMath') {
+    const n = node as unknown as { value: string }
+    try {
+      const html = katex.renderToString(n.value, { throwOnError: false })
+      return (
+        <span key={key} className="math math-inline" dangerouslySetInnerHTML={{ __html: html }} />
+      )
+    } catch {
+      return (
+        <span key={key} className="text-red-400/80 text-sm italic">
+          ${n.value}$
+        </span>
+      )
+    }
+  }
+
+  if (type === 'math') {
+    const n = node as unknown as { value: string; meta?: string | null }
+    try {
+      const html = katex.renderToString(n.value, { throwOnError: false, displayMode: true })
+      return (
+        <div
+          key={key}
+          className="math math-block my-4 overflow-x-auto text-center"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      )
+    } catch {
+      return (
+        <pre
+          key={key}
+          className="text-red-400/80 text-sm p-3 rounded bg-white/5 my-3 overflow-x-auto font-mono"
+        >
+          {'$$\n'}
+          {n.value}
+          {'\n$$'}
+        </pre>
+      )
+    }
   }
 
   if (type === 'delete') {
@@ -405,7 +608,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
     return <br key={key} />
   }
 
-  // ---- YAML frontmatter (remark-frontmatter) — skip silently ----
+  // ---- YAML frontmatter (remark-frontmatter) — handled by PropertiesView ----
   if (type === 'yaml' || type === 'toml') {
     return null
   }
@@ -440,6 +643,105 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 }
 
 // ---------------------------------------------------------------------------
+// OutgoingLinksPanel
+// ---------------------------------------------------------------------------
+
+function OutgoingLinksPanel(): React.JSX.Element | null {
+  const { state, dispatch } = useAppContext()
+  const [isExpanded, setIsExpanded] = useState(true)
+
+  const outgoingLinks = useMemo(() => {
+    if (!state.currentFile) return []
+    // Deduplicate by target (Req 6.2).
+    const seen = new Set<string>()
+    return state.graphEdges
+      .filter((e) => e.source === state.currentFile)
+      .filter((e) => {
+        if (seen.has(e.target)) return false
+        seen.add(e.target)
+        return true
+      })
+      .map((e) => ({
+        targetPath: e.target,
+        name:
+          state.vault?.files.find((f) => f.path === e.target)?.name ??
+          e.target.split('/').pop()?.replace('.md', '') ??
+          e.target,
+        snippet: e.snippet
+      }))
+  }, [state.currentFile, state.graphEdges, state.vault])
+
+  if (outgoingLinks.length === 0) return null
+
+  return (
+    <section
+      className="outgoing-links-panel mt-8 border-t border-white/10 pt-4"
+      aria-label="Outgoing links"
+    >
+      <button
+        type="button"
+        aria-expanded={isExpanded}
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white/80 transition-colors w-full text-left mb-2"
+      >
+        <span>Outgoing links ({outgoingLinks.length})</span>
+        <span aria-hidden="true" className="text-xs">
+          {isExpanded ? '▲' : '▼'}
+        </span>
+      </button>
+      {isExpanded && (
+        <ul role="list" className="space-y-1">
+          {outgoingLinks.map((ol) => {
+            const isBroken = !state.vault?.files.some((f) => f.path === ol.targetPath)
+            return (
+              <li key={ol.targetPath}>
+                <button
+                  type="button"
+                  disabled={isBroken}
+                  onClick={() => {
+                    if (isBroken) return
+                    window.electron.file
+                      .get(ol.targetPath)
+                      .then((fileAST) => {
+                        dispatch({
+                          type: 'FILE_LOADED',
+                          payload: { path: fileAST.path, ast: fileAST.ast }
+                        })
+                      })
+                      .catch(console.error)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors group ${
+                    isBroken ? 'cursor-not-allowed opacity-50' : 'hover:bg-white/8 cursor-pointer'
+                  }`}
+                >
+                  <span
+                    className={`block font-semibold text-sm ${
+                      isBroken ? 'text-red-400/60' : 'text-white/80 group-hover:text-white/95'
+                    }`}
+                  >
+                    {ol.name}
+                    {isBroken && (
+                      <span className="ml-2 text-xs text-red-400/50" title="Target note not found">
+                        (broken)
+                      </span>
+                    )}
+                  </span>
+                  {ol.snippet && !isBroken && (
+                    <span className="block text-xs text-white/40 mt-0.5 truncate">
+                      {ol.snippet}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // BacklinksPanel
 // ---------------------------------------------------------------------------
 
@@ -450,10 +752,13 @@ function BacklinksPanel(): React.JSX.Element | null {
   const backlinks = useMemo(() => {
     if (!state.currentFile) return []
     return state.graphEdges
-      .filter(e => e.target === state.currentFile)
-      .map(e => ({
+      .filter((e) => e.target === state.currentFile)
+      .map((e) => ({
         sourcePath: e.source,
-        name: state.vault?.files.find(f => f.path === e.source)?.name ?? e.source.split('/').pop()?.replace('.md', '') ?? e.source,
+        name:
+          state.vault?.files.find((f) => f.path === e.source)?.name ??
+          e.source.split('/').pop()?.replace('.md', '') ??
+          e.source,
         snippet: e.snippet
       }))
   }, [state.currentFile, state.graphEdges, state.vault])
@@ -465,11 +770,13 @@ function BacklinksPanel(): React.JSX.Element | null {
       <button
         type="button"
         aria-expanded={isExpanded}
-        onClick={() => setIsExpanded(prev => !prev)}
+        onClick={() => setIsExpanded((prev) => !prev)}
         className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white/80 transition-colors w-full text-left mb-2"
       >
         <span>Backlinks ({backlinks.length})</span>
-        <span aria-hidden="true" className="text-xs">{isExpanded ? '▲' : '▼'}</span>
+        <span aria-hidden="true" className="text-xs">
+          {isExpanded ? '▲' : '▼'}
+        </span>
       </button>
       {isExpanded && (
         <ul role="list" className="space-y-1">
@@ -478,9 +785,15 @@ function BacklinksPanel(): React.JSX.Element | null {
               <button
                 type="button"
                 onClick={() => {
-                  window.electron.file.get(bl.sourcePath).then((fileAST) => {
-                    dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-                  }).catch(console.error)
+                  window.electron.file
+                    .get(bl.sourcePath)
+                    .then((fileAST) => {
+                      dispatch({
+                        type: 'FILE_LOADED',
+                        payload: { path: fileAST.path, ast: fileAST.ast }
+                      })
+                    })
+                    .catch(console.error)
                 }}
                 className="w-full text-left px-3 py-2 rounded hover:bg-white/8 transition-colors group"
               >
@@ -488,9 +801,7 @@ function BacklinksPanel(): React.JSX.Element | null {
                   {bl.name}
                 </span>
                 {bl.snippet && (
-                  <span className="block text-xs text-white/40 mt-0.5 truncate">
-                    {bl.snippet}
-                  </span>
+                  <span className="block text-xs text-white/40 mt-0.5 truncate">{bl.snippet}</span>
                 )}
               </button>
             </li>
@@ -516,6 +827,9 @@ export function NoteView(): React.JSX.Element {
   // Optimistic toggle state: lineIndex → overridden checked value
   const [optimisticToggles, setOptimisticToggles] = useState<Record<number, boolean>>({})
 
+  // Block reference navigation: stored while waiting for the target AST to render
+  const [pendingBlockRef, setPendingBlockRef] = useState<string | null>(null)
+
   // Edit mode local state
   const [editContent, setEditContent] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -524,6 +838,9 @@ export function NoteView(): React.JSX.Element {
   // useRef avoids stale closures inside the textarea onChange debounce
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Live Preview mode state (Req 23.4, 23.5)
+  const [livePreviewContent, setLivePreviewContent] = useState('')
+  const livePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Ref to the current filePath so IPC callbacks can reference the latest value
   const currentFileRef = useRef<string | null>(currentFile)
   useEffect(() => {
@@ -535,6 +852,7 @@ export function NoteView(): React.JSX.Element {
     if (!currentFile) {
       setIsLoading(false)
       setError(null)
+      setPendingBlockRef(null)
       return
     }
 
@@ -562,8 +880,7 @@ export function NoteView(): React.JSX.Element {
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        const message =
-          err instanceof Error ? err.message : 'An unknown error occurred'
+        const message = err instanceof Error ? err.message : 'An unknown error occurred'
         setError(message)
         setIsLoading(false)
       })
@@ -584,6 +901,27 @@ export function NoteView(): React.JSX.Element {
     })
     return cleanup
   }, [dispatch])
+
+  // ---- Scroll to block reference after AST render ----
+  useEffect(() => {
+    if (!pendingBlockRef || !currentAST) return
+
+    // Use requestAnimationFrame to wait for the DOM to update after the AST render
+    const raf = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-block-id="${CSS.escape(pendingBlockRef)}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Brief highlight
+        el.classList.add('ring-2', 'ring-yellow-500/40', 'rounded')
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-yellow-500/40', 'rounded')
+        }, 2000)
+      }
+      setPendingBlockRef(null)
+    })
+
+    return () => cancelAnimationFrame(raf)
+  }, [pendingBlockRef, currentAST])
 
   // ---- Initialise editContent when entering edit mode ----
   useEffect(() => {
@@ -617,7 +955,7 @@ export function NoteView(): React.JSX.Element {
   }, [currentFile, editContent])
 
   // ---- Toggle edit mode ----
-  const enterEditMode = useCallback(async () => {
+  const enterEditMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     try {
       const result = await window.electron.note.getRaw(currentFile)
@@ -627,7 +965,7 @@ export function NoteView(): React.JSX.Element {
     }
   }, [currentFile, dispatch])
 
-  const exitEditMode = useCallback(async () => {
+  const exitEditMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     // Clear auto-save timer
     if (autoSaveTimer.current !== null) {
@@ -641,6 +979,26 @@ export function NoteView(): React.JSX.Element {
       console.error('[NoteView] file.get on exit error:', err)
     }
     dispatch({ type: 'EDIT_MODE_EXIT' })
+  }, [currentFile, dispatch])
+
+  // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
+  const exitLivePreviewMode = useCallback(async (): Promise<void> => {
+    if (!currentFile) return
+    // Clear debounced parse timer
+    if (livePreviewTimer.current !== null) {
+      clearTimeout(livePreviewTimer.current)
+      livePreviewTimer.current = null
+    }
+    // Save before exiting (Req 23.5)
+    try {
+      const result = await window.electron.note.save(currentFile, livePreviewContent)
+      if (!result.success) {
+        console.error('[NoteView] Live Preview save error:', result.error)
+      }
+    } catch (err) {
+      console.error('[NoteView] Live Preview save error:', err)
+    }
+    dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
   }, [currentFile, dispatch])
 
   // ---- Keyboard shortcuts: Cmd+E and Cmd+S ----
@@ -700,10 +1058,45 @@ export function NoteView(): React.JSX.Element {
   // ---- Wiki link navigation handler ----
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
-    (filePath: string) => {
-      window.electron.file.get(filePath).then((fileAST) => {
-        dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-      }).catch(console.error)
+    (filePath: string, blockRef?: string) => {
+      window.electron.file
+        .get(filePath)
+        .then((fileAST) => {
+          dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+          if (blockRef) {
+            // After the AST is dispatched, the next render will trigger the
+            // scroll-to-block effect in the useEffect below.
+            setPendingBlockRef(blockRef)
+          }
+        })
+        .catch(console.error)
+    },
+    [dispatch]
+  )
+
+  // ---- Properties save handler ----
+  const handlePropertiesSave = useCallback(
+    async (newYaml: string) => {
+      if (!currentFile) return
+      try {
+        const result = await window.electron.properties.write(currentFile, newYaml)
+        if (!result.success) {
+          console.error('[NoteView] properties write error:', result.error)
+        }
+      } catch (err) {
+        console.error('[NoteView] properties save error:', err)
+      }
+    },
+    [currentFile]
+  )
+
+  // ---- Property search handler (Req 13.5) ----
+  const handlePropertySearch = useCallback(
+    (propertyName: string, propertyValue: string) => {
+      dispatch({
+        type: 'SEARCH_PANEL_OPEN_WITH_QUERY',
+        payload: `property:${propertyName}:${propertyValue}`
+      })
     },
     [dispatch]
   )
@@ -760,8 +1153,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         setIsLoading(false)
       })
       .catch((err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : 'An unknown error occurred'
+        const message = err instanceof Error ? err.message : 'An unknown error occurred'
         setError(message)
         setIsLoading(false)
       })
@@ -773,15 +1165,14 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
     optimisticToggles,
     onToggle: handleTaskToggle,
     onNavigate: handleNavigate,
-    vaultFiles: state.vault?.files ?? []
+    vaultFiles: state.vault?.files ?? [],
+    embedDepth: 0,
+    aliasIndex: state.extendedIndex?.aliasIndex
   }
 
   // ---- Render ----
   return (
-    <div
-      className="note-view flex-1 overflow-y-auto h-full"
-      aria-label="Note view"
-    >
+    <div className="note-view flex-1 overflow-y-auto h-full" aria-label="Note view">
       {/* No file selected */}
       {!currentFile && <NoteEmpty />}
 
@@ -790,11 +1181,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
 
       {/* Error state */}
       {currentFile && !isLoading && error !== null && (
-        <NoteError
-          filePath={currentFile}
-          message={error}
-          onRetry={handleRetry}
-        />
+        <NoteError filePath={currentFile} message={error} onRetry={handleRetry} />
       )}
 
       {/* Edit mode UI */}
@@ -811,15 +1198,9 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               View Mode
             </button>
             <div className="flex items-center gap-2">
-              {saveStatus === 'saving' && (
-                <span className="text-xs text-white/50">Saving…</span>
-              )}
-              {saveStatus === 'saved' && (
-                <span className="text-xs text-white/50">Auto-saved</span>
-              )}
-              {saveStatus === 'error' && (
-                <span className="text-xs text-red-400">{saveError}</span>
-              )}
+              {saveStatus === 'saving' && <span className="text-xs text-white/50">Saving…</span>}
+              {saveStatus === 'saved' && <span className="text-xs text-white/50">Auto-saved</span>}
+              {saveStatus === 'error' && <span className="text-xs text-red-400">{saveError}</span>}
               <button
                 type="button"
                 aria-label="Save note"
@@ -831,12 +1212,11 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               </button>
             </div>
           </div>
-          {/* textarea */}
-          <textarea
-            aria-label="Edit note"
+          {/* CodeMirror editor */}
+          <MarkdownEditor
             value={editContent}
-            onChange={(e) => {
-              setEditContent(e.target.value)
+            onChange={(val) => {
+              setEditContent(val)
               setEditDirty(true)
               // Reset auto-save debounce
               if (autoSaveTimer.current !== null) clearTimeout(autoSaveTimer.current)
@@ -844,55 +1224,119 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 if (editDirty) saveNote().catch(console.error)
               }, 1000)
             }}
-            className="flex-1 w-full resize-none bg-transparent text-nabu-text text-sm font-mono focus:outline-none border border-nabu-border rounded p-3"
+          />
+        </div>
+      )}
+
+      {/* Live Preview mode UI (Req 23.4, 23.5) */}
+      {currentFile && state.livePreviewMode && (
+        <div className="live-preview-mode flex flex-col h-full px-8 py-6">
+          {/* toolbar */}
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              aria-label="Switch to view mode"
+              onClick={() => exitLivePreviewMode().catch(console.error)}
+              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+            >
+              View Mode
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Save note"
+                onClick={() =>
+                  window.electron.note.save(currentFile, livePreviewContent).catch(console.error)
+                }
+                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+          {/* CodeMirror editor in Live Preview mode */}
+          <MarkdownEditor
+            value={livePreviewContent}
+            onChange={(val) => {
+              setLivePreviewContent(val)
+              // Debounced re-parse for Live Preview (Req 23.4)
+              if (livePreviewTimer.current !== null) clearTimeout(livePreviewTimer.current)
+            }}
           />
         </div>
       )}
 
       {/* Rendered note content (view mode) */}
-      {currentFile && !state.editMode && !isLoading && error === null && currentAST !== null && (
-        <>
-          {/* View/edit toolbar */}
-          <div className="flex items-center justify-end gap-2 px-8 pt-4">
-            <button
-              type="button"
-              aria-label="Export as PDF"
-              aria-disabled={!currentFile}
-              disabled={!currentFile}
-              onClick={() => window.print()}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      {currentFile &&
+        !state.editMode &&
+        !state.livePreviewMode &&
+        !isLoading &&
+        error === null &&
+        currentAST !== null && (
+          <>
+            {/* View/edit toolbar */}
+            <div className="flex items-center justify-end gap-2 px-8 pt-4">
+              {currentFile && <FavoriteToggle filePath={currentFile} size="md" />}
+              <button
+                type="button"
+                aria-label="Export as PDF"
+                aria-disabled={!currentFile}
+                disabled={!currentFile}
+                onClick={() => window.print()}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                PDF
+              </button>
+              <button
+                type="button"
+                aria-label="Export as HTML"
+                aria-disabled={!currentFile}
+                disabled={!currentFile}
+                onClick={handleExportHtml}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                HTML
+              </button>
+              <button
+                type="button"
+                aria-label="Switch to edit mode"
+                onClick={() => enterEditMode().catch(console.error)}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+            <article
+              ref={articleRef}
+              className="note-content max-w-2xl mx-auto px-8 py-6"
+              aria-label="Note content"
             >
-              PDF
-            </button>
-            <button
-              type="button"
-              aria-label="Export as HTML"
-              aria-disabled={!currentFile}
-              disabled={!currentFile}
-              onClick={handleExportHtml}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              HTML
-            </button>
-            <button
-              type="button"
-              aria-label="Switch to edit mode"
-              onClick={() => enterEditMode().catch(console.error)}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors"
-            >
-              Edit
-            </button>
-          </div>
-          <article
-            ref={articleRef}
-            className="note-content max-w-2xl mx-auto px-8 py-6"
-            aria-label="Note content"
-          >
-            {currentAST.children.map((child, i) => renderNode(child, renderCtx, i))}
-            <BacklinksPanel />
-          </article>
-        </>
-      )}
+              {/* YAML frontmatter → PropertiesView */}
+              {(() => {
+                const yamlNode = currentAST.children.find(
+                  (c) => c.type === 'yaml' || (c as unknown as { type: string }).type === 'toml'
+                ) as { value?: string } | undefined
+                const yamlValue = yamlNode?.value ?? null
+                return (
+                  <PropertiesView
+                    key="properties"
+                    yamlValue={yamlValue}
+                    onSave={handlePropertiesSave}
+                    onPropertySearch={handlePropertySearch}
+                  />
+                )
+              })()}
+              {currentAST.children
+                .filter(
+                  (child) =>
+                    child.type !== 'yaml' && (child as unknown as { type: string }).type !== 'toml'
+                )
+                .map((child, i) => renderNode(child, renderCtx, i))}
+              <OutgoingLinksPanel />
+              <BacklinksPanel />
+            </article>
+          </>
+        )}
     </div>
   )
 }

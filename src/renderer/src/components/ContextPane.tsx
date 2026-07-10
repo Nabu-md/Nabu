@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Node, Root, Text } from 'mdast'
+import { SearchResult } from '../../../shared/types'
 import { useAppContext } from '../App'
 
 // ---------------------------------------------------------------------------
@@ -21,10 +22,7 @@ function extractPlainText(node: Node): string {
 }
 
 function astToPlainText(ast: Root): string {
-  return ast.children
-    .map(extractPlainText)
-    .join('\n')
-    .trim()
+  return ast.children.map(extractPlainText).join('\n').trim()
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +62,14 @@ function ChevronIcon({ direction }: ChevronProps): React.JSX.Element {
 
 export function ContextPane(): React.JSX.Element {
   const { state, dispatch } = useAppContext()
-  const { contextPaneOpen, currentFile, currentAST, contextResults } = state
+  const {
+    contextPaneOpen,
+    currentFile,
+    currentAST,
+    contextResults,
+    vectorDisabled,
+    vectorDisabledReason
+  } = state
 
   // ---- Trigger context query when the current file changes ----
   useEffect(() => {
@@ -73,9 +78,27 @@ export function ContextPane(): React.JSX.Element {
     const text = currentAST ? astToPlainText(currentAST) : currentFile
     if (!text) return
 
-    window.electron.context.query(text).catch((err: unknown) => {
-      console.error('[ContextPane] context.query failed:', err)
-    })
+    window.electron.context
+      .query(text)
+      .then((response) => {
+        // response is either SearchResult[] (v1 compat) or { results, disabled?, reason? }
+        const data = Array.isArray(response)
+          ? { results: response }
+          : (response as { results: SearchResult[]; disabled?: boolean; reason?: string })
+
+        dispatch({ type: 'CONTEXT_RESULTS', payload: data.results })
+
+        // Surface disabled/empty index state (Requirement 1.7)
+        if (data.disabled) {
+          dispatch({
+            type: 'VECTOR_STATUS_UPDATED',
+            payload: { disabled: true, reason: data.reason ?? null }
+          })
+        }
+      })
+      .catch((err: unknown) => {
+        console.error('[ContextPane] context.query failed:', err)
+      })
   }, [currentFile, currentAST])
 
   // ---- Toggle handler ----
@@ -123,7 +146,17 @@ export function ContextPane(): React.JSX.Element {
             style={{ minHeight: '80px' }}
             aria-label="Context search results"
           >
-            {contextResults.length === 0 ? (
+            {/* Non-blocking notice when the vector model failed to load (Req 1.4) */}
+            {vectorDisabled && (
+              <p
+                className="text-xs text-amber-400/80 py-2 select-none leading-relaxed"
+                role="status"
+              >
+                Semantic search unavailable: {vectorDisabledReason ?? 'Embedding model not loaded'}
+              </p>
+            )}
+
+            {!vectorDisabled && contextResults.length === 0 ? (
               <p className="text-xs text-white/30 py-2 select-none">No related notes found</p>
             ) : (
               contextResults.map((result) => (
@@ -141,9 +174,7 @@ export function ContextPane(): React.JSX.Element {
                   <span className="text-xs text-nabu-accent font-mono shrink-0">
                     {result.score.toFixed(2)}
                   </span>
-                  <span className="text-xs text-white/40 shrink-0">
-                    {result.tokenCount} tokens
-                  </span>
+                  <span className="text-xs text-white/40 shrink-0">{result.tokenCount} tokens</span>
                 </div>
               ))
             )}

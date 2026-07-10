@@ -92,9 +92,7 @@ test.describe('full user workflow', () => {
     await expect(noteContent).toContainText('Welcome to Test Vault')
 
     // Req 7.4: active file entry gets aria-current="page"
-    const fileItem = page
-      .locator('[role="tree"] [role="button"]')
-      .filter({ hasText: 'index.md' })
+    const fileItem = page.locator('[role="tree"] [role="button"]').filter({ hasText: 'index.md' })
     await expect(fileItem).toHaveAttribute('aria-current', 'page', { timeout: 3_000 })
   })
 
@@ -341,10 +339,7 @@ test.describe('external edit detection', () => {
       path.join(tmpDir, 'index.md'),
       '# Original Title\n\nOriginal content here.\n'
     )
-    await fs.writeFile(
-      path.join(tmpDir, 'linked-note.md'),
-      '# Linked Note\n\nLinked content.\n'
-    )
+    await fs.writeFile(path.join(tmpDir, 'linked-note.md'), '# Linked Note\n\nLinked content.\n')
     indexPath = path.join(tmpDir, 'index.md')
 
     handle = await launchApp(tmpDir)
@@ -469,10 +464,9 @@ test.describe('vault persistence', () => {
 
       // Open the note to confirm full round-trip works
       await openFile(handle, 'persist-test.md')
-      await expect(handle.page.locator('.note-content')).toContainText(
-        'Persistence Test',
-        { timeout: 5_000 }
-      )
+      await expect(handle.page.locator('.note-content')).toContainText('Persistence Test', {
+        timeout: 5_000
+      })
 
       // Close the app
       await handle.electronApp.close()

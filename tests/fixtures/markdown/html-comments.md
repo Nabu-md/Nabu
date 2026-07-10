@@ -6,7 +6,7 @@ Before comment.
 
 After comment.
 
-<!-- 
+<!--
   Multi-line
   HTML comment
 -->

@@ -8,7 +8,7 @@ Paragraph inside outer toggle.
 - List item two
 
 | Col A | Col B |
-|-------|-------|
+| ----- | ----- |
 | val1  | val2  |
 
 ## Regular Heading

@@ -73,7 +73,7 @@ body {
    ============================================================ */
 
 /* Dark (default) */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --nabu-bg: #0a0a0a;
   --nabu-bg-soft: #18181b;
   --nabu-bg-mute: #1a1a1a;
@@ -87,7 +87,7 @@ body {
 }
 
 /* Light */
-[data-theme="light"] {
+[data-theme='light'] {
   --nabu-bg: #ffffff;
   --nabu-bg-soft: #fafafa;
   --nabu-bg-mute: #f5f5f5;
@@ -101,7 +101,7 @@ body {
 }
 
 /* System — defaults to dark, switches to light via media query */
-[data-theme="system"] {
+[data-theme='system'] {
   --nabu-bg: #0a0a0a;
   --nabu-bg-soft: #18181b;
   --nabu-bg-mute: #1a1a1a;
@@ -115,7 +115,7 @@ body {
 }
 
 @media (prefers-color-scheme: light) {
-  [data-theme="system"] {
+  [data-theme='system'] {
     --nabu-bg: #ffffff;
     --nabu-bg-soft: #fafafa;
     --nabu-bg-mute: #f5f5f5;
@@ -134,6 +134,12 @@ body {
    ============================================================ */
 
 @media print {
-  .sidebar, .context-pane, .activity-timeline { display: none !important; }
-  .note-container { display: block !important; }
+  .sidebar,
+  .context-pane,
+  .activity-timeline {
+    display: none !important;
+  }
+  .note-container {
+    display: block !important;
+  }
 }

@@ -5,32 +5,34 @@ import { IPCChannel } from '../shared/channels'
 const electronAPI = {
   vault: {
     open: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VAULT_OPEN),
-    close: (): Promise<void> => ipcRenderer.invoke(IPCChannel.VAULT_CLOSE),
+    close: (vaultId?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_CLOSE, { vaultId }),
+    switch: (vaultId: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_SWITCH, { vaultId }),
+    getRecents: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VAULT_GET_RECENTS, {}),
     getCurrent: (): Promise<unknown> => ipcRenderer.invoke('vault:get-current'),
     create: (parentPath: string, name: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.VAULT_CREATE, { parentPath, name }),
     scan: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VAULT_SCAN, {}),
+    openInNewWindow: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, { path })
   },
   file: {
-    get: (path: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.FILE_GET, { path }),
+    get: (path: string, vaultId?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FILE_GET, { path, vaultId }),
     readAsset: (path: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.ASSET_READ, { path }),
+      ipcRenderer.invoke(IPCChannel.ASSET_READ, { path })
   },
   folder: {
     create: (path: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.FOLDER_CREATE, { path }),
+      ipcRenderer.invoke(IPCChannel.FOLDER_CREATE, { path })
   },
   note: {
-    create: (
-      vaultPath: string,
-      name: string,
-      templateContent?: string
-    ): Promise<unknown> =>
+    create: (vaultPath: string, name: string, templateContent?: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.NOTE_CREATE, {
         vaultPath,
         name,
-        templateContent,
+        templateContent
       }),
     save: (path: string, content: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.NOTE_SAVE, { path, content }),
@@ -42,66 +44,84 @@ const electronAPI = {
       ipcRenderer.invoke(IPCChannel.NOTE_GET_RAW, { path }),
     exportHtml: (path: string, html: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.NOTE_EXPORT_HTML, { path, html }),
+    daily: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.NOTE_DAILY, { vaultPath })
+  },
+  favorites: {
+    get: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_GET, { vaultPath }),
+    toggle: (vaultPath: string, filePath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_TOGGLE, { vaultPath, filePath }),
+    remove: (vaultPath: string, filePath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.FAVORITES_REMOVE, { vaultPath, filePath })
   },
   templates: {
     list: (vaultPath: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.TEMPLATES_LIST, { vaultPath }),
+      ipcRenderer.invoke(IPCChannel.TEMPLATES_LIST, { vaultPath })
   },
   settings: {
-    get: (key: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.SETTINGS_GET, { key }),
+    get: (key: string): Promise<unknown> => ipcRenderer.invoke(IPCChannel.SETTINGS_GET, { key }),
     set: (key: string, value: unknown): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.SETTINGS_SET, { key, value }),
+    getFeatureToggles: (): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SETTINGS_GET_FEATURE_TOGGLES),
+    setFeatureToggle: (id: string, enabled: boolean): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SETTINGS_SET_FEATURE_TOGGLE, { id, enabled })
   },
   task: {
     toggle: (path: string, lineIndex: number): Promise<void> =>
-      ipcRenderer.invoke(IPCChannel.TASK_TOGGLE, { path, lineIndex }),
+      ipcRenderer.invoke(IPCChannel.TASK_TOGGLE, { path, lineIndex })
   },
   context: {
     query: (text: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.CONTEXT_QUERY, { text }),
+    reindex: (vaultPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.CONTEXT_REINDEX, { vaultPath }),
+    status: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.VECTOR_STATUS, {})
+  },
+  search: {
+    query: (queryString: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.SEARCH_QUERY, { query: queryString })
+  },
+  properties: {
+    read: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PROPERTIES_READ, { path }),
+    write: (path: string, yaml: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PROPERTIES_WRITE, { path, yaml })
   },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.NOTE_LOADED, listener)
       return () => ipcRenderer.removeListener(IPCChannel.NOTE_LOADED, listener)
     },
     noteUpdated: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.NOTE_UPDATED, listener)
       return () => ipcRenderer.removeListener(IPCChannel.NOTE_UPDATED, listener)
     },
     noteDeleted: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.NOTE_DELETED, listener)
       return () => ipcRenderer.removeListener(IPCChannel.NOTE_DELETED, listener)
     },
     contextSearch: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.CONTEXT_SEARCH, listener)
-      return () =>
-        ipcRenderer.removeListener(IPCChannel.CONTEXT_SEARCH, listener)
+      return () => ipcRenderer.removeListener(IPCChannel.CONTEXT_SEARCH, listener)
     },
     activityLog: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.ACTIVITY_LOG, listener)
       return () => ipcRenderer.removeListener(IPCChannel.ACTIVITY_LOG, listener)
     },
     vaultOpened: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on('vault:opened-test', listener)
       return () => ipcRenderer.removeListener('vault:opened-test', listener)
     },
     notesLoaded: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.NOTES_LOADED, listener)
       return () => ipcRenderer.removeListener(IPCChannel.NOTES_LOADED, listener)
     },
@@ -126,12 +146,11 @@ const electronAPI = {
       return () => ipcRenderer.removeListener('setup:open', listener)
     },
     indexBuild: (callback: (data: unknown) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: unknown): void =>
-        callback(data)
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.INDEX_BUILD, listener)
       return () => ipcRenderer.removeListener(IPCChannel.INDEX_BUILD, listener)
-    },
-  },
+    }
+  }
 }
 
 if (process.contextIsolated) {
