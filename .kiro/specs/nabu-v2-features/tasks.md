@@ -434,27 +434,27 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 11 — Hardening, E2E & Release
 
-- [ ] 77. Cross-cutting JSDoc + requirement traceability sweep
+- [x] 77. Cross-cutting JSDoc + requirement traceability sweep
   - Ensure every new/modified source file cites `Requirements: N.M` in its header; verify no v1 requirement citations were dropped.
   - _Requirements: 26.3_
 
-- [ ] 78. Security review
+- [x] 78. Security review
   - Confirm no v2 feature enables `allow-same-origin`, `nodeIntegration`, or asset access outside the vault root; confirm `contextIsolation` remains on.
   - _Requirements: 26.4_
 
-- [ ] 79. Error-handling sweep
+- [x] 79. Error-handling sweep
   - Verify no v2 feature silently swallows errors; user-facing failures show messages; developer-facing failures log with context.
   - _Requirements: 26.7_
 
-- [ ] 80. Theme + string audit
+- [x] 80. Theme + string audit
   - Verify all new UI reads CSS variables (no hard-coded colours) and all user-facing strings are plain text.
   - _Requirements: 26.6_
 
-- [ ] 81. Documentation update
+- [x] 81. Documentation update
   - Update README (feature list, roadmap: move multi-vault/advanced-search/live-preview/split-panes out of "v2 planned"), ARCHITECTURE (Vault_Registry, Renderer_Remark_Pipeline, PaneLayout, feature toggle registry, tab groups), CHANGELOG.
   - _Requirements: 26.8_
 
-- [ ] 82. Full regression sweep
+- [x] 82. Full regression sweep
   - Run the entire Vitest suite + all Playwright e2e specs; confirm the v1 correctness properties still hold and the v2 properties pass.
   - _Requirements: 26.5_
   - **Validates: Requirements 26.1, 26.2, 26.3, 26.4, 26.5, 26.6, 26.7, 26.8**
