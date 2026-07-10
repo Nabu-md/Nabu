@@ -89,6 +89,12 @@ const electronAPI = {
     write: (path: string, yaml: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.PROPERTIES_WRITE, { path, yaml })
   },
+  viewState: {
+    getFold: (vaultPath: string, notePath: string, headingId: string): Promise<boolean> =>
+      ipcRenderer.invoke(IPCChannel.VIEW_STATE_GET_FOLD, { vaultPath, notePath, headingId }),
+    setFold: (vaultPath: string, notePath: string, headingId: string, isOpen: boolean): Promise<void> =>
+      ipcRenderer.invoke(IPCChannel.VIEW_STATE_SET_FOLD, { vaultPath, notePath, headingId, isOpen })
+  },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)

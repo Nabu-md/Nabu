@@ -16,6 +16,9 @@ export enum IPCChannel {
   CONTEXT_QUERY = 'context:query',
   CONTEXT_SEARCH = 'context:search',
   ACTIVITY_LOG = 'activity:log',
+  // View state for collapsible headings (Phase 2)
+  VIEW_STATE_GET_FOLD = 'view-state:get-fold',
+  VIEW_STATE_SET_FOLD = 'view-state:set-fold',
   // v1 channels
   VAULT_CREATE = 'vault:create',
   FOLDER_CREATE = 'folder:create',

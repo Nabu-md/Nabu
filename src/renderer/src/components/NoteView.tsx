@@ -231,6 +231,9 @@ interface RenderContext {
   vaultFiles: import('@shared/types').FileEntry[]
   embedDepth: number
   aliasIndex?: Map<string, string[]>
+  // Collapsible heading state (Phase 2)
+  headingFoldStates: Record<string, boolean>
+  onHeadingToggle: (headingId: string) => void
 }
 
 /** Extract a block identifier from a node's data, if present. */
@@ -362,15 +365,42 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
       6: 'text-xs font-semibold mt-2 mb-1 text-white/65'
     }
     const bid = blockIdFrom(node)
+
+    // Generate heading ID for fold state tracking (Phase 2)
+    const headingText = n.children
+      .filter((c): c is Text => c.type === 'text')
+      .map((c) => c.value)
+      .join('')
+    const headingId = `${depth}-${headingText
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')}-${key}`
+
+    // Check if this heading is folded (default open)
+    const isFolded = !ctx.headingFoldStates[headingId]
+
     return (
-      <Tag
+      <div
         key={key}
-        id={`outline-heading-${key}`}
-        className={classMap[depth] ?? 'font-semibold mt-3 mb-1'}
+        className="heading-wrapper"
+        data-heading-id={headingId}
+        data-heading-depth={depth}
         data-block-id={bid}
       >
-        {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
-      </Tag>
+        <Tag
+          id={`outline-heading-${key}`}
+          className={`${classMap[depth] ?? 'font-semibold mt-3 mb-1'} flex items-center gap-1 cursor-pointer`}
+          onClick={() => ctx.onHeadingToggle(headingId)}
+        >
+          <span
+            className={`fold-indicator text-xs transition-transform ${isFolded ? '' : 'rotate-90'}`}
+            aria-label={isFolded ? 'Expand section' : 'Collapse section'}
+          >
+            ▶
+          </span>
+          {(n as Parent).children.map((child, i) => renderNode(child, ctx, i))}
+        </Tag>
+      </div>
     )
   }
 
@@ -1169,6 +1199,21 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
       })
   }, [currentFile, dispatch])
 
+  // ---- Heading fold state management (Phase 2) ----
+  const [headingFoldStates, setHeadingFoldStates] = useState<Record<string, boolean>>({})
+
+  const handleHeadingToggle = useCallback(async (headingId: string) => {
+    if (!currentFile || !state.vault) return
+    const newState = !headingFoldStates[headingId]
+    setHeadingFoldStates((prev) => ({ ...prev, [headingId]: newState }))
+    // Persist to main process
+    try {
+      await window.electron.viewState?.setFold(state.vault.path, currentFile, headingId, newState)
+    } catch {
+      // viewState API may not be available yet
+    }
+  }, [currentFile, headingFoldStates, state.vault])
+
   // ---- Render context ----
   const renderCtx: RenderContext = {
     filePath: currentFile ?? '',
@@ -1177,7 +1222,9 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
     onNavigate: handleNavigate,
     vaultFiles: state.vault?.files ?? [],
     embedDepth: 0,
-    aliasIndex: state.extendedIndex?.aliasIndex
+    aliasIndex: state.extendedIndex?.aliasIndex,
+    headingFoldStates,
+    onHeadingToggle: handleHeadingToggle
   }
 
   // ---- Render ----

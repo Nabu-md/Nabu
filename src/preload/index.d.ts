@@ -89,6 +89,19 @@ declare global {
         ): Promise<{ path: string; properties: Record<string, unknown>; yaml: string }>
         write(path: string, yaml: string): Promise<{ success: boolean; error?: string }>
       }
+      viewState: {
+        getFold(
+          vaultPath: string,
+          notePath: string,
+          headingId: string
+        ): Promise<boolean>
+        setFold(
+          vaultPath: string,
+          notePath: string,
+          headingId: string,
+          isOpen: boolean
+        ): Promise<void>
+      }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
         noteUpdated(

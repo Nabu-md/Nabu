@@ -545,3 +545,23 @@ export type FeatureToggle = z.infer<typeof FeatureToggleSchema>
 export type FeatureTogglesResult = z.infer<typeof FeatureTogglesResultSchema>
 export type SetFeatureTogglePayload = z.infer<typeof SetFeatureToggleSchema>
 export type SetFeatureToggleResult = z.infer<typeof SetFeatureToggleResultSchema>
+
+// ---------------------------------------------------------------------------
+// View state schemas (Phase 2 - Collapsible Headings)
+// ---------------------------------------------------------------------------
+
+export const ViewStateGetFoldSchema = z.object({
+  vaultPath: z.string(),
+  notePath: z.string(),
+  headingId: z.string()
+})
+
+export const ViewStateSetFoldSchema = z.object({
+  vaultPath: z.string(),
+  notePath: z.string(),
+  headingId: z.string(),
+  isOpen: z.boolean()
+})
+
+export type ViewStateGetFoldPayload = z.infer<typeof ViewStateGetFoldSchema>
+export type ViewStateSetFoldPayload = z.infer<typeof ViewStateSetFoldSchema>
