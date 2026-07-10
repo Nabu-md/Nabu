@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Node, Parent } from 'mdast'
 import { FileEntry } from '@shared/types'
 import { useAppContext } from '../../App'
+import { OCRTextPanel } from './OCRTextPanel'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -128,13 +129,18 @@ export function EmbedBlock({
             return
           }
 
+          // Store the resolved path for OCR check
+          const resolvedImagePath = resolvedPath
           setData(
-            <img
-              src={result.dataUri}
-              alt={target}
-              className="max-w-full h-auto rounded my-2"
-              loading="lazy"
-            />
+            <>
+              <img
+                src={result.dataUri}
+                alt={target}
+                className="max-w-full h-auto rounded my-2"
+                loading="lazy"
+              />
+              <OCRTextPanel imagePath={resolvedImagePath} vaultPath={vaultPath} />
+            </>
           )
           setEmbedState('ready')
           return

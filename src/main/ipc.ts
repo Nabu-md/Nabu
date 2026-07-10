@@ -72,6 +72,7 @@ import { loadSettings, saveSettings } from './settings'
 import { substituteVariables } from './templates'
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
 import { vaultRegistry } from './vault-registry'
+import { enqueueOCR, createOCRCompanionNote } from './ocr-manager'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -364,6 +365,31 @@ export function buildWatcherConfig(
       })
       // Notify the renderer
       sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
+    },
+
+    onImageAdded: async (filePath: string) => {
+      // OCR processing (Req 39.2) - process image and create companion note
+      try {
+        const ocrResult = await enqueueOCR(filePath, vaultPath)
+        if (ocrResult) {
+          // Create companion .ocr.md note
+          const companionPath = await createOCRCompanionNote(filePath, ocrResult, vaultPath)
+          if (companionPath) {
+            // Index the companion note - trigger incremental index update
+            try {
+              const indexResult = await (stateManager as any).updateIndexesForFile?.(companionPath)
+              if (indexResult) {
+                sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+              }
+            } catch {
+              // updateIndexesForFile not yet available — silently ignore
+            }
+          }
+        }
+      } catch (ocrErr) {
+        // Graceful degradation - log but don't fail (Req 39.6)
+        console.debug(`[OCR] Failed for image ${filePath}: ${String(ocrErr)}`)
+      }
     },
 
     onError: (error: Error) => {

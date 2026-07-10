@@ -467,40 +467,33 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 ```json
 {
   "waves": [
-    { "id": 0, "tasks": ["1", "2", "6"], "note": "Phase 1 foundations: vector wiring + extended index module (parallel-safe)" },
-    { "id": 1, "tasks": ["3", "4", "5", "7"], "note": "Phase 1 IPC + integration; depends on wave 0" },
+    { "id": 0, "tasks": ["1", "2", "6"], "note": "Phase 1 foundations" },
+    { "id": 1, "tasks": ["3", "4", "5", "7"], "note": "Phase 1 IPC + integration" },
     { "id": 2, "tasks": ["8"], "note": "Phase 1 verification gate" },
-
-    { "id": 3, "tasks": ["9", "12", "14", "16", "24"], "note": "Phase 2/3 pure modules: search-query, fuzzy, command registry, outgoing links, block-ref parser (parallel-safe; search-query depends on wave 0's extended index)" },
-    { "id": 4, "tasks": ["10", "11", "13", "15", "17", "19", "21", "23", "25"], "note": "Phase 2/3 UI + IPC; depends on wave 3" },
-    { "id": 5, "tasks": ["20", "22"], "note": "Phase 3 renderers depending on their plugins (callout render, mermaid)" },
+    { "id": 3, "tasks": ["9", "12", "14", "16", "24"], "note": "Phase 2/3 pure modules" },
+    { "id": 4, "tasks": ["10", "11", "13", "15", "17", "19", "21", "23", "25"], "note": "Phase 2/3 UI + IPC" },
+    { "id": 5, "tasks": ["20", "22"], "note": "Phase 3 renderers" },
     { "id": 6, "tasks": ["18", "26"], "note": "Phase 2/3 verification gates" },
-
-    { "id": 7, "tasks": ["27", "28", "31", "36", "37", "38", "39", "40"], "note": "Phase 4/5 features (properties, inline tags, daily, favorites, bookmarks, random, composer); properties depends on extended index" },
-    { "id": 8, "tasks": ["29", "30", "32", "33", "34"], "note": "Phase 4 metadata follow-ons (raw toggle, property search, aliases, auto-properties)" },
+    { "id": 7, "tasks": ["27", "28", "31", "36", "37", "38", "39", "40"], "note": "Phase 4/5 features" },
+    { "id": 8, "tasks": ["29", "30", "32", "33", "34"], "note": "Phase 4 metadata follow-ons" },
     { "id": 9, "tasks": ["35", "41"], "note": "Phase 4/5 verification gates" },
-
-    { "id": 10, "tasks": ["42", "43", "44", "45", "46", "47", "48", "49", "50"], "note": "Phase 6 core plugins (9 parallel-safe features; each is independent; page preview depends on extended index for snippet extraction)" },
+    { "id": 10, "tasks": ["42", "43", "44", "45", "46", "47", "48", "49", "50"], "note": "Phase 6 core plugins" },
     { "id": 11, "tasks": ["51"], "note": "Phase 6 verification gate" },
-
-    { "id": 12, "tasks": ["52", "53", "54"], "note": "Phase 7 foundations: format importers + feature toggle registry (parallel-safe)" },
-    { "id": 13, "tasks": ["55"], "note": "Phase 7 feature registration (depends on toggle registry from wave 12)" },
+    { "id": 12, "tasks": ["52", "53", "54"], "note": "Phase 7 foundations" },
+    { "id": 13, "tasks": ["55"], "note": "Phase 7 feature registration" },
     { "id": 14, "tasks": ["56"], "note": "Phase 7 verification gate" },
-
-    { "id": 15, "tasks": ["57", "58", "65"], "note": "Phase 8/9 foundations: recentVaults, Vault_Registry, shared buildProcessor (parallel-safe across phases)" },
-    { "id": 16, "tasks": ["59", "60", "66"], "note": "Phase 8/9 wiring: vaultId IPC, renderer multi-vault state, renderer pipeline" },
-    { "id": 17, "tasks": ["61", "62", "63", "67"], "note": "Phase 8/9 lifecycle + CodeMirror editor" },
-    { "id": 18, "tasks": ["68", "69"], "note": "Phase 9 live-render + mode coupling" },
+    { "id": 15, "tasks": ["57", "58", "65"], "note": "Phase 8/9 foundations" },
+    { "id": 16, "tasks": ["59", "60", "66"], "note": "Phase 8/9 wiring" },
+    { "id": 17, "tasks": ["61", "62", "63", "67"], "note": "Phase 8/9 lifecycle + editor" },
+    { "id": 18, "tasks": ["68", "69"], "note": "Phase 9 live-render" },
     { "id": 19, "tasks": ["64", "70"], "note": "Phase 8/9 verification gates" },
-
-    { "id": 20, "tasks": ["71"], "note": "Phase 10 foundation: openTabs/activeTabId conversion" },
-    { "id": 21, "tasks": ["72", "73"], "note": "Phase 10 PaneLayout + interactions; depends on wave 20" },
-    { "id": 22, "tasks": ["74"], "note": "Phase 10 Workspaces; HARD depends on Split Panes (wave 21)" },
-    { "id": 23, "tasks": ["75"], "note": "Phase 10 Tab Groups; depends on openTabs system (wave 20) + PaneLayout (wave 21)" },
+    { "id": 20, "tasks": ["71"], "note": "Phase 10 openTabs conversion" },
+    { "id": 21, "tasks": ["72", "73"], "note": "Phase 10 PaneLayout" },
+    { "id": 22, "tasks": ["74"], "note": "Phase 10 Workspaces" },
+    { "id": 23, "tasks": ["75"], "note": "Phase 10 Tab Groups" },
     { "id": 24, "tasks": ["76"], "note": "Phase 10 verification gate" },
-
-    { "id": 25, "tasks": ["77", "78", "79", "80"], "note": "Phase 11 hardening + docs (parallel-safe)" },
-    { "id": 26, "tasks": ["81", "82"], "note": "Phase 11 verify: first traceability/security/docs (wave 25), then full regression sweep" }
+    { "id": 25, "tasks": ["77", "78", "79", "80"], "note": "Phase 11 hardening" },
+    { "id": 26, "tasks": ["81", "82"], "note": "Phase 11 verify" }
   ]
 }
 ```
@@ -537,13 +530,13 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - _Requirements: 38.5_
 
 - [x] 85. Render custom tag node UI in d3
-  - Tag nodes render as rounded pills (not circles) with the tag name inside, sized by note count with a min/max radius.
+   - Tag nodes render as rounded pills (not circles) with the tag name inside, sized by note count with a min/max radius.
   - Color assignment: deterministic hashing of the tag name to a palette color (same palette as the folder-based tab groups from Phase 10, task 75).
   - Namespaced tags (`parent/child`): render as nested pills or a single pill with a shortened name + tooltip showing the full path.
   - Hover tooltip: shows tag name, note count, a preview of the 3 most recently modified notes.
   - _Requirements: 38.4, 38.6_
 
-- [ ] 86. Phase 12 verification
+- [x] 86. Phase 12 verification
   - Unit tests: tag-edge computation from `tagIndex` (co-occurrence correctness, isomorphic to file-edge graph); mode toggle reducer test.
   - E2E: open vault with tagged notes → switch to Tags mode in graph → verify tag nodes and edges render → click a tag node → verify file tree filters → switch back to Files mode → verify original graph restores.
   - Full Vitest suite green.
@@ -553,7 +546,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 13 — macOS Vision OCR Pipeline
 
-- [ ] 87. Build Swift OCR helper (`scripts/ocr.swift`)
+- [x] 87. Build Swift OCR helper (`scripts/ocr.swift`)
   - Spawned as a child process from Electron (same pattern as `scripts/fn-monitor.swift`).
   - Receives an image file path as argument.
   - Uses `VNRecognizeTextRequest` from the macOS Vision framework.
@@ -563,7 +556,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Graceful exit: code 0 on success, code 1 on permission error, code 2 on corrupt image.
   - _Requirements: 39.1, 39.4, 39.6_
 
-- [ ] 88. Wire OCR into vault image asset pipeline
+- [x] 88. Wire OCR into vault image asset pipeline
   - When an image file is added to the vault (via drag-drop, paste, `![]()` embed, or file-tree import), enqueue an OCR job through an `AsyncQueue`.
   - If OCR succeeds and extracted text is non-empty, save a companion `.ocr.md` note alongside the image: filename derived from image name (e.g. `chart.png` → `chart.ocr.md`), containing:
     - Frontmatter: `source: [[chart.png]]`, `ocr_date: <ISO timestamp>`, `ocr_model: macOS_Vision`
@@ -572,13 +565,13 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - The OCR queue is per-vault: process files sequentially to avoid saturating CPU.
   - _Requirements: 39.2, 39.3, 39.5_
 
-- [ ] 89. Display OCR text in image note view
+- [x] 89. Display OCR text in image note view
   - When viewing a note that contains an image embed (`![[chart.png]]`), if a companion `chart.ocr.md` exists, render a collapsible "Extracted text" panel below the image.
   - The panel shows the OCR text with a small "OCR (macOS Vision)" badge.
   - If no companion note exists, no panel shown (silent).
   - _Requirements: 39.7_
 
-- [ ] 90. Graceful fallback for OCR
+- [x] 90. Graceful fallback for OCR
   - Non-macOS platforms: the `scripts/ocr.swift` spawn check fails gracefully; `process.platform !== 'darwin'` guard skips OCR entirely with a single `console.debug` log.
   - macOS permission denied (code 1): log a warning, do NOT show an error dialog. OCR simply doesn't run.
   - Corrupt/unreadable image (code 2): log the image path and skip; no companion note created.
@@ -795,4 +788,3 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
     { "id": 32, "tasks": ["107", "108"], "note": "Phase 16 docs + regression" }
   ]
 }
-``` f
