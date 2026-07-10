@@ -46,12 +46,15 @@ export interface Tab {
   cursor: number
 }
 
+export type PaneLayout = 'single' | 'split-horizontal' | 'split-vertical' | 'grid'
+
 export interface AppState {
   openVaults: OpenVault[] // all open vaults (multi-vault)
   activeVaultId: string | null // currently active vault
   vault: VaultMetadata | null // active vault for backward compatibility
   openTabs: Tab[] // all open tabs (split-pane system) - Req 24.1
   activeTabId: string | null // currently active tab
+  paneLayout: PaneLayout // current layout type - Req 24.2
   currentFile: string | null // compat alias: openTabs[activeTabId]?.path
   currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
@@ -141,6 +144,7 @@ const initialState: AppState = {
   vault: null,
   openTabs: [],
   activeTabId: null,
+  paneLayout: 'single',
   currentFile: null,
   currentAST: null,
   toggleStates: new Map(),
