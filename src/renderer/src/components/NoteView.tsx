@@ -927,7 +927,7 @@ export function NoteView(): React.JSX.Element {
   }, [currentFile, editContent])
 
   // ---- Toggle edit mode ----
-  const enterEditMode = useCallback(async () => {
+  const enterEditMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     try {
       const result = await window.electron.note.getRaw(currentFile)
@@ -935,9 +935,9 @@ export function NoteView(): React.JSX.Element {
     } catch (err) {
       console.error('[NoteView] getRaw error:', err)
     }
-  }, [currentFile, dispatch]
+  }, [currentFile, dispatch])
 
-  const exitEditMode = useCallback(async () => {
+  const exitEditMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     // Clear auto-save timer
     if (autoSaveTimer.current !== null) {
@@ -951,10 +951,10 @@ export function NoteView(): React.JSX.Element {
       console.error('[NoteView] file.get on exit error:', err)
     }
     dispatch({ type: 'EDIT_MODE_EXIT' })
-  }, [currentFile, dispatch]
+  }, [currentFile, dispatch])
 
   // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
-  const enterLivePreviewMode = useCallback(async () => {
+  const enterLivePreviewMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     try {
       const result = await window.electron.note.getRaw(currentFile)
@@ -962,9 +962,9 @@ export function NoteView(): React.JSX.Element {
     } catch (err) {
       console.error('[NoteView] getRaw error for Live Preview:', err)
     }
-  }, [currentFile, dispatch]
+  }, [currentFile, dispatch])
 
-  const exitLivePreviewMode = useCallback(async () => {
+  const exitLivePreviewMode = useCallback(async (): Promise<void> => {
     if (!currentFile) return
     // Clear debounced parse timer
     if (livePreviewTimer.current !== null) {
@@ -981,7 +981,7 @@ export function NoteView(): React.JSX.Element {
       console.error('[NoteView] Live Preview save error:', err)
     }
     dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
-  }, [currentFile, dispatch]
+  }, [currentFile, dispatch])
 
   // ---- Keyboard shortcuts: Cmd+E and Cmd+S ----
   useEffect(() => {
@@ -1137,7 +1137,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         setError(message)
         setIsLoading(false)
       })
-  }, [currentFile, dispatch]
+  }, [currentFile, dispatch])
 
   // ---- Render context ----
   const renderCtx: RenderContext = {
