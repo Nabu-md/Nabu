@@ -312,6 +312,23 @@ registerFeatureToggle({
 })
 
 // ---------------------------------------------------------------------------
+// Clipboard Widget Feature
+// ---------------------------------------------------------------------------
+
+registerFeatureToggle({
+  id: 'clipboard-widget',
+  label: 'Clipboard Widget',
+  description: 'Multi-clipboard paste with floating pill UI (Cmd+§ to toggle)',
+  setup: () => {
+    // Widget lifecycle is managed in the main process via WidgetManager
+    // The renderer just needs to show the toggle state in Settings
+  },
+  teardown: () => {
+    // Widget teardown handled in main process
+  }
+})
+
+// ---------------------------------------------------------------------------
 // Export function for initialization
 // ---------------------------------------------------------------------------
 
@@ -334,7 +351,8 @@ export function resetFeatureRegistrations(): void {
     'word-count',
     'file-recovery',
     'format-converter',
-    'format-import'
+    'format-import',
+    'clipboard-widget'
   ]
   for (const id of features) {
     const ids = featureCommandMap.get(id) ?? []

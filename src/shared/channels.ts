@@ -49,5 +49,12 @@ export enum IPCChannel {
   NOTE_COMPOSE = 'note:compose',
   NOTE_UNIQUE = 'note:unique',
   SETTINGS_GET_FEATURE_TOGGLES = 'settings:getFeatureToggles',
-  SETTINGS_SET_FEATURE_TOGGLE = 'settings:setFeatureToggle'
+  SETTINGS_SET_FEATURE_TOGGLE = 'settings:setFeatureToggle',
+  // Kanban (Phase 6)
+  KANBAN_GET_DATA = 'kanban:get-data',
+  KANBAN_SET_STATUS = 'kanban:set-status',
+  // Clipboard widget
+  CLIPBOARD_HISTORY_GET = 'clipboard:history-get',
+  CLIPBOARD_HISTORY_CLEAR = 'clipboard:history-clear',
+  CLIPBOARD_HISTORY_COPY = 'clipboard:history-copy'
 }

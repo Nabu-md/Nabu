@@ -63,7 +63,12 @@ import {
   NoteRandomResultSchema,
   FavoritesGetSchema,
   FavoritesToggleSchema,
-  FavoritesRemoveSchema
+  FavoritesRemoveSchema,
+  // Kanban schemas
+  KanbanGetDataSchema,
+  KanbanGetDataResultSchema,
+  KanbanSetStatusSchema,
+  KanbanSetStatusResultSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -95,6 +100,20 @@ export function setLegacyManagers(
 ): void {
   legacyStateManager = stateManager
   legacyVectorManager = vectorManager
+}
+
+// ---------------------------------------------------------------------------
+// Widget toggle callback — bridge between feature toggle IPC and WidgetManager
+// ---------------------------------------------------------------------------
+
+let widgetToggleCallback: ((enabled: boolean) => void) | null = null
+
+/**
+ * Register a callback that fires when the clipboard-widget feature toggle
+ * changes. Called from index.ts after WidgetManager is created.
+ */
+export function onWidgetToggle(callback: (enabled: boolean) => void): void {
+  widgetToggleCallback = callback
 }
 
 // ---------------------------------------------------------------------------
@@ -517,6 +536,8 @@ export function registerIPCHandlers(
     IPCChannel.NOTE_RENAME,
     IPCChannel.NOTE_DELETE,
     IPCChannel.NOTE_GET_RAW,
+    IPCChannel.KANBAN_GET_DATA,
+    IPCChannel.KANBAN_SET_STATUS,
     IPCChannel.NOTE_EXPORT_HTML,
     IPCChannel.TEMPLATES_LIST,
     IPCChannel.ASSET_READ,
@@ -1777,12 +1798,119 @@ export function registerIPCHandlers(
     try {
       const { setFeatureEnabled } = await import('../shared/feature-toggles')
       setFeatureEnabled(id, enabled)
+
+      // Notify the widget manager when clipboard-widget toggles
+      if (id === 'clipboard-widget' && widgetToggleCallback) {
+        widgetToggleCallback(enabled)
+      }
+
       return SetFeatureToggleResultSchema.parse({ success: true })
     } catch (err) {
       const msg = `[IPC] settings:setFeatureToggle error for "${id}": ${String(err)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return SetFeatureToggleResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // kanban:get-data — scan folder for notes with frontmatter status
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.KANBAN_GET_DATA, async (_event, rawPayload) => {
+    const validation = KanbanGetDataSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] kanban:get-data validation failed: ${reason}`)
+      return KanbanGetDataResultSchema.parse({ statuses: [], cards: [] })
+    }
+
+    const { vaultPath: _vaultPath, folderPath } = validation.data
+    try {
+      const dirents = await fs.readdir(folderPath, { withFileTypes: true })
+      const mdFiles = dirents.filter((d) => d.isFile() && d.name.endsWith('.md'))
+
+      // Collect all unique statuses and their cards
+      const statusSet = new Set<string>(['Backlog', 'In Progress', 'Done'])
+      const cards: Array<{ filePath: string; title: string; content: string; tags: string[]; status: string }> = []
+
+      for (const dirent of mdFiles) {
+        const filePath = path.join(folderPath, dirent.name)
+        try {
+          const content = await fs.readFile(filePath, 'utf-8')
+          const { parsed } = extractFrontmatter(content)
+          const status = parsed.status as string | undefined
+          if (status) {
+            statusSet.add(status)
+
+            // Extract title (first heading or filename)
+            const titleMatch = content.match(/^#\s+(.+)$/m)
+            const title = titleMatch?.[1] ?? path.basename(dirent.name, '.md')
+
+            // Extract snippet (first line of meaningful content after frontmatter)
+            const contentLines = content.replace(FRONTMATTER_RE, '').trim().split('\n')
+            const snippet = contentLines.find((l) => l.trim() && !l.startsWith('#'))?.slice(0, 120) ?? ''
+
+            // Read tags from frontmatter
+            const tags = Array.isArray(parsed.tags)
+              ? parsed.tags.map(String)
+              : typeof parsed.tag === 'string'
+                ? [parsed.tag]
+                : []
+
+            cards.push({ filePath, title, content: snippet, tags, status })
+          }
+        } catch {
+          // Skip files that can't be read
+        }
+      }
+
+      return KanbanGetDataResultSchema.parse({
+        statuses: Array.from(statusSet).sort(),
+        cards
+      })
+    } catch (err) {
+      const msg = `[IPC] kanban:get-data error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return KanbanGetDataResultSchema.parse({ statuses: [], cards: [] })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // kanban:set-status — update a note's frontmatter status property
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.KANBAN_SET_STATUS, async (_event, rawPayload) => {
+    const validation = KanbanSetStatusSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] kanban:set-status validation failed: ${reason}`)
+      return KanbanSetStatusResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { vaultPath: _vaultPath2, filePath, status } = validation.data
+
+    try {
+      const content = await fs.readFile(filePath, 'utf-8')
+      const { parsed } = extractFrontmatter(content)
+
+      // Merge existing properties with new status
+      const merged = { ...parsed, status }
+      const { stringify } = require('yaml')
+      const newYamlStr = stringify(merged)
+      const newContent = replaceFrontmatterRaw(content, newYamlStr)
+
+      stateManager.setPendingWrite(filePath)
+      await fs.writeFile(filePath, newContent, 'utf-8')
+      stateManager.invalidateAST(filePath)
+      stateManager.clearPendingWrite(filePath)
+
+      return KanbanSetStatusResultSchema.parse({ success: true })
+    } catch (err) {
+      stateManager.clearPendingWrite(filePath)
+      const msg = `[IPC] kanban:set-status error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return KanbanSetStatusResultSchema.parse({ success: false, error: String(err) })
     }
   })
 }

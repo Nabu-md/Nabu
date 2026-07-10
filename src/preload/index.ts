@@ -95,6 +95,27 @@ const electronAPI = {
     setFold: (vaultPath: string, notePath: string, headingId: string, isOpen: boolean): Promise<void> =>
       ipcRenderer.invoke(IPCChannel.VIEW_STATE_SET_FOLD, { vaultPath, notePath, headingId, isOpen })
   },
+  kanban: {
+    getData: (vaultPath: string, folderPath: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.KANBAN_GET_DATA, { vaultPath, folderPath }),
+    setStatus: (vaultPath: string, filePath: string, status: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.KANBAN_SET_STATUS, { vaultPath, filePath, status })
+  },
+  clipboardHistory: {
+    get: (max: number): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.CLIPBOARD_HISTORY_GET, { max }),
+    clear: (): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.CLIPBOARD_HISTORY_CLEAR, {}),
+    copy: (text: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.CLIPBOARD_HISTORY_COPY, { text })
+  },
+  widget: {
+    toggle: (): Promise<void> => ipcRenderer.invoke('widget:toggle', {}),
+    move: (dx: number, dy: number): Promise<void> =>
+      ipcRenderer.invoke('widget:move', { dx, dy }),
+    resize: (opts: { width: number; height: number }): Promise<void> =>
+      ipcRenderer.invoke('widget:resize', opts)
+  },
   on: {
     noteLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)

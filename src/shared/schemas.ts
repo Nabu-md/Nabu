@@ -515,6 +515,42 @@ export type PropertiesReadResult = z.infer<typeof PropertiesReadResultSchema>
 export type PropertiesWritePayload = z.infer<typeof PropertiesWriteSchema>
 export type PropertiesWriteResult = z.infer<typeof PropertiesWriteResultSchema>
 
+// kanban:get-data (Renderer → Main) — fetch kanban data for a folder
+export const KanbanGetDataSchema = z.object({
+  vaultPath: z.string(),
+  folderPath: z.string()
+})
+
+export const KanbanCardSchema = z.object({
+  filePath: z.string(),
+  title: z.string(),
+  content: z.string(),
+  tags: z.array(z.string()),
+  status: z.string()
+})
+
+export const KanbanGetDataResultSchema = z.object({
+  statuses: z.array(z.string()),
+  cards: z.array(KanbanCardSchema)
+})
+
+// kanban:set-status (Renderer → Main) — update a note's kanban status
+export const KanbanSetStatusSchema = z.object({
+  vaultPath: z.string(),
+  filePath: z.string(),
+  status: z.string()
+})
+
+export const KanbanSetStatusResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+export type KanbanGetDataPayload = z.infer<typeof KanbanGetDataSchema>
+export type KanbanGetDataResult = z.infer<typeof KanbanGetDataResultSchema>
+export type KanbanSetStatusPayload = z.infer<typeof KanbanSetStatusSchema>
+export type KanbanSetStatusResult = z.infer<typeof KanbanSetStatusResultSchema>
+
 // ---------------------------------------------------------------------------
 // Feature toggle schemas
 // ---------------------------------------------------------------------------
@@ -565,3 +601,41 @@ export const ViewStateSetFoldSchema = z.object({
 
 export type ViewStateGetFoldPayload = z.infer<typeof ViewStateGetFoldSchema>
 export type ViewStateSetFoldPayload = z.infer<typeof ViewStateSetFoldSchema>
+
+// ---------------------------------------------------------------------------
+// Clipboard History schemas (Widget)
+// ---------------------------------------------------------------------------
+
+export const ClipboardEntrySchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  timestamp: z.number()
+})
+
+export const ClipboardHistoryGetResultSchema = z.object({
+  entries: z.array(ClipboardEntrySchema)
+})
+
+export const ClipboardHistoryCopySchema = z.object({
+  text: z.string()
+})
+
+export const ClipboardHistoryCopyResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+export type ClipboardEntry = z.infer<typeof ClipboardEntrySchema>
+export type ClipboardHistoryGetResult = z.infer<typeof ClipboardHistoryGetResultSchema>
+export type ClipboardHistoryCopyPayload = z.infer<typeof ClipboardHistoryCopySchema>
+export type ClipboardHistoryCopyResult = z.infer<typeof ClipboardHistoryCopyResultSchema>
+
+// ---------------------------------------------------------------------------
+// Widget settings schemas
+// ---------------------------------------------------------------------------
+
+export const WidgetToggleSchema = z.object({
+  start: z.boolean().optional()
+})
+
+export type WidgetTogglePayload = z.infer<typeof WidgetToggleSchema>

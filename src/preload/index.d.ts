@@ -102,6 +102,36 @@ declare global {
           isOpen: boolean
         ): Promise<void>
       }
+      kanban: {
+        getData(
+          vaultPath: string,
+          folderPath: string
+        ): Promise<{
+          statuses: string[]
+          cards: Array<{
+            filePath: string
+            title: string
+            content: string
+            tags: string[]
+            status: string
+          }>
+        }>
+        setStatus(
+          vaultPath: string,
+          filePath: string,
+          status: string
+        ): Promise<{ success: boolean; error?: string }>
+      }
+      clipboardHistory: {
+        get(max: number): Promise<{ entries: Array<{ id: string; text: string; timestamp: number }> }>
+        clear(): Promise<void>
+        copy(text: string): Promise<{ success: boolean; error?: string }>
+      }
+      widget: {
+        toggle(): Promise<void>
+        move(dx: number, dy: number): Promise<void>
+        resize(opts: { width: number; height: number }): Promise<void>
+      }
       on: {
         noteLoaded(callback: (data: { path: string; ast: Root }) => void): () => void
         noteUpdated(

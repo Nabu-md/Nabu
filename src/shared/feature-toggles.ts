@@ -45,7 +45,8 @@ export const DEFAULT_FEATURE_STATES: Record<string, boolean> = {
   'word-count': true,
   'file-recovery': false,
   'format-converter': false,
-  'format-import': false
+  'format-import': false,
+  'clipboard-widget': true
 }
 
 // ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ import { MermaidBlock } from './blocks/MermaidBlock'
 import { EmbedBlock } from './blocks/EmbedBlock'
 import { SandboxedHtml } from './blocks/SandboxedHtml'
 import { PropertiesView } from './blocks/PropertiesView'
+import { KanbanBlock } from './blocks/KanbanBlock'
 import { renderInlineTagText } from './blocks/InlineTagChip'
 import { FavoriteToggle } from './FavoriteToggle'
 import { MarkdownEditor } from './MarkdownEditor'
@@ -345,9 +346,61 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
 
   if (type === 'root') {
     const n = node as Root
+
+    // Group children into sections for collapsible headings (Phase 2)
+    const sections: Array<{ heading: Node | null; children: Node[] }> = []
+    let currentSection: { heading: Node | null; children: Node[] } = { heading: null, children: [] }
+
+    for (const child of n.children) {
+      if (child.type === 'heading') {
+        if (currentSection.children.length > 0 || currentSection.heading !== null) {
+          sections.push(currentSection)
+        }
+        currentSection = { heading: child, children: [] }
+      } else {
+        currentSection.children.push(child)
+      }
+    }
+    // Push the last section
+    if (currentSection.heading !== null || currentSection.children.length > 0) {
+      sections.push(currentSection)
+    }
+
     return (
       <React.Fragment key={key}>
-        {n.children.map((child, i) => renderNode(child, ctx, i))}
+        {sections.map((section, i) => {
+          if (section.heading === null) {
+            // Content before first heading — render as-is
+            return (
+              <React.Fragment key={i}>
+                {section.children.map((child, ci) => renderNode(child, ctx, ci))}
+              </React.Fragment>
+            )
+          }
+
+          const heading = section.heading as Heading
+          const headingText = heading.children
+            .filter((c): c is Text => c.type === 'text')
+            .map((c) => c.value)
+            .join('')
+          const headingId = `${heading.depth}-${headingText
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')}-${i}`
+
+          const isFolded = !ctx.headingFoldStates[headingId]
+
+          return (
+            <div key={i} className="heading-section" data-heading-id={headingId}>
+              {renderNode(heading, ctx, i)}
+              {isFolded ? null : (
+                <div className="heading-section-content">
+                  {section.children.map((child, ci) => renderNode(child, ctx, ci))}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </React.Fragment>
     )
   }
@@ -407,6 +460,17 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   if (type === 'paragraph') {
     const n = node as Paragraph
     const bid = blockIdFrom(node)
+
+    // Check for %%kanban%% directive (Phase 6)
+    const textContent = n.children
+      .filter((c): c is Text => c.type === 'text')
+      .map((c) => c.value)
+      .join('')
+    if (textContent.startsWith('%%kanban%%')) {
+      const noteFolder = ctx.filePath ? ctx.filePath.split('/').slice(0, -1).join('/') : ''
+      return <KanbanBlock key={key} folderPath={noteFolder} />
+    }
+
     return (
       <p key={key} className="my-2 leading-relaxed text-white/75 text-sm" data-block-id={bid}>
         {n.children.map((child, i) => renderNode(child, ctx, i))}

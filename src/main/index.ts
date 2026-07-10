@@ -23,10 +23,12 @@ import fs from 'fs/promises'
 import { StateManager } from './state'
 import { VectorManager } from './vector'
 import { VaultWatcher } from './watcher'
-import { registerIPCHandlers, sendToRenderer, buildWatcherConfig } from './ipc'
+import { registerIPCHandlers, sendToRenderer, buildWatcherConfig, onWidgetToggle } from './ipc'
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './settings'
 import type { AppSettings } from './settings'
+import { ClipboardHistory } from './clipboard-history'
+import { WidgetManager } from './widget-manager'
 
 // ---------------------------------------------------------------------------
 // createWindow
@@ -436,6 +438,37 @@ app.whenReady().then(async () => {
     vectorManager
       .initialize({ indexPath: nabuDir, modelPath })
       .catch((err) => console.error('[App] Vector manager init failed:', err))
+
+    // ---- Clipboard widget: start history service + widget manager ----
+    const clipboardHistory = new ClipboardHistory()
+    clipboardHistory.start()
+
+    // Register clipboard IPC handlers (widget reads/writes clipboard via these)
+    ipcMain.handle('clipboard:history-get', async (_event, { max }) => {
+      const entries = clipboardHistory.getRecent(max ?? 8)
+      return { entries }
+    })
+    ipcMain.handle('clipboard:history-clear', async () => {
+      await clipboardHistory.clear()
+    })
+    ipcMain.handle('clipboard:history-copy', async (_event, { text }) => {
+      try {
+        clipboardHistory.copyToClipboard(text)
+        return { success: true }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    })
+
+    const widgetManager = new WidgetManager()
+    widgetManager.registerIPCHandlers()
+    // Widget starts enabled by default (user can disable in Settings)
+    widgetManager.setEnabled(true)
+
+    // Wire feature-toggle changes for clipboard-widget to WidgetManager
+    onWidgetToggle((enabled: boolean) => {
+      widgetManager.setEnabled(enabled)
+    })
   })
 
   // ---- Restore last vault once the renderer is ready ----
