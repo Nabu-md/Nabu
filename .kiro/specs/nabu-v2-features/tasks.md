@@ -422,7 +422,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Group state persisted per-vault in `.nabu/tab-groups.json` alongside `workspaces.json`.
   - _Requirements: 24.9 [NEW]_
 
-- [ ] 76. Phase 10 verification
+- [x] 76. Phase 10 verification
   - Unit tests: tab/pane reducer transitions; workspace serialise/deserialise; tab group color assignment + collapse/expand.
   - Property tests: pane independence; workspace restore safety; tab group determinism.
   - E2E: open two panes, edit in one, verify the other is unaffected; open notes from `projects/` → they appear as a blue tab group; save and restore a workspace.
