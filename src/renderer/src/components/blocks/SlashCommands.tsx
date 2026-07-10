@@ -82,6 +82,14 @@ const SLASH_COMMANDS: SlashCommand[] = [
     icon: '🔽',
     category: 'Blocks'
   },
+  {
+    id: 'kanban',
+    label: 'Kanban Board',
+    keywords: 'kanban board tasks',
+    insertText: '%%kanban%%\nstatuses: [Backlog, In Progress, Done]',
+    icon: '📋',
+    category: 'Blocks'
+  },
   // Inline
   {
     id: 'date',
