@@ -33,6 +33,7 @@ import { SandboxedHtml } from './blocks/SandboxedHtml'
 import { PropertiesView } from './blocks/PropertiesView'
 import { renderInlineTagText } from './blocks/InlineTagChip'
 import { FavoriteToggle } from './FavoriteToggle'
+import { MarkdownEditor } from './MarkdownEditor'
 import katex from 'katex'
 
 // ---------------------------------------------------------------------------
@@ -1170,12 +1171,11 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               </button>
             </div>
           </div>
-          {/* textarea */}
-          <textarea
-            aria-label="Edit note"
+          {/* CodeMirror editor */}
+          <MarkdownEditor
             value={editContent}
-            onChange={(e) => {
-              setEditContent(e.target.value)
+            onChange={(val) => {
+              setEditContent(val)
               setEditDirty(true)
               // Reset auto-save debounce
               if (autoSaveTimer.current !== null) clearTimeout(autoSaveTimer.current)
@@ -1183,7 +1183,6 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 if (editDirty) saveNote().catch(console.error)
               }, 1000)
             }}
-            className="flex-1 w-full resize-none bg-transparent text-nabu-text text-sm font-mono focus:outline-none border border-nabu-border rounded p-3"
           />
         </div>
       )}
