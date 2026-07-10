@@ -172,7 +172,7 @@ describe('injectAutoProperty — combined created + modified flow', () => {
 
     // 1. Create note — inject created
     let content = injectAutoProperty('# New Note\n\nInitial.\n', 'created', createdIso, true)
-    let { parsed } = extractFrontmatter(content)
+    const { parsed } = extractFrontmatter(content)
     expect(parsed.created).toBe(createdIso)
     expect(parsed.modified).toBeUndefined()
 

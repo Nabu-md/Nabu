@@ -443,7 +443,7 @@ function filterBySnippetScan(
       // Locate the term in snippets for highlighting
       for (let i = 0; i < snippets.length; i++) {
         const lineText = snippets[i].toLowerCase()
-        let col = lineText.indexOf(term)
+        const col = lineText.indexOf(term)
         if (col !== -1) {
           addMatch(i, col, col + term.length)
         }

@@ -99,10 +99,7 @@ export function PaneLayout(): React.JSX.Element | null {
             {/* Note content area - for now, we use the currentFile based NoteView */}
             <div className="pane-content h-full">
               {/* Pane placeholder - NoteView will render based on currentFile */}
-              {isActive && (
-                // eslint-disable-next-line react-hooks/rules-of-hooks
-                <PaneContent tab={tab} />
-              )}
+              {isActive && <PaneContent tab={tab} />}
             </div>
           </div>
         )

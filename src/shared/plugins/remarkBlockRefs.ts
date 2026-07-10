@@ -55,7 +55,6 @@ export const remarkBlockRefs: Plugin<[], Root> = function () {
       const lastChild = children[children.length - 1]
       if (!lastChild || lastChild.type !== 'text') return
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const textNode = lastChild as Text & { value: string }
       const textValue = textNode.value
       const match = textValue.match(TRAILING_ID_RE)

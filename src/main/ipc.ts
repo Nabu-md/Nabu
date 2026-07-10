@@ -209,7 +209,7 @@ function extractFrontmatter(content: string): FrontmatterResult {
 
   try {
     // Use dynamic import for the ESM-compatible yaml package
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const { parse } = require('yaml')
     const parsed = parse(yamlStr)
     return {
@@ -274,7 +274,7 @@ function injectAutoProperty(
   const updated = { ...parsed, [key]: value }
 
   // Use dynamic import for the ESM-compatible yaml package (same pattern as extractFrontmatter)
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const { stringify } = require('yaml')
   const newYaml = stringify(updated)
   return replaceFrontmatterRaw(content, newYaml)

@@ -8,7 +8,7 @@
  */
 
 import type { Importer } from '../importer-base'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const mammoth = require('mammoth')
 
 export const docxImporter: Importer = {

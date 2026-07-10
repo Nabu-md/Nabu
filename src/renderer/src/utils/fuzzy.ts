@@ -95,7 +95,7 @@ export function matchScore(query: string, target: string): FieldMatch | null {
 
   for (let qi = 0; qi < q.length; qi++) {
     const ch = q[qi]
-    // eslint-disable-next-line no-constant-condition
+
     while (true) {
       if (ti >= t.length) return null // character not found
       if (t[ti] === ch) {
