@@ -109,7 +109,12 @@ export interface AppState {
   quickSwitcherOpen: boolean
   commandPaletteOpen: boolean
   recentNotes: string[]
+  /** Current graph view mode - Req 38.1 */
+  graphMode: 'files' | 'tags' | 'blocks'
 }
+
+/** Type helper for graph mode */
+export type GraphMode = 'files' | 'tags' | 'blocks'
 
 // Backward-compatible accessor (getter function)
 export function getActiveVault(state: AppState): VaultMetadata | null {
@@ -152,6 +157,7 @@ export type AppAction =
   | { type: 'TAG_FILTER_TOGGLE'; payload: string }
   | { type: 'SETTINGS_PANEL_TOGGLE' }
   | { type: 'GRAPH_VIEW_TOGGLE' }
+  | { type: 'GRAPH_MODE_CHANGED'; payload: 'files' | 'tags' | 'blocks' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
   | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
   | { type: 'EXTENDED_INDEX_BUILT'; payload: ExtendedSearchIndex }
@@ -210,7 +216,8 @@ const initialState: AppState = {
   searchResults: [],
   quickSwitcherOpen: false,
   commandPaletteOpen: false,
-  recentNotes: []
+  recentNotes: [],
+  graphMode: 'files'
 }
 
 // Generate a unique tab ID
@@ -482,6 +489,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'GRAPH_VIEW_TOGGLE':
       return { ...state, graphViewOpen: !state.graphViewOpen }
+
+    case 'GRAPH_MODE_CHANGED':
+      return { ...state, graphMode: action.payload }
 
     case 'THEME_CHANGED':
       return { ...state, theme: action.payload }
