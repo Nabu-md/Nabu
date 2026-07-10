@@ -53,14 +53,8 @@ test.beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nabu-e2e-ext-'))
 
   // Copy the fixture vault into the temp dir so we can write to it
-  await fs.writeFile(
-    path.join(tmpDir, 'index.md'),
-    '# Original Title\n\nOriginal content here.\n'
-  )
-  await fs.writeFile(
-    path.join(tmpDir, 'linked-note.md'),
-    '# Linked Note\n\nLinked content.\n'
-  )
+  await fs.writeFile(path.join(tmpDir, 'index.md'), '# Original Title\n\nOriginal content here.\n')
+  await fs.writeFile(path.join(tmpDir, 'linked-note.md'), '# Linked Note\n\nLinked content.\n')
 
   indexPath = path.join(tmpDir, 'index.md')
 
@@ -112,10 +106,7 @@ test('external edit — ActivityTimeline records entry', async () => {
   // Wait for NoteView to update (confirms IPC round-trip completed)
   await page.waitForSelector('.note-content', { timeout: 5_000 })
   await page.waitForFunction(
-    () =>
-      document
-        .querySelector('.note-content')
-        ?.textContent?.includes('Updated For Timeline'),
+    () => document.querySelector('.note-content')?.textContent?.includes('Updated For Timeline'),
     { timeout: 5_000 }
   )
 

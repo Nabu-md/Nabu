@@ -54,10 +54,7 @@ function buildNoteIndex(vaultFiles: FileEntry[]): Map<string, string[]> {
 /**
  * Resolve a wiki-link-style target to a markdown note path, or null.
  */
-function resolveNoteTarget(
-  target: string,
-  index: Map<string, string[]>
-): string | null {
+function resolveNoteTarget(target: string, index: Map<string, string[]>): string | null {
   const key = target.replace(/\.md$/i, '').toLowerCase()
   const matches = index.get(key)
   if (!matches || matches.length === 0) return null
@@ -81,7 +78,11 @@ type EmbedState = 'loading' | 'ready' | 'error'
 // Component
 // ---------------------------------------------------------------------------
 
-export function EmbedBlock({ target, embedDepth, renderNodes }: EmbedBlockProps): React.JSX.Element {
+export function EmbedBlock({
+  target,
+  embedDepth,
+  renderNodes
+}: EmbedBlockProps): React.JSX.Element {
   const { state } = useAppContext()
   const vaultFiles = state.vault?.files ?? []
   const vaultPath = state.vault?.path ?? ''
@@ -151,7 +152,7 @@ export function EmbedBlock({ target, embedDepth, renderNodes }: EmbedBlockProps)
           window.electron.file
             .get(resolvedPath)
             .then((r: unknown) => r as { path: string; ast: Parent }),
-          IPC_TIMEOUT_MS,
+          IPC_TIMEOUT_MS
         )
 
         if (cancelledRef.current) return
@@ -180,7 +181,11 @@ export function EmbedBlock({ target, embedDepth, renderNodes }: EmbedBlockProps)
   // ---- Loading state ----
   if (embedState === 'loading') {
     return (
-      <div className="my-2 rounded bg-white/[0.03] p-3 animate-pulse" aria-busy="true" aria-label="Loading embed…">
+      <div
+        className="my-2 rounded bg-white/[0.03] p-3 animate-pulse"
+        aria-busy="true"
+        aria-label="Loading embed…"
+      >
         <div className="h-4 w-3/4 rounded bg-white/10" />
       </div>
     )
@@ -194,7 +199,9 @@ export function EmbedBlock({ target, embedDepth, renderNodes }: EmbedBlockProps)
         title={error}
         aria-label={`Broken embed: ${target}`}
       >
-        <span aria-hidden="true" className="text-red-400/60">⚠</span>
+        <span aria-hidden="true" className="text-red-400/60">
+          ⚠
+        </span>
         <code className="font-mono">![[{target}]]</code>
         <span className="text-white/20">— {error}</span>
       </span>

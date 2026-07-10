@@ -32,7 +32,7 @@ describe('Bookmarks logic', () => {
   it('removes a file from all bookmark lists', () => {
     const collection: Record<string, string[]> = {
       'Reading List': ['/vault/note1.md', '/vault/note2.md'],
-      'Ideas': ['/vault/note2.md']
+      Ideas: ['/vault/note2.md']
     }
     const filePath = '/vault/note2.md'
 

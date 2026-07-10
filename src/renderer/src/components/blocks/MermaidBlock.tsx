@@ -47,7 +47,7 @@ async function ensureMermaid(theme: 'dark' | 'default'): Promise<MermaidModule> 
   if (mermaidTheme !== theme) {
     mermaidInstance.initialize({
       startOnLoad: false,
-      theme,
+      theme
     })
     mermaidTheme = theme
   }
@@ -66,15 +66,12 @@ export function MermaidBlock({ value }: MermaidBlockProps): React.JSX.Element {
   const [error, setError] = useState<string>('')
 
   // A stable ref so effect-cleanup sees the latest value without re-running
-  const diagramIdRef = useRef<string>(
-    'mermaid-' + Math.random().toString(36).slice(2, 10)
-  )
+  const diagramIdRef = useRef<string>('mermaid-' + Math.random().toString(36).slice(2, 10))
 
   // Derive the mermaid theme from the app theme
   const mermaidThemeValue: 'dark' | 'default' =
     state.theme === 'dark' ||
-    (state.theme === 'system' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches)
+    (state.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
       ? 'dark'
       : 'default'
 
@@ -100,9 +97,7 @@ export function MermaidBlock({ value }: MermaidBlockProps): React.JSX.Element {
         setDiagramState('ready')
       } catch (err) {
         if (cancelled) return
-        setError(
-          err instanceof Error ? err.message : 'Failed to render diagram'
-        )
+        setError(err instanceof Error ? err.message : 'Failed to render diagram')
         setDiagramState('error')
       }
     }
@@ -131,9 +126,7 @@ export function MermaidBlock({ value }: MermaidBlockProps): React.JSX.Element {
   if (diagramState === 'error') {
     return (
       <div className="my-3 rounded-lg border-l-4 border-l-red-500 bg-red-950/20 p-4">
-        <p className="text-xs font-semibold text-red-400 mb-1">
-          Mermaid diagram error
-        </p>
+        <p className="text-xs font-semibold text-red-400 mb-1">Mermaid diagram error</p>
         <p className="text-xs text-red-400/80 font-mono mb-2 whitespace-pre-wrap break-all">
           {error}
         </p>

@@ -41,10 +41,7 @@ export const Sidebar = forwardRef<SidebarHandle>(function Sidebar(_props, ref) {
   }, [state.selectedTags, state.tagIndex])
 
   return (
-    <aside
-      className="sidebar flex flex-col h-full overflow-hidden"
-      aria-label="Sidebar"
-    >
+    <aside className="sidebar flex flex-col h-full overflow-hidden" aria-label="Sidebar">
       <FavoritesPanel />
       <FileTree ref={fileTreeRef} tagFilteredPaths={tagFilteredPaths} />
       <TagsPanel />

@@ -11,9 +11,9 @@
  * Requirements: 3.2, 3.3, 3.4, 3.5, 3.6, 3.8
  */
 
-import type { Root } from 'mdast';
-import type { ExtendedSearchIndex } from './extended-indexing';
-import type { FileEntry } from './types';
+import type { Root } from 'mdast'
+import type { ExtendedSearchIndex } from './extended-indexing'
+import type { FileEntry } from './types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,28 +24,28 @@ import type { FileEntry } from './types';
  */
 export interface SearchQueryMatch {
   /** 1-indexed line number in the source file. */
-  line: number;
+  line: number
   /** The line's text content (truncated to SNIPPET_MAX_LENGTH). */
-  snippet: string;
+  snippet: string
   /** 0-indexed start column of the match in the snippet. */
-  startCol: number;
+  startCol: number
   /** 0-indexed end column of the match (exclusive) in the snippet. */
-  endCol: number;
+  endCol: number
 }
 
 /**
  * A file-level search result.
  */
 export interface SearchQueryResult {
-  filePath: string;
+  filePath: string
   /** File name without leading path or .md extension. */
-  name: string;
+  name: string
   /** Path relative to the vault root. */
-  relativePath: string;
+  relativePath: string
   /** Relevance score (higher = better match). */
-  score: number;
+  score: number
   /** All matching lines within the file. */
-  matches: SearchQueryMatch[];
+  matches: SearchQueryMatch[]
 }
 
 /**
@@ -53,21 +53,21 @@ export interface SearchQueryResult {
  */
 export interface ParsedQuery {
   /** path:<fragment> — filter by path substring. */
-  path?: string;
+  path?: string
   /** tag:<name> — filter by tag membership. */
-  tag?: string;
+  tag?: string
   /** line:<text> — match against line content (exact substring). */
-  line?: string;
+  line?: string
   /** content:<text> — same as line: (alias for consistency). */
-  content?: string;
+  content?: string
   /** file:<name> — filter by file name. */
-  file?: string;
+  file?: string
   /** property:<name>:<value> — filter by frontmatter property. */
-  property?: { name: string; value: string };
+  property?: { name: string; value: string }
   /** regex:<pattern> — match against line content via RegExp. */
-  regex?: string;
+  regex?: string
   /** Bare (un-prefixed) terms — all must appear in the file's tokens. */
-  bareTerms: string[];
+  bareTerms: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -75,13 +75,13 @@ export interface ParsedQuery {
 // ---------------------------------------------------------------------------
 
 /** RegExp to match leading operator:value tokens. */
-const OPERATOR_RE = /^(path|tag|line|content|file|property|regex):(.+)$/i;
+const OPERATOR_RE = /^(path|tag|line|content|file|property|regex):(.+)$/i
 
 /** RegExp to match leading property:<name>:<value> (two colons). */
-const PROPERTY_RE = /^property:([^:]+):(.*)$/i;
+const PROPERTY_RE = /^property:([^:]+):(.*)$/i
 
 /** Maximum length for line snippets in match results. */
-const SNIPPET_MAX_LENGTH = 120;
+const SNIPPET_MAX_LENGTH = 120
 
 // ---------------------------------------------------------------------------
 // Query parsing
@@ -98,11 +98,11 @@ const SNIPPET_MAX_LENGTH = 120;
  * Requirements: 3.2
  */
 export function parseQuery(query: string): ParsedQuery {
-  const result: ParsedQuery = { bareTerms: [] };
+  const result: ParsedQuery = { bareTerms: [] }
 
-  if (!query || !query.trim()) return result;
+  if (!query || !query.trim()) return result
 
-  const tokens = query.trim().split(/\s+/);
+  const tokens = query.trim().split(/\s+/)
 
   for (const token of tokens) {
     // Check property:name:value first (it has two colons, so the generic
@@ -111,44 +111,44 @@ export function parseQuery(query: string): ParsedQuery {
     // value would be a separate token. Let me reconsider.
     //
     // property:name:value can be parsed by trying PROPERTY_RE first.
-    const propMatch = token.match(PROPERTY_RE);
+    const propMatch = token.match(PROPERTY_RE)
     if (propMatch) {
-      result.property = { name: propMatch[1].toLowerCase(), value: propMatch[2] };
-      continue;
+      result.property = { name: propMatch[1].toLowerCase(), value: propMatch[2] }
+      continue
     }
 
-    const match = token.match(OPERATOR_RE);
+    const match = token.match(OPERATOR_RE)
     if (match) {
-      const [, operator, value] = match;
+      const [, operator, value] = match
       switch (operator.toLowerCase()) {
         case 'path':
-          result.path = value;
-          break;
+          result.path = value
+          break
         case 'tag':
-          result.tag = value;
-          break;
+          result.tag = value
+          break
         case 'line':
-          result.line = value;
-          break;
+          result.line = value
+          break
         case 'content':
-          result.content = value;
-          break;
+          result.content = value
+          break
         case 'file':
-          result.file = value;
-          break;
+          result.file = value
+          break
         case 'regex':
-          result.regex = value;
-          break;
+          result.regex = value
+          break
         // property is handled above before OPERATOR_RE
       }
-      continue;
+      continue
     }
 
     // Bare term
-    result.bareTerms.push(token.toLowerCase());
+    result.bareTerms.push(token.toLowerCase())
   }
 
-  return result;
+  return result
 }
 
 // ---------------------------------------------------------------------------
@@ -172,49 +172,64 @@ export function executeQuery(
   files: FileEntry[],
   vaultPath: string,
   extIndex: ExtendedSearchIndex,
-  _getAST: (path: string) => Root | undefined,
+  _getAST: (path: string) => Root | undefined
 ): SearchQueryResult[] {
   // Empty query → no results
-  if (!query.bareTerms.length && !query.path && !query.tag && !query.line &&
-      !query.content && !query.file && !query.property && !query.regex) {
-    return [];
+  if (
+    !query.bareTerms.length &&
+    !query.path &&
+    !query.tag &&
+    !query.line &&
+    !query.content &&
+    !query.file &&
+    !query.property &&
+    !query.regex
+  ) {
+    return []
   }
 
   // Build a map for O(1) file lookup
-  const fileMap = new Map<string, FileEntry>();
-  for (const f of files) fileMap.set(f.path, f);
+  const fileMap = new Map<string, FileEntry>()
+  for (const f of files) fileMap.set(f.path, f)
 
   // 0. Promote bare key:value terms that match known frontmatter properties
   //    (Req 13.2 — bare name:value form for unambiguous property keys)
-  const parsed = promoteBarePropertyTerms(query, extIndex);
+  const parsed = promoteBarePropertyTerms(query, extIndex)
 
   // 1. Determine candidate files from fast index-based filters
-  const candidatePaths = getCandidatesByIndexChecks(parsed, extIndex, files, vaultPath);
+  const candidatePaths = getCandidatesByIndexChecks(parsed, extIndex, files, vaultPath)
 
   // 2. For line:/content:/regex, also require the text to appear in snippets
-  let candidates: SearchQueryResult[];
-  if (parsed.line !== undefined || parsed.content !== undefined || parsed.regex !== undefined || parsed.bareTerms.length > 0) {
-    candidates = filterBySnippetScan(candidatePaths, parsed, extIndex, vaultPath);
+  let candidates: SearchQueryResult[]
+  if (
+    parsed.line !== undefined ||
+    parsed.content !== undefined ||
+    parsed.regex !== undefined ||
+    parsed.bareTerms.length > 0
+  ) {
+    candidates = filterBySnippetScan(candidatePaths, parsed, extIndex, vaultPath)
   } else {
     // No text-based filtering needed — build results from index-only matches
-    candidates = candidatePaths.map((filePath) => {
-      const file = fileMap.get(filePath);
-      if (!file) return null;
-      const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath;
-      return {
-        filePath,
-        name: file.name,
-        relativePath,
-        score: 1,
-        matches: [] as SearchQueryMatch[],
-      };
-    }).filter((r): r is SearchQueryResult => r !== null);
+    candidates = candidatePaths
+      .map((filePath) => {
+        const file = fileMap.get(filePath)
+        if (!file) return null
+        const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath
+        return {
+          filePath,
+          name: file.name,
+          relativePath,
+          score: 1,
+          matches: [] as SearchQueryMatch[]
+        }
+      })
+      .filter((r): r is SearchQueryResult => r !== null)
   }
 
   // 3. Sort by score descending, tie-break by path
-  candidates.sort((a, b) => b.score - a.score || a.filePath.localeCompare(b.filePath));
+  candidates.sort((a, b) => b.score - a.score || a.filePath.localeCompare(b.filePath))
 
-  return candidates;
+  return candidates
 }
 
 /**
@@ -225,10 +240,10 @@ export function search(
   files: FileEntry[],
   vaultPath: string,
   extIndex: ExtendedSearchIndex,
-  getAST: (path: string) => Root | undefined,
+  getAST: (path: string) => Root | undefined
 ): SearchQueryResult[] {
-  const parsed = parseQuery(queryString);
-  return executeQuery(parsed, files, vaultPath, extIndex, getAST);
+  const parsed = parseQuery(queryString)
+  return executeQuery(parsed, files, vaultPath, extIndex, getAST)
 }
 
 // ---------------------------------------------------------------------------
@@ -246,33 +261,30 @@ export function search(
  * The returned ParsedQuery is either the original (if no promotion occurred)
  * or a new object with the promoted property filter and filtered bare terms.
  */
-function promoteBarePropertyTerms(
-  query: ParsedQuery,
-  extIndex: ExtendedSearchIndex,
-): ParsedQuery {
-  if (extIndex.propertyIndex.size === 0) return query;
+function promoteBarePropertyTerms(query: ParsedQuery, extIndex: ExtendedSearchIndex): ParsedQuery {
+  if (extIndex.propertyIndex.size === 0) return query
 
-  const promoted: ParsedQuery = { ...query, bareTerms: [...query.bareTerms] };
-  let changed = false;
+  const promoted: ParsedQuery = { ...query, bareTerms: [...query.bareTerms] }
+  let changed = false
 
   for (let i = promoted.bareTerms.length - 1; i >= 0; i--) {
-    const term = promoted.bareTerms[i];
-    const match = term.match(/^([\w\s-]+?):(.+)$/);
+    const term = promoted.bareTerms[i]
+    const match = term.match(/^([\w\s-]+?):(.+)$/)
     if (match) {
-      const name = match[1].trim().toLowerCase();
-      const value = match[2].trim();
+      const name = match[1].trim().toLowerCase()
+      const value = match[2].trim()
       if (extIndex.propertyIndex.has(name)) {
         // Promote to property filter if one isn't already set
         if (!promoted.property) {
-          promoted.property = { name, value };
+          promoted.property = { name, value }
         }
-        promoted.bareTerms.splice(i, 1);
-        changed = true;
+        promoted.bareTerms.splice(i, 1)
+        changed = true
       }
     }
   }
 
-  return changed ? promoted : query;
+  return changed ? promoted : query
 }
 
 /**
@@ -285,63 +297,63 @@ function getCandidatesByIndexChecks(
   query: ParsedQuery,
   extIndex: ExtendedSearchIndex,
   files: FileEntry[],
-  vaultPath: string,
+  vaultPath: string
 ): string[] {
-  let candidatePaths: string[] | null = null;
+  let candidatePaths: string[] | null = null
 
   // Apply each index-based filter as an intersection.
   // Start with the full file list, narrow on each operator.
 
-  const allPaths = files.map((f) => f.path);
+  const allPaths = files.map((f) => f.path)
 
   // --- tag: filter ---
   if (query.tag !== undefined) {
-    const tagMatch = getFilesForTag(query.tag, extIndex);
-    candidatePaths = intersect(candidatePaths ?? allPaths, tagMatch);
-    if (candidatePaths.length === 0) return [];
+    const tagMatch = getFilesForTag(query.tag, extIndex)
+    candidatePaths = intersect(candidatePaths ?? allPaths, tagMatch)
+    if (candidatePaths.length === 0) return []
   }
 
   // --- path: filter ---
   if (query.path !== undefined) {
-    const pathLower = query.path.toLowerCase();
+    const pathLower = query.path.toLowerCase()
     const pathMatch = allPaths.filter((fp) => {
-      const rel = getRelativePath(vaultPath, fp);
-      return rel.toLowerCase().includes(pathLower);
-    });
-    candidatePaths = intersect(candidatePaths ?? allPaths, pathMatch);
-    if (candidatePaths.length === 0) return [];
+      const rel = getRelativePath(vaultPath, fp)
+      return rel.toLowerCase().includes(pathLower)
+    })
+    candidatePaths = intersect(candidatePaths ?? allPaths, pathMatch)
+    if (candidatePaths.length === 0) return []
   }
 
   // --- file: filter ---
   if (query.file !== undefined) {
-    const fileLower = query.file.toLowerCase();
+    const fileLower = query.file.toLowerCase()
     const fileMatch = files
       .filter((f) => f.name.toLowerCase().includes(fileLower))
-      .map((f) => f.path);
-    candidatePaths = intersect(candidatePaths ?? allPaths, fileMatch);
-    if (candidatePaths.length === 0) return [];
+      .map((f) => f.path)
+    candidatePaths = intersect(candidatePaths ?? allPaths, fileMatch)
+    if (candidatePaths.length === 0) return []
   }
 
   // --- property: filter ---
   if (query.property !== undefined) {
-    const { name, value } = query.property;
-    const valueMap = extIndex.propertyIndex.get(name);
-    if (!valueMap) return [];
-    const propMatch = valueMap.get(value) ?? new Set<string>();
-    candidatePaths = intersect(candidatePaths ?? allPaths, Array.from(propMatch));
-    if (candidatePaths.length === 0) return [];
+    const { name, value } = query.property
+    const valueMap = extIndex.propertyIndex.get(name)
+    if (!valueMap) return []
+    const propMatch = valueMap.get(value) ?? new Set<string>()
+    candidatePaths = intersect(candidatePaths ?? allPaths, Array.from(propMatch))
+    if (candidatePaths.length === 0) return []
   }
 
   // --- bare terms: filter via positions map ---
   for (const term of query.bareTerms) {
-    const fileMap = extIndex.positions.get(term);
-    if (!fileMap) return []; // term not found anywhere → empty
-    const termMatch = Array.from(fileMap.keys());
-    candidatePaths = intersect(candidatePaths ?? allPaths, termMatch);
-    if (candidatePaths.length === 0) return [];
+    const fileMap = extIndex.positions.get(term)
+    if (!fileMap) return [] // term not found anywhere → empty
+    const termMatch = Array.from(fileMap.keys())
+    candidatePaths = intersect(candidatePaths ?? allPaths, termMatch)
+    if (candidatePaths.length === 0) return []
   }
 
-  return candidatePaths ?? allPaths;
+  return candidatePaths ?? allPaths
 }
 
 /**
@@ -355,69 +367,69 @@ function filterBySnippetScan(
   candidates: string[],
   query: ParsedQuery,
   extIndex: ExtendedSearchIndex,
-  vaultPath: string,
+  vaultPath: string
 ): SearchQueryResult[] {
-  const results: SearchQueryResult[] = [];
+  const results: SearchQueryResult[] = []
 
   for (const filePath of candidates) {
-    const snippets = extIndex.lineSnippets.get(filePath);
-    if (!snippets) continue;
-    const _snippets: string[] = snippets;
+    const snippets = extIndex.lineSnippets.get(filePath)
+    if (!snippets) continue
+    const _snippets: string[] = snippets
 
-    const file = { path: filePath, name: getNameFromPath(filePath) };
-    const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath;
-    const matches: SearchQueryMatch[] = [];
-    const seenLines = new Set<number>();
+    const file = { path: filePath, name: getNameFromPath(filePath) }
+    const relativePath = vaultPath ? getRelativePath(vaultPath, filePath) : filePath
+    const matches: SearchQueryMatch[] = []
+    const seenLines = new Set<number>()
 
     // Helper: add a match for a given line if not already recorded
     function addMatch(lineIdx: number, startCol: number, endCol: number): void {
-      if (seenLines.has(lineIdx)) return;
-      seenLines.add(lineIdx);
-      const snippet = (_snippets[lineIdx]?.slice(0, SNIPPET_MAX_LENGTH) ?? '');
+      if (seenLines.has(lineIdx)) return
+      seenLines.add(lineIdx)
+      const snippet = _snippets[lineIdx]?.slice(0, SNIPPET_MAX_LENGTH) ?? ''
       matches.push({
         line: lineIdx + 1, // convert 0-indexed array to 1-indexed line
         snippet,
         startCol,
-        endCol,
-      });
+        endCol
+      })
     }
 
     // --- line:/content: substring match ---
     if (query.line !== undefined) {
-      const needle = query.line.toLowerCase();
+      const needle = query.line.toLowerCase()
       for (let i = 0; i < snippets.length; i++) {
-        const lineText = snippets[i].toLowerCase();
-        const col = lineText.indexOf(needle);
+        const lineText = snippets[i].toLowerCase()
+        const col = lineText.indexOf(needle)
         if (col !== -1) {
-          addMatch(i, col, col + query.line.length);
+          addMatch(i, col, col + query.line.length)
         }
       }
     }
 
     if (query.content !== undefined) {
-      const needle = query.content.toLowerCase();
+      const needle = query.content.toLowerCase()
       for (let i = 0; i < snippets.length; i++) {
-        const lineText = snippets[i].toLowerCase();
-        const col = lineText.indexOf(needle);
+        const lineText = snippets[i].toLowerCase()
+        const col = lineText.indexOf(needle)
         if (col !== -1) {
-          addMatch(i, col, col + query.content.length);
+          addMatch(i, col, col + query.content.length)
         }
       }
     }
 
     // --- regex: match ---
     if (query.regex !== undefined) {
-      let regex: RegExp;
+      let regex: RegExp
       try {
-        regex = new RegExp(query.regex, 'gi');
+        regex = new RegExp(query.regex, 'gi')
       } catch {
         // Invalid regex — skip this file
-        continue;
+        continue
       }
       for (let i = 0; i < snippets.length; i++) {
-        const execResult = regex.exec(snippets[i]);
+        const execResult = regex.exec(snippets[i])
         if (execResult !== null) {
-          addMatch(i, execResult.index, execResult.index + execResult[0].length);
+          addMatch(i, execResult.index, execResult.index + execResult[0].length)
         }
       }
     }
@@ -426,34 +438,37 @@ function filterBySnippetScan(
     // (already verified in getCandidatesByIndexChecks, but we need to locate
     //  the matches in the snippet text for highlighting)
     for (const term of query.bareTerms) {
-      const fileMap = extIndex.positions.get(term);
-      if (!fileMap?.has(filePath)) continue;
+      const fileMap = extIndex.positions.get(term)
+      if (!fileMap?.has(filePath)) continue
       // Locate the term in snippets for highlighting
       for (let i = 0; i < snippets.length; i++) {
-        const lineText = snippets[i].toLowerCase();
-        let col = lineText.indexOf(term);
+        const lineText = snippets[i].toLowerCase()
+        let col = lineText.indexOf(term)
         if (col !== -1) {
-          addMatch(i, col, col + term.length);
+          addMatch(i, col, col + term.length)
         }
       }
     }
 
     // Only include files with at least one match when content/regex/line/terms are searched
-    const hasContentQuery = query.line !== undefined || query.content !== undefined ||
-      query.regex !== undefined || query.bareTerms.length > 0;
+    const hasContentQuery =
+      query.line !== undefined ||
+      query.content !== undefined ||
+      query.regex !== undefined ||
+      query.bareTerms.length > 0
 
-    if (hasContentQuery && matches.length === 0) continue;
+    if (hasContentQuery && matches.length === 0) continue
 
     results.push({
       filePath,
       name: file.name,
       relativePath,
       score: matches.length,
-      matches,
-    });
+      matches
+    })
   }
 
-  return results;
+  return results
 }
 
 // ---------------------------------------------------------------------------
@@ -465,30 +480,30 @@ function filterBySnippetScan(
  * in both (using Set for O(n) intersection).
  */
 function intersect(a: string[], b: string[]): string[] {
-  const setB = new Set(b);
-  return a.filter((x) => setB.has(x));
+  const setB = new Set(b)
+  return a.filter((x) => setB.has(x))
 }
 
 /**
  * Get all file paths that match a given tag (exact or namespace prefix).
  */
 function getFilesForTag(tag: string, extIndex: ExtendedSearchIndex): string[] {
-  const matched = new Set<string>();
+  const matched = new Set<string>()
 
   // Exact match
-  const exact = extIndex.tagIndex.get(tag);
+  const exact = extIndex.tagIndex.get(tag)
   if (exact) {
-    for (const p of exact) matched.add(p);
+    for (const p of exact) matched.add(p)
   }
 
   // Namespace prefix match: tags starting with "tag/"
   for (const [key, paths] of extIndex.tagIndex) {
     if (key.startsWith(tag + '/')) {
-      for (const p of paths) matched.add(p);
+      for (const p of paths) matched.add(p)
     }
   }
 
-  return Array.from(matched);
+  return Array.from(matched)
 }
 
 /**
@@ -498,17 +513,17 @@ function getRelativePath(vaultPath: string, filePath: string): string {
   // Simple path-relative computation without requiring Node path module
   // (since this is shared code that may run in the renderer)
   if (filePath.startsWith(vaultPath)) {
-    const rel = filePath.slice(vaultPath.length);
-    return rel.startsWith('/') ? rel.slice(1) : rel;
+    const rel = filePath.slice(vaultPath.length)
+    return rel.startsWith('/') ? rel.slice(1) : rel
   }
-  return filePath;
+  return filePath
 }
 
 /**
  * Extract the file name (without directory or extension) from a path string.
  */
 function getNameFromPath(filePath: string): string {
-  const lastSlash = filePath.lastIndexOf('/');
-  const basename = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath;
-  return basename.endsWith('.md') ? basename.slice(0, -3) : basename;
+  const lastSlash = filePath.lastIndexOf('/')
+  const basename = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
+  return basename.endsWith('.md') ? basename.slice(0, -3) : basename
 }

@@ -61,7 +61,8 @@ export interface Workspace {
 // Tab groups types (Req 24.9) - Chrome-style folder grouping
 // ---------------------------------------------------------------------------
 
-export type TabGroupColor = 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'orange' | 'cyan' | 'pink'
+export type TabGroupColor =
+  'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'orange' | 'cyan' | 'pink'
 
 export interface TabGroup {
   id: string // unique group ID
@@ -128,7 +129,10 @@ export type AppAction =
   | { type: 'TAB_CLOSED'; payload: { tabId: string } }
   | { type: 'TAB_ACTIVATED'; payload: { tabId: string } }
   | { type: 'TAB_UPDATED'; payload: { tabId: string; patch: Partial<Tab> } }
-  | { type: 'PANE_LAYOUT_CHANGED'; payload: { layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' } }
+  | {
+      type: 'PANE_LAYOUT_CHANGED'
+      payload: { layout: 'single' | 'split-horizontal' | 'split-vertical' | 'grid' }
+    }
   | { type: 'TAB_CLOSE_ALL' }
   | { type: 'TAB_SPLIT'; payload: { tabId: string } }
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
@@ -206,7 +210,7 @@ const initialState: AppState = {
   searchResults: [],
   quickSwitcherOpen: false,
   commandPaletteOpen: false,
-  recentNotes: [],
+  recentNotes: []
 }
 
 // Generate a unique tab ID
@@ -220,10 +224,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'VAULT_OPENED': {
       // Ensure the vault is in openVaults array
-      const existingVault = state.openVaults.find(v => v.path === action.payload.path)
+      const existingVault = state.openVaults.find((v) => v.path === action.payload.path)
       const openVaults = existingVault
         ? state.openVaults
-        : [...state.openVaults, { id: action.payload.path, path: action.payload.path, name: action.payload.path.split('/').pop() ?? 'vault' }]
+        : [
+            ...state.openVaults,
+            {
+              id: action.payload.path,
+              path: action.payload.path,
+              name: action.payload.path.split('/').pop() ?? 'vault'
+            }
+          ]
       return {
         ...state,
         openVaults,
@@ -237,10 +248,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'VAULT_SWITCHED': {
       const { vaultId, vault } = action.payload
-      const existingVault = state.openVaults.find(v => v.id === vaultId)
+      const existingVault = state.openVaults.find((v) => v.id === vaultId)
       const openVaults = existingVault
         ? state.openVaults
-        : [...state.openVaults, { id: vaultId, path: vault.path, name: vault.path.split('/').pop() ?? 'vault' }]
+        : [
+            ...state.openVaults,
+            { id: vaultId, path: vault.path, name: vault.path.split('/').pop() ?? 'vault' }
+          ]
       return {
         ...state,
         openVaults,
@@ -253,12 +267,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'VAULT_CLOSED': {
       const { vaultId } = action.payload
-      const openVaults = state.openVaults.filter(v => v.id !== vaultId)
+      const openVaults = state.openVaults.filter((v) => v.id !== vaultId)
       return {
         ...state,
         openVaults,
-        activeVaultId: state.activeVaultId === vaultId ? (openVaults.length > 0 ? openVaults[0].id : null) : state.activeVaultId,
-        vault: state.activeVaultId === vaultId ? (openVaults.length > 0 ? state.vault : null) : state.vault,
+        activeVaultId:
+          state.activeVaultId === vaultId
+            ? openVaults.length > 0
+              ? openVaults[0].id
+              : null
+            : state.activeVaultId,
+        vault:
+          state.activeVaultId === vaultId
+            ? openVaults.length > 0
+              ? state.vault
+              : null
+            : state.vault,
         currentFile: null,
         currentAST: null
       }
@@ -268,7 +292,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'TAB_OPENED': {
       const { path, ast, raw } = action.payload
       // Check if tab already exists for this path
-      const existingTab = state.openTabs.find(t => t.path === path)
+      const existingTab = state.openTabs.find((t) => t.path === path)
       if (existingTab) {
         // Tab exists, just activate it
         return {
@@ -276,7 +300,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           activeTabId: existingTab.id,
           currentFile: path,
           currentAST: ast,
-          currentRaw: raw,
+          currentRaw: raw
         }
       }
       // Create new tab
@@ -287,7 +311,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         raw,
         mode: 'view',
         scrollTop: 0,
-        cursor: 0,
+        cursor: 0
       }
       return {
         ...state,
@@ -295,15 +319,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         activeTabId: newTab.id,
         currentFile: path,
         currentAST: ast,
-        currentRaw: raw,
+        currentRaw: raw
       }
     }
 
     case 'TAB_CLOSED': {
       const { tabId } = action.payload
-      const tabIndex = state.openTabs.findIndex(t => t.id === tabId)
+      const tabIndex = state.openTabs.findIndex((t) => t.id === tabId)
       const wasActive = state.activeTabId === tabId
-      const remainingTabs = state.openTabs.filter(t => t.id !== tabId)
+      const remainingTabs = state.openTabs.filter((t) => t.id !== tabId)
 
       // Determine new active tab
       let newActiveTabId: string | null = state.activeTabId
@@ -313,7 +337,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         newActiveTabId = remainingTabs[newIndex]?.id ?? null
       }
 
-      const newActiveTab = remainingTabs.find(t => t.id === newActiveTabId)
+      const newActiveTab = remainingTabs.find((t) => t.id === newActiveTabId)
       return {
         ...state,
         openTabs: remainingTabs,
@@ -322,13 +346,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         currentAST: wasActive ? (newActiveTab?.ast ?? null) : state.currentAST,
         currentRaw: wasActive ? (newActiveTab?.raw ?? null) : state.currentRaw,
         editMode: wasActive && newActiveTab?.mode !== 'edit' ? false : state.editMode,
-        livePreviewMode: wasActive && newActiveTab?.mode !== 'live-preview' ? false : state.livePreviewMode,
+        livePreviewMode:
+          wasActive && newActiveTab?.mode !== 'live-preview' ? false : state.livePreviewMode
       }
     }
 
     case 'TAB_ACTIVATED': {
       const { tabId } = action.payload
-      const activatedTab = state.openTabs.find(t => t.id === tabId)
+      const activatedTab = state.openTabs.find((t) => t.id === tabId)
       if (!activatedTab) return state
       return {
         ...state,
@@ -337,16 +362,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         currentAST: activatedTab.ast,
         currentRaw: activatedTab.raw,
         editMode: activatedTab.mode === 'edit',
-        livePreviewMode: activatedTab.mode === 'live-preview',
+        livePreviewMode: activatedTab.mode === 'live-preview'
       }
     }
 
     case 'TAB_UPDATED': {
       const { tabId, patch } = action.payload
-      const updatedTabs = state.openTabs.map(tab =>
+      const updatedTabs = state.openTabs.map((tab) =>
         tab.id === tabId ? { ...tab, ...patch } : tab
       )
-      const updatedTab = updatedTabs.find(t => t.id === tabId)
+      const updatedTab = updatedTabs.find((t) => t.id === tabId)
       if (!updatedTab || state.activeTabId !== tabId) {
         return { ...state, openTabs: updatedTabs }
       }
@@ -354,9 +379,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         openTabs: updatedTabs,
-        currentRaw: patch.raw ?? (patch.mode !== 'edit' && patch.mode !== 'live-preview' ? null : state.currentRaw),
+        currentRaw:
+          patch.raw ??
+          (patch.mode !== 'edit' && patch.mode !== 'live-preview' ? null : state.currentRaw),
         editMode: updatedTab.mode === 'edit',
-        livePreviewMode: updatedTab.mode === 'live-preview',
+        livePreviewMode: updatedTab.mode === 'live-preview'
       }
     }
 
@@ -365,13 +392,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // Track recently opened notes (capped at 10, deduped)
       const recentNotes = [
         action.payload.path,
-        ...state.recentNotes.filter((p) => p !== action.payload.path),
+        ...state.recentNotes.filter((p) => p !== action.payload.path)
       ].slice(0, 10)
       return {
         ...state,
         currentFile: action.payload.path,
         currentAST: action.payload.ast,
-        recentNotes,
+        recentNotes
       }
     }
 
@@ -460,7 +487,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, theme: action.payload }
 
     case 'VECTOR_STATUS_UPDATED':
-      return { ...state, vectorDisabled: action.payload.disabled, vectorDisabledReason: action.payload.reason }
+      return {
+        ...state,
+        vectorDisabled: action.payload.disabled,
+        vectorDisabledReason: action.payload.reason
+      }
 
     case 'EXTENDED_INDEX_BUILT':
       return { ...state, extendedIndex: action.payload }
@@ -501,7 +532,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'RECENT_NOTE_OPENED': {
       const recentNotes = [
         action.payload,
-        ...state.recentNotes.filter((p) => p !== action.payload),
+        ...state.recentNotes.filter((p) => p !== action.payload)
       ].slice(0, 10)
       return { ...state, recentNotes }
     }
@@ -518,7 +549,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         currentAST: null,
         currentRaw: null,
         editMode: false,
-        livePreviewMode: false,
+        livePreviewMode: false
       }
 
     // Workspace actions (Req 25.1-25.5)
@@ -527,22 +558,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const workspace: Workspace = {
         id: generateTabId(),
         name,
-        openTabs: state.openTabs.map(t => t.path),
-        paneLayout: state.paneLayout,
+        openTabs: state.openTabs.map((t) => t.path),
+        paneLayout: state.paneLayout
       }
       return {
         ...state,
-        workspaces: [...state.workspaces, workspace],
+        workspaces: [...state.workspaces, workspace]
       }
     }
 
     case 'WORKSPACE_LOAD': {
       const { workspaceId } = action.payload
-      const workspace = state.workspaces.find(w => w.id === workspaceId)
+      const workspace = state.workspaces.find((w) => w.id === workspaceId)
       if (!workspace) return state
       return {
         ...state,
-        paneLayout: workspace.paneLayout,
+        paneLayout: workspace.paneLayout
       }
     }
 
@@ -721,17 +752,17 @@ function App(): React.JSX.Element {
 
     const offIndexBuild = electron.on.indexBuild((data) => {
       const p = data as {
-        ftIndex: Record<string, string[]>;
-        tagIndex: Record<string, string[]>;
-        edges: unknown[];
+        ftIndex: Record<string, string[]>
+        tagIndex: Record<string, string[]>
+        edges: unknown[]
         extendedIndex: {
-          positions: Record<string, Record<string, number[]>>;
-          lineSnippets: Record<string, string[]>;
-          tagIndex: Record<string, string[]>;
-          aliasIndex: Record<string, string[]>;
-          propertyIndex: Record<string, Record<string, string[]>>;
-          blockRefs: Record<string, Record<string, string>>;
-        };
+          positions: Record<string, Record<string, number[]>>
+          lineSnippets: Record<string, string[]>
+          tagIndex: Record<string, string[]>
+          aliasIndex: Record<string, string[]>
+          propertyIndex: Record<string, Record<string, string[]>>
+          blockRefs: Record<string, Record<string, string>>
+        }
       }
       const ftIndex = new Map(Object.entries(p.ftIndex).map(([k, v]) => [k, new Set(v)]))
       const tagIndex = new Map(Object.entries(p.tagIndex).map(([k, v]) => [k, new Set(v)]))
@@ -765,7 +796,14 @@ function App(): React.JSX.Element {
       }
       dispatch({
         type: 'EXTENDED_INDEX_BUILT',
-        payload: { positions, lineSnippets, tagIndex: extTagIndex, aliasIndex, propertyIndex, blockRefs },
+        payload: {
+          positions,
+          lineSnippets,
+          tagIndex: extTagIndex,
+          aliasIndex,
+          propertyIndex,
+          blockRefs
+        }
       })
     })
 
@@ -773,8 +811,12 @@ function App(): React.JSX.Element {
       dispatch({ type: 'SETTINGS_PANEL_TOGGLE' })
     })
 
-    const offSetupCreate = electron.on.setupCreate(() => { dispatch({ type: 'SETUP_TOGGLE' }) })
-    const offSetupOpen = electron.on.setupOpen(() => { dispatch({ type: 'SETUP_TOGGLE' }) })
+    const offSetupCreate = electron.on.setupCreate(() => {
+      dispatch({ type: 'SETUP_TOGGLE' })
+    })
+    const offSetupOpen = electron.on.setupOpen(() => {
+      dispatch({ type: 'SETUP_TOGGLE' })
+    })
 
     return () => {
       offNoteLoaded()
@@ -794,11 +836,14 @@ function App(): React.JSX.Element {
 
   // Initialise theme from persisted settings on mount
   useEffect(() => {
-    window.electron.settings.get('theme').then(({ value }) => {
-      if (value === 'dark' || value === 'light' || value === 'system') {
-        dispatch({ type: 'THEME_CHANGED', payload: value })
-      }
-    }).catch(console.error)
+    window.electron.settings
+      .get('theme')
+      .then(({ value }) => {
+        if (value === 'dark' || value === 'light' || value === 'system') {
+          dispatch({ type: 'THEME_CHANGED', payload: value })
+        }
+      })
+      .catch(console.error)
   }, [])
 
   // Apply theme to document root and track system preference changes
@@ -858,9 +903,12 @@ function App(): React.JSX.Element {
 
     // Query vector index status on mount so the renderer can surface a
     // non-blocking notice when the bge-micro model failed to load (Req 1.4)
-    window.electron.context.status().then((status) => {
-      dispatch({ type: 'VECTOR_STATUS_UPDATED', payload: status })
-    }).catch(console.error)
+    window.electron.context
+      .status()
+      .then((status) => {
+        dispatch({ type: 'VECTOR_STATUS_UPDATED', payload: status })
+      })
+      .catch(console.error)
 
     // Seed the command registry with built-in actions (Req 5.2, 5.3)
     seedCommands(dispatch, {
@@ -876,7 +924,7 @@ function App(): React.JSX.Element {
         } catch (err) {
           console.error('[App] Failed to open daily note:', err)
         }
-      },
+      }
     })
 
     // Register outline-specific command (Req 7.6)
@@ -889,7 +937,7 @@ function App(): React.JSX.Element {
         if (panel) {
           panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         }
-      },
+      }
     })
 
     return cleanup
@@ -902,20 +950,26 @@ function App(): React.JSX.Element {
           <SetupWizard />
         </div>
       ) : (
-        <div className={`app-container${state.searchPanelOpen ? ' app-container--search-open' : ''}`}>
+        <div
+          className={`app-container${state.searchPanelOpen ? ' app-container--search-open' : ''}`}
+        >
           <Sidebar ref={sidebarRef} />
 
           <main className="note-container">
             {/* Tab bar: Note | Graph */}
             <div className="flex items-center border-b border-nabu-border shrink-0">
               <button
-                onClick={() => { if (state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' }) }}
+                onClick={() => {
+                  if (state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
+                }}
                 className={`px-4 py-2 text-sm border-b-2 transition-colors ${!state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
               >
                 Note
               </button>
               <button
-                onClick={() => { if (!state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' }) }}
+                onClick={() => {
+                  if (!state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
+                }}
                 className={`px-4 py-2 text-sm border-b-2 transition-colors ${state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
               >
                 Graph
@@ -943,10 +997,16 @@ function App(): React.JSX.Element {
               query={state.searchQuery}
               results={state.searchResults}
               onQueryChange={(query) => {
-                dispatch({ type: 'SEARCH_RESULTS_UPDATED', payload: { query, results: state.searchResults } })
+                dispatch({
+                  type: 'SEARCH_RESULTS_UPDATED',
+                  payload: { query, results: state.searchResults }
+                })
               }}
               onResultsChange={(results) => {
-                dispatch({ type: 'SEARCH_RESULTS_UPDATED', payload: { query: state.searchQuery, results } })
+                dispatch({
+                  type: 'SEARCH_RESULTS_UPDATED',
+                  payload: { query: state.searchQuery, results }
+                })
               }}
               onClose={() => dispatch({ type: 'SEARCH_PANEL_CLOSE' })}
             />

@@ -14,14 +14,12 @@ import { parseQuery } from '../../src/shared/search-query'
 // ---------------------------------------------------------------------------
 
 /** A value that doesn't contain whitespace (safe for single-token operators). */
-const wordArbitrary = fc.string({ minLength: 1, maxLength: 20 }).filter(
-  (s) => !/\s/.test(s),
-)
+const wordArbitrary = fc.string({ minLength: 1, maxLength: 20 }).filter((s) => !/\s/.test(s))
 
 /** A value suitable for property:name:value — name cannot contain colons. */
-const propertyNameArbitrary = fc.string({ minLength: 1, maxLength: 20 }).filter(
-  (s) => !/\s/.test(s) && !s.includes(':'),
-)
+const propertyNameArbitrary = fc
+  .string({ minLength: 1, maxLength: 20 })
+  .filter((s) => !/\s/.test(s) && !s.includes(':'))
 
 // ---------------------------------------------------------------------------
 // Property: parse invariants
@@ -49,23 +47,20 @@ describe('parseQuery invariants (property)', () => {
           expect(typeof parsed.property.value).toBe('string')
         }
       }),
-      { numRuns: 200 },
+      { numRuns: 200 }
     )
   })
 
   it('bare terms are always lowercase', () => {
     fc.assert(
-      fc.property(
-        fc.array(wordArbitrary, { minLength: 0, maxLength: 10 }),
-        (tokens) => {
-          const query = tokens.join(' ')
-          const parsed = parseQuery(query)
-          for (const term of parsed.bareTerms) {
-            expect(term).toBe(term.toLowerCase())
-          }
-        },
-      ),
-      { numRuns: 100 },
+      fc.property(fc.array(wordArbitrary, { minLength: 0, maxLength: 10 }), (tokens) => {
+        const query = tokens.join(' ')
+        const parsed = parseQuery(query)
+        for (const term of parsed.bareTerms) {
+          expect(term).toBe(term.toLowerCase())
+        }
+      }),
+      { numRuns: 100 }
     )
   })
 
@@ -83,9 +78,9 @@ describe('parseQuery invariants (property)', () => {
           expect(parsed.file).toBeUndefined()
           expect(parsed.regex).toBeUndefined()
           expect(parsed.property).toBeUndefined()
-        },
+        }
       ),
-      { numRuns: 50 },
+      { numRuns: 50 }
     )
   })
 })
@@ -102,7 +97,7 @@ describe('operator token parsing (property)', () => {
         const parsed = parseQuery(query)
         expect(parsed.path).toBeDefined()
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
@@ -113,7 +108,7 @@ describe('operator token parsing (property)', () => {
         const parsed = parseQuery(query)
         expect(parsed.tag).toBeDefined()
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
@@ -124,7 +119,7 @@ describe('operator token parsing (property)', () => {
         const parsed = parseQuery(query)
         expect(parsed.regex).toBeDefined()
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
@@ -137,7 +132,7 @@ describe('operator token parsing (property)', () => {
         expect(typeof parsed.property.name).toBe('string')
         expect(typeof parsed.property.value).toBe('string')
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 })

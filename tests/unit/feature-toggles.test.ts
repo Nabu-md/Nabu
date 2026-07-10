@@ -14,7 +14,7 @@ import {
   hasFeatureToggle,
   unregisterFeatureToggle,
   resetFeatureToggles,
-  getDefaultState,
+  getDefaultState
 } from '../../src/shared/feature-toggles'
 
 // ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ describe('registerFeatureToggle / getFeatureToggles', () => {
     registerFeatureToggle({
       id: 'test-feature',
       label: 'Test Feature',
-      description: 'A test feature toggle',
+      description: 'A test feature toggle'
     })
     expect(getFeatureToggles()).toHaveLength(1)
     expect(getFeatureToggles()[0].id).toBe('test-feature')
@@ -59,8 +59,12 @@ describe('registerFeatureToggle / getFeatureToggles', () => {
       id: 'with-callbacks',
       label: 'With Callbacks',
       description: 'Feature with callbacks',
-      setup: () => { setupCalled = true },
-      teardown: () => { teardownCalled = true },
+      setup: () => {
+        setupCalled = true
+      },
+      teardown: () => {
+        teardownCalled = true
+      }
     })
 
     const toggle = getFeatureToggle('with-callbacks')
@@ -78,7 +82,7 @@ describe('getFeatureToggle', () => {
     registerFeatureToggle({
       id: 'existing',
       label: 'Existing',
-      description: 'An existing feature',
+      description: 'An existing feature'
     })
     const toggle = getFeatureToggle('existing')
     expect(toggle?.id).toBe('existing')
@@ -142,7 +146,9 @@ describe('setup and teardown callbacks', () => {
       id: 'callback-test',
       label: 'Callback Test',
       description: 'Feature with callbacks',
-      setup: () => { setupCalled = true },
+      setup: () => {
+        setupCalled = true
+      }
     })
 
     const { setFeatureEnabled } = await import('../../src/shared/feature-toggles')
@@ -156,7 +162,9 @@ describe('setup and teardown callbacks', () => {
       id: 'callback-test-2',
       label: 'Callback Test 2',
       description: 'Feature with callbacks',
-      teardown: () => { teardownCalled = true },
+      teardown: () => {
+        teardownCalled = true
+      }
     })
 
     const { setFeatureEnabled } = await import('../../src/shared/feature-toggles')

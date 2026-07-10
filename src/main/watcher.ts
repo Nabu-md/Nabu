@@ -9,26 +9,26 @@
  * Requirements: 1.4, 5.5, 6.1, 6.2, 6.7, 6.8, 6.9
  */
 
-import { watch as chokidarWatch, FSWatcher } from 'chokidar';
-import { stateManager } from './state';
+import { watch as chokidarWatch, FSWatcher } from 'chokidar'
+import { stateManager } from './state'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface WatcherConfig {
-  vaultPath: string;
+  vaultPath: string
   /** Patterns to ignore — default: /^\.|\.nabu/ */
-  ignored: RegExp;
-  awaitWriteFinish: { stabilityThreshold: number };
+  ignored: RegExp
+  awaitWriteFinish: { stabilityThreshold: number }
   /** Called when a file is changed by an external editor (isExternal=true) */
-  onFileChanged: (filePath: string, isExternal: boolean) => void;
+  onFileChanged: (filePath: string, isExternal: boolean) => void
   /** Called when a new .md file appears in the vault */
-  onFileAdded: (filePath: string) => void;
+  onFileAdded: (filePath: string) => void
   /** Called when a .md file is deleted from the vault */
-  onFileDeleted: (filePath: string) => void;
+  onFileDeleted: (filePath: string) => void
   /** Called on watcher errors (after restart attempts are exhausted) */
-  onError: (error: Error) => void;
+  onError: (error: Error) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -36,16 +36,16 @@ export interface WatcherConfig {
 // ---------------------------------------------------------------------------
 
 /** Per-file debounce window in milliseconds (Requirement 6.2) */
-const DEBOUNCE_MS = 50;
+const DEBOUNCE_MS = 50
 
 /** Maximum automatic restart attempts before giving up (Requirement 6.8) */
-const MAX_RESTART_ATTEMPTS = 3;
+const MAX_RESTART_ATTEMPTS = 3
 
 /** Delay between restart attempts in milliseconds (Requirement 6.8) */
-const RESTART_DELAY_MS = 2000;
+const RESTART_DELAY_MS = 2000
 
 /** Error codes treated as fatal (trigger restart sequence) */
-const FATAL_ERROR_CODES = new Set(['EMFILE', 'ENFILE']);
+const FATAL_ERROR_CODES = new Set(['EMFILE', 'ENFILE'])
 
 // ---------------------------------------------------------------------------
 // VaultWatcher
@@ -61,10 +61,10 @@ const FATAL_ERROR_CODES = new Set(['EMFILE', 'ENFILE']);
  * - Callback-based event forwarding to the IPC layer
  */
 export class VaultWatcher {
-  private watcher: FSWatcher | null = null;
-  private restartAttempts: number = 0;
-  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-  private config: WatcherConfig | null = null;
+  private watcher: FSWatcher | null = null
+  private restartAttempts: number = 0
+  private debounceTimers: Map<string, NodeJS.Timeout> = new Map()
+  private config: WatcherConfig | null = null
 
   // -------------------------------------------------------------------------
   // Public API
@@ -86,25 +86,25 @@ export class VaultWatcher {
     // two chokidar instances on top of each other (second vault:open call,
     // hot-reload, or repeated open-vault flow would otherwise cause doubled
     // events and a black-screen crash).
-    this.stop();
+    this.stop()
 
     // Store config so restart() can reuse it
-    this.config = config;
-    this.restartAttempts = 0;
-    this._startWatcher(config);
+    this.config = config
+    this.restartAttempts = 0
+    this._startWatcher(config)
   }
 
   /**
    * Stop the watcher and cancel all pending debounce timers.
    */
   stop(): void {
-    this._clearAllDebounceTimers();
+    this._clearAllDebounceTimers()
 
     if (this.watcher) {
       this.watcher.close().catch((err) => {
-        console.warn('[VaultWatcher] Error closing watcher:', err);
-      });
-      this.watcher = null;
+        console.warn('[VaultWatcher] Error closing watcher:', err)
+      })
+      this.watcher = null
     }
   }
 
@@ -123,31 +123,31 @@ export class VaultWatcher {
       ignoreInitial: true,
       awaitWriteFinish: {
         stabilityThreshold: config.awaitWriteFinish.stabilityThreshold,
-        pollInterval: 100,
-      },
-    });
+        pollInterval: 100
+      }
+    })
 
     fsWatcher.on('change', (filePath: string) => {
-      if (!filePath.endsWith('.md')) return;
-      this._scheduleChange(filePath);
-    });
+      if (!filePath.endsWith('.md')) return
+      this._scheduleChange(filePath)
+    })
 
     fsWatcher.on('add', (filePath: string) => {
-      if (!filePath.endsWith('.md')) return;
-      this.handleAdd(filePath);
-    });
+      if (!filePath.endsWith('.md')) return
+      this.handleAdd(filePath)
+    })
 
     fsWatcher.on('unlink', (filePath: string) => {
-      if (!filePath.endsWith('.md')) return;
-      this.handleUnlink(filePath);
-    });
+      if (!filePath.endsWith('.md')) return
+      this.handleUnlink(filePath)
+    })
 
     fsWatcher.on('error', (err: unknown) => {
-      const error = err instanceof Error ? err : new Error(String(err));
-      this._handleError(error);
-    });
+      const error = err instanceof Error ? err : new Error(String(err))
+      this._handleError(error)
+    })
 
-    this.watcher = fsWatcher;
+    this.watcher = fsWatcher
   }
 
   // -------------------------------------------------------------------------
@@ -161,17 +161,17 @@ export class VaultWatcher {
    * Requirements: 6.2 (50 ms per-file debounce)
    */
   private _scheduleChange(filePath: string): void {
-    const existing = this.debounceTimers.get(filePath);
+    const existing = this.debounceTimers.get(filePath)
     if (existing) {
-      clearTimeout(existing);
+      clearTimeout(existing)
     }
 
     const timer = setTimeout(() => {
-      this.debounceTimers.delete(filePath);
-      this.handleChange(filePath);
-    }, DEBOUNCE_MS);
+      this.debounceTimers.delete(filePath)
+      this.handleChange(filePath)
+    }, DEBOUNCE_MS)
 
-    this.debounceTimers.set(filePath, timer);
+    this.debounceTimers.set(filePath, timer)
   }
 
   /**
@@ -188,13 +188,13 @@ export class VaultWatcher {
   private handleChange(filePath: string): void {
     if (stateManager.hasPendingWrite(filePath)) {
       // App-initiated write: clear the lock, no re-parse needed
-      stateManager.clearPendingWrite(filePath);
-      return;
+      stateManager.clearPendingWrite(filePath)
+      return
     }
 
     // External edit: notify the IPC layer
     if (this.config) {
-      this.config.onFileChanged(filePath, /* isExternal */ true);
+      this.config.onFileChanged(filePath, /* isExternal */ true)
     }
   }
 
@@ -205,7 +205,7 @@ export class VaultWatcher {
    */
   private handleAdd(filePath: string): void {
     if (this.config) {
-      this.config.onFileAdded(filePath);
+      this.config.onFileAdded(filePath)
     }
   }
 
@@ -216,14 +216,14 @@ export class VaultWatcher {
    */
   private handleUnlink(filePath: string): void {
     // Cancel any pending debounce for this path since the file is gone
-    const existing = this.debounceTimers.get(filePath);
+    const existing = this.debounceTimers.get(filePath)
     if (existing) {
-      clearTimeout(existing);
-      this.debounceTimers.delete(filePath);
+      clearTimeout(existing)
+      this.debounceTimers.delete(filePath)
     }
 
     if (this.config) {
-      this.config.onFileDeleted(filePath);
+      this.config.onFileDeleted(filePath)
     }
   }
 
@@ -240,21 +240,21 @@ export class VaultWatcher {
    * Requirements: 6.8
    */
   private _handleError(error: Error): void {
-    const code = (error as NodeJS.ErrnoException).code ?? '';
-    const isFatal = FATAL_ERROR_CODES.has(code) || this._isFsEventsCrash(error);
+    const code = (error as NodeJS.ErrnoException).code ?? ''
+    const isFatal = FATAL_ERROR_CODES.has(code) || this._isFsEventsCrash(error)
 
     if (isFatal) {
-      console.error(`[VaultWatcher] Fatal watcher error (${code}), initiating restart:`, error);
+      console.error(`[VaultWatcher] Fatal watcher error (${code}), initiating restart:`, error)
       this.restart().catch((restartErr) => {
-        console.error('[VaultWatcher] All restart attempts failed:', restartErr);
+        console.error('[VaultWatcher] All restart attempts failed:', restartErr)
         if (this.config) {
-          this.config.onError(error);
+          this.config.onError(error)
         }
-      });
+      })
     } else {
-      console.warn('[VaultWatcher] Non-fatal watcher error:', error);
+      console.warn('[VaultWatcher] Non-fatal watcher error:', error)
       if (this.config) {
-        this.config.onError(error);
+        this.config.onError(error)
       }
     }
   }
@@ -265,8 +265,8 @@ export class VaultWatcher {
    * match by message patterns.
    */
   private _isFsEventsCrash(error: Error): boolean {
-    const msg = error.message.toLowerCase();
-    return msg.includes('fsevents') || msg.includes('kqueue') || msg.includes('inotify');
+    const msg = error.message.toLowerCase()
+    return msg.includes('fsevents') || msg.includes('kqueue') || msg.includes('inotify')
   }
 
   /**
@@ -279,40 +279,38 @@ export class VaultWatcher {
    */
   async restart(): Promise<void> {
     if (!this.config) {
-      throw new Error('[VaultWatcher] Cannot restart — watcher was never started.');
+      throw new Error('[VaultWatcher] Cannot restart — watcher was never started.')
     }
 
     // Tear down the current (broken) watcher
-    this._clearAllDebounceTimers();
+    this._clearAllDebounceTimers()
     if (this.watcher) {
       try {
-        await this.watcher.close();
+        await this.watcher.close()
       } catch {
         // Ignore close errors during restart
       }
-      this.watcher = null;
+      this.watcher = null
     }
 
     while (this.restartAttempts < MAX_RESTART_ATTEMPTS) {
-      this.restartAttempts++;
-      console.log(
-        `[VaultWatcher] Restart attempt ${this.restartAttempts}/${MAX_RESTART_ATTEMPTS}…`,
-      );
+      this.restartAttempts++
+      console.log(`[VaultWatcher] Restart attempt ${this.restartAttempts}/${MAX_RESTART_ATTEMPTS}…`)
 
-      await this._delay(RESTART_DELAY_MS);
+      await this._delay(RESTART_DELAY_MS)
 
       try {
-        this._startWatcher(this.config);
-        console.log(`[VaultWatcher] Restart successful on attempt ${this.restartAttempts}.`);
-        return;
+        this._startWatcher(this.config)
+        console.log(`[VaultWatcher] Restart successful on attempt ${this.restartAttempts}.`)
+        return
       } catch (err) {
-        console.error(`[VaultWatcher] Restart attempt ${this.restartAttempts} failed:`, err);
+        console.error(`[VaultWatcher] Restart attempt ${this.restartAttempts} failed:`, err)
       }
     }
 
     throw new Error(
-      `[VaultWatcher] Watcher failed to restart after ${MAX_RESTART_ATTEMPTS} attempts.`,
-    );
+      `[VaultWatcher] Watcher failed to restart after ${MAX_RESTART_ATTEMPTS} attempts.`
+    )
   }
 
   // -------------------------------------------------------------------------
@@ -322,14 +320,14 @@ export class VaultWatcher {
   /** Cancel all pending per-file debounce timers. */
   private _clearAllDebounceTimers(): void {
     for (const timer of this.debounceTimers.values()) {
-      clearTimeout(timer);
+      clearTimeout(timer)
     }
-    this.debounceTimers.clear();
+    this.debounceTimers.clear()
   }
 
   /** Promise-based sleep helper. */
   private _delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 
@@ -338,4 +336,4 @@ export class VaultWatcher {
 // ---------------------------------------------------------------------------
 
 /** Singleton VaultWatcher instance used by the main process. */
-export const vaultWatcher = new VaultWatcher();
+export const vaultWatcher = new VaultWatcher()

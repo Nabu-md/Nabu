@@ -24,7 +24,7 @@ import { remarkEmbeds, type EmbedNode } from '../../src/main/plugins/remarkEmbed
 // ---------------------------------------------------------------------------
 
 function unwrap<T>(mod: any): T {
-  return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod
+  return mod && mod.__esModule && mod.default !== undefined ? mod.default : mod
 }
 const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
@@ -65,10 +65,7 @@ function denormalizeNode(node: any): any {
     }
     return {
       type: 'blockquote',
-      children: [
-        { type: 'paragraph', children: firstParaChildren },
-        ...bodyChildren.slice(1),
-      ],
+      children: [{ type: 'paragraph', children: firstParaChildren }, ...bodyChildren.slice(1)]
     }
   }
   if (node.type === 'embed') {
@@ -94,7 +91,7 @@ function serialize(ast: Root): string {
       strong: '*',
       fence: '`',
       fences: true,
-      listItemIndent: 'one',
+      listItemIndent: 'one'
     })
     .use(remarkFrontmatter)
     .use(remarkGfm)
@@ -121,21 +118,26 @@ function findNodes(ast: Root, type: string): any[] {
 
 /** A valid callout type. */
 const calloutTypeArb = fc.constantFrom(
-  'note', 'info', 'tip', 'success', 'warning',
-  'danger', 'error', 'question', 'example', 'quote', 'abstract',
+  'note',
+  'info',
+  'tip',
+  'success',
+  'warning',
+  'danger',
+  'error',
+  'question',
+  'example',
+  'quote',
+  'abstract'
 )
 
 /** A single-line title without block-level markers. */
-const calloutTitleArb = fc.string({ minLength: 0, maxLength: 20 }).filter(
-  (s) => !s.includes('\n') && !s.includes('[') && !s.includes(']'),
-)
+const calloutTitleArb = fc
+  .string({ minLength: 0, maxLength: 20 })
+  .filter((s) => !s.includes('\n') && !s.includes('[') && !s.includes(']'))
 
 /** Single-line body text. */
-const calloutBodyArb = fc.constantFrom(
-  'Content here.',
-  'Just one line.',
-  'Short text.',
-)
+const calloutBodyArb = fc.constantFrom('Content here.', 'Just one line.', 'Short text.')
 
 /** A safe embed target: alphanumeric + dots/hyphens/underscores, no markdown syntax.
  *  Underscores at start/end are filtered because they trigger emphasis parsing
@@ -152,53 +154,45 @@ const safeTargetArb = fc
 describe('Callout round-trip (Req 8.5)', () => {
   it('parse → denormalize → serialize → re-parse preserves callout node types', () => {
     fc.assert(
-      fc.property(
-        calloutTypeArb,
-        calloutBodyArb,
-        (type, body) => {
-          const md = `> [!${type}]\n> ${body}`
-          const ast = parse(md)
+      fc.property(calloutTypeArb, calloutBodyArb, (type, body) => {
+        const md = `> [!${type}]\n> ${body}`
+        const ast = parse(md)
 
-          // Verify the callout node was created
-          const before = findNodes(ast, 'callout') as Callout[]
-          expect(before.length).toBeGreaterThanOrEqual(1)
-          expect(before[0].calloutType).toBe(type)
+        // Verify the callout node was created
+        const before = findNodes(ast, 'callout') as Callout[]
+        expect(before.length).toBeGreaterThanOrEqual(1)
+        expect(before[0].calloutType).toBe(type)
 
-          // Serialize (denormalizes callout → blockquote)
-          const serialized = serialize(ast)
+        // Serialize (denormalizes callout → blockquote)
+        const serialized = serialize(ast)
 
-          // The marker should be present in the output
-          expect(serialized).toContain(`[!${type}]`)
+        // The marker should be present in the output
+        expect(serialized).toContain(`[!${type}]`)
 
-          // Re-parse
-          const ast2 = parse(serialized)
-          const after = findNodes(ast2, 'callout') as Callout[]
-          expect(after.length).toBeGreaterThanOrEqual(1)
-          expect(after[0].calloutType).toBe(type)
-        },
-      ),
-      { numRuns: 50 },
+        // Re-parse
+        const ast2 = parse(serialized)
+        const after = findNodes(ast2, 'callout') as Callout[]
+        expect(after.length).toBeGreaterThanOrEqual(1)
+        expect(after[0].calloutType).toBe(type)
+      }),
+      { numRuns: 50 }
     )
   })
 
   it('callout with title survives round-trip', () => {
     fc.assert(
-      fc.property(
-        calloutTypeArb,
-        calloutBodyArb,
-        (type, body) => {
-          const md = `> [!${type}] A Title\n> ${body}`
-          const ast = parse(md)
-          const before = findNodes(ast, 'callout') as Callout[]
-          expect(before.length).toBeGreaterThanOrEqual(1)
-          expect(before[0].title).toBe('A Title')
+      fc.property(calloutTypeArb, calloutBodyArb, (type, body) => {
+        const md = `> [!${type}] A Title\n> ${body}`
+        const ast = parse(md)
+        const before = findNodes(ast, 'callout') as Callout[]
+        expect(before.length).toBeGreaterThanOrEqual(1)
+        expect(before[0].title).toBe('A Title')
 
-          const serialized = serialize(ast)
-          expect(serialized).toContain('[!')
-          expect(serialized).toContain(type)
-        },
-      ),
-      { numRuns: 50 },
+        const serialized = serialize(ast)
+        expect(serialized).toContain('[!')
+        expect(serialized).toContain(type)
+      }),
+      { numRuns: 50 }
     )
   })
 })
@@ -221,28 +215,25 @@ describe('Math round-trip (Req 9.4)', () => {
 
           const serialized = serialize(ast)
           expect(serialized).toContain('$')
-        },
+        }
       ),
-      { numRuns: 50 },
+      { numRuns: 50 }
     )
   })
 
   it('display math $$...$$ survives round-trip', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom('x', '\\frac{a}{b}', 'E = mc^2'),
-        (formula) => {
-          const md = `$$\n${formula}\n$$`
-          const ast = parse(md)
-          const mathNodes = findNodes(ast, 'math')
-          expect(mathNodes.length).toBeGreaterThanOrEqual(1)
-          expect(mathNodes[0].value).toContain(formula)
+      fc.property(fc.constantFrom('x', '\\frac{a}{b}', 'E = mc^2'), (formula) => {
+        const md = `$$\n${formula}\n$$`
+        const ast = parse(md)
+        const mathNodes = findNodes(ast, 'math')
+        expect(mathNodes.length).toBeGreaterThanOrEqual(1)
+        expect(mathNodes[0].value).toContain(formula)
 
-          const serialized = serialize(ast)
-          expect(serialized).toContain('$$')
-        },
-      ),
-      { numRuns: 50 },
+        const serialized = serialize(ast)
+        expect(serialized).toContain('$$')
+      }),
+      { numRuns: 50 }
     )
   })
 })
@@ -265,41 +256,38 @@ describe('Embed path containment (Req 11.6)', () => {
           expect(embeds[0].target).not.toContain(']]')
         }
       }),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
   it('multiple embeds all have non-empty targets', () => {
     fc.assert(
-      fc.property(
-        fc.array(safeTargetArb, { minLength: 1, maxLength: 5 }),
-        (targets) => {
-          const md = targets.map((t) => `![[${t}]]`).join(' ')
-          const ast = parse(md)
-          const embeds = findNodes(ast, 'embed') as EmbedNode[]
-          expect(embeds.length).toBe(targets.length)
-          for (const embed of embeds) {
-            expect(embed.target.length).toBeGreaterThan(0)
-          }
-        },
-      ),
-      { numRuns: 50 },
+      fc.property(fc.array(safeTargetArb, { minLength: 1, maxLength: 5 }), (targets) => {
+        const md = targets.map((t) => `![[${t}]]`).join(' ')
+        const ast = parse(md)
+        const embeds = findNodes(ast, 'embed') as EmbedNode[]
+        expect(embeds.length).toBe(targets.length)
+        for (const embed of embeds) {
+          expect(embed.target.length).toBeGreaterThan(0)
+        }
+      }),
+      { numRuns: 50 }
     )
   })
 
   it('non-embed content does not produce false positives', () => {
     fc.assert(
       fc.property(
-        fc.string({ minLength: 1, maxLength: 30 }).filter(
-          (s) => !s.includes('!') && !s.includes('[') && !s.includes(']'),
-        ),
+        fc
+          .string({ minLength: 1, maxLength: 30 })
+          .filter((s) => !s.includes('!') && !s.includes('[') && !s.includes(']')),
         (text) => {
           const ast = parse(text)
           const embeds = findNodes(ast, 'embed')
           expect(embeds).toHaveLength(0)
-        },
+        }
       ),
-      { numRuns: 50 },
+      { numRuns: 50 }
     )
   })
 })

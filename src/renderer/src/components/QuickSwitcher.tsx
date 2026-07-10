@@ -36,7 +36,7 @@ function relativePath(vaultPath: string, absolutePath: string): string {
 /** Highlight matched ranges in a string using `<mark>`. */
 function HighlightedText({
   text,
-  ranges,
+  ranges
 }: {
   text: string
   ranges: { start: number; end: number }[]
@@ -53,7 +53,7 @@ function HighlightedText({
     parts.push(
       <mark key={`m-${r.start}`} className="quick-switcher__mark">
         {text.slice(r.start, r.end)}
-      </mark>,
+      </mark>
     )
     lastEnd = r.end
   }
@@ -128,35 +128,37 @@ export function QuickSwitcher(): React.JSX.Element | null {
     })
   }, [vault, state.extendedIndex])
 
-   // --- Compute ranked results ---
-   const results = useMemo((): FuzzyMatch<FuzzyItem>[] => {
-     if (!debouncedQuery.trim()) {
-       // Empty query → show recent notes (Req 4.6).
-       // Map recent paths to FuzzyItem matches with a perfect score.
-       const recentResults: FuzzyMatch<FuzzyItem>[] = []
-       for (const path of state.recentNotes) {
-         const file = fuzzyItems.find((f) => f.path === path || f.name === path)
-         if (!file) continue
+  // --- Compute ranked results ---
+  const results = useMemo((): FuzzyMatch<FuzzyItem>[] => {
+    if (!debouncedQuery.trim()) {
+      // Empty query → show recent notes (Req 4.6).
+      // Map recent paths to FuzzyItem matches with a perfect score.
+      const recentResults: FuzzyMatch<FuzzyItem>[] = []
+      for (const path of state.recentNotes) {
+        const file = fuzzyItems.find((f) => f.path === path || f.name === path)
+        if (!file) continue
 
-         // Find the item to get the real path
-         const vaultFile = vault?.files.find((f) => f.path === path || f.name.replace(/\.md$/i, '') === path)
-         const actualPath = vaultFile ? relativePath(vault?.path ?? '', vaultFile.path) : path
+        // Find the item to get the real path
+        const vaultFile = vault?.files.find(
+          (f) => f.path === path || f.name.replace(/\.md$/i, '') === path
+        )
+        const actualPath = vaultFile ? relativePath(vault?.path ?? '', vaultFile.path) : path
 
-         recentResults.push({
-           item: { ...file, path: actualPath },
-           score: 1,
-           ranges: [] as FuzzyRange[],
-           matchField: 'name' as const,
-         })
-       }
-       return recentResults
-     }
+        recentResults.push({
+          item: { ...file, path: actualPath },
+          score: 1,
+          ranges: [] as FuzzyRange[],
+          matchField: 'name' as const
+        })
+      }
+      return recentResults
+    }
 
-     return fuzzySearch(debouncedQuery, fuzzyItems, {
-       maxResults: MAX_RESULTS,
-       threshold: 0.05,
-     })
-   }, [debouncedQuery, fuzzyItems, state.recentNotes, vault])
+    return fuzzySearch(debouncedQuery, fuzzyItems, {
+      maxResults: MAX_RESULTS,
+      threshold: 0.05
+    })
+  }, [debouncedQuery, fuzzyItems, state.recentNotes, vault])
 
   // --- Open a note ---
   const openNote = useCallback(
@@ -166,7 +168,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
         .then((fileAST) => {
           dispatch({
             type: 'FILE_LOADED',
-            payload: { path: fileAST.path, ast: fileAST.ast },
+            payload: { path: fileAST.path, ast: fileAST.ast }
           })
         })
         .catch((err) => {
@@ -174,7 +176,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
         })
       dispatch({ type: 'QUICK_SWITCHER_CLOSE' })
     },
-    [dispatch],
+    [dispatch]
   )
 
   // --- Find the full file path for a result ---
@@ -183,17 +185,15 @@ export function QuickSwitcher(): React.JSX.Element | null {
       if (!vault) return null
 
       // Try matching by name
-      const byName = vault.files.find(
-        (f) => f.name.replace(/\.md$/i, '') === match.item.name,
-      )
+      const byName = vault.files.find((f) => f.name.replace(/\.md$/i, '') === match.item.name)
       // Or try matching by relative path
       const byPath = vault.files.find((f) =>
-        relativePath(vault.path, f.path).includes(match.item.path),
+        relativePath(vault.path, f.path).includes(match.item.path)
       )
 
       return byName?.path ?? byPath?.path ?? null
     },
-    [vault],
+    [vault]
   )
 
   // --- Keyboard navigation ---
@@ -221,7 +221,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
           break
       }
     },
-    [results, selectedIndex, openNote, resolveFilePath, dispatch],
+    [results, selectedIndex, openNote, resolveFilePath, dispatch]
   )
 
   // --- Global Esc handler (close when clicking backdrop or pressing Esc elsewhere) ---
@@ -342,9 +342,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
           )}
 
           {!hasQuery && !showRecents && (
-            <div className="quick-switcher__empty">
-              Type to search notes
-            </div>
+            <div className="quick-switcher__empty">Type to search notes</div>
           )}
         </div>
       </div>
@@ -369,7 +367,7 @@ function QuickSwitcherItem({
   isSelected,
   onClick,
   onHover,
-  innerRef,
+  innerRef
 }: QuickSwitcherItemProps): React.JSX.Element {
   const { item, ranges } = match
 

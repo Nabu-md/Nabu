@@ -8,37 +8,37 @@
  * Requirements: 23.3, 23.7
  */
 
-import { unified } from 'unified';
-import type { Processor } from 'unified';
-import type { Root } from 'mdast';
+import { unified } from 'unified'
+import type { Processor } from 'unified'
+import type { Root } from 'mdast'
 
 // CJS/ESM interop: electron-vite bundles ESM packages as CJS require() calls
 // which return { __esModule: true, default: fn }. Unwrap .default if needed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unwrap<T>(mod: any): T {
-  return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod;
+  return mod && mod.__esModule && mod.default !== undefined ? mod.default : mod
 }
 
 // Import remark-parse and related packages - these are renderer-safe
-import _remarkParse from 'remark-parse';
-import _remarkStringify from 'remark-stringify';
-import _remarkFrontmatter from 'remark-frontmatter';
-import _remarkGfm from 'remark-gfm';
-import _remarkMath from 'remark-math';
+import _remarkParse from 'remark-parse'
+import _remarkStringify from 'remark-stringify'
+import _remarkFrontmatter from 'remark-frontmatter'
+import _remarkGfm from 'remark-gfm'
+import _remarkMath from 'remark-math'
 
-const remarkParse = unwrap<typeof _remarkParse>(_remarkParse);
-const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify);
-const remarkFrontmatter = unwrap<typeof _remarkFrontmatter>(_remarkFrontmatter);
-const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm);
-const remarkMath = unwrap<typeof _remarkMath>(_remarkMath);
+const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
+const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
+const remarkFrontmatter = unwrap<typeof _remarkFrontmatter>(_remarkFrontmatter)
+const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
+const remarkMath = unwrap<typeof _remarkMath>(_remarkMath)
 
 // Import the custom plugins - they are pure and renderer-safe (no Node.js dependencies)
-import { remarkToggleBlocks } from './plugins/remarkToggleBlocks';
-import { remarkTaskBlocks } from './plugins/remarkTaskBlocks';
-import { remarkWikiLinks } from './plugins/remarkWikiLinks';
-import { remarkCallouts } from './plugins/remarkCallouts';
-import { remarkEmbeds } from './plugins/remarkEmbeds';
-import { remarkBlockRefs } from './plugins/remarkBlockRefs';
+import { remarkToggleBlocks } from './plugins/remarkToggleBlocks'
+import { remarkTaskBlocks } from './plugins/remarkTaskBlocks'
+import { remarkWikiLinks } from './plugins/remarkWikiLinks'
+import { remarkCallouts } from './plugins/remarkCallouts'
+import { remarkEmbeds } from './plugins/remarkEmbeds'
+import { remarkBlockRefs } from './plugins/remarkBlockRefs'
 
 // ---------------------------------------------------------------------------
 // buildProcessor
@@ -66,7 +66,7 @@ export function buildProcessor(): Processor<Root, Root, Root, undefined, undefin
     .use(remarkToggleBlocks) // 6. [toggle] headings → ToggleBlock nodes
     .use(remarkTaskBlocks) // 7. - [ ] / - [x] → TaskList / TaskItem nodes
     .use(remarkWikiLinks) // 8. [[Page Name]] → WikiLink nodes
-    .use(remarkBlockRefs); // 9. ^id trailing on blocks + [[note#^id]] refs
+    .use(remarkBlockRefs) // 9. ^id trailing on blocks + [[note#^id]] refs
 }
 
 // ---------------------------------------------------------------------------
@@ -84,5 +84,5 @@ export {
   remarkWikiLinks,
   remarkCallouts,
   remarkEmbeds,
-  remarkBlockRefs,
-};
+  remarkBlockRefs
+}

@@ -22,7 +22,7 @@ interface OutgoingLink {
 function computeOutgoingLinks(
   currentFile: string | null,
   edges: Edge[],
-  vaultFilePaths: string[],
+  vaultFilePaths: string[]
 ): OutgoingLink[] {
   if (!currentFile) return []
 
@@ -37,13 +37,14 @@ function computeOutgoingLinks(
     .map((e) => ({
       targetPath: e.target,
       name:
-        vaultFilePaths.find((fp) => fp === e.target)
+        vaultFilePaths
+          .find((fp) => fp === e.target)
           ?.split('/')
           .pop()
           ?.replace('.md', '') ??
         e.target.split('/').pop()?.replace('.md', '') ??
         e.target,
-      snippet: e.snippet,
+      snippet: e.snippet
     }))
 }
 
@@ -60,7 +61,7 @@ describe('OutgoingLinksPanel logic', () => {
     { source: '/vault/a.md', target: '/vault/b.md', snippet: 'link to b' },
     { source: '/vault/a.md', target: '/vault/c.md', snippet: 'link to c' },
     { source: '/vault/a.md', target: '/vault/b.md', snippet: 'duplicate' },
-    { source: '/vault/b.md', target: '/vault/d.md', snippet: 'link to d' },
+    { source: '/vault/b.md', target: '/vault/d.md', snippet: 'link to d' }
   ]
 
   const vaultFiles = ['/vault/b.md', '/vault/c.md', '/vault/d.md']
@@ -69,7 +70,7 @@ describe('OutgoingLinksPanel logic', () => {
     const links = computeOutgoingLinks('/vault/a.md', edges, vaultFiles)
     expect(links).toHaveLength(2)
     expect(links.map((l) => l.targetPath)).toEqual(
-      expect.arrayContaining(['/vault/b.md', '/vault/c.md']),
+      expect.arrayContaining(['/vault/b.md', '/vault/c.md'])
     )
   })
 

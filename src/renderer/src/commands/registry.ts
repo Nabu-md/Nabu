@@ -69,8 +69,8 @@ export function unregisterCommand(id: string): void {
  * @param options   Optional overrides (see below).
  */
 export function seedCommands(
-   dispatch: React.Dispatch<AppAction>,
-   options?: {
+  dispatch: React.Dispatch<AppAction>,
+  options?: {
     /** Called when the Quick Switcher should open (Cmd+O). */
     openQuickSwitcher?: () => void
     /** Called when "Create daily note" is invoked. */
@@ -81,7 +81,7 @@ export function seedCommands(
     reindexVector?: () => void
     /** Called to toggle favorite state for the current file. */
     toggleFavorite?: () => void
-  },
+  }
 ): void {
   const o = options ?? {}
 
@@ -93,28 +93,28 @@ export function seedCommands(
       if (o.toggleFavorite) {
         o.toggleFavorite()
       }
-    },
+    }
   })
 
   registerCommand({
     id: 'edit.toggle',
     label: 'Toggle edit / view mode',
     keywords: ['edit', 'view', 'toggle'],
-    run: () => dispatch({ type: 'EDIT_MODE_EXIT' }),
+    run: () => dispatch({ type: 'EDIT_MODE_EXIT' })
   })
 
   registerCommand({
     id: 'graph.toggle',
     label: 'Toggle graph view',
     keywords: ['graph', 'toggle'],
-    run: () => dispatch({ type: 'GRAPH_VIEW_TOGGLE' }),
+    run: () => dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
   })
 
   registerCommand({
     id: 'search.toggle',
     label: 'Toggle search panel',
     keywords: ['search', 'find'],
-    run: () => dispatch({ type: 'SEARCH_PANEL_TOGGLE' }),
+    run: () => dispatch({ type: 'SEARCH_PANEL_TOGGLE' })
   })
 
   registerCommand({
@@ -127,14 +127,14 @@ export function seedCommands(
       } else {
         dispatch({ type: 'QUICK_SWITCHER_OPEN' })
       }
-    },
+    }
   })
 
   registerCommand({
     id: 'settings.open',
     label: 'Open settings',
     keywords: ['settings', 'preferences', 'config'],
-    run: () => dispatch({ type: 'SETTINGS_PANEL_TOGGLE' }),
+    run: () => dispatch({ type: 'SETTINGS_PANEL_TOGGLE' })
   })
 
   registerCommand({
@@ -146,7 +146,7 @@ export function seedCommands(
       // requires user input (name, template). The file-tree context
       // menu handles the interactive flow.
       dispatch({ type: 'SETUP_TOGGLE' })
-    },
+    }
   })
 
   registerCommand({
@@ -157,7 +157,7 @@ export function seedCommands(
       if (o.createDailyNote) {
         o.createDailyNote()
       }
-    },
+    }
   })
 
   registerCommand({
@@ -168,7 +168,7 @@ export function seedCommands(
       if (o.openRandomNote) {
         o.openRandomNote()
       }
-    },
+    }
   })
 
   registerCommand({
@@ -182,7 +182,7 @@ export function seedCommands(
         // Fallback — open settings so the user can trigger reindex
         dispatch({ type: 'SETTINGS_PANEL_TOGGLE' })
       }
-    },
+    }
   })
 }
 
@@ -199,7 +199,7 @@ export function seedPaneCommands(
     moveToNewPane?: () => void
     /** Focus next pane. */
     focusNextPane?: () => void
-  },
+  }
 ): void {
   const o = options ?? {}
 
@@ -211,7 +211,7 @@ export function seedPaneCommands(
       if (o.closeCurrentTab) {
         o.closeCurrentTab()
       }
-    },
+    }
   })
 
   registerCommand({
@@ -222,7 +222,7 @@ export function seedPaneCommands(
       if (o.focusNextPane) {
         o.focusNextPane()
       }
-    },
+    }
   })
 
   registerCommand({
@@ -233,7 +233,7 @@ export function seedPaneCommands(
       if (o.moveToNewPane) {
         o.moveToNewPane()
       }
-    },
+    }
   })
 }
 
@@ -251,7 +251,7 @@ export function clearSeedCommands(): void {
     'note.create',
     'note.daily',
     'note.random',
-    'vector.reindex',
+    'vector.reindex'
   ]
   for (const id of ids) {
     unregisterCommand(id)

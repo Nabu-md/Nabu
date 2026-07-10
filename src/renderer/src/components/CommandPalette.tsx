@@ -37,7 +37,7 @@ interface ScoredCommand {
 /** Highlight matched ranges in a string using `<mark>`. */
 function HighlightedText({
   text,
-  ranges,
+  ranges
 }: {
   text: string
   ranges: { start: number; end: number }[]
@@ -54,7 +54,7 @@ function HighlightedText({
     parts.push(
       <mark key={`m-${r.start}`} className="quick-switcher__mark">
         {text.slice(r.start, r.end)}
-      </mark>,
+      </mark>
     )
     lastEnd = r.end
   }
@@ -109,7 +109,7 @@ export function CommandPalette(): React.JSX.Element | null {
       return commands.slice(0, MAX_RESULTS).map((c) => ({
         command: c,
         score: 1,
-        ranges: [],
+        ranges: []
       }))
     }
 
@@ -164,7 +164,7 @@ export function CommandPalette(): React.JSX.Element | null {
       cmd.run()
       dispatch({ type: 'COMMAND_PALETTE_CLOSE' })
     },
-    [dispatch],
+    [dispatch]
   )
 
   // --- Keyboard navigation ---
@@ -191,7 +191,7 @@ export function CommandPalette(): React.JSX.Element | null {
           break
       }
     },
-    [results, selectedIndex, executeCommand, dispatch],
+    [results, selectedIndex, executeCommand, dispatch]
   )
 
   // --- Global Esc handler ---
@@ -257,14 +257,9 @@ export function CommandPalette(): React.JSX.Element | null {
                 onKeyDown={() => {}}
               >
                 <div className="quick-switcher__result-name">
-                  <HighlightedText
-                    text={result.command.label}
-                    ranges={result.ranges}
-                  />
+                  <HighlightedText text={result.command.label} ranges={result.ranges} />
                 </div>
-                <div className="quick-switcher__result-path">
-                  {result.command.id}
-                </div>
+                <div className="quick-switcher__result-path">{result.command.id}</div>
               </div>
             )
           })}

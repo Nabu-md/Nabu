@@ -46,5 +46,5 @@ export enum IPCChannel {
   NOTE_COMPOSE = 'note:compose',
   NOTE_UNIQUE = 'note:unique',
   SETTINGS_GET_FEATURE_TOGGLES = 'settings:getFeatureToggles',
-  SETTINGS_SET_FEATURE_TOGGLE = 'settings:setFeatureToggle',
+  SETTINGS_SET_FEATURE_TOGGLE = 'settings:setFeatureToggle'
 }

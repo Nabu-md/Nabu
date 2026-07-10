@@ -46,7 +46,7 @@ export function FavoritesPanel(): React.JSX.Element {
         console.error('[FavoritesPanel] Failed to open note:', err)
       }
     },
-    [dispatch],
+    [dispatch]
   )
 
   if (loading) return <div className="favorites-panel px-3 py-2" />
@@ -57,9 +57,7 @@ export function FavoritesPanel(): React.JSX.Element {
         Favorites
       </div>
       {favorites.length === 0 ? (
-        <div className="px-3 py-2 text-xs text-nabu-text-muted italic">
-          No favorites yet
-        </div>
+        <div className="px-3 py-2 text-xs text-nabu-text-muted italic">No favorites yet</div>
       ) : (
         <ul className="flex flex-col gap-0.5 px-2 pb-2">
           {favorites.map((filePath) => {

@@ -37,7 +37,7 @@ export function isAudioRecordingSupported(): boolean {
  */
 export async function startRecording(
   vaultPath: string,
-  filename?: string,
+  filename?: string
 ): Promise<{ success: boolean; path?: string; error?: string }> {
   try {
     const audioDir = path.join(vaultPath, '.nabu', 'audio')
@@ -51,7 +51,7 @@ export async function startRecording(
       id: timestamp.toString(),
       filePath,
       startTime: new Date(),
-      duration: 0,
+      duration: 0
     }
 
     return { success: true, path: filePath }
@@ -64,7 +64,7 @@ export async function startRecording(
  * Stop recording and save the audio file.
  */
 export async function stopRecording(
-  blob: Blob,
+  blob: Blob
 ): Promise<{ success: boolean; path?: string; error?: string }> {
   if (!activeSession) {
     return { success: false, error: 'No active recording session' }

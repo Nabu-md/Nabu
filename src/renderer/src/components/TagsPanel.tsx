@@ -65,7 +65,7 @@ function buildTagTree(tagCounts: Map<string, number>): TagNode[] {
           count: isLast ? count : 0,
           children: [],
           isFolder: !isLast,
-          isActive: false,
+          isActive: false
         }
         currentLevel.push(node)
         currentLevel = node.children
@@ -114,10 +114,7 @@ function TagTreeItem({ node, selectedTags, onToggle, depth }: TagTreeItemProps):
 
   return (
     <div className="tag-tree-item">
-      <div
-        className="flex items-center gap-0.5"
-        style={{ paddingLeft: `${depth * 12}px` }}
-      >
+      <div className="flex items-center gap-0.5" style={{ paddingLeft: `${depth * 12}px` }}>
         {/* Expand/collapse for folder tags */}
         {hasChildren ? (
           <button
@@ -143,7 +140,7 @@ function TagTreeItem({ node, selectedTags, onToggle, depth }: TagTreeItemProps):
             'transition-colors text-left select-none',
             isPressed
               ? 'bg-nabu-accent/20 text-nabu-accent'
-              : 'text-nabu-text-muted hover:text-nabu-text hover:bg-nabu-bg-mute',
+              : 'text-nabu-text-muted hover:text-nabu-text hover:bg-nabu-bg-mute'
           ].join(' ')}
         >
           <span className="truncate">
@@ -153,7 +150,7 @@ function TagTreeItem({ node, selectedTags, onToggle, depth }: TagTreeItemProps):
           <span
             className={[
               'ml-1 shrink-0 tabular-nums',
-              isPressed ? 'text-nabu-accent/70' : 'text-nabu-text-faint',
+              isPressed ? 'text-nabu-accent/70' : 'text-nabu-text-faint'
             ].join(' ')}
           >
             {node.count}
@@ -217,7 +214,7 @@ export function TagsPanel(): React.JSX.Element {
     (tag: string) => {
       dispatch({ type: 'TAG_FILTER_TOGGLE', payload: tag })
     },
-    [dispatch],
+    [dispatch]
   )
 
   const handleClearFilters = useCallback(() => {

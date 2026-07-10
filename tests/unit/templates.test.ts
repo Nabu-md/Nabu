@@ -17,13 +17,13 @@ const tokenArb = fc.constantFrom('{{title}}', '{{date}}', '{{time}}', '')
 const varsArb = fc.record({
   title: fc.string({ maxLength: 10 }),
   date: fc.string({ maxLength: 10 }),
-  time: fc.string({ maxLength: 10 }),
+  time: fc.string({ maxLength: 10 })
 })
 
 // Arbitrary fixed text segment (no `{{` sequences to avoid accidental token collisions)
 const segmentArb = fc
   .string({ maxLength: 20 })
-  .filter(s => !s.includes('{{') && !s.includes('}}'))
+  .filter((s) => !s.includes('{{') && !s.includes('}}'))
 
 describe('substituteVariables — property-based tests', () => {
   /**
@@ -84,7 +84,7 @@ describe('substituteVariables — property-based tests', () => {
           const result = substituteVariables(template, vars)
 
           // Every fixed segment must appear in the result
-          return segments.every(seg => result.includes(seg))
+          return segments.every((seg) => result.includes(seg))
         }
       )
     )

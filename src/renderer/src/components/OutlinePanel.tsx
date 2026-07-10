@@ -52,7 +52,7 @@ function extractOutline(ast: Root | null): OutlineEntry[] {
       entries.push({
         childIndex: i,
         depth: heading.depth,
-        text: flattenText(heading),
+        text: flattenText(heading)
       })
     }
   }
@@ -118,7 +118,7 @@ export function OutlinePanel(): React.JSX.Element | null {
         }
         setActiveIndex(active)
       },
-      { rootMargin: '-80px 0px -60% 0px' },
+      { rootMargin: '-80px 0px -60% 0px' }
     )
 
     for (const el of elements) observer.observe(el)
@@ -137,10 +137,7 @@ export function OutlinePanel(): React.JSX.Element | null {
   if (entries.length === 0) return null
 
   return (
-    <section
-      className="outline-panel border-t border-white/10 mt-2 pt-2"
-      aria-label="Outline"
-    >
+    <section className="outline-panel border-t border-white/10 mt-2 pt-2" aria-label="Outline">
       <button
         type="button"
         aria-expanded={isExpanded}

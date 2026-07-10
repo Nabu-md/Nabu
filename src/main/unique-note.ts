@@ -13,7 +13,7 @@
  */
 export function generateUniqueNoteName(
   format: string = 'YYYYMMDDHHmmss',
-  now: Date = new Date(),
+  now: Date = new Date()
 ): string {
   const year = now.getFullYear()
   const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -34,10 +34,7 @@ export function generateUniqueNoteName(
 /**
  * Parse a template and inject unique-note variables.
  */
-export function substituteUniqueNoteVariables(
-  template: string,
-  noteName: string,
-): string {
+export function substituteUniqueNoteVariables(template: string, noteName: string): string {
   return template
     .replace(/\{\{title\}\}/g, noteName)
     .replace(/\{\{date\}\}/g, noteName.slice(0, 8)) // YYYYMMDD

@@ -209,7 +209,7 @@ function isLowercase(ch: string): boolean {
 export function fuzzySearch<T extends FuzzyItem>(
   query: string,
   items: T[],
-  opts?: FuzzyOptions,
+  opts?: FuzzyOptions
 ): FuzzyMatch<T>[] {
   if (!query.trim()) return []
 
@@ -218,12 +218,13 @@ export function fuzzySearch<T extends FuzzyItem>(
 
   const scored: FuzzyMatch<T>[] = []
 
-   for (const item of items) {
+  for (const item of items) {
     let best: FieldMatch | null = null
     let matchField: 'name' | 'path' | 'alias' | 'keyword' = 'name'
 
     // Helper to get current weighted score
-    const getCurrentWeighted = (): number => best !== null ? best.score * getFieldWeight(matchField) : -1
+    const getCurrentWeighted = (): number =>
+      best !== null ? best.score * getFieldWeight(matchField) : -1
 
     // Check name (highest weight).
     const nameMatch = matchScore(query, item.name)
@@ -280,7 +281,7 @@ export function fuzzySearch<T extends FuzzyItem>(
           item,
           score: finalScore,
           ranges: best.ranges,
-          matchField,
+          matchField
         })
       }
     }
@@ -301,9 +302,13 @@ export function fuzzySearch<T extends FuzzyItem>(
 
 function getFieldWeight(field: FuzzyMatch['matchField']): number {
   switch (field) {
-    case 'name': return NAME_WEIGHT
-    case 'path': return PATH_WEIGHT
-    case 'alias': return ALIAS_WEIGHT
-    case 'keyword': return KEYWORD_WEIGHT
+    case 'name':
+      return NAME_WEIGHT
+    case 'path':
+      return PATH_WEIGHT
+    case 'alias':
+      return ALIAS_WEIGHT
+    case 'keyword':
+      return KEYWORD_WEIGHT
   }
 }

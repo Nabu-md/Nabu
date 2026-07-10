@@ -37,10 +37,10 @@ const BASES_FILENAME = 'bases.json'
 export function buildBaseRows(
   files: FileEntry[],
   _getAllProperties: (path: string) => Promise<Record<string, unknown>>,
-  base: BaseConfig,
+  base: BaseConfig
 ): BaseRow[] {
   // Filter by query if specified
-  const matchingFiles = files.filter(file => {
+  const matchingFiles = files.filter((file) => {
     if (base.query?.tag && !file.path.includes(`#${base.query.tag}`)) {
       return false
     }
@@ -54,10 +54,10 @@ export function buildBaseRows(
   })
 
   // Load properties for each file
-  return matchingFiles.map(file => ({
+  return matchingFiles.map((file) => ({
     path: file.path,
     name: file.name,
-    properties: {},
+    properties: {}
   }))
 }
 
@@ -66,7 +66,7 @@ export function buildBaseRows(
  */
 export async function loadBases(vaultPath: string): Promise<BaseConfig[]> {
   const basesPath = path.join(vaultPath, '.nabu', BASES_FILENAME)
-  
+
   try {
     const data = await fs.readFile(basesPath, 'utf-8')
     return JSON.parse(data) as BaseConfig[]
@@ -82,21 +82,21 @@ export async function loadBases(vaultPath: string): Promise<BaseConfig[]> {
 export async function saveBase(vaultPath: string, base: BaseConfig): Promise<void> {
   const nabuDir = path.join(vaultPath, '.nabu')
   const basesPath = path.join(nabuDir, BASES_FILENAME)
-  
+
   // Ensure .nabu directory exists
   await fs.mkdir(nabuDir, { recursive: true })
-  
+
   // Load existing bases
   const existing = await loadBases(vaultPath)
-  
+
   // Update or add the base
-  const index = existing.findIndex(b => b.id === base.id)
+  const index = existing.findIndex((b) => b.id === base.id)
   if (index >= 0) {
     existing[index] = base
   } else {
     existing.push(base)
   }
-  
+
   // Write back
   await fs.writeFile(basesPath, JSON.stringify(existing, null, 2), 'utf-8')
 }
@@ -107,7 +107,7 @@ export async function saveBase(vaultPath: string, base: BaseConfig): Promise<voi
 export async function updateBaseProperty(
   _path: string,
   _property: string,
-  _value: unknown,
+  _value: unknown
 ): Promise<{ success: boolean; error?: string }> {
   // Would use properties:write IPC
   // For now, return success with a note that this should be handled via IPC

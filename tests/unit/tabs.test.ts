@@ -54,7 +54,7 @@ function createInitialState(overrides: Partial<AppState> = {}): AppState {
     quickSwitcherOpen: false,
     commandPaletteOpen: false,
     recentNotes: [],
-    ...overrides,
+    ...overrides
   }
 }
 
@@ -71,8 +71,8 @@ describe('Tab System - TAB_OPENED', () => {
       payload: {
         path: '/vault/notes/test.md',
         ast: createMockAST(),
-        raw: '# Test Note',
-      },
+        raw: '# Test Note'
+      }
     }
 
     const state = appReducer(initialState, action)
@@ -96,10 +96,10 @@ describe('Tab System - TAB_OPENED', () => {
           raw: '# Test Note',
           mode: 'view',
           scrollTop: 0,
-          cursor: 0,
-        },
+          cursor: 0
+        }
       ],
-      activeTabId: null,
+      activeTabId: null
     })
 
     const action: AppAction = {
@@ -107,8 +107,8 @@ describe('Tab System - TAB_OPENED', () => {
       payload: {
         path: '/vault/notes/test.md',
         ast: createMockAST(),
-        raw: '# Test Note',
-      },
+        raw: '# Test Note'
+      }
     }
 
     const state = appReducer(initialState, action)
@@ -128,18 +128,34 @@ describe('Tab System - TAB_CLOSED', () => {
     const tab2Id = 'tab-2'
     const initialState = createInitialState({
       openTabs: [
-        { id: tab1Id, path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One', mode: 'view', scrollTop: 0, cursor: 0 },
-        { id: tab2Id, path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: tab1Id,
+          path: '/vault/notes/one.md',
+          ast: createMockAST(),
+          raw: '# One',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        },
+        {
+          id: tab2Id,
+          path: '/vault/notes/two.md',
+          ast: createMockAST(),
+          raw: '# Two',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       activeTabId: tab1Id,
       currentFile: '/vault/notes/one.md',
       currentAST: createMockAST(),
-      currentRaw: '# One',
+      currentRaw: '# One'
     })
 
     const action: AppAction = {
       type: 'TAB_CLOSED',
-      payload: { tabId: tab1Id },
+      payload: { tabId: tab1Id }
     }
 
     const state = appReducer(initialState, action)
@@ -154,19 +170,35 @@ describe('Tab System - TAB_CLOSED', () => {
     const tab2Id = 'tab-2'
     const initialState = createInitialState({
       openTabs: [
-        { id: tab1Id, path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One', mode: 'edit', scrollTop: 0, cursor: 0 },
-        { id: tab2Id, path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: tab1Id,
+          path: '/vault/notes/one.md',
+          ast: createMockAST(),
+          raw: '# One',
+          mode: 'edit',
+          scrollTop: 0,
+          cursor: 0
+        },
+        {
+          id: tab2Id,
+          path: '/vault/notes/two.md',
+          ast: createMockAST(),
+          raw: '# Two',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       activeTabId: tab1Id,
       currentFile: '/vault/notes/one.md',
       currentAST: createMockAST(),
       currentRaw: '# One',
-      editMode: true,
+      editMode: true
     })
 
     const action: AppAction = {
       type: 'TAB_CLOSED',
-      payload: { tabId: tab1Id },
+      payload: { tabId: tab1Id }
     }
 
     const state = appReducer(initialState, action)
@@ -187,17 +219,33 @@ describe('Tab System - TAB_ACTIVATED', () => {
     const tab2Id = 'tab-2'
     const initialState = createInitialState({
       openTabs: [
-        { id: tab1Id, path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One', mode: 'view', scrollTop: 0, cursor: 0 },
-        { id: tab2Id, path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two', mode: 'edit', scrollTop: 0, cursor: 0 },
+        {
+          id: tab1Id,
+          path: '/vault/notes/one.md',
+          ast: createMockAST(),
+          raw: '# One',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        },
+        {
+          id: tab2Id,
+          path: '/vault/notes/two.md',
+          ast: createMockAST(),
+          raw: '# Two',
+          mode: 'edit',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       activeTabId: tab1Id,
       currentFile: '/vault/notes/one.md',
-      currentAST: createMockAST(),
+      currentAST: createMockAST()
     })
 
     const action: AppAction = {
       type: 'TAB_ACTIVATED',
-      payload: { tabId: tab2Id },
+      payload: { tabId: tab2Id }
     }
 
     const state = appReducer(initialState, action)
@@ -218,19 +266,27 @@ describe('Tab System - TAB_UPDATED', () => {
     const tabId = 'tab-1'
     const initialState = createInitialState({
       openTabs: [
-        { id: tabId, path: '/vault/notes/test.md', ast: createMockAST(), raw: '# Test', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: tabId,
+          path: '/vault/notes/test.md',
+          ast: createMockAST(),
+          raw: '# Test',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       activeTabId: tabId,
       currentFile: '/vault/notes/test.md',
-      currentAST: createMockAST(),
+      currentAST: createMockAST()
     })
 
     const action: AppAction = {
       type: 'TAB_UPDATED',
       payload: {
         tabId,
-        patch: { scrollTop: 100 },
-      },
+        patch: { scrollTop: 100 }
+      }
     }
 
     const state = appReducer(initialState, action)

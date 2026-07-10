@@ -10,12 +10,18 @@
  * Requirements: 23.3, 23.7
  */
 
-import type { Root } from 'mdast';
+import type { Root } from 'mdast'
 
 // Import the shared buildProcessor for the markdown pipeline
-import { buildProcessor, remarkStringify, remarkFrontmatter, remarkGfm, remarkMath } from '@shared/markdown';
+import {
+  buildProcessor,
+  remarkStringify,
+  remarkFrontmatter,
+  remarkGfm,
+  remarkMath
+} from '@shared/markdown'
 
-import { unified } from 'unified';
+import { unified } from 'unified'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,9 +29,9 @@ import { unified } from 'unified';
 
 export interface RenderResult {
   /** The rendered HTML string */
-  html: string;
+  html: string
   /** The parsed AST (for inspection/debugging) */
-  ast: Root;
+  ast: Root
 }
 
 // ---------------------------------------------------------------------------
@@ -41,9 +47,9 @@ export interface RenderResult {
  * Requirements: 23.3, 23.7
  */
 export function parseMarkdown(content: string): Root {
-  const processor = buildProcessor();
-  const ast = processor.parse(content) as Root;
-  return processor.runSync(ast) as Root;
+  const processor = buildProcessor()
+  const ast = processor.parse(content) as Root
+  return processor.runSync(ast) as Root
 }
 
 // ---------------------------------------------------------------------------
@@ -63,11 +69,11 @@ export function serializeMarkdown(ast: Root): string {
       strong: '*',
       fence: '`',
       fences: true,
-      listItemIndent: 'one',
+      listItemIndent: 'one'
     })
     .use(remarkFrontmatter)
     .use(remarkGfm)
-    .use(remarkMath);
+    .use(remarkMath)
 
-  return String(processor.stringify(ast));
+  return String(processor.stringify(ast))
 }

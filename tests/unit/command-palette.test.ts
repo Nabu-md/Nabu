@@ -14,7 +14,7 @@ import {
   resetRegistry,
   registerCommand,
   getCommands,
-  type Command,
+  type Command
 } from '../../src/renderer/src/commands/registry'
 import { matchScore } from '../../src/renderer/src/utils/fuzzy'
 
@@ -25,7 +25,7 @@ import { matchScore } from '../../src/renderer/src/utils/fuzzy'
 /** Score a query against each command's label/id/keywords, return the best. */
 function scoreCommand(
   cmd: Command,
-  query: string,
+  query: string
 ): { score: number; field: 'label' | 'id' | 'keyword' } | null {
   let best: { score: number; field: 'label' | 'id' | 'keyword' } | null = null
 
@@ -77,12 +77,37 @@ function filterCommands(query: string): Array<{ command: Command; score: number 
 // ---------------------------------------------------------------------------
 
 const testCommands: Command[] = [
-  { id: 'edit.toggle', label: 'Toggle edit / view mode', keywords: ['edit', 'view', 'toggle'], run: () => {} },
+  {
+    id: 'edit.toggle',
+    label: 'Toggle edit / view mode',
+    keywords: ['edit', 'view', 'toggle'],
+    run: () => {}
+  },
   { id: 'graph.toggle', label: 'Toggle graph view', keywords: ['graph', 'toggle'], run: () => {} },
-  { id: 'search.toggle', label: 'Toggle search panel', keywords: ['search', 'find'], run: () => {} },
-  { id: 'switcher.open', label: 'Go to note', keywords: ['switcher', 'quick', 'open', 'navigate'], run: () => {} },
-  { id: 'settings.open', label: 'Open settings', keywords: ['settings', 'preferences', 'config'], run: () => {} },
-  { id: 'note.create', label: 'Create new note', keywords: ['new', 'create', 'note'], run: () => {} },
+  {
+    id: 'search.toggle',
+    label: 'Toggle search panel',
+    keywords: ['search', 'find'],
+    run: () => {}
+  },
+  {
+    id: 'switcher.open',
+    label: 'Go to note',
+    keywords: ['switcher', 'quick', 'open', 'navigate'],
+    run: () => {}
+  },
+  {
+    id: 'settings.open',
+    label: 'Open settings',
+    keywords: ['settings', 'preferences', 'config'],
+    run: () => {}
+  },
+  {
+    id: 'note.create',
+    label: 'Create new note',
+    keywords: ['new', 'create', 'note'],
+    run: () => {}
+  }
 ]
 
 beforeEach(() => {
@@ -140,7 +165,7 @@ describe('CommandPalette filtering', () => {
     for (let i = 1; i < results.length; i++) {
       if (results[i - 1].score === results[i].score) {
         expect(
-          results[i - 1].command.label.localeCompare(results[i].command.label),
+          results[i - 1].command.label.localeCompare(results[i].command.label)
         ).toBeLessThanOrEqual(0)
       }
     }

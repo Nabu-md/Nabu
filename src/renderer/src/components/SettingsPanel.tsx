@@ -24,9 +24,14 @@ export function SettingsPanel(): React.JSX.Element | null {
   // Fetch feature toggles on mount and when panel opens
   useEffect(() => {
     if (settingsPanelOpen) {
-      window.electron.settings.getFeatureToggles().then(({ toggles }) => {
-        setFeatureToggles(toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>)
-      }).catch(console.error)
+      window.electron.settings
+        .getFeatureToggles()
+        .then(({ toggles }) => {
+          setFeatureToggles(
+            toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>
+          )
+        })
+        .catch(console.error)
     }
   }, [settingsPanelOpen])
 
@@ -100,16 +105,14 @@ export function SettingsPanel(): React.JSX.Element | null {
       const result = await window.electron.settings.setFeatureToggle(id, enabled)
       if (result.success) {
         // Update local state
-        setFeatureToggles((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, enabled } : t))
-        )
+        setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
       } else {
         setToggleErrors((prev) => ({ ...prev, [id]: result.error ?? 'Unknown error' }))
       }
     } catch (err) {
       setToggleErrors((prev) => ({
         ...prev,
-        [id]: err instanceof Error ? err.message : String(err),
+        [id]: err instanceof Error ? err.message : String(err)
       }))
     }
   }
@@ -138,10 +141,7 @@ export function SettingsPanel(): React.JSX.Element | null {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-nabu-border">
-          <h2
-            id="settings-title"
-            className="text-base font-semibold text-nabu-text"
-          >
+          <h2 id="settings-title" className="text-base font-semibold text-nabu-text">
             Settings
           </h2>
           <button
@@ -212,11 +212,7 @@ export function SettingsPanel(): React.JSX.Element | null {
 
               {/* Re-index error */}
               {reindexError && (
-                <p
-                  role="alert"
-                  aria-live="assertive"
-                  className="text-xs text-red-400 mt-1"
-                >
+                <p role="alert" aria-live="assertive" className="text-xs text-red-400 mt-1">
                   {reindexError}
                 </p>
               )}
@@ -235,11 +231,7 @@ export function SettingsPanel(): React.JSX.Element | null {
               Theme
             </h3>
 
-            <div
-              role="radiogroup"
-              aria-label="Theme selection"
-              className="flex gap-2"
-            >
+            <div role="radiogroup" aria-label="Theme selection" className="flex gap-2">
               {(['dark', 'light', 'system'] as const).map((t) => (
                 <button
                   key={t}
@@ -273,13 +265,16 @@ export function SettingsPanel(): React.JSX.Element | null {
             </h3>
 
             <p className="text-xs text-nabu-text-muted mb-3 leading-relaxed">
-              End-to-end encrypted sync is available as a paid add-on at
-              {' '}<a
+              End-to-end encrypted sync is available as a paid add-on at{' '}
+              <a
                 href="https://nabu.app"
                 className="text-nabu-accent hover:underline"
                 target="_blank"
                 rel="noreferrer noopener"
-              >nabu.app</a>.
+              >
+                nabu.app
+              </a>
+              .
             </p>
           </section>
 
@@ -353,19 +348,8 @@ function Spinner(): React.JSX.Element {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   )
 }

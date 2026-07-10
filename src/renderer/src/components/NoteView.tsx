@@ -21,7 +21,12 @@ import {
   Blockquote,
   Html
 } from 'mdast'
-import { ToggleBlock as ToggleBlockNode, TaskList as TaskListNode, WikiLink as WikiLinkNode, Callout } from '@shared/types'
+import {
+  ToggleBlock as ToggleBlockNode,
+  TaskList as TaskListNode,
+  WikiLink as WikiLinkNode,
+  Callout
+} from '@shared/types'
 import { useAppContext } from '../App'
 import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
@@ -80,7 +85,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 function NoteSkeleton(): React.JSX.Element {
   return (
-    <div className="note-skeleton w-full px-8 py-6 animate-pulse" aria-busy="true" aria-label="Loading note…">
+    <div
+      className="note-skeleton w-full px-8 py-6 animate-pulse"
+      aria-busy="true"
+      aria-label="Loading note…"
+    >
       {/* Title */}
       <div className="h-7 w-2/3 rounded bg-white/10 mb-6" />
       {/* Paragraph lines */}
@@ -126,7 +135,9 @@ function NoteError({ filePath, message, onRetry }: NoteErrorProps): React.JSX.El
       role="alert"
       aria-live="assertive"
     >
-      <div className="text-red-400 text-4xl" aria-hidden="true">⚠</div>
+      <div className="text-red-400 text-4xl" aria-hidden="true">
+        ⚠
+      </div>
       <div>
         <p className="text-sm font-semibold text-white/80 mb-1">Failed to load note</p>
         <p className="text-xs text-white/50 font-mono break-all mb-1">{filePath}</p>
@@ -170,17 +181,42 @@ interface CalloutStyle {
 }
 
 const CALLOUT_CONFIG: Record<string, CalloutStyle> = {
-  note:     { border: 'border-l-blue-500',   bg: 'bg-blue-950/20',   text: 'text-blue-400',   icon: 'ℹ️' },
-  info:     { border: 'border-l-sky-500',    bg: 'bg-sky-950/20',    text: 'text-sky-400',    icon: 'ℹ️' },
-  tip:      { border: 'border-l-emerald-500', bg: 'bg-emerald-950/20', text: 'text-emerald-400', icon: '💡' },
-  success:  { border: 'border-l-green-500',  bg: 'bg-green-950/20',  text: 'text-green-400',  icon: '✅' },
-  warning:  { border: 'border-l-amber-500',   bg: 'bg-amber-950/20',  text: 'text-amber-400',  icon: '⚠️' },
-  danger:   { border: 'border-l-red-500',     bg: 'bg-red-950/20',    text: 'text-red-400',    icon: '🔴' },
-  error:    { border: 'border-l-rose-500',    bg: 'bg-rose-950/20',   text: 'text-rose-400',   icon: '✖️' },
-  question: { border: 'border-l-violet-500',  bg: 'bg-violet-950/20', text: 'text-violet-400', icon: '❓' },
-  example:  { border: 'border-l-purple-500',  bg: 'bg-purple-950/20', text: 'text-purple-400', icon: '📋' },
-  quote:    { border: 'border-l-gray-500',    bg: 'bg-white/5',       text: 'text-gray-400',   icon: '💬' },
-  abstract: { border: 'border-l-teal-500',    bg: 'bg-teal-950/20',   text: 'text-teal-400',   icon: '📄' },
+  note: { border: 'border-l-blue-500', bg: 'bg-blue-950/20', text: 'text-blue-400', icon: 'ℹ️' },
+  info: { border: 'border-l-sky-500', bg: 'bg-sky-950/20', text: 'text-sky-400', icon: 'ℹ️' },
+  tip: {
+    border: 'border-l-emerald-500',
+    bg: 'bg-emerald-950/20',
+    text: 'text-emerald-400',
+    icon: '💡'
+  },
+  success: {
+    border: 'border-l-green-500',
+    bg: 'bg-green-950/20',
+    text: 'text-green-400',
+    icon: '✅'
+  },
+  warning: {
+    border: 'border-l-amber-500',
+    bg: 'bg-amber-950/20',
+    text: 'text-amber-400',
+    icon: '⚠️'
+  },
+  danger: { border: 'border-l-red-500', bg: 'bg-red-950/20', text: 'text-red-400', icon: '🔴' },
+  error: { border: 'border-l-rose-500', bg: 'bg-rose-950/20', text: 'text-rose-400', icon: '✖️' },
+  question: {
+    border: 'border-l-violet-500',
+    bg: 'bg-violet-950/20',
+    text: 'text-violet-400',
+    icon: '❓'
+  },
+  example: {
+    border: 'border-l-purple-500',
+    bg: 'bg-purple-950/20',
+    text: 'text-purple-400',
+    icon: '📋'
+  },
+  quote: { border: 'border-l-gray-500', bg: 'bg-white/5', text: 'text-gray-400', icon: '💬' },
+  abstract: { border: 'border-l-teal-500', bg: 'bg-teal-950/20', text: 'text-teal-400', icon: '📄' }
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +235,8 @@ interface RenderContext {
 
 /** Extract a block identifier from a node's data, if present. */
 function blockIdFrom(node: Node): string | undefined {
-  const data = (node as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined
+  const data = (node as unknown as Record<string, unknown>).data as
+    Record<string, unknown> | undefined
   return data?.blockId as string | undefined
 }
 
@@ -216,9 +253,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
         node={n}
         filePath={ctx.filePath}
         renderNodes={(nodes, fp) =>
-          nodes.map((child, i) =>
-            renderNode(child, { ...ctx, filePath: fp }, i)
-          )
+          nodes.map((child, i) => renderNode(child, { ...ctx, filePath: fp }, i))
         }
       />
     )
@@ -274,22 +309,15 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
           <summary className="cursor-pointer px-4 py-2 rounded-r-lg hover:bg-white/[0.03]">
             {header}
           </summary>
-          <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">
-            {body}
-          </div>
+          <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">{body}</div>
         </details>
       )
     }
 
     return (
-      <div
-        key={key}
-        className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg}`}
-      >
+      <div key={key} className={`my-3 rounded-lg border-l-4 ${style.border} ${style.bg}`}>
         <div className="px-4 pt-2">{header}</div>
-        <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">
-          {body}
-        </div>
+        <div className="px-4 pb-3 text-white/80 text-sm leading-relaxed">{body}</div>
       </div>
     )
   }
@@ -324,7 +352,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   if (type === 'heading') {
     const n = node as Heading
     const depth = n.depth
-    const Tag = (`h${depth}`) as keyof React.JSX.IntrinsicElements
+    const Tag = `h${depth}` as keyof React.JSX.IntrinsicElements
     const classMap: Record<number, string> = {
       1: 'text-2xl font-bold mt-6 mb-3 text-white/90',
       2: 'text-xl font-semibold mt-5 mb-2 text-white/85',
@@ -459,9 +487,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
     const n = node as Html
     // Render HTML content inside a sandboxed iframe with allow-scripts only.
     // See SandboxedHtml.tsx for the full security model.
-    return (
-      <SandboxedHtml key={key} html={n.value} />
-    )
+    return <SandboxedHtml key={key} html={n.value} />
   }
 
   // ---- Inline nodes ----
@@ -491,10 +517,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
   if (type === 'inlineCode') {
     const n = node as InlineCode
     return (
-      <code
-        key={key}
-        className="font-mono text-xs bg-white/10 rounded px-1 py-0.5 text-white/80"
-      >
+      <code key={key} className="font-mono text-xs bg-white/10 rounded px-1 py-0.5 text-white/80">
         {n.value}
       </code>
     )
@@ -507,11 +530,7 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
     try {
       const html = katex.renderToString(n.value, { throwOnError: false })
       return (
-        <span
-          key={key}
-          className="math math-inline"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <span key={key} className="math math-inline" dangerouslySetInnerHTML={{ __html: html }} />
       )
     } catch {
       return (
@@ -539,7 +558,9 @@ function renderNode(node: Node, ctx: RenderContext, key: string | number): React
           key={key}
           className="text-red-400/80 text-sm p-3 rounded bg-white/5 my-3 overflow-x-auto font-mono"
         >
-          {'$$\n'}{n.value}{'\n$$'}
+          {'$$\n'}
+          {n.value}
+          {'\n$$'}
         </pre>
       )
     }
@@ -646,14 +667,17 @@ function OutgoingLinksPanel(): React.JSX.Element | null {
           state.vault?.files.find((f) => f.path === e.target)?.name ??
           e.target.split('/').pop()?.replace('.md', '') ??
           e.target,
-        snippet: e.snippet,
+        snippet: e.snippet
       }))
   }, [state.currentFile, state.graphEdges, state.vault])
 
   if (outgoingLinks.length === 0) return null
 
   return (
-    <section className="outgoing-links-panel mt-8 border-t border-white/10 pt-4" aria-label="Outgoing links">
+    <section
+      className="outgoing-links-panel mt-8 border-t border-white/10 pt-4"
+      aria-label="Outgoing links"
+    >
       <button
         type="button"
         aria-expanded={isExpanded}
@@ -661,7 +685,9 @@ function OutgoingLinksPanel(): React.JSX.Element | null {
         className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white/80 transition-colors w-full text-left mb-2"
       >
         <span>Outgoing links ({outgoingLinks.length})</span>
-        <span aria-hidden="true" className="text-xs">{isExpanded ? '▲' : '▼'}</span>
+        <span aria-hidden="true" className="text-xs">
+          {isExpanded ? '▲' : '▼'}
+        </span>
       </button>
       {isExpanded && (
         <ul role="list" className="space-y-1">
@@ -679,30 +705,23 @@ function OutgoingLinksPanel(): React.JSX.Element | null {
                       .then((fileAST) => {
                         dispatch({
                           type: 'FILE_LOADED',
-                          payload: { path: fileAST.path, ast: fileAST.ast },
+                          payload: { path: fileAST.path, ast: fileAST.ast }
                         })
                       })
                       .catch(console.error)
                   }}
                   className={`w-full text-left px-3 py-2 rounded transition-colors group ${
-                    isBroken
-                      ? 'cursor-not-allowed opacity-50'
-                      : 'hover:bg-white/8 cursor-pointer'
+                    isBroken ? 'cursor-not-allowed opacity-50' : 'hover:bg-white/8 cursor-pointer'
                   }`}
                 >
                   <span
                     className={`block font-semibold text-sm ${
-                      isBroken
-                        ? 'text-red-400/60'
-                        : 'text-white/80 group-hover:text-white/95'
+                      isBroken ? 'text-red-400/60' : 'text-white/80 group-hover:text-white/95'
                     }`}
                   >
                     {ol.name}
                     {isBroken && (
-                      <span
-                        className="ml-2 text-xs text-red-400/50"
-                        title="Target note not found"
-                      >
+                      <span className="ml-2 text-xs text-red-400/50" title="Target note not found">
                         (broken)
                       </span>
                     )}
@@ -733,10 +752,13 @@ function BacklinksPanel(): React.JSX.Element | null {
   const backlinks = useMemo(() => {
     if (!state.currentFile) return []
     return state.graphEdges
-      .filter(e => e.target === state.currentFile)
-      .map(e => ({
+      .filter((e) => e.target === state.currentFile)
+      .map((e) => ({
         sourcePath: e.source,
-        name: state.vault?.files.find(f => f.path === e.source)?.name ?? e.source.split('/').pop()?.replace('.md', '') ?? e.source,
+        name:
+          state.vault?.files.find((f) => f.path === e.source)?.name ??
+          e.source.split('/').pop()?.replace('.md', '') ??
+          e.source,
         snippet: e.snippet
       }))
   }, [state.currentFile, state.graphEdges, state.vault])
@@ -748,11 +770,13 @@ function BacklinksPanel(): React.JSX.Element | null {
       <button
         type="button"
         aria-expanded={isExpanded}
-        onClick={() => setIsExpanded(prev => !prev)}
+        onClick={() => setIsExpanded((prev) => !prev)}
         className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white/80 transition-colors w-full text-left mb-2"
       >
         <span>Backlinks ({backlinks.length})</span>
-        <span aria-hidden="true" className="text-xs">{isExpanded ? '▲' : '▼'}</span>
+        <span aria-hidden="true" className="text-xs">
+          {isExpanded ? '▲' : '▼'}
+        </span>
       </button>
       {isExpanded && (
         <ul role="list" className="space-y-1">
@@ -761,9 +785,15 @@ function BacklinksPanel(): React.JSX.Element | null {
               <button
                 type="button"
                 onClick={() => {
-                  window.electron.file.get(bl.sourcePath).then((fileAST) => {
-                    dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-                  }).catch(console.error)
+                  window.electron.file
+                    .get(bl.sourcePath)
+                    .then((fileAST) => {
+                      dispatch({
+                        type: 'FILE_LOADED',
+                        payload: { path: fileAST.path, ast: fileAST.ast }
+                      })
+                    })
+                    .catch(console.error)
                 }}
                 className="w-full text-left px-3 py-2 rounded hover:bg-white/8 transition-colors group"
               >
@@ -771,9 +801,7 @@ function BacklinksPanel(): React.JSX.Element | null {
                   {bl.name}
                 </span>
                 {bl.snippet && (
-                  <span className="block text-xs text-white/40 mt-0.5 truncate">
-                    {bl.snippet}
-                  </span>
+                  <span className="block text-xs text-white/40 mt-0.5 truncate">{bl.snippet}</span>
                 )}
               </button>
             </li>
@@ -852,8 +880,7 @@ export function NoteView(): React.JSX.Element {
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        const message =
-          err instanceof Error ? err.message : 'An unknown error occurred'
+        const message = err instanceof Error ? err.message : 'An unknown error occurred'
         setError(message)
         setIsLoading(false)
       })
@@ -1032,14 +1059,17 @@ export function NoteView(): React.JSX.Element {
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
     (filePath: string, blockRef?: string) => {
-      window.electron.file.get(filePath).then((fileAST) => {
-        dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-        if (blockRef) {
-          // After the AST is dispatched, the next render will trigger the
-          // scroll-to-block effect in the useEffect below.
-          setPendingBlockRef(blockRef)
-        }
-      }).catch(console.error)
+      window.electron.file
+        .get(filePath)
+        .then((fileAST) => {
+          dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+          if (blockRef) {
+            // After the AST is dispatched, the next render will trigger the
+            // scroll-to-block effect in the useEffect below.
+            setPendingBlockRef(blockRef)
+          }
+        })
+        .catch(console.error)
     },
     [dispatch]
   )
@@ -1065,7 +1095,7 @@ export function NoteView(): React.JSX.Element {
     (propertyName: string, propertyValue: string) => {
       dispatch({
         type: 'SEARCH_PANEL_OPEN_WITH_QUERY',
-        payload: `property:${propertyName}:${propertyValue}`,
+        payload: `property:${propertyName}:${propertyValue}`
       })
     },
     [dispatch]
@@ -1123,8 +1153,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         setIsLoading(false)
       })
       .catch((err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : 'An unknown error occurred'
+        const message = err instanceof Error ? err.message : 'An unknown error occurred'
         setError(message)
         setIsLoading(false)
       })
@@ -1138,15 +1167,12 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
     onNavigate: handleNavigate,
     vaultFiles: state.vault?.files ?? [],
     embedDepth: 0,
-    aliasIndex: state.extendedIndex?.aliasIndex,
+    aliasIndex: state.extendedIndex?.aliasIndex
   }
 
   // ---- Render ----
   return (
-    <div
-      className="note-view flex-1 overflow-y-auto h-full"
-      aria-label="Note view"
-    >
+    <div className="note-view flex-1 overflow-y-auto h-full" aria-label="Note view">
       {/* No file selected */}
       {!currentFile && <NoteEmpty />}
 
@@ -1155,11 +1181,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
 
       {/* Error state */}
       {currentFile && !isLoading && error !== null && (
-        <NoteError
-          filePath={currentFile}
-          message={error}
-          onRetry={handleRetry}
-        />
+        <NoteError filePath={currentFile} message={error} onRetry={handleRetry} />
       )}
 
       {/* Edit mode UI */}
@@ -1176,15 +1198,9 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               View Mode
             </button>
             <div className="flex items-center gap-2">
-              {saveStatus === 'saving' && (
-                <span className="text-xs text-white/50">Saving…</span>
-              )}
-              {saveStatus === 'saved' && (
-                <span className="text-xs text-white/50">Auto-saved</span>
-              )}
-              {saveStatus === 'error' && (
-                <span className="text-xs text-red-400">{saveError}</span>
-              )}
+              {saveStatus === 'saving' && <span className="text-xs text-white/50">Saving…</span>}
+              {saveStatus === 'saved' && <span className="text-xs text-white/50">Auto-saved</span>}
+              {saveStatus === 'error' && <span className="text-xs text-red-400">{saveError}</span>}
               <button
                 type="button"
                 aria-label="Save note"
@@ -1229,7 +1245,9 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               <button
                 type="button"
                 aria-label="Save note"
-                onClick={() => window.electron.note.save(currentFile, livePreviewContent).catch(console.error)}
+                onClick={() =>
+                  window.electron.note.save(currentFile, livePreviewContent).catch(console.error)
+                }
                 className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
               >
                 Save
@@ -1249,70 +1267,76 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
       )}
 
       {/* Rendered note content (view mode) */}
-      {currentFile && !state.editMode && !state.livePreviewMode && !isLoading && error === null && currentAST !== null && (
-        <>
-          {/* View/edit toolbar */}
-          <div className="flex items-center justify-end gap-2 px-8 pt-4">
-            {currentFile && (
-              <FavoriteToggle filePath={currentFile} size="md" />
-            )}
-            <button
-              type="button"
-              aria-label="Export as PDF"
-              aria-disabled={!currentFile}
-              disabled={!currentFile}
-              onClick={() => window.print()}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      {currentFile &&
+        !state.editMode &&
+        !state.livePreviewMode &&
+        !isLoading &&
+        error === null &&
+        currentAST !== null && (
+          <>
+            {/* View/edit toolbar */}
+            <div className="flex items-center justify-end gap-2 px-8 pt-4">
+              {currentFile && <FavoriteToggle filePath={currentFile} size="md" />}
+              <button
+                type="button"
+                aria-label="Export as PDF"
+                aria-disabled={!currentFile}
+                disabled={!currentFile}
+                onClick={() => window.print()}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                PDF
+              </button>
+              <button
+                type="button"
+                aria-label="Export as HTML"
+                aria-disabled={!currentFile}
+                disabled={!currentFile}
+                onClick={handleExportHtml}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                HTML
+              </button>
+              <button
+                type="button"
+                aria-label="Switch to edit mode"
+                onClick={() => enterEditMode().catch(console.error)}
+                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+            <article
+              ref={articleRef}
+              className="note-content max-w-2xl mx-auto px-8 py-6"
+              aria-label="Note content"
             >
-              PDF
-            </button>
-            <button
-              type="button"
-              aria-label="Export as HTML"
-              aria-disabled={!currentFile}
-              disabled={!currentFile}
-              onClick={handleExportHtml}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              HTML
-            </button>
-            <button
-              type="button"
-              aria-label="Switch to edit mode"
-              onClick={() => enterEditMode().catch(console.error)}
-              className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors"
-            >
-              Edit
-            </button>
-          </div>
-          <article
-            ref={articleRef}
-            className="note-content max-w-2xl mx-auto px-8 py-6"
-            aria-label="Note content"
-          >
-            {/* YAML frontmatter → PropertiesView */}
-            {(() => {
-              const yamlNode = currentAST.children.find(
-                (c) => c.type === 'yaml' || (c as unknown as { type: string }).type === 'toml',
-              ) as { value?: string } | undefined
-              const yamlValue = yamlNode?.value ?? null
-              return (
-                <PropertiesView
-                  key="properties"
-                  yamlValue={yamlValue}
-                  onSave={handlePropertiesSave}
-                  onPropertySearch={handlePropertySearch}
-                />
-              )
-            })()}
-            {currentAST.children
-              .filter((child) => child.type !== 'yaml' && (child as unknown as { type: string }).type !== 'toml')
-              .map((child, i) => renderNode(child, renderCtx, i))}
-            <OutgoingLinksPanel />
-            <BacklinksPanel />
-          </article>
-        </>
-      )}
+              {/* YAML frontmatter → PropertiesView */}
+              {(() => {
+                const yamlNode = currentAST.children.find(
+                  (c) => c.type === 'yaml' || (c as unknown as { type: string }).type === 'toml'
+                ) as { value?: string } | undefined
+                const yamlValue = yamlNode?.value ?? null
+                return (
+                  <PropertiesView
+                    key="properties"
+                    yamlValue={yamlValue}
+                    onSave={handlePropertiesSave}
+                    onPropertySearch={handlePropertySearch}
+                  />
+                )
+              })()}
+              {currentAST.children
+                .filter(
+                  (child) =>
+                    child.type !== 'yaml' && (child as unknown as { type: string }).type !== 'toml'
+                )
+                .map((child, i) => renderNode(child, renderCtx, i))}
+              <OutgoingLinksPanel />
+              <BacklinksPanel />
+            </article>
+          </>
+        )}
     </div>
   )
 }

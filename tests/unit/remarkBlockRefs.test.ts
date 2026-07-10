@@ -21,11 +21,7 @@ import { remarkBlockRefs } from '../../src/main/plugins/remarkBlockRefs'
 // ---------------------------------------------------------------------------
 
 function createProcessor() {
-  return unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkWikiLinks)
-    .use(remarkBlockRefs)
+  return unified().use(remarkParse).use(remarkGfm).use(remarkWikiLinks).use(remarkBlockRefs)
 }
 
 function parse(md: string): Root {

@@ -73,7 +73,7 @@ export function PaneLayout(): React.JSX.Element | null {
         dispatch({ type: 'TAB_ACTIVATED', payload: { tabId } })
       }
     },
-    [activeTabId, dispatch],
+    [activeTabId, dispatch]
   )
 
   return (
@@ -89,7 +89,9 @@ export function PaneLayout(): React.JSX.Element | null {
           >
             {/* Tab header */}
             <div className="pane-header flex items-center h-8 px-2 border-b border-nabu-border bg-nabu-bg-mute text-xs">
-              <span className={`truncate ${isActive ? 'text-nabu-accent font-medium' : 'text-nabu-text-muted'}`}>
+              <span
+                className={`truncate ${isActive ? 'text-nabu-accent font-medium' : 'text-nabu-text-muted'}`}
+              >
                 {tab.path.split('/').pop()?.replace(/\.md$/, '') ?? tab.path}
               </span>
             </div>

@@ -36,7 +36,7 @@ export function extractFootnotes(ast: Node): {
       const ref = node as { label?: string }
       references.push({
         type: 'footnoteReference',
-        label: ref.label ?? '',
+        label: ref.label ?? ''
       })
     }
     if (node.type === 'footnoteDefinition') {
@@ -44,7 +44,7 @@ export function extractFootnotes(ast: Node): {
       definitions.push({
         type: 'footnoteDefinition',
         label: def.label ?? '',
-        children: def.children ?? [],
+        children: def.children ?? []
       })
     }
   })

@@ -26,10 +26,10 @@ describe('extractFootnotes', () => {
           children: [
             { type: 'text', value: 'Some text ' },
             { type: 'footnoteReference', label: 'note1' },
-            { type: 'text', value: ' more text' },
-          ],
-        },
-      ],
+            { type: 'text', value: ' more text' }
+          ]
+        }
+      ]
     }
     const result = extractFootnotes(ast as unknown as Parameters<typeof extractFootnotes>[0])
     expect(result.references).toHaveLength(1)
@@ -43,14 +43,14 @@ describe('extractFootnotes', () => {
         {
           type: 'footnoteDefinition',
           label: 'fn1',
-          children: [{ type: 'text', value: 'First footnote' }],
+          children: [{ type: 'text', value: 'First footnote' }]
         },
         {
           type: 'footnoteDefinition',
           label: 'fn2',
-          children: [{ type: 'text', value: 'Second footnote' }],
-        },
-      ],
+          children: [{ type: 'text', value: 'Second footnote' }]
+        }
+      ]
     }
     const result = extractFootnotes(ast as unknown as Parameters<typeof extractFootnotes>[0])
     expect(result.definitions).toHaveLength(2)

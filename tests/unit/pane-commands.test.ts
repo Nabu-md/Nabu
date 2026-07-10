@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   getCommands,
   resetRegistry,
-  seedPaneCommands,
+  seedPaneCommands
 } from '../../src/renderer/src/commands/registry'
 
 // ---------------------------------------------------------------------------
@@ -28,11 +28,15 @@ describe('Pane commands', () => {
     let closed = false
     seedPaneCommands(
       () => undefined, // dispatch noop
-      { closeCurrentTab: () => { closed = true } }
+      {
+        closeCurrentTab: () => {
+          closed = true
+        }
+      }
     )
 
     const cmds = getCommands()
-    const closeCmd = cmds.find(c => c.id === 'pane.close-tab')
+    const closeCmd = cmds.find((c) => c.id === 'pane.close-tab')
     expect(closeCmd).toBeDefined()
     expect(closeCmd?.label).toBe('Close tab')
     closeCmd?.run()
@@ -43,11 +47,15 @@ describe('Pane commands', () => {
     let focused = false
     seedPaneCommands(
       () => undefined, // dispatch noop
-      { focusNextPane: () => { focused = true } }
+      {
+        focusNextPane: () => {
+          focused = true
+        }
+      }
     )
 
     const cmds = getCommands()
-    const nextCmd = cmds.find(c => c.id === 'pane.next')
+    const nextCmd = cmds.find((c) => c.id === 'pane.next')
     expect(nextCmd).toBeDefined()
     expect(nextCmd?.label).toBe('Next pane')
     nextCmd?.run()
@@ -58,11 +66,15 @@ describe('Pane commands', () => {
     let moved = false
     seedPaneCommands(
       () => undefined, // dispatch noop
-      { moveToNewPane: () => { moved = true } }
+      {
+        moveToNewPane: () => {
+          moved = true
+        }
+      }
     )
 
     const cmds = getCommands()
-    const moveCmd = cmds.find(c => c.id === 'pane.move-tab')
+    const moveCmd = cmds.find((c) => c.id === 'pane.move-tab')
     expect(moveCmd).toBeDefined()
     expect(moveCmd?.label).toBe('Move tab to new pane')
     moveCmd?.run()
@@ -73,8 +85,8 @@ describe('Pane commands', () => {
     seedPaneCommands(() => undefined)
 
     const cmds = getCommands()
-    const closeCmd = cmds.find(c => c.id === 'pane.close-tab')!
-    const nextCmd = cmds.find(c => c.id === 'pane.next')!
+    const closeCmd = cmds.find((c) => c.id === 'pane.close-tab')!
+    const nextCmd = cmds.find((c) => c.id === 'pane.next')!
 
     expect(closeCmd.keywords).toContain('tab')
     expect(nextCmd.keywords).toContain('pane')

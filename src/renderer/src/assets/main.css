@@ -7,7 +7,8 @@
 
 @theme {
   /* Font families */
-  --font-sans: -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 
   /* Nabu color palette — references CSS vars so Tailwind utilities reflect theme switches */
   --color-nabu-bg: var(--nabu-bg);
@@ -32,17 +33,35 @@
 
   /* Keyframes */
   @keyframes bluePulse {
-    0% { color: rgba(235, 235, 245, 0.86); }
-    50% { color: #3B82F6; }
-    100% { color: rgba(235, 235, 245, 0.86); }
+    0% {
+      color: rgba(235, 235, 245, 0.86);
+    }
+    50% {
+      color: #3b82f6;
+    }
+    100% {
+      color: rgba(235, 235, 245, 0.86);
+    }
   }
   @keyframes toggleExpand {
-    from { grid-template-rows: 0fr; opacity: 0; }
-    to { grid-template-rows: 1fr; opacity: 1; }
+    from {
+      grid-template-rows: 0fr;
+      opacity: 0;
+    }
+    to {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
   }
   @keyframes toggleCollapse {
-    from { grid-template-rows: 1fr; opacity: 1; }
-    to { grid-template-rows: 0fr; opacity: 0; }
+    from {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+    to {
+      grid-template-rows: 0fr;
+      opacity: 0;
+    }
   }
 }
 
@@ -63,8 +82,8 @@
   overflow: hidden;
   background: var(--color-background);
   color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
 /* Sidebar — left column, full height spanning all rows */
@@ -136,7 +155,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 150ms, background 150ms;
+  transition:
+    color 150ms,
+    background 150ms;
 }
 
 .search-panel__close:hover {
@@ -187,7 +208,9 @@
 }
 
 @keyframes searchSpinner {
-  to { transform: translateY(-50%) rotate(360deg); }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
 }
 
 /* Results list */

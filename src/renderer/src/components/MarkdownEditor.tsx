@@ -37,30 +37,30 @@ const nabuDarkTheme = EditorView.theme({
     backgroundColor: 'var(--nabu-bg, #0a0a0a)',
     color: 'var(--nabu-text, #e5e5e5)',
     fontFamily: 'var(--nabu-font-mono, monospace)',
-    fontSize: '14px',
+    fontSize: '14px'
   },
   '.cm-content': {
-    caretColor: 'var(--nabu-accent, #60a5fa)',
+    caretColor: 'var(--nabu-accent, #60a5fa)'
   },
   '.cm-cursor': {
-    borderLeft: 'var(--nabu-accent, #60a5fa)',
+    borderLeft: 'var(--nabu-accent, #60a5fa)'
   },
   '&.cm-focused .cm-cursor': {
-    borderLeft: 'var(--nabu-accent, #60a5fa)',
+    borderLeft: 'var(--nabu-accent, #60a5fa)'
   },
   '.cm-selectionBackground': {
-    backgroundColor: 'rgba(96, 165, 250, 0.2)',
+    backgroundColor: 'rgba(96, 165, 250, 0.2)'
   },
   '.cm-activeLine': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)'
   },
   '.cm-gutters': {
     backgroundColor: 'var(--nabu-sidebar-bg, #121212)',
-    border: 'none',
+    border: 'none'
   },
   '.cm-gutter': {
-    color: 'var(--nabu-text-secondary, #a3a3a3)',
-  },
+    color: 'var(--nabu-text-secondary, #a3a3a3)'
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -68,17 +68,17 @@ const nabuDarkTheme = EditorView.theme({
 // ---------------------------------------------------------------------------
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
-   value,
-   onChange,
-   readOnly = false,
- }) => {
+  value,
+  onChange,
+  readOnly = false
+}) => {
   // Create extensions once
   const extensions = useMemo<Extension[]>(() => {
     return [
       markdown(),
       nabuDarkTheme,
       EditorView.lineWrapping,
-      readOnly ? EditorView.editable.of(false) : [],
+      readOnly ? EditorView.editable.of(false) : []
     ]
   }, [readOnly])
 
@@ -98,7 +98,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       editable={!readOnly}
       basicSetup={{
         lineNumbers: false,
-        highlightActiveLine: true,
+        highlightActiveLine: true
       }}
     />
   )

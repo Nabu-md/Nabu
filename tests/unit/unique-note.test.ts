@@ -28,7 +28,10 @@ describe('generateUniqueNoteName', () => {
 
 describe('substituteUniqueNoteVariables', () => {
   it('substitutes {{title}} placeholder', () => {
-    const result = substituteUniqueNoteVariables('---\ntitle: {{title}}\n---\n# {{title}}', '20260708143000')
+    const result = substituteUniqueNoteVariables(
+      '---\ntitle: {{title}}\n---\n# {{title}}',
+      '20260708143000'
+    )
     expect(result).toBe('---\ntitle: 20260708143000\n---\n# 20260708143000')
   })
 

@@ -38,7 +38,7 @@ export function getSnapshotPath(vaultPath: string, notePath: string, timestamp: 
 export async function createSnapshot(
   vaultPath: string,
   notePath: string,
-  content: string,
+  content: string
 ): Promise<void> {
   const snapDir = getSnapshotDir(vaultPath)
   const timestamp = Date.now()
@@ -52,7 +52,7 @@ export async function createSnapshot(
     const snapshot: Snapshot = {
       timestamp,
       content,
-      path: notePath,
+      path: notePath
     }
     await fs.writeFile(snapPath, JSON.stringify(snapshot), 'utf-8')
 
@@ -72,15 +72,15 @@ export async function createSnapshot(
 async function pruneNoteSnapshots(vaultPath: string, notePath: string, cap: number): Promise<void> {
   const relativePath = notePath.replace(vaultPath, '').replace(/^\//, '').replace(/\.md$/, '')
   const snapDir = getSnapshotDir(vaultPath)
-  
+
   try {
     const files = await fs.readdir(snapDir)
     const noteSnaps = files
-      .filter(f => f.startsWith(relativePath))
-      .map(f => ({
+      .filter((f) => f.startsWith(relativePath))
+      .map((f) => ({
         name: f,
         path: path.join(snapDir, f),
-        timestamp: parseInt(f.split('-').pop()?.replace('.json', '') ?? '0', 10),
+        timestamp: parseInt(f.split('-').pop()?.replace('.json', '') ?? '0', 10)
       }))
       .sort((a, b) => b.timestamp - a.timestamp)
 
@@ -98,16 +98,16 @@ async function pruneNoteSnapshots(vaultPath: string, notePath: string, cap: numb
  */
 async function pruneVaultSnapshots(vaultPath: string, cap: number): Promise<void> {
   const snapDir = getSnapshotDir(vaultPath)
-  
+
   try {
     const files = await fs.readdir(snapDir)
     const allSnaps = await Promise.all(
-      files.map(async f => {
+      files.map(async (f) => {
         const snapPath = path.join(snapDir, f)
         const stat = await fs.stat(snapPath)
         return {
           path: snapPath,
-          timestamp: stat.mtimeMs,
+          timestamp: stat.mtimeMs
         }
       })
     )
@@ -132,7 +132,7 @@ async function pruneVaultSnapshots(vaultPath: string, cap: number): Promise<void
  */
 export async function listSnapshots(vaultPath: string): Promise<Snapshot[]> {
   const snapDir = getSnapshotDir(vaultPath)
-  
+
   try {
     const files = await fs.readdir(snapDir)
     const snapshots: Snapshot[] = []
@@ -162,7 +162,7 @@ export async function restoreSnapshot(
   vaultPath: string,
   notePath: string,
   snapshotTimestamp: number,
-  asNew: boolean = false,
+  asNew: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   const snapDir = getSnapshotDir(vaultPath)
   const relativePath = notePath.replace(vaultPath, '').replace(/^\//, '').replace(/\.md$/, '')

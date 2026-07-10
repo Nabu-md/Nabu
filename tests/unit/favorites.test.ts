@@ -46,12 +46,20 @@ describe('Favorites toggle logic', () => {
 
     // Add
     const i1 = list.indexOf(filePath)
-    if (i1 >= 0) { list.splice(i1, 1) } else { list.push(filePath) }
+    if (i1 >= 0) {
+      list.splice(i1, 1)
+    } else {
+      list.push(filePath)
+    }
     expect(list).toEqual(['/vault/note.md'])
 
     // Remove
     const i2 = list.indexOf(filePath)
-    if (i2 >= 0) { list.splice(i2, 1) } else { list.push(filePath) }
+    if (i2 >= 0) {
+      list.splice(i2, 1)
+    } else {
+      list.push(filePath)
+    }
     expect(list).toEqual([])
   })
 

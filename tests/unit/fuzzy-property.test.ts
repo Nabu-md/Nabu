@@ -17,8 +17,12 @@ import { fuzzySearch, type FuzzyItem } from '../../src/renderer/src/utils/fuzzy'
 const fuzzyItemArbitrary: fc.Arbitrary<FuzzyItem> = fc.record({
   name: fc.string({ minLength: 1, maxLength: 30 }),
   path: fc.string({ minLength: 1, maxLength: 50 }),
-  aliases: fc.option(fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 0, maxLength: 3 })),
-  keywords: fc.option(fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 0, maxLength: 3 })),
+  aliases: fc.option(
+    fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 0, maxLength: 3 })
+  ),
+  keywords: fc.option(
+    fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 0, maxLength: 3 })
+  )
 })
 
 // ---------------------------------------------------------------------------
@@ -42,9 +46,9 @@ describe('fuzzy determinism (property)', () => {
           // All three calls must produce identical results.
           expect(result1).toEqual(result2)
           expect(result2).toEqual(result3)
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 })
@@ -62,9 +66,9 @@ describe('fuzzy result invariants (property)', () => {
         (items, maxResults) => {
           const results = fuzzySearch('test', items, { maxResults })
           expect(results.length).toBeLessThanOrEqual(maxResults)
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
@@ -78,22 +82,19 @@ describe('fuzzy result invariants (property)', () => {
           for (let i = 1; i < results.length; i++) {
             expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score)
           }
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 
   it('empty query returns no results', () => {
     fc.assert(
-      fc.property(
-        fc.array(fuzzyItemArbitrary, { minLength: 1, maxLength: 10 }),
-        (items) => {
-          const results = fuzzySearch('', items)
-          expect(results).toHaveLength(0)
-        },
-      ),
-      { numRuns: 50 },
+      fc.property(fc.array(fuzzyItemArbitrary, { minLength: 1, maxLength: 10 }), (items) => {
+        const results = fuzzySearch('', items)
+        expect(results).toHaveLength(0)
+      }),
+      { numRuns: 50 }
     )
   })
 
@@ -107,9 +108,9 @@ describe('fuzzy result invariants (property)', () => {
           const withThreshold = fuzzySearch(query, items, { threshold: 5 })
           // With a high threshold, we should have fewer or equal results.
           expect(withThreshold.length).toBeLessThanOrEqual(noThreshold.length)
-        },
+        }
       ),
-      { numRuns: 100 },
+      { numRuns: 100 }
     )
   })
 })

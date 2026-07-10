@@ -20,7 +20,7 @@ const featureCommandMap = new Map<string, string[]>()
 registerFeatureToggle({
   id: 'daily-notes',
   label: 'Daily Notes',
-  description: 'Open or create today\'s daily journal note',
+  description: "Open or create today's daily journal note",
   setup: () => {
     registerCommand({
       id: 'note.daily',
@@ -31,7 +31,7 @@ registerFeatureToggle({
         // But we register the command here for the toggle system
         const customEvent = new CustomEvent('note:daily')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('daily-notes', ['note.daily'])
   },
@@ -41,7 +41,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('daily-notes')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ registerFeatureToggle({
   },
   teardown: () => {
     // No commands to unregister
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('note:random')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('random-note', ['note.random'])
   },
@@ -87,7 +87,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('random-note')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('note:unique')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('unique-note', ['note.unique'])
   },
@@ -116,7 +116,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('unique-note')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ registerFeatureToggle({
       keywords: ['slash', 'commands', 'autocomplete'],
       run: () => {
         // No-op - slash commands are always available in edit mode when enabled
-      },
+      }
     })
     featureCommandMap.set('slash-commands', ['slash-commands.info'])
   },
@@ -146,7 +146,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('slash-commands')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ registerFeatureToggle({
       keywords: ['preview', 'hover', 'page'],
       run: () => {
         // No-op - page preview is always available in view mode when enabled
-      },
+      }
     })
     featureCommandMap.set('page-preview', ['page-preview.info'])
   },
@@ -176,7 +176,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('page-preview')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -195,7 +195,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('audio-recorder:insert')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('audio-recorder', ['audio-recorder.insert'])
   },
@@ -205,7 +205,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('audio-recorder')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ registerFeatureToggle({
   },
   teardown: () => {
     // No commands to unregister
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('file-recovery:open')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('file-recovery', ['file-recovery.open'])
   },
@@ -250,7 +250,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('file-recovery')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -269,7 +269,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('format-converter:import')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('format-converter', ['format-converter.import'])
   },
@@ -279,7 +279,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('format-converter')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -298,7 +298,7 @@ registerFeatureToggle({
       run: () => {
         const customEvent = new CustomEvent('format-import:open')
         window.dispatchEvent(customEvent)
-      },
+      }
     })
     featureCommandMap.set('format-import', ['format-import.open'])
   },
@@ -308,7 +308,7 @@ registerFeatureToggle({
       unregisterCommand(id)
     }
     featureCommandMap.delete('format-import')
-  },
+  }
 })
 
 // ---------------------------------------------------------------------------
@@ -334,7 +334,7 @@ export function resetFeatureRegistrations(): void {
     'word-count',
     'file-recovery',
     'format-converter',
-    'format-import',
+    'format-import'
   ]
   for (const id of features) {
     const ids = featureCommandMap.get(id) ?? []

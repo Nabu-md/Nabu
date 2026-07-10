@@ -40,7 +40,7 @@ const TARGETS = {
   /** RSS with no vault open, bytes (Req 11.5) */
   MEMORY_NO_VAULT_BYTES: 100 * 1024 * 1024,
   /** RSS with 10K file vault loaded, bytes (Req 11.6) */
-  MEMORY_10K_VAULT_BYTES: 300 * 1024 * 1024,
+  MEMORY_10K_VAULT_BYTES: 300 * 1024 * 1024
 }
 
 // ---------------------------------------------------------------------------
@@ -67,11 +67,11 @@ async function createLargeVault(count: number): Promise<string> {
         const globalIdx = d * filesPerDir + i
         return fs.writeFile(
           path.join(subDir, `note-${String(globalIdx).padStart(5, '0')}.md`),
-          `# Note ${globalIdx}\n\nThis is note ${globalIdx} in folder ${d}.\n\n- [ ] Task A\n- [x] Task B\n\n[[note-${(globalIdx + 1) % count}]]\n`,
+          `# Note ${globalIdx}\n\nThis is note ${globalIdx} in folder ${d}.\n\n- [ ] Task A\n- [x] Task B\n\n[[note-${(globalIdx + 1) % count}]]\n`
         )
       })
       await Promise.all(writes)
-    }),
+    })
   )
 
   // Fill remaining files in root if count is not evenly divisible
@@ -82,9 +82,9 @@ async function createLargeVault(count: number): Promise<string> {
         const idx = SUB_DIRS * filesPerDir + i
         return fs.writeFile(
           path.join(dir, `note-${String(idx).padStart(5, '0')}.md`),
-          `# Note ${idx}\n\nThis is extra note ${idx}.\n`,
+          `# Note ${idx}\n\nThis is extra note ${idx}.\n`
         )
-      }),
+      })
     )
   }
 
@@ -99,19 +99,19 @@ async function createLargeVault(count: number): Promise<string> {
  * `app.getAppMetrics()` is unavailable.
  */
 async function getMainProcessRss(
-  electronApp: Awaited<ReturnType<typeof electron.launch>>,
+  electronApp: Awaited<ReturnType<typeof electron.launch>>
 ): Promise<number> {
   return electronApp.evaluate(({ app }) => {
     // app.getAppMetrics() returns per-process memory (Electron ≥ 0.36)
     const metrics = app.getAppMetrics()
     const mainEntry = metrics.find(
-      (m: { type: string }) => m.type === 'Browser' || m.type === 'GPU' || m.type === 'Renderer',
+      (m: { type: string }) => m.type === 'Browser' || m.type === 'GPU' || m.type === 'Renderer'
     )
     // Sum all process RSS values (workingSetSize is in KB on Electron metrics)
     const totalKb = metrics.reduce(
       (acc: number, m: { memory: { workingSetSize: number } }) =>
         acc + (m.memory?.workingSetSize ?? 0),
-      0,
+      0
     )
     return totalKb * 1024 // convert KB → bytes
   })
@@ -134,8 +134,8 @@ test('cold launch to interactive FileTree is under 2500ms (Req 11.7)', async () 
     args: [MAIN_PATH],
     env: {
       ...process.env,
-      NODE_ENV: 'test',
-    } as Record<string, string>,
+      NODE_ENV: 'test'
+    } as Record<string, string>
   })
 
   try {
@@ -152,7 +152,7 @@ test('cold launch to interactive FileTree is under 2500ms (Req 11.7)', async () 
     const launchMs = t1 - t0
 
     console.log(
-      `[perf] Cold launch time: ${launchMs}ms (target <${TARGETS.COLD_LAUNCH_MS}ms) — ${launchMs < TARGETS.COLD_LAUNCH_MS ? 'PASS ✓' : 'FAIL ✗'}`,
+      `[perf] Cold launch time: ${launchMs}ms (target <${TARGETS.COLD_LAUNCH_MS}ms) — ${launchMs < TARGETS.COLD_LAUNCH_MS ? 'PASS ✓' : 'FAIL ✗'}`
     )
 
     expect(launchMs).toBeLessThan(TARGETS.COLD_LAUNCH_MS)
@@ -172,8 +172,8 @@ test('process memory with no vault is under 100MB (Req 11.5)', async () => {
     args: [MAIN_PATH],
     env: {
       ...process.env,
-      NODE_ENV: 'test',
-    } as Record<string, string>,
+      NODE_ENV: 'test'
+    } as Record<string, string>
   })
 
   try {
@@ -188,7 +188,7 @@ test('process memory with no vault is under 100MB (Req 11.5)', async () => {
     const rssMb = (rssBytes / (1024 * 1024)).toFixed(1)
 
     console.log(
-      `[perf] Memory (no vault): ${rssMb}MB (target <${TARGETS.MEMORY_NO_VAULT_BYTES / 1024 / 1024}MB) — ${rssBytes < TARGETS.MEMORY_NO_VAULT_BYTES ? 'PASS ✓' : 'FAIL ✗'}`,
+      `[perf] Memory (no vault): ${rssMb}MB (target <${TARGETS.MEMORY_NO_VAULT_BYTES / 1024 / 1024}MB) — ${rssBytes < TARGETS.MEMORY_NO_VAULT_BYTES ? 'PASS ✓' : 'FAIL ✗'}`
     )
 
     expect(rssBytes).toBeLessThan(TARGETS.MEMORY_NO_VAULT_BYTES)
@@ -214,8 +214,8 @@ test('vault open with 10K files completes under 1 second (Req 11.1)', async () =
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        NABU_TEST_VAULT: vaultDir,
-      } as Record<string, string>,
+        NABU_TEST_VAULT: vaultDir
+      } as Record<string, string>
     })
 
     try {
@@ -233,14 +233,14 @@ test('vault open with 10K files completes under 1 second (Req 11.1)', async () =
           if (!tree) return false
           return tree.querySelectorAll('[role="button"]').length >= 10
         },
-        { timeout: 15_000 },
+        { timeout: 15_000 }
       )
 
       const t1 = Date.now()
       const openMs = t1 - t0
 
       console.log(
-        `[perf] Vault open (10K files): ${openMs}ms (target <${TARGETS.VAULT_OPEN_10K_MS}ms) — ${openMs < TARGETS.VAULT_OPEN_10K_MS ? 'PASS ✓' : 'FAIL ✗'}`,
+        `[perf] Vault open (10K files): ${openMs}ms (target <${TARGETS.VAULT_OPEN_10K_MS}ms) — ${openMs < TARGETS.VAULT_OPEN_10K_MS ? 'PASS ✓' : 'FAIL ✗'}`
       )
 
       expect(openMs).toBeLessThan(TARGETS.VAULT_OPEN_10K_MS)
@@ -268,8 +268,8 @@ test('process memory with 10K file vault is under 300MB (Req 11.6)', async () =>
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        NABU_TEST_VAULT: vaultDir,
-      } as Record<string, string>,
+        NABU_TEST_VAULT: vaultDir
+      } as Record<string, string>
     })
 
     try {
@@ -283,7 +283,7 @@ test('process memory with 10K file vault is under 300MB (Req 11.6)', async () =>
           if (!tree) return false
           return tree.querySelectorAll('[role="button"]').length >= 10
         },
-        { timeout: 15_000 },
+        { timeout: 15_000 }
       )
 
       // Allow an extra moment for background tasks to settle
@@ -293,7 +293,7 @@ test('process memory with 10K file vault is under 300MB (Req 11.6)', async () =>
       const rssMb = (rssBytes / (1024 * 1024)).toFixed(1)
 
       console.log(
-        `[perf] Memory (10K vault): ${rssMb}MB (target <${TARGETS.MEMORY_10K_VAULT_BYTES / 1024 / 1024}MB) — ${rssBytes < TARGETS.MEMORY_10K_VAULT_BYTES ? 'PASS ✓' : 'FAIL ✗'}`,
+        `[perf] Memory (10K vault): ${rssMb}MB (target <${TARGETS.MEMORY_10K_VAULT_BYTES / 1024 / 1024}MB) — ${rssBytes < TARGETS.MEMORY_10K_VAULT_BYTES ? 'PASS ✓' : 'FAIL ✗'}`
       )
 
       expect(rssBytes).toBeLessThan(TARGETS.MEMORY_10K_VAULT_BYTES)

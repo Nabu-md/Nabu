@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyNoteDateFormat: 'YYYY-MM-DD',
   dailyNoteFolder: 'Daily',
   dailyNoteTemplate: '',
-  recentVaults: [],
+  recentVaults: []
 }
 
 export function settingsPath(): string {
@@ -69,7 +69,7 @@ export async function loadSettings(): Promise<AppSettings> {
       dailyNoteDateFormat: parsed.dailyNoteDateFormat ?? 'YYYY-MM-DD',
       dailyNoteFolder: parsed.dailyNoteFolder ?? 'Daily',
       dailyNoteTemplate: parsed.dailyNoteTemplate ?? '',
-      recentVaults: parsed.recentVaults ?? [],
+      recentVaults: parsed.recentVaults ?? []
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -92,7 +92,7 @@ const MAX_RECENT_VAULTS = 20
 export function updateRecentVaults(
   settings: AppSettings,
   vaultPath: string,
-  vaultName: string,
+  vaultName: string
 ): AppSettings {
   const now = Date.now()
   const existing = settings.recentVaults ?? []
@@ -101,10 +101,10 @@ export function updateRecentVaults(
   const filtered = existing.filter((v) => v.path !== vaultPath)
 
   // Add the new entry at the front
-  const updated = [
-    { path: vaultPath, name: vaultName, lastOpened: now },
-    ...filtered,
-  ].slice(0, MAX_RECENT_VAULTS)
+  const updated = [{ path: vaultPath, name: vaultName, lastOpened: now }, ...filtered].slice(
+    0,
+    MAX_RECENT_VAULTS
+  )
 
   return { ...settings, recentVaults: updated, lastVaultPath: vaultPath }
 }

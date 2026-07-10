@@ -45,7 +45,7 @@ describe('matchScore', () => {
     expect(result!.ranges).toEqual([
       { start: 0, end: 1 },
       { start: 2, end: 3 },
-      { start: 4, end: 5 },
+      { start: 4, end: 5 }
     ])
   })
 
@@ -102,7 +102,7 @@ describe('fuzzySearch', () => {
     { name: 'App', path: 'src/App.tsx' },
     { name: 'styles', path: 'src/assets/styles.css' },
     { name: 'readme', path: 'README.md', aliases: ['docs'] },
-    { name: 'vite-config', path: 'vite.config.ts' },
+    { name: 'vite-config', path: 'vite.config.ts' }
   ]
 
   it('returns empty array for empty query', () => {
@@ -149,7 +149,7 @@ describe('fuzzySearch', () => {
     // Create items with identical score potential
     const equalItems: FuzzyItem[] = [
       { name: 'alpha', path: 'alpha.md' },
-      { name: 'beta', path: 'beta.md' },
+      { name: 'beta', path: 'beta.md' }
     ]
     const first = fuzzySearch('a', equalItems)
     const second = fuzzySearch('a', equalItems)
@@ -180,7 +180,7 @@ describe('fuzzySearch', () => {
   it('matches against keywords', () => {
     const keywordItems: FuzzyItem[] = [
       { name: 'editor', path: 'editor.tsx', keywords: ['edit', 'view', 'code'] },
-      { name: 'note', path: 'note.tsx', keywords: ['note', 'document'] },
+      { name: 'note', path: 'note.tsx', keywords: ['note', 'document'] }
     ]
     const results = fuzzySearch('code', keywordItems)
     expect(results.length).toBeGreaterThan(0)
@@ -201,7 +201,7 @@ describe('fuzzySearch', () => {
   it('accepts items with name equal to query exactly', () => {
     const exactItems: FuzzyItem[] = [
       { name: 'search', path: 'search.ts' },
-      { name: 'search-results', path: 'results.ts' },
+      { name: 'search-results', path: 'results.ts' }
     ]
     const results = fuzzySearch('search', exactItems)
     expect(results.length).toBeGreaterThan(0)
@@ -218,7 +218,7 @@ describe('fuzzySearch invariants', () => {
     const items: FuzzyItem[] = [
       { name: 'alpha', path: 'a.md', aliases: ['first'] },
       { name: 'beta', path: 'b.md', aliases: ['second'] },
-      { name: 'gamma', path: 'c.md' },
+      { name: 'gamma', path: 'c.md' }
     ]
     const queries = ['', 'a', 'be', 'gamma', 'xyz']
 
@@ -234,7 +234,7 @@ describe('fuzzySearch invariants', () => {
       { name: 'abc', path: 'abc.md' },
       { name: 'bcd', path: 'bcd.md' },
       { name: 'cde', path: 'cde.md' },
-      { name: 'def', path: 'def.md' },
+      { name: 'def', path: 'def.md' }
     ]
     const results = fuzzySearch('a', items)
     for (let i = 1; i < results.length; i++) {
@@ -246,7 +246,7 @@ describe('fuzzySearch invariants', () => {
     const items: FuzzyItem[] = [
       { name: 'apple', path: 'a.md' },
       { name: 'banana', path: 'b.md' },
-      { name: 'cherry', path: 'c.md' },
+      { name: 'cherry', path: 'c.md' }
     ]
     const results = fuzzySearch('a', items, { maxResults: 2 })
     expect(results.length).toBeLessThanOrEqual(2)

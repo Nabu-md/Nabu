@@ -33,9 +33,7 @@ function extractFrontmatter(content: string): FrontmatterResult {
   if (!match) {
     return { yaml: '', parsed: {} }
   }
-  const yamlStr = match[0]
-    .replace(/^---\n/, '')
-    .replace(/\n---(?:\n|$)/, '')
+  const yamlStr = match[0].replace(/^---\n/, '').replace(/\n---(?:\n|$)/, '')
   try {
     const parsed = parse(yamlStr)
     return {
@@ -43,7 +41,7 @@ function extractFrontmatter(content: string): FrontmatterResult {
       parsed:
         typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
           ? (parsed as Record<string, unknown>)
-          : {},
+          : {}
     }
   } catch {
     return { yaml: yamlStr, parsed: {} }
@@ -70,7 +68,7 @@ function injectAutoProperty(
   content: string,
   key: string,
   value: string,
-  onlyIfAbsent: boolean,
+  onlyIfAbsent: boolean
 ): string {
   const { parsed } = extractFrontmatter(content)
   if (onlyIfAbsent && key in parsed) {

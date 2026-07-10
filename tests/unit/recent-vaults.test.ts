@@ -7,7 +7,12 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { updateRecentVaults, DEFAULT_SETTINGS, AppSettings, RecentVaultEntry } from '../../src/main/settings'
+import {
+  updateRecentVaults,
+  DEFAULT_SETTINGS,
+  AppSettings,
+  RecentVaultEntry
+} from '../../src/main/settings'
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -23,7 +28,7 @@ function createSettings(overrides?: Partial<AppSettings>): AppSettings {
     dailyNoteFolder: 'Daily',
     dailyNoteTemplate: '',
     recentVaults: [],
-    ...overrides,
+    ...overrides
   }
 }
 
@@ -40,7 +45,7 @@ describe('updateRecentVaults', () => {
     expect(result.recentVaults![0]).toEqual({
       path: '/vaults/personal',
       name: 'Personal',
-      lastOpened: expect.any(Number),
+      lastOpened: expect.any(Number)
     })
     expect(result.lastVaultPath).toBe('/vaults/personal')
   })
@@ -50,8 +55,8 @@ describe('updateRecentVaults', () => {
     const settings = createSettings({
       recentVaults: [
         { path: '/vaults/personal', name: 'Personal', lastOpened: now },
-        { path: '/vaults/work', name: 'Work', lastOpened: now + 100 },
-      ],
+        { path: '/vaults/work', name: 'Work', lastOpened: now + 100 }
+      ]
     })
 
     const result = updateRecentVaults(settings, '/vaults/personal', 'Personal')
@@ -79,7 +84,7 @@ describe('updateRecentVaults', () => {
   it('preserves other settings when updating', () => {
     const settings = createSettings({
       theme: 'light',
-      autoProperties: false,
+      autoProperties: false
     })
 
     const result = updateRecentVaults(settings, '/vaults/test', 'Test')

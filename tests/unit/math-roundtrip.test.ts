@@ -21,7 +21,7 @@ import type { Root } from 'mdast'
 // ---------------------------------------------------------------------------
 
 function unwrap<T>(mod: any): T {
-  return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod
+  return mod && mod.__esModule && mod.default !== undefined ? mod.default : mod
 }
 const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 const remarkStringify = unwrap<typeof _remarkStringify>(_remarkStringify)
@@ -33,10 +33,7 @@ const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
 // ---------------------------------------------------------------------------
 
 function createProcessor() {
-  return unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkMath)
+  return unified().use(remarkParse).use(remarkGfm).use(remarkMath)
 }
 
 function createStringifyProcessor() {
@@ -47,7 +44,7 @@ function createStringifyProcessor() {
       strong: '*',
       fence: '`',
       fences: true,
-      listItemIndent: 'one',
+      listItemIndent: 'one'
     })
     .use(remarkGfm)
     .use(remarkMath)

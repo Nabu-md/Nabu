@@ -20,7 +20,7 @@ import { remarkCallouts, type Callout } from '../../src/main/plugins/remarkCallo
 
 /** CJS/ESM interop. */
 function unwrap<T>(mod: any): T {
-  return (mod && mod.__esModule && mod.default !== undefined) ? mod.default : mod
+  return mod && mod.__esModule && mod.default !== undefined ? mod.default : mod
 }
 const remarkParse = unwrap<typeof _remarkParse>(_remarkParse)
 
@@ -127,8 +127,19 @@ describe('remarkCallouts', () => {
   })
 
   it('supports all known callout types', () => {
-    const types = ['note', 'info', 'tip', 'success', 'warning', 'danger', 'error',
-      'question', 'example', 'quote', 'abstract']
+    const types = [
+      'note',
+      'info',
+      'tip',
+      'success',
+      'warning',
+      'danger',
+      'error',
+      'question',
+      'example',
+      'quote',
+      'abstract'
+    ]
 
     for (const type of types) {
       const ast = parse(`> [!${type}] Test`)

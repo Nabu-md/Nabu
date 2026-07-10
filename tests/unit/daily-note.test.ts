@@ -22,7 +22,7 @@ function deriveDailyNotePath(
   vaultPath: string,
   dateFormat: string,
   folder: string,
-  now: Date,
+  now: Date
 ): string {
   const dateStr = dateFormat
     .replace('YYYY', String(now.getFullYear()))
@@ -73,7 +73,7 @@ describe('Daily note path derivation', () => {
  */
 function substituteTemplateVariables(
   template: string,
-  vars: { title: string; date: string; time: string },
+  vars: { title: string; date: string; time: string }
 ): string {
   return template
     .replace(/\{\{title\}\}/g, vars.title)
@@ -83,17 +83,29 @@ function substituteTemplateVariables(
 
 describe('Daily note template substitution', () => {
   it('substitutes {{title}} with date string', () => {
-    const result = substituteTemplateVariables('# {{title}}\n\n', { title: '2026-07-09', date: '2026-07-09', time: '12:00' })
+    const result = substituteTemplateVariables('# {{title}}\n\n', {
+      title: '2026-07-09',
+      date: '2026-07-09',
+      time: '12:00'
+    })
     expect(result).toBe('# 2026-07-09\n\n')
   })
 
   it('substitutes {{date}} and {{time}}', () => {
-    const result = substituteTemplateVariables('Created: {{date}} at {{time}}', { title: 'test', date: '2026-07-09', time: '12:00' })
+    const result = substituteTemplateVariables('Created: {{date}} at {{time}}', {
+      title: 'test',
+      date: '2026-07-09',
+      time: '12:00'
+    })
     expect(result).toBe('Created: 2026-07-09 at 12:00')
   })
 
   it('returns template unchanged if no variables present', () => {
-    const result = substituteTemplateVariables('# Plain heading\n', { title: 'test', date: '2026-07-09', time: '12:00' })
+    const result = substituteTemplateVariables('# Plain heading\n', {
+      title: 'test',
+      date: '2026-07-09',
+      time: '12:00'
+    })
     expect(result).toBe('# Plain heading\n')
   })
 })

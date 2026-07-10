@@ -35,7 +35,9 @@ function HighlightedSnippet({ match }: { match: SearchQueryMatch }): React.JSX.E
 
   return (
     <>
-      {before}<mark className="search-panel__mark">{highlighted}</mark>{after}
+      {before}
+      <mark className="search-panel__mark">{highlighted}</mark>
+      {after}
     </>
   )
 }
@@ -84,7 +86,7 @@ export function SearchPanel({
   results,
   onQueryChange,
   onResultsChange,
-  onClose,
+  onClose
 }: SearchPanelProps): React.JSX.Element {
   const { dispatch } = useAppContext()
 
@@ -115,69 +117,84 @@ export function SearchPanel({
   }, [selectedIndex])
 
   // --- Debounced search ---
-  const performSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      onResultsChange([])
-      setLoading(false)
-      return
-    }
+  const performSearch = useCallback(
+    async (q: string) => {
+      if (!q.trim()) {
+        onResultsChange([])
+        setLoading(false)
+        return
+      }
 
-    setLoading(true)
-    try {
-      const response = await window.electron.search.query(q) as { results: SearchQueryResult[] }
-      onResultsChange(response.results ?? [])
-    } catch (err) {
-      console.error('[SearchPanel] search query failed:', err)
-      onResultsChange([])
-    } finally {
-      setLoading(false)
-    }
-  }, [onResultsChange])
+      setLoading(true)
+      try {
+        const response = (await window.electron.search.query(q)) as { results: SearchQueryResult[] }
+        onResultsChange(response.results ?? [])
+      } catch (err) {
+        console.error('[SearchPanel] search query failed:', err)
+        onResultsChange([])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [onResultsChange]
+  )
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    onQueryChange(value)
-    setSelectedIndex(0)
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      onQueryChange(value)
+      setSelectedIndex(0)
 
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      performSearch(value)
-    }, 200)
-  }, [onQueryChange, performSearch])
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        performSearch(value)
+      }, 200)
+    },
+    [onQueryChange, performSearch]
+  )
 
   // --- Open a result ---
-  const openResult = useCallback((filePath: string) => {
-    window.electron.file.get(filePath).then((fileAST) => {
-      dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-    }).catch((err) => {
-      console.error('[SearchPanel] failed to open result:', err)
-    })
-    onClose()
-  }, [dispatch, onClose])
+  const openResult = useCallback(
+    (filePath: string) => {
+      window.electron.file
+        .get(filePath)
+        .then((fileAST) => {
+          dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+        })
+        .catch((err) => {
+          console.error('[SearchPanel] failed to open result:', err)
+        })
+      onClose()
+    },
+    [dispatch, onClose]
+  )
 
   // --- Keyboard navigation ---
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex((prev) => Math.max(prev - 1, 0))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (results[selectedIndex]) {
-          openResult(results[selectedIndex].filePath)
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        onClose()
-        break
-    }
-  }, [results, selectedIndex, onClose, openResult])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1))
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setSelectedIndex((prev) => Math.max(prev - 1, 0))
+          break
+        case 'Enter':
+          e.preventDefault()
+          if (results[selectedIndex]) {
+            openResult(results[selectedIndex].filePath)
+          }
+          break
+        case 'Escape':
+          e.preventDefault()
+          onClose()
+          break
+      }
+    },
+    [results, selectedIndex, onClose, openResult]
+  )
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -211,7 +228,7 @@ export function SearchPanel({
           ref={inputRef}
           type="text"
           className="search-panel__input"
-          placeholder='Search…  e.g. tag:dev content:api'
+          placeholder="Search…  e.g. tag:dev content:api"
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -229,49 +246,51 @@ export function SearchPanel({
             <p>Type a query to search notes</p>
             <p className="search-panel__hint">
               Operators: <code>path:</code> <code>tag:</code> <code>line:</code>{' '}
-              <code>content:</code> <code>file:</code> <code>property:</code>{' '}
-              <code>regex:</code>
+              <code>content:</code> <code>file:</code> <code>property:</code> <code>regex:</code>
             </p>
           </div>
         )}
 
         {hasQuery && !hasResults && !loading && (
           <div className="search-panel__empty">
-            <p>No results found for <strong>{query}</strong></p>
+            <p>
+              No results found for <strong>{query}</strong>
+            </p>
           </div>
         )}
 
-        {hasResults && results.map((result, idx) => {
-          const firstMatch = result.matches[0]
-          const isSelected = idx === selectedIndex
+        {hasResults &&
+          results.map((result, idx) => {
+            const firstMatch = result.matches[0]
+            const isSelected = idx === selectedIndex
 
-          return (
-            <div
-              key={result.filePath}
-              ref={isSelected ? activeRef : undefined}
-              className={`search-panel__result${isSelected ? ' search-panel__result--selected' : ''}`}
-              role="option"
-              aria-selected={isSelected}
-              onClick={() => openResult(result.filePath)}
-              onMouseEnter={() => setSelectedIndex(idx)}
-            >
-              <div className="search-panel__result-header">
-                <span className="search-panel__result-name">{result.name}</span>
-                <span className="search-panel__result-path">{result.relativePath}</span>
-              </div>
-              {firstMatch && (
-                <div className="search-panel__result-snippet">
-                  <HighlightedSnippet match={firstMatch} />
+            return (
+              <div
+                key={result.filePath}
+                ref={isSelected ? activeRef : undefined}
+                className={`search-panel__result${isSelected ? ' search-panel__result--selected' : ''}`}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => openResult(result.filePath)}
+                onMouseEnter={() => setSelectedIndex(idx)}
+              >
+                <div className="search-panel__result-header">
+                  <span className="search-panel__result-name">{result.name}</span>
+                  <span className="search-panel__result-path">{result.relativePath}</span>
                 </div>
-              )}
-              {result.matches.length > 1 && (
-                <span className="search-panel__result-count">
-                  {result.matches.length} matches
-                </span>
-              )}
-            </div>
-          )
-        })}
+                {firstMatch && (
+                  <div className="search-panel__result-snippet">
+                    <HighlightedSnippet match={firstMatch} />
+                  </div>
+                )}
+                {result.matches.length > 1 && (
+                  <span className="search-panel__result-count">
+                    {result.matches.length} matches
+                  </span>
+                )}
+              </div>
+            )
+          })}
       </div>
     </div>
   )

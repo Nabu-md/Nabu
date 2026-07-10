@@ -42,34 +42,31 @@ test.afterEach(async () => {
  * handler from the main process — equivalent to the user pressing the accelerator.
  */
 async function clickMenuItem(handle: AppHandle, ...labels: string[]): Promise<void> {
-  await handle.electronApp.evaluate(
-    async ({ Menu }, labelPath) => {
-      const appMenu = Menu.getApplicationMenu()
-      if (!appMenu) return
+  await handle.electronApp.evaluate(async ({ Menu }, labelPath) => {
+    const appMenu = Menu.getApplicationMenu()
+    if (!appMenu) return
 
-      let items = appMenu.items
+    let items = appMenu.items
 
-      for (let i = 0; i < labelPath.length; i++) {
-        const label = labelPath[i]
-        const item = items.find((mi) => mi.label === label)
-        if (!item) return
-        if (i === labelPath.length - 1) {
-          // Leaf: click it
-          if (item.click) {
-            // MenuItem.click requires a BrowserWindow argument; pass the first
-            const { BrowserWindow } = await import('electron')
-            const [win] = BrowserWindow.getAllWindows()
-            // MenuItem click signature: (menuItem, browserWindow, event)
-            item.click(item, win, {} as Electron.KeyboardEvent)
-          }
-        } else {
-          // Intermediate: descend into submenu
-          items = item.submenu?.items ?? []
+    for (let i = 0; i < labelPath.length; i++) {
+      const label = labelPath[i]
+      const item = items.find((mi) => mi.label === label)
+      if (!item) return
+      if (i === labelPath.length - 1) {
+        // Leaf: click it
+        if (item.click) {
+          // MenuItem.click requires a BrowserWindow argument; pass the first
+          const { BrowserWindow } = await import('electron')
+          const [win] = BrowserWindow.getAllWindows()
+          // MenuItem click signature: (menuItem, browserWindow, event)
+          item.click(item, win, {} as Electron.KeyboardEvent)
         }
+      } else {
+        // Intermediate: descend into submenu
+        items = item.submenu?.items ?? []
       }
-    },
-    labels
-  )
+    }
+  }, labels)
 }
 
 // ---------------------------------------------------------------------------
@@ -91,8 +88,7 @@ test('Cmd+O — opens vault picker dialog', async () => {
   await page.evaluate(() => {
     // Patch the open vault handler to detect if it was called
     const orig = (window as unknown as Record<string, unknown>)['__nabuOpenVault'] as
-      | (() => void)
-      | undefined
+      (() => void) | undefined
     ;(window as unknown as Record<string, unknown>)['__nabuOpenVault'] = () => {
       const cb = (window as unknown as Record<string, unknown>)['__testVaultOpenReceived']
       if (typeof cb === 'function') (cb as () => void)()

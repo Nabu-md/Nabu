@@ -27,7 +27,7 @@ interface ResolvedLink {
  */
 function buildIndex(
   vaultFiles: FileEntry[],
-  aliasIndex?: Map<string, string[]>,
+  aliasIndex?: Map<string, string[]>
 ): Map<string, string[]> {
   const index = new Map<string, string[]>()
 
@@ -69,10 +69,7 @@ function buildIndex(
  *  3. If multiple matches, select the one with the shortest path (closest to
  *     vault root).  All matches are returned so the caller can show a tooltip.
  */
-function resolveWikiLink(
-  target: string,
-  index: Map<string, string[]>
-): ResolvedLink | null {
+function resolveWikiLink(target: string, index: Map<string, string[]>): ResolvedLink | null {
   const key = target.replace(/\.md$/i, '').toLowerCase()
   const matches = index.get(key)
   if (!matches || matches.length === 0) return null
@@ -98,7 +95,12 @@ export interface WikiLinkProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkProps): React.JSX.Element {
+export function WikiLink({
+  node,
+  vaultFiles,
+  onNavigate,
+  aliasIndex
+}: WikiLinkProps): React.JSX.Element {
   const [tooltipVisible, setTooltipVisible] = useState(false)
 
   // Build the index once per unique `vaultFiles` reference (aliasIndex is stable across renders)
@@ -117,8 +119,8 @@ export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkP
         title={`"${node.target}" not found`}
         aria-label={`Broken wiki link: ${node.target} not found`}
       >
-        <span aria-hidden="true">⚠</span>
-        {' '}[[{node.target}{displaySuffix}]]
+        <span aria-hidden="true">⚠</span> [[{node.target}
+        {displaySuffix}]]
       </span>
     )
   }
@@ -147,7 +149,8 @@ export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkP
         title={resolved.path}
         aria-label={`Wiki link: ${node.target}`}
       >
-        [[{node.target}{displaySuffix}]]
+        [[{node.target}
+        {displaySuffix}]]
       </a>
     )
   }
@@ -164,13 +167,16 @@ export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkP
       <a
         role="link"
         tabIndex={0}
-        className={linkClasses + ' after:ml-0.5 after:text-[#8B5CF6]/60 after:text-xs after:content-["↕"]'}
+        className={
+          linkClasses + ' after:ml-0.5 after:text-[#8B5CF6]/60 after:text-xs after:content-["↕"]'
+        }
         onClick={handleClick}
         onKeyDown={(e) => e.key === 'Enter' && handleClick(e as unknown as React.MouseEvent)}
         aria-label={`Wiki link: ${node.target}${displaySuffix} (${resolved.matches.length} matches)`}
         aria-describedby={tooltipVisible ? `wl-tooltip-${node.target}` : undefined}
       >
-        [[{node.target}{displaySuffix}]]
+        [[{node.target}
+        {displaySuffix}]]
       </a>
 
       {/* CSS tooltip listing all matching paths */}
@@ -190,11 +196,7 @@ export function WikiLink({ node, vaultFiles, onNavigate, aliasIndex }: WikiLinkP
           {resolved.matches.map((m) => (
             <div
               key={m}
-              className={
-                m === resolved.path
-                  ? 'font-medium text-[#A78BFA]'
-                  : 'text-white/70'
-              }
+              className={m === resolved.path ? 'font-medium text-[#A78BFA]' : 'text-white/70'}
             >
               {m === resolved.path ? '▶ ' : '\u00a0\u00a0'}
               {m}

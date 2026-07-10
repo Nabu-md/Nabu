@@ -9,17 +9,17 @@
  * Requirements: 11.1, 11.7
  */
 
-import { visit } from 'unist-util-visit';
-import type { Plugin } from 'unified';
-import type { Root, Text, Node } from 'mdast';
+import { visit } from 'unist-util-visit'
+import type { Plugin } from 'unified'
+import type { Root, Text, Node } from 'mdast'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface EmbedNode extends Node {
-  type: 'embed';
-  target: string;
+  type: 'embed'
+  target: string
 }
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ export interface EmbedNode extends Node {
 // ---------------------------------------------------------------------------
 
 /** Matches `![[target]]` syntax anywhere in text. */
-const EMBED_PATTERN = /!\[\[([^\]]+)\]\]/g;
+const EMBED_PATTERN = /!\[\[([^\]]+)\]\]/g
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,34 +38,34 @@ const EMBED_PATTERN = /!\[\[([^\]]+)\]\]/g;
  * mixed text and embed nodes.
  */
 function parseTextForEmbeds(text: string): (Text | EmbedNode)[] {
-  const result: (Text | EmbedNode)[] = [];
-  let lastIndex = 0;
+  const result: (Text | EmbedNode)[] = []
+  let lastIndex = 0
 
-  EMBED_PATTERN.lastIndex = 0;
+  EMBED_PATTERN.lastIndex = 0
 
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null
   while ((match = EMBED_PATTERN.exec(text)) !== null) {
-    const matchStart = match.index;
-    const matchEnd = EMBED_PATTERN.lastIndex;
+    const matchStart = match.index
+    const matchEnd = EMBED_PATTERN.lastIndex
 
     // Text before the match
     if (matchStart > lastIndex) {
-      result.push({ type: 'text', value: text.slice(lastIndex, matchStart) } as Text);
+      result.push({ type: 'text', value: text.slice(lastIndex, matchStart) } as Text)
     }
 
     // Embed node
-    const target = match[1].trim();
-    result.push({ type: 'embed', target } as EmbedNode);
+    const target = match[1].trim()
+    result.push({ type: 'embed', target } as EmbedNode)
 
-    lastIndex = matchEnd;
+    lastIndex = matchEnd
   }
 
   // Remaining text after the last match
   if (lastIndex < text.length) {
-    result.push({ type: 'text', value: text.slice(lastIndex) } as Text);
+    result.push({ type: 'text', value: text.slice(lastIndex) } as Text)
   }
 
-  return result;
+  return result
 }
 
 // ---------------------------------------------------------------------------
@@ -79,28 +79,28 @@ export const remarkEmbeds: Plugin<[], Root> = function () {
   return (tree: Root) => {
     visit(tree, 'text', (node: Text, index, parent) => {
       if (index === undefined || !parent || !('children' in parent)) {
-        return;
+        return
       }
 
-      const text = node.value;
+      const text = node.value
 
       if (!text.includes('![[')) {
-        return;
+        return
       }
 
-      const newNodes = parseTextForEmbeds(text);
+      const newNodes = parseTextForEmbeds(text)
 
       // Only replace if we actually found embeds
       if (newNodes.length <= 1 && newNodes[0]?.type === 'text') {
-        return;
+        return
       }
 
-      const parentChildren = parent.children as Node[];
-      parentChildren.splice(index, 1, ...(newNodes as Node[]));
+      const parentChildren = parent.children as Node[]
+      parentChildren.splice(index, 1, ...(newNodes as Node[]))
 
-      return index + newNodes.length;
-    });
-  };
-};
+      return index + newNodes.length
+    })
+  }
+}
 
-export default remarkEmbeds;
+export default remarkEmbeds

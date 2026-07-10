@@ -45,7 +45,7 @@ function createInitialState(overrides: Partial<AppState> = {}): AppState {
     quickSwitcherOpen: false,
     commandPaletteOpen: false,
     recentNotes: [],
-    ...overrides,
+    ...overrides
   }
 }
 
@@ -67,7 +67,7 @@ describe('PaneLayout state', () => {
     const initialState = createInitialState()
     const state = appReducer(initialState, {
       type: 'PANE_LAYOUT_CHANGED',
-      payload: { layout: 'split-horizontal' },
+      payload: { layout: 'split-horizontal' }
     })
     expect(state.paneLayout).toBe('split-horizontal')
   })
@@ -76,7 +76,7 @@ describe('PaneLayout state', () => {
     const initialState = createInitialState()
     const state = appReducer(initialState, {
       type: 'PANE_LAYOUT_CHANGED',
-      payload: { layout: 'split-vertical' },
+      payload: { layout: 'split-vertical' }
     })
     expect(state.paneLayout).toBe('split-vertical')
   })
@@ -85,7 +85,7 @@ describe('PaneLayout state', () => {
     const initialState = createInitialState()
     const state = appReducer(initialState, {
       type: 'PANE_LAYOUT_CHANGED',
-      payload: { layout: 'grid' },
+      payload: { layout: 'grid' }
     })
     expect(state.paneLayout).toBe('grid')
   })
@@ -102,13 +102,13 @@ describe('Split view - multiple tabs', () => {
     // Open first tab
     const state1 = appReducer(initialState, {
       type: 'TAB_OPENED',
-      payload: { path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One' },
+      payload: { path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One' }
     })
 
     // Open second tab
     const state2 = appReducer(state1, {
       type: 'TAB_OPENED',
-      payload: { path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two' },
+      payload: { path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two' }
     })
 
     expect(state2.openTabs.length).toBe(2)
@@ -119,15 +119,31 @@ describe('Split view - multiple tabs', () => {
   it('active tab change does not modify openTabs array', () => {
     const initialState = createInitialState({
       openTabs: [
-        { id: 'tab-1', path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One', mode: 'view', scrollTop: 0, cursor: 0 },
-        { id: 'tab-2', path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: 'tab-1',
+          path: '/vault/notes/one.md',
+          ast: createMockAST(),
+          raw: '# One',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        },
+        {
+          id: 'tab-2',
+          path: '/vault/notes/two.md',
+          ast: createMockAST(),
+          raw: '# Two',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
-      activeTabId: 'tab-1',
+      activeTabId: 'tab-1'
     })
 
     const state = appReducer(initialState, {
       type: 'TAB_ACTIVATED',
-      payload: { tabId: 'tab-2' },
+      payload: { tabId: 'tab-2' }
     })
 
     expect(state.openTabs.length).toBe(2)
@@ -143,16 +159,32 @@ describe('Workspace management', () => {
   it('can save current tabs and layout as a workspace', () => {
     const initialState = createInitialState({
       openTabs: [
-        { id: 'tab-1', path: '/vault/notes/one.md', ast: createMockAST(), raw: '# One', mode: 'view', scrollTop: 0, cursor: 0 },
-        { id: 'tab-2', path: '/vault/notes/two.md', ast: createMockAST(), raw: '# Two', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: 'tab-1',
+          path: '/vault/notes/one.md',
+          ast: createMockAST(),
+          raw: '# One',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        },
+        {
+          id: 'tab-2',
+          path: '/vault/notes/two.md',
+          ast: createMockAST(),
+          raw: '# Two',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       activeTabId: 'tab-1',
-      paneLayout: 'split-horizontal',
+      paneLayout: 'split-horizontal'
     })
 
     const state = appReducer(initialState, {
       type: 'WORKSPACE_SAVE',
-      payload: { name: 'Research' },
+      payload: { name: 'Research' }
     })
 
     expect(state.workspaces.length).toBe(1)
@@ -165,12 +197,17 @@ describe('Workspace management', () => {
     const initialState = createInitialState()
     const workspaces: Workspace[] = [
       { id: 'ws-1', name: 'Work', openTabs: ['/vault/notes/a.md'], paneLayout: 'single' },
-      { id: 'ws-2', name: 'Research', openTabs: ['/vault/notes/b.md', '/vault/notes/c.md'], paneLayout: 'grid' },
+      {
+        id: 'ws-2',
+        name: 'Research',
+        openTabs: ['/vault/notes/b.md', '/vault/notes/c.md'],
+        paneLayout: 'grid'
+      }
     ]
 
     const state = appReducer(initialState, {
       type: 'WORKSPACES_LOADED',
-      payload: workspaces,
+      payload: workspaces
     })
 
     expect(state.workspaces.length).toBe(2)
@@ -180,15 +217,13 @@ describe('Workspace management', () => {
 
   it('loading a workspace sets the layout', () => {
     const initialState = createInitialState({
-      workspaces: [
-        { id: 'ws-1', name: 'Grid Layout', openTabs: [], paneLayout: 'grid' },
-      ],
-      paneLayout: 'single',
+      workspaces: [{ id: 'ws-1', name: 'Grid Layout', openTabs: [], paneLayout: 'grid' }],
+      paneLayout: 'single'
     })
 
     const state = appReducer(initialState, {
       type: 'WORKSPACE_LOAD',
-      payload: { workspaceId: 'ws-1' },
+      payload: { workspaceId: 'ws-1' }
     })
 
     expect(state.paneLayout).toBe('grid')
@@ -196,12 +231,12 @@ describe('Workspace management', () => {
 
   it('loading non-existent workspace does nothing', () => {
     const initialState = createInitialState({
-      paneLayout: 'single',
+      paneLayout: 'single'
     })
 
     const state = appReducer(initialState, {
       type: 'WORKSPACE_LOAD',
-      payload: { workspaceId: 'nonexistent' },
+      payload: { workspaceId: 'nonexistent' }
     })
 
     expect(state.paneLayout).toBe('single')
@@ -214,7 +249,16 @@ describe('Workspace management', () => {
 
 type TabGroupColor = 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'orange' | 'cyan' | 'pink'
 
-const COLORS: TabGroupColor[] = ['blue', 'red', 'green', 'yellow', 'purple', 'orange', 'cyan', 'pink']
+const COLORS: TabGroupColor[] = [
+  'blue',
+  'red',
+  'green',
+  'yellow',
+  'purple',
+  'orange',
+  'cyan',
+  'pink'
+]
 
 function getColorForFolder(folderPath: string): TabGroupColor {
   // Deterministically assign color based on folder path hash
@@ -252,18 +296,34 @@ describe('Tab groups', () => {
 
   it('can extract folder path from file path', () => {
     expect(getFolderFromPath('/vault/notes/projects/a.md', '/vault/notes')).toBe('projects/')
-    expect(getFolderFromPath('/vault/notes/projects/research/b.md', '/vault/notes')).toBe('projects/research/')
+    expect(getFolderFromPath('/vault/notes/projects/research/b.md', '/vault/notes')).toBe(
+      'projects/research/'
+    )
     expect(getFolderFromPath('/vault/notes/root.md', '/vault/notes')).toBe('')
   })
 
   it('single-tab groups collapse to plain tab (no group label)', () => {
     const initialState = createInitialState({
       openTabs: [
-        { id: 'tab-1', path: '/vault/notes/projects/a.md', ast: createMockAST(), raw: '', mode: 'view', scrollTop: 0, cursor: 0 },
+        {
+          id: 'tab-1',
+          path: '/vault/notes/projects/a.md',
+          ast: createMockAST(),
+          raw: '',
+          mode: 'view',
+          scrollTop: 0,
+          cursor: 0
+        }
       ],
       tabGroups: [
-        { id: 'group-1', folderPath: 'projects/', color: 'blue', isCollapsed: false, tabIds: ['tab-1'] },
-      ],
+        {
+          id: 'group-1',
+          folderPath: 'projects/',
+          color: 'blue',
+          isCollapsed: false,
+          tabIds: ['tab-1']
+        }
+      ]
     })
     // Single-tab groups should just show the tab without group styling
     expect(initialState.tabGroups[0].tabIds.length).toBe(1)

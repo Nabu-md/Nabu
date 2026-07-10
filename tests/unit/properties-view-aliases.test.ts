@@ -18,10 +18,7 @@ import { describe, it, expect } from 'vitest'
  * Check whether a candidate alias already exists in the list
  * (case-insensitive duplicate detection, Req 15B.2).
  */
-function isDuplicateAlias(
-  aliases: string[],
-  candidate: string,
-): boolean {
+function isDuplicateAlias(aliases: string[], candidate: string): boolean {
   const lower = candidate.trim().toLowerCase()
   if (!lower) return false
   return aliases.some((a) => a.toLowerCase() === lower)

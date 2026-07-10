@@ -26,9 +26,19 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { id: 'callout', label: 'Callout', keywords: 'callout note', insertText: '> [!note] ' },
   { id: 'code-block', label: 'Code Block', keywords: 'code fence', insertText: '```\n\n```' },
   { id: 'math-block', label: 'Math Block', keywords: 'math katex', insertText: '$$\n\n$$' },
-  { id: 'table', label: 'Table', keywords: 'table grid', insertText: '| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n' },
-  { id: 'horizontal-rule', label: 'Horizontal Rule', keywords: 'hr rule divider', insertText: '---\n' },
-  { id: 'embed', label: 'Embed', keywords: 'embed transclude', insertText: '![[note]]' },
+  {
+    id: 'table',
+    label: 'Table',
+    keywords: 'table grid',
+    insertText: '| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n'
+  },
+  {
+    id: 'horizontal-rule',
+    label: 'Horizontal Rule',
+    keywords: 'hr rule divider',
+    insertText: '---\n'
+  },
+  { id: 'embed', label: 'Embed', keywords: 'embed transclude', insertText: '![[note]]' }
 ]
 
 interface SlashCommandsProps {
@@ -40,18 +50,19 @@ export function SlashCommands({ onInsert, onClose }: SlashCommandsProps): React.
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
 
-  const filtered = SLASH_COMMANDS.filter(cmd =>
-    cmd.label.toLowerCase().includes(query.toLowerCase()) ||
-    cmd.keywords.toLowerCase().includes(query.toLowerCase()),
+  const filtered = SLASH_COMMANDS.filter(
+    (cmd) =>
+      cmd.label.toLowerCase().includes(query.toLowerCase()) ||
+      cmd.keywords.toLowerCase().includes(query.toLowerCase())
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(i => Math.min(i + 1, filtered.length - 1))
+      setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedIndex(i => Math.max(i - 1, 0))
+      setSelectedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (filtered[selectedIndex]) {
@@ -75,7 +86,7 @@ export function SlashCommands({ onInsert, onClose }: SlashCommandsProps): React.
       <input
         type="text"
         value={query}
-        onChange={e => setQuery(e.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
         placeholder="Search commands..."
         className="w-full px-2 py-1 text-sm bg-transparent border-b border-nabu-border outline-none"
         autoFocus

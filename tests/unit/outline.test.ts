@@ -41,7 +41,7 @@ function extractOutline(ast: Root | null): OutlineEntry[] {
       entries.push({
         childIndex: i,
         depth: heading.depth,
-        text: flattenText(heading),
+        text: flattenText(heading)
       })
     }
   }
@@ -57,7 +57,7 @@ function makeHeading(depth: 1 | 2 | 3 | 4 | 5 | 6, text: string): Heading {
   return {
     type: 'heading',
     depth,
-    children: [{ type: 'text', value: text }],
+    children: [{ type: 'text', value: text }]
   } as Heading
 }
 
@@ -81,7 +81,7 @@ describe('extractOutline', () => {
     expect(outline[0]).toEqual({
       childIndex: 0,
       depth: 1,
-      text: 'Introduction',
+      text: 'Introduction'
     })
   })
 
@@ -90,7 +90,7 @@ describe('extractOutline', () => {
       makeHeading(1, 'Title'),
       makeHeading(2, 'Section'),
       makeHeading(3, 'Subsection'),
-      makeHeading(2, 'Another Section'),
+      makeHeading(2, 'Another Section')
     ])
     const outline = extractOutline(ast)
     expect(outline).toHaveLength(4)
@@ -104,7 +104,7 @@ describe('extractOutline', () => {
     const ast = makeRoot([
       makeHeading(1, 'First'),
       { type: 'paragraph', children: [{ type: 'text', value: 'some text' }] },
-      makeHeading(2, 'Second'),
+      makeHeading(2, 'Second')
     ])
     const outline = extractOutline(ast)
     expect(outline).toHaveLength(2)
@@ -119,18 +119,16 @@ describe('extractOutline', () => {
         depth: 2,
         children: [
           { type: 'text', value: 'Hello ' },
-          { type: 'strong', children: [{ type: 'text', value: 'World' }] },
-        ],
-      } as Heading,
+          { type: 'strong', children: [{ type: 'text', value: 'World' }] }
+        ]
+      } as Heading
     ])
     const outline = extractOutline(ast)
     expect(outline[0].text).toBe('Hello World')
   })
 
   it('returns empty array when AST has no headings', () => {
-    const ast = makeRoot([
-      { type: 'paragraph', children: [{ type: 'text', value: 'just text' }] },
-    ])
+    const ast = makeRoot([{ type: 'paragraph', children: [{ type: 'text', value: 'just text' }] }])
     expect(extractOutline(ast)).toHaveLength(0)
   })
 

@@ -36,7 +36,7 @@ export interface FeatureToggle {
  */
 export const DEFAULT_FEATURE_STATES: Record<string, boolean> = {
   'daily-notes': true,
-  'templates': true,
+  templates: true,
   'random-note': true,
   'unique-note': false,
   'slash-commands': false,
@@ -45,7 +45,7 @@ export const DEFAULT_FEATURE_STATES: Record<string, boolean> = {
   'word-count': true,
   'file-recovery': false,
   'format-converter': false,
-  'format-import': false,
+  'format-import': false
 }
 
 // ---------------------------------------------------------------------------

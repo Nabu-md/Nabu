@@ -50,7 +50,7 @@ export class VaultRegistry {
     vaultPath: string,
     stateManager: StateManager,
     vectorManager: VectorManager,
-    watcher: VaultWatcher,
+    watcher: VaultWatcher
   ): VaultSession {
     const session: VaultSession = {
       vaultId,
@@ -58,7 +58,7 @@ export class VaultRegistry {
       stateManager,
       vectorManager,
       watcher,
-      isActive: false,
+      isActive: false
     }
 
     this.sessions.set(vaultId, session)

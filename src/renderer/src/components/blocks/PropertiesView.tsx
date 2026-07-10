@@ -44,7 +44,10 @@ function valueToString(val: unknown): string {
 }
 
 /** Parse a user-entered string back to a typed YAML value based on the original type. */
-function parseTypedValue(input: string, originalType: 'string' | 'number' | 'boolean' | 'array'): unknown {
+function parseTypedValue(
+  input: string,
+  originalType: 'string' | 'number' | 'boolean' | 'array'
+): unknown {
   const trimmed = input.trim()
   if (originalType === 'number') {
     const n = Number(trimmed)
@@ -56,7 +59,10 @@ function parseTypedValue(input: string, originalType: 'string' | 'number' | 'boo
     return trimmed
   }
   if (originalType === 'array') {
-    return trimmed.split(',').map((s) => s.trim()).filter(Boolean)
+    return trimmed
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
   }
   return trimmed // string
 }
@@ -188,7 +194,7 @@ function AliasEditor({ aliases, onChange, onBlur }: AliasEditorProps): React.JSX
       const updated = aliases.filter((_, i) => i !== index)
       onChange(updated)
     },
-    [aliases, onChange],
+    [aliases, onChange]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
@@ -231,9 +237,7 @@ function AliasEditor({ aliases, onChange, onBlur }: AliasEditorProps): React.JSX
         className="w-20 min-w-[60px] bg-transparent border-b border-white/10 text-xs text-white/70 outline-none focus:border-purple-400/50 transition-colors px-0.5 py-0"
         aria-label="Add alias"
       />
-      {showDupWarning && (
-        <span className="text-[10px] text-yellow-400/70">Duplicate alias</span>
-      )}
+      {showDupWarning && <span className="text-[10px] text-yellow-400/70">Duplicate alias</span>}
     </div>
   )
 }
@@ -242,7 +246,11 @@ function AliasEditor({ aliases, onChange, onBlur }: AliasEditorProps): React.JSX
 // PropertiesView
 // ---------------------------------------------------------------------------
 
-export function PropertiesView({ yamlValue, onSave, onPropertySearch }: PropertiesViewProps): React.JSX.Element {
+export function PropertiesView({
+  yamlValue,
+  onSave,
+  onPropertySearch
+}: PropertiesViewProps): React.JSX.Element {
   const [entries, setEntries] = useState<PropertyEntry[]>([])
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [newKeyInput, setNewKeyInput] = useState('')
@@ -293,7 +301,7 @@ export function PropertiesView({ yamlValue, onSave, onPropertySearch }: Properti
       const yaml = serializeEntries(items)
       onSave(yaml)
     },
-    [onSave, serializeEntries],
+    [onSave, serializeEntries]
   )
 
   /** Save raw YAML text. */
@@ -336,27 +344,23 @@ export function PropertiesView({ yamlValue, onSave, onPropertySearch }: Properti
   /** Update a single entry's value. */
   const handleValueChange = useCallback(
     (key: string, newValue: unknown) => {
-      const updated = entries.map((e) =>
-        e.key === key ? { ...e, value: newValue } : e,
-      )
+      const updated = entries.map((e) => (e.key === key ? { ...e, value: newValue } : e))
       setEntries(updated)
       saveEntries(updated)
     },
-    [entries, saveEntries],
+    [entries, saveEntries]
   )
 
   /** Update a single entry's key. */
   const handleKeyChange = useCallback(
     (oldKey: string, newKey: string) => {
       if (!newKey.trim() || newKey === oldKey) return
-      const updated = entries.map((e) =>
-        e.key === oldKey ? { ...e, key: newKey.trim() } : e,
-      )
+      const updated = entries.map((e) => (e.key === oldKey ? { ...e, key: newKey.trim() } : e))
       setEntries(updated)
       setEditingKey(null)
       saveEntries(updated)
     },
-    [entries, saveEntries],
+    [entries, saveEntries]
   )
 
   /** Remove an entry. */
@@ -366,7 +370,7 @@ export function PropertiesView({ yamlValue, onSave, onPropertySearch }: Properti
       setEntries(updated)
       saveEntries(updated)
     },
-    [entries, saveEntries],
+    [entries, saveEntries]
   )
 
   /** Add a new entry. */
@@ -546,14 +550,19 @@ export function PropertiesView({ yamlValue, onSave, onPropertySearch }: Properti
               {/* Value cell */}
               <div className="flex items-center min-h-[24px] gap-1">
                 <div className="flex-1">
-                  {entry.key === 'aliases' && (Array.isArray(entry.value) || typeof entry.value === 'string') ? (
+                  {entry.key === 'aliases' &&
+                  (Array.isArray(entry.value) || typeof entry.value === 'string') ? (
                     <AliasEditor
-                      aliases={Array.isArray(entry.value)
-                        ? entry.value.map(String)
-                        : typeof entry.value === 'string' && entry.value
-                          ? [entry.value]
-                          : []}
-                      onChange={(newAliases) => handleValueChange(entry.key, newAliases.length === 0 ? '' : newAliases)}
+                      aliases={
+                        Array.isArray(entry.value)
+                          ? entry.value.map(String)
+                          : typeof entry.value === 'string' && entry.value
+                            ? [entry.value]
+                            : []
+                      }
+                      onChange={(newAliases) =>
+                        handleValueChange(entry.key, newAliases.length === 0 ? '' : newAliases)
+                      }
                       onBlur={() => setEditingKey(null)}
                     />
                   ) : (

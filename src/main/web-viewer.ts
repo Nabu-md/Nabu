@@ -33,7 +33,7 @@ export function isWebViewerUrl(url: string): boolean {
 export function openWebViewer(
   parentWindow: BrowserWindow,
   url: string,
-  vaultId: string,
+  vaultId: string
 ): BrowserWindow | null {
   if (!isWebViewerUrl(url)) {
     return null
@@ -45,8 +45,8 @@ export function openWebViewer(
     parent: parentWindow,
     webPreferences: {
       contextIsolation: true,
-      sandbox: true,
-    },
+      sandbox: true
+    }
   })
 
   viewer.loadURL(url)

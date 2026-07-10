@@ -44,7 +44,10 @@ export async function readBookmarks(vaultPath: string): Promise<BookmarksCollect
  * Write the bookmarks collection for a vault. Creates the `.nabu/` directory if
  * it doesn't exist.
  */
-export async function writeBookmarks(vaultPath: string, collection: BookmarksCollection): Promise<void> {
+export async function writeBookmarks(
+  vaultPath: string,
+  collection: BookmarksCollection
+): Promise<void> {
   const dir = path.join(vaultPath, '.nabu')
   await fs.mkdir(dir, { recursive: true })
   await fs.writeFile(bookmarksFilePath(vaultPath), JSON.stringify(collection, null, 2), 'utf-8')
@@ -53,7 +56,11 @@ export async function writeBookmarks(vaultPath: string, collection: BookmarksCol
 /**
  * Add a file to a bookmark list. Creates the list if it doesn't exist.
  */
-export async function addBookmark(vaultPath: string, listName: string, filePath: string): Promise<BookmarksCollection> {
+export async function addBookmark(
+  vaultPath: string,
+  listName: string,
+  filePath: string
+): Promise<BookmarksCollection> {
   const bookmarks = await readBookmarks(vaultPath)
   const list = bookmarks[listName] ?? []
   if (!list.includes(filePath)) {
@@ -67,7 +74,11 @@ export async function addBookmark(vaultPath: string, listName: string, filePath:
 /**
  * Remove a file from a bookmark list. Deletes the list if it becomes empty.
  */
-export async function removeBookmark(vaultPath: string, listName: string, filePath: string): Promise<BookmarksCollection> {
+export async function removeBookmark(
+  vaultPath: string,
+  listName: string,
+  filePath: string
+): Promise<BookmarksCollection> {
   const bookmarks = await readBookmarks(vaultPath)
   const list = bookmarks[listName]
   if (list) {
@@ -86,7 +97,10 @@ export async function removeBookmark(vaultPath: string, listName: string, filePa
 /**
  * Remove a file from all bookmark lists (used when a note is deleted/renamed).
  */
-export async function removeFileFromBookmarks(vaultPath: string, filePath: string): Promise<BookmarksCollection> {
+export async function removeFileFromBookmarks(
+  vaultPath: string,
+  filePath: string
+): Promise<BookmarksCollection> {
   const bookmarks = await readBookmarks(vaultPath)
   let changed = false
   for (const listName of Object.keys(bookmarks)) {

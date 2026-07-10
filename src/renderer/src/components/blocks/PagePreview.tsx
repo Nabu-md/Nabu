@@ -15,7 +15,11 @@ interface PagePreviewProps {
   onOpen: () => void
 }
 
-export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): React.JSX.Element | null {
+export function PagePreview({
+  filePath,
+  isActive,
+  onOpen
+}: PagePreviewProps): React.JSX.Element | null {
   const [content, setContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -30,16 +34,19 @@ export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): R
     const timer = window.setTimeout(() => {
       if (!filePath) return
       setLoading(true)
-      window.electron.file.get(filePath).then(() => {
-        // For now, just store that we loaded - real implementation would
-        // render via renderNode pipeline
-        setContent('Preview...')
-        setLoading(false)
-        setVisible(true)
-      }).catch(() => {
-        setLoading(false)
-        setVisible(false)
-      })
+      window.electron.file
+        .get(filePath)
+        .then(() => {
+          // For now, just store that we loaded - real implementation would
+          // render via renderNode pipeline
+          setContent('Preview...')
+          setLoading(false)
+          setVisible(true)
+        })
+        .catch(() => {
+          setLoading(false)
+          setVisible(false)
+        })
     }, 300) // default hover delay
 
     return () => {
@@ -56,7 +63,7 @@ export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): R
         // Position near cursor - simplified positioning
         top: '50%',
         left: '50%',
-        transform: 'translate(-50%, -50%)',
+        transform: 'translate(-50%, -50%)'
       }}
       onMouseLeave={() => setVisible(false)}
     >
@@ -64,9 +71,7 @@ export function PagePreview({ filePath, isActive, onOpen }: PagePreviewProps): R
         <div className="text-xs text-nabu-text-muted">Loading preview...</div>
       ) : (
         <>
-          <div className="text-xs text-nabu-text mb-2">
-            {content ?? 'No preview available'}
-          </div>
+          <div className="text-xs text-nabu-text mb-2">{content ?? 'No preview available'}</div>
           <button
             type="button"
             onClick={onOpen}

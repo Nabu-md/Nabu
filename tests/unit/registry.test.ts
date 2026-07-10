@@ -13,7 +13,7 @@ import {
   getCommands,
   unregisterCommand,
   seedCommands,
-  type Command,
+  type Command
 } from '../../src/renderer/src/commands/registry'
 
 // ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ describe('registerCommand / getCommands', () => {
       id: 'test.kw',
       label: 'Test keywords',
       keywords: ['hello', 'world'],
-      run: () => {},
+      run: () => {}
     }
     registerCommand(cmd)
     expect(getCommands()[0].keywords).toEqual(['hello', 'world'])
@@ -119,7 +119,9 @@ describe('seedCommands', () => {
   it('switcher.open calls the option callback when provided', () => {
     let called = false
     seedCommands(mockDispatch as unknown as React.Dispatch<never>, {
-      openQuickSwitcher: () => { called = true },
+      openQuickSwitcher: () => {
+        called = true
+      }
     })
     const cmd = getCommands().find((c) => c.id === 'switcher.open')!
     cmd.run()
@@ -136,7 +138,9 @@ describe('seedCommands', () => {
   it('vector.reindex calls the reindex option when provided', () => {
     let called = false
     seedCommands(mockDispatch as unknown as React.Dispatch<never>, {
-      reindexVector: () => { called = true },
+      reindexVector: () => {
+        called = true
+      }
     })
     const cmd = getCommands().find((c) => c.id === 'vector.reindex')!
     cmd.run()

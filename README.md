@@ -97,18 +97,18 @@ src/
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop framework | Electron 39 |
-| UI | React 19 |
-| Styling | Tailwind CSS v4 |
-| Markdown parsing | unified / remark / mdast |
-| Graph visualization | d3-force on HTML Canvas |
-| IPC validation | Zod v4 (bidirectional schemas) |
-| State management | useReducer + React Context |
-| File watching | chokidar (fsevents on macOS) |
-| Testing | Vitest + fast-check (property-based) |
-| Build | electron-vite + electron-builder |
+| Layer               | Technology                           |
+| ------------------- | ------------------------------------ |
+| Desktop framework   | Electron 39                          |
+| UI                  | React 19                             |
+| Styling             | Tailwind CSS v4                      |
+| Markdown parsing    | unified / remark / mdast             |
+| Graph visualization | d3-force on HTML Canvas              |
+| IPC validation      | Zod v4 (bidirectional schemas)       |
+| State management    | useReducer + React Context           |
+| File watching       | chokidar (fsevents on macOS)         |
+| Testing             | Vitest + fast-check (property-based) |
+| Build               | electron-vite + electron-builder     |
 
 ## Downloadable Mac App
 
@@ -116,7 +116,7 @@ Nabu is distributed as a **universal DMG** (Intel + Apple Silicon) on the [relea
 
 Since Nabu is fully open-source and community-funded, the DMG is **not Apple code-signed**. On first launch:
 
-1. macOS will display a warning: *"Nabu cannot be opened because the developer cannot be verified"*
+1. macOS will display a warning: _"Nabu cannot be opened because the developer cannot be verified"_
 2. **Right-click** the app in Finder → **Open** → **Open Anyway**
 3. You'll only need to do this once
 
@@ -135,6 +135,7 @@ The DMG is unsigned by design — no Apple Developer account required.
 ## Vault Compatibility
 
 Nabu works with any folder of `.md` files, including existing Obsidian vaults:
+
 - `[[Wiki-links]]` are resolved case-insensitively by filename
 - YAML frontmatter `tags:` field is parsed (both inline `[a, b]` and block list formats)
 - Toggle blocks (`> [!faq]-`) and task lists (`- [ ]`) are rendered as interactive elements
@@ -171,6 +172,7 @@ npm run build:linux # Build Linux package
 ### Property-Based Tests
 
 The test suite uses [fast-check](https://github.com/dubzzz/fast-check) for property-based testing on:
+
 - Graph building invariants (idempotence, subset properties)
 - Full-text index properties (frontmatter exclusion, case insensitivity)
 - Tag index properties (presence, uniqueness)
@@ -178,8 +180,8 @@ The test suite uses [fast-check](https://github.com/dubzzz/fast-check) for prope
 
 ## Roadmap
 
-| Version | Features |
-|---|---|
+| Version      | Features                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------ |
 | v1 (current) | Setup wizard, file tree, note editing, graph view, tags, search, themes, templates, export |
-| v2 | Multi-vault tabs, advanced search, custom HTML apps/dashboards |
-| v3 | Plugin API, community marketplace |
+| v2           | Multi-vault tabs, advanced search, custom HTML apps/dashboards                             |
+| v3           | Plugin API, community marketplace                                                          |

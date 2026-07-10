@@ -32,7 +32,7 @@ function InlineTagChip({ tag }: InlineTagChipProps): React.JSX.Element {
       e.stopPropagation()
       dispatch({ type: 'TAG_FILTER_TOGGLE', payload: tag })
     },
-    [dispatch, tag],
+    [dispatch, tag]
   )
 
   return (
