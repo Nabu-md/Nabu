@@ -39,6 +39,30 @@ interface TaskItemProps {
   renderChildren?: (nodes: PhrasingContent[]) => React.ReactNode
 }
 
+// Regex to parse date (📅 YYYY-MM-DD) and time (⏰ HH:MM) suffixes in task items
+const DATE_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})/
+const TIME_REGEX = /⏰\s*(\d{2}:\d{2})/
+const OVERDUE_CLASS = 'text-red-400/80'
+const TODAY_CLASS = 'text-amber-400/80'
+const FUTURE_CLASS = 'text-emerald-400/80'
+
+function parseReminder(text: string): { date?: string; time?: string } | null {
+  const dateMatch = text.match(DATE_REGEX)
+  const timeMatch = text.match(TIME_REGEX)
+  if (!dateMatch && !timeMatch) return null
+  return {
+    date: dateMatch?.[1],
+    time: timeMatch?.[1]
+  }
+}
+
+function getDateStatus(dateStr: string): 'overdue' | 'today' | 'future' {
+  const today = new Date().toISOString().slice(0, 10)
+  if (dateStr < today) return 'overdue'
+  if (dateStr === today) return 'today'
+  return 'future'
+}
+
 function TaskItem({ item, checked, onToggle, renderChildren }: TaskItemProps): React.JSX.Element {
   // Compute an accessible label from the item's children
   const plainTextLabel = item.children
@@ -47,10 +71,15 @@ function TaskItem({ item, checked, onToggle, renderChildren }: TaskItemProps): R
     .trim()
 
   const ariaLabel = plainTextLabel || `Task at line ${item.lineIndex + 1}`
+  const reminder = parseReminder(plainTextLabel)
 
   const handleChange = (): void => {
     onToggle(item.lineIndex)
   }
+
+  // Get date status class if there's a reminder
+  const dateStatus = reminder?.date ? getDateStatus(reminder.date) : null
+  const dateClass = dateStatus === 'overdue' ? OVERDUE_CLASS : dateStatus === 'today' ? TODAY_CLASS : FUTURE_CLASS
 
   return (
     <li className="flex items-start gap-2 py-0.5">
@@ -65,13 +94,19 @@ function TaskItem({ item, checked, onToggle, renderChildren }: TaskItemProps): R
       <label
         htmlFor={`task-${item.lineIndex}`}
         className={[
-          'text-sm leading-relaxed cursor-pointer select-text',
+          'text-sm leading-relaxed cursor-pointer select-text flex-1',
           checked ? 'line-through opacity-50 text-white/50' : 'text-white/75'
         ].join(' ')}
       >
         {renderChildren
           ? renderChildren(item.children)
           : plainTextLabel || <span className="opacity-40 italic">Empty task</span>}
+        {reminder && !checked && (
+          <span className="inline-flex items-center gap-1 ml-2 text-xs" title={`Due: ${reminder.date}${reminder.time ? ' ' + reminder.time : ''}`}>
+            {reminder.date && <span className={dateClass}>📅 {reminder.date}</span>}
+            {reminder.time && <span className={dateClass}>⏰ {reminder.time}</span>}
+          </span>
+        )}
       </label>
     </li>
   )
