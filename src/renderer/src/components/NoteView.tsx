@@ -935,7 +935,7 @@ export function NoteView(): React.JSX.Element {
     } catch (err) {
       console.error('[NoteView] getRaw error:', err)
     }
-  }, [currentFile, livePreviewContent, dispatch]
+  }, [currentFile, dispatch]
 
   const exitEditMode = useCallback(async () => {
     if (!currentFile) return
@@ -951,7 +951,7 @@ export function NoteView(): React.JSX.Element {
       console.error('[NoteView] file.get on exit error:', err)
     }
     dispatch({ type: 'EDIT_MODE_EXIT' })
-  }, [currentFile, livePreviewContent, dispatch]
+  }, [currentFile, dispatch]
 
   // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
   const enterLivePreviewMode = useCallback(async () => {
@@ -962,7 +962,7 @@ export function NoteView(): React.JSX.Element {
     } catch (err) {
       console.error('[NoteView] getRaw error for Live Preview:', err)
     }
-  }, [currentFile, livePreviewContent, dispatch]
+  }, [currentFile, dispatch]
 
   const exitLivePreviewMode = useCallback(async () => {
     if (!currentFile) return
@@ -981,7 +981,7 @@ export function NoteView(): React.JSX.Element {
       console.error('[NoteView] Live Preview save error:', err)
     }
     dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
-  }, [currentFile, livePreviewContent, dispatch]
+  }, [currentFile, dispatch]
 
   // ---- Keyboard shortcuts: Cmd+E and Cmd+S ----
   useEffect(() => {
@@ -1137,7 +1137,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         setError(message)
         setIsLoading(false)
       })
-  }, [currentFile, livePreviewContent, dispatch]
+  }, [currentFile, dispatch]
 
   // ---- Render context ----
   const renderCtx: RenderContext = {
