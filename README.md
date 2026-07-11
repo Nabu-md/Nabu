@@ -180,8 +180,27 @@ The test suite uses [fast-check](https://github.com/dubzzz/fast-check) for prope
 
 ## Roadmap
 
-| Version      | Features                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------ |
-| v1 (current) | Setup wizard, file tree, note editing, graph view, tags, search, themes, templates, export |
-| v2           | Multi-vault tabs, advanced search, custom HTML apps/dashboards                             |
-| v3           | Plugin API, community marketplace                                                          |
+| Version      | Features                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| v1 (current) | Setup wizard, file tree, note editing, graph view, tags, search, themes, templates, export              |
+| v2 (complete)| Multi-vault, advanced search, tag view in graph, macOS Vision OCR, PDF annotation, audio dictation      |
+| v3           | Plugin API, community marketplace                                                                     |
+
+## Phase 2 Features (v2 Complete)
+
+### Graph View Modes (Phase 12)
+- **Tag View**: Visualize tag co-occurrence as nodes in the graph. Click tags to filter notes.
+- **Blocks View**: Placeholder for future block reference visualization.
+
+### macOS Vision OCR Pipeline (Phase 13)
+- **Automatic OCR**: Extract text from images in your vault using macOS Vision framework.
+- **Companion Notes**: OCR text saved as `.ocr.md` notes linked to source images.
+
+### PDF Annotation (Phase 14)
+- **PDF Viewer**: Dedicated pane for viewing PDF documents.
+- **Highlight Annotations**: Select and annotate text in PDFs.
+- **Note Cards**: Convert annotations to linked notes with source references.
+
+### Audio Dictation (Phase 15)
+- **Fn-Key Dictation**: Hold `fn` key to start voice-to-text dictation.
+- **Whisper.cpp Integration**: Local speech-to-text with Base and Large-V3 Turbo models.

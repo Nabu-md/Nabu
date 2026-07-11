@@ -30,3 +30,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Three-tier Electron architecture: main process ↔ preload bridge ↔ React renderer
 - Zod v4 schemas for bidirectional IPC validation (14+ channels)
 - CRDT-ready sync foundation in the private nabu-cloud monorepo
+
+## [Unreleased] — 2026-07-07
+
+### Added
+
+#### Phase 12 — Graph View Modes
+- **Tag View mode** — visualize tag co-occurrence as nodes in the graph with color-coded tags
+- **Blocks View mode** — placeholder for future block reference visualization
+
+#### Phase 13 — macOS Vision OCR Pipeline
+- **Automatic OCR** — extract text from images using macOS Vision framework on file add
+- **Companion Notes** — OCR text saved as `.ocr.md` notes linked to source images
+
+#### Phase 14 — PDF Annotation
+- **PDF Viewer** — dedicated pane for viewing PDF documents with navigation and zoom
+- **Highlight annotations** — select and annotate text in PDFs with yellow overlay
+- **Note cards** — convert annotations to linked notes with source frontmatter
+
+#### Phase 15 — Audio Dictation
+- **Fn-key dictation activation** — hold `fn` key to start voice-to-text dictation
+- **Whisper.cpp integration** — local speech-to-text with Base model (~140MB)
+- **Large-V3 Turbo model** — optional download (~550MB) for higher accuracy
+- **Always-on-top widget** — transparent widget shows waveform animation during dictation
+
+### Fixed
+
+- Security review confirms `contextIsolation` remains enabled
+- No `nodeIntegration` or `allow-same-origin` in any webview or widget
+- All audio captured in memory only, never written to disk as raw PCM
+
+### Security
+
+- OCR Swift helper restricted to provided image path only
+- Whisper process has no network access beyond model download (user-initiated)
+- PDF viewer pane maintains same security posture as main window

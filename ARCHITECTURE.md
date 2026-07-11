@@ -52,6 +52,11 @@ Nabu is an Electron desktop app with three layers: **main process** (system), **
 - **`settings.ts`** — Persists user settings (theme, vault path, preferences) as JSON in Electron's `userData`.
 - **`vector.ts`** — ONNX-based vector index for semantic context search. Uses the bundled `bge-micro-v2` model.
 - **`templates.ts`** — Template engine that substitutes `{{title}}`, `{{date}}`, `{{time}}` variables in template files.
+- **`ocr-manager.ts`** — Image OCR pipeline using macOS Vision framework. Processes images on add and creates companion `.ocr.md` notes.
+- **`pdf-viewer.ts`** — PDF loading and rendering using pdfjs-dist. Provides page rendering to PNG for PDF viewer pane.
+- **`widget-manager.ts`** — Manages always-on-top clipboard/dictation widget window.
+- **`fn-monitor.ts`** — Monitors fn key state on macOS using Swift helper for dictation activation.
+- **`whisper.ts`** — Whisper.cpp speech-to-text integration. Supports Base and Large-V3 Turbo models.
 
 ### Preload (`src/preload/`)
 
