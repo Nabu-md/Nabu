@@ -13,10 +13,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../App'
 import type { Edge, FileEntry } from '../../../shared/types'
-import type { ExtendedSearchIndex } from '../../../shared/extended-indexing'
 import {
   computeTagGraph,
-  computeTagNodeRadius,
   getTagNodeColor,
   getTagDisplayLabel,
   getTagRecentNotes
@@ -468,7 +466,11 @@ export function GraphView(): React.JSX.Element {
           dispatch({ type: 'TAG_FILTER_TOGGLE', payload: node.label })
           setHoveredTag(null)
         } else {
-          // Files mode: open the note
+          // Files mode: open the note (or PDF viewer pane)
+          if (node.id.toLowerCase().endsWith('.pdf')) {
+            dispatch({ type: 'PDF_OPENED', payload: { path: node.id } })
+            return
+          }
           window.electron.file
             .get(node.id)
             .then((fileAST) => {

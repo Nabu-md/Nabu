@@ -578,7 +578,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Performance: images larger than 4096px on any side are downscaled before OCR (macOS Vision accepts them but at higher RAM cost).
   - _Requirements: 39.6, 39.8_
 
-- [ ] 91. Phase 13 verification
+- [x] 91. Phase 13 verification
   - Unit tests: OCR queue integration test (mock Swift helper, verify companion note created/non-created correctly); image size downscale logic.
   - Integration: run a PNG with known text through `scripts/ocr.swift`, verify stdout JSON schema.
   - E2E: drag an image with text into vault → verify `.ocr.md` companion is created → view the image note → verify "Extracted text" panel appears → verify `source` wikilink in companion note resolves.
@@ -589,7 +589,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 14 — PDF Annotation → Note Cards
 
-- [ ] 92. Build PDF viewer pane using pdfjs-dist
+- [x] 92. Build PDF viewer pane using pdfjs-dist
   - `pdfjs-dist` is already bundled for PDF text import (Phase 7, task 52). Reuse the same library for rendering.
   - When a `.pdf` file is opened in Nabu (via file tree click, wikilink, or Quick Switcher), render it in a dedicated viewer pane instead of the markdown note view.
   - PDF viewer features: page navigation (prev/next, jump to page), zoom (fit-width, fit-page, custom), scrolling through multi-page documents.

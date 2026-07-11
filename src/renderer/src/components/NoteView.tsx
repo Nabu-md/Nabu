@@ -1059,6 +1059,11 @@ export function NoteView(): React.JSX.Element {
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
     (filePath: string, blockRef?: string) => {
+      // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
+      if (filePath.toLowerCase().endsWith('.pdf')) {
+        dispatch({ type: 'PDF_OPENED', payload: { path: filePath } })
+        return
+      }
       window.electron.file
         .get(filePath)
         .then((fileAST) => {

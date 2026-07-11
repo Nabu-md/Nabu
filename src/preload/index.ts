@@ -23,6 +23,11 @@ const electronAPI = {
     readAsset: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.ASSET_READ, { path })
   },
+  pdf: {
+    open: (path: string): Promise<unknown> => ipcRenderer.invoke(IPCChannel.PDF_OPEN, { path }),
+    renderPage: (path: string, pageNumber: number, scale: number): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_RENDER_PAGE, { path, pageNumber, scale })
+  },
   folder: {
     create: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.FOLDER_CREATE, { path })

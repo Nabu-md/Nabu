@@ -545,3 +545,44 @@ export type FeatureToggle = z.infer<typeof FeatureToggleSchema>
 export type FeatureTogglesResult = z.infer<typeof FeatureTogglesResultSchema>
 export type SetFeatureTogglePayload = z.infer<typeof SetFeatureToggleSchema>
 export type SetFeatureToggleResult = z.infer<typeof SetFeatureToggleResultSchema>
+
+// ---------------------------------------------------------------------------
+// PDF schemas (Req 40.1, 40.2)
+// ---------------------------------------------------------------------------
+
+/** PDF open request schema */
+export const PDFOpenSchema = z.object({
+  path: z.string()
+})
+
+export const PDFOpenResultSchema = z.object({
+  totalPages: z.number().int(),
+  metadata: z.object({
+    title: z.string().optional(),
+    author: z.string().optional(),
+    subject: z.string().optional(),
+    keywords: z.string().optional()
+  }),
+  error: z.string().optional()
+})
+
+export type PDFOpenPayload = z.infer<typeof PDFOpenSchema>
+export type PDFOpenResult = z.infer<typeof PDFOpenResultSchema>
+
+/** PDF render page request schema */
+export const PDFRenderPageSchema = z.object({
+  path: z.string(),
+  pageNumber: z.number().int().positive(),
+  scale: z.number().positive()
+})
+
+export const PDFRenderPageResultSchema = z.object({
+  pageNumber: z.number().int(),
+  dataUri: z.string(),
+  width: z.number(),
+  height: z.number(),
+  error: z.string().optional()
+})
+
+export type PDFRenderPagePayload = z.infer<typeof PDFRenderPageSchema>
+export type PDFRenderPageResult = z.infer<typeof PDFRenderPageResultSchema>

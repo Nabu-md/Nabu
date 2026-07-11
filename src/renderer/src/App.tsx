@@ -15,6 +15,7 @@ import type { ExtendedSearchIndex } from '../../shared/extended-indexing'
 import { Sidebar, SidebarHandle } from './components/Sidebar'
 import { NoteView } from './components/NoteView'
 import { GraphView } from './components/GraphView'
+import { PdfViewer } from './components/PdfViewer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ContextPane } from './components/ContextPane'
 import { ActivityTimeline } from './components/ActivityTimeline'
@@ -42,6 +43,19 @@ export interface Tab {
   ast: Root | null
   raw: string | null
   mode: 'view' | 'edit' | 'live-preview'
+  scrollTop: number
+  cursor: number
+}
+
+/** PDF tab type for PDF viewer (Req 40.1) */
+export interface PDFTab {
+  id: string
+  path: string
+  mode: 'pdf'
+  pdfData: {
+    currentPage: number
+    scale: number
+  }
   scrollTop: number
   cursor: number
 }
@@ -99,6 +113,8 @@ export interface AppState {
   selectedTags: Set<string>
   settingsPanelOpen: boolean
   graphViewOpen: boolean
+  pdfViewOpen: boolean
+  pdfPath: string | null
   theme: 'dark' | 'light' | 'system'
   vectorDisabled: boolean
   vectorDisabledReason: string | null
@@ -157,6 +173,8 @@ export type AppAction =
   | { type: 'TAG_FILTER_TOGGLE'; payload: string }
   | { type: 'SETTINGS_PANEL_TOGGLE' }
   | { type: 'GRAPH_VIEW_TOGGLE' }
+  | { type: 'PDF_OPENED'; payload: { path: string } }
+  | { type: 'PDF_CLOSED' }
   | { type: 'GRAPH_MODE_CHANGED'; payload: 'files' | 'tags' | 'blocks' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
   | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
@@ -207,6 +225,8 @@ const initialState: AppState = {
   selectedTags: new Set(),
   settingsPanelOpen: false,
   graphViewOpen: false,
+  pdfViewOpen: false,
+  pdfPath: null,
   theme: 'dark',
   vectorDisabled: false,
   vectorDisabledReason: null,
@@ -489,6 +509,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'GRAPH_VIEW_TOGGLE':
       return { ...state, graphViewOpen: !state.graphViewOpen }
+
+    // Task 92: PDF viewer open/close (Req 40.1, 40.3)
+    case 'PDF_OPENED': {
+      return {
+        ...state,
+        pdfViewOpen: true,
+        pdfPath: action.payload.path,
+        graphViewOpen: false
+      }
+    }
+
+    case 'PDF_CLOSED':
+      return {
+        ...state,
+        pdfViewOpen: false,
+        pdfPath: null
+      }
 
     case 'GRAPH_MODE_CHANGED':
       return { ...state, graphMode: action.payload }
@@ -996,7 +1033,16 @@ function App(): React.JSX.Element {
                 </div>
               }
             >
-              {state.graphViewOpen ? <GraphView /> : <NoteView />}
+              {state.pdfViewOpen ? (
+                <PdfViewer
+                  filePath={state.pdfPath ?? ''}
+                  onClose={() => dispatch({ type: 'PDF_CLOSED' })}
+                />
+              ) : state.graphViewOpen ? (
+                <GraphView />
+              ) : (
+                <NoteView />
+              )}
             </ErrorBoundary>
           </main>
 

@@ -156,6 +156,12 @@ export function SearchPanel({
   // --- Open a result ---
   const openResult = useCallback(
     (filePath: string) => {
+      // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
+      if (filePath.toLowerCase().endsWith('.pdf')) {
+        dispatch({ type: 'PDF_OPENED', payload: { path: filePath } })
+        onClose()
+        return
+      }
       window.electron.file
         .get(filePath)
         .then((fileAST) => {

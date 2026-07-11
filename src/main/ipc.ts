@@ -63,7 +63,12 @@ import {
   NoteRandomResultSchema,
   FavoritesGetSchema,
   FavoritesToggleSchema,
-  FavoritesRemoveSchema
+  FavoritesRemoveSchema,
+  // PDF schemas (Req 40.1, 40.2)
+  PDFOpenSchema,
+  PDFOpenResultSchema,
+  PDFRenderPageSchema,
+  PDFRenderPageResultSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -73,6 +78,7 @@ import { substituteVariables } from './templates'
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
 import { vaultRegistry } from './vault-registry'
 import { enqueueOCR, createOCRCompanionNote } from './ocr-manager'
+import { getPDFInfo, renderPDFPage } from './pdf-viewer'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -1809,6 +1815,79 @@ export function registerIPCHandlers(
       console.error(msg)
       emitActivityLog('error', msg)
       return SetFeatureToggleResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:open — open a PDF and return metadata + page count (Req 40.1, 40.2)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_OPEN, async (_event, rawPayload) => {
+    const validation = PDFOpenSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:open validation failed: ${reason}`)
+      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: reason })
+    }
+
+    const { path: filePath } = validation.data
+
+    try {
+      const info = await getPDFInfo(filePath)
+      return PDFOpenResultSchema.parse({
+        totalPages: info.totalPages,
+        metadata: {
+          title: info.metadata.title,
+          author: info.metadata.author,
+          subject: info.metadata.subject,
+          keywords: info.metadata.keywords
+        }
+      })
+    } catch (err) {
+      const msg = `[IPC] pdf:open handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:render-page — render a single PDF page to a base64 PNG (Req 40.2)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_RENDER_PAGE, async (_event, rawPayload) => {
+    const validation = PDFRenderPageSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:render-page validation failed: ${reason}`)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber: 0,
+        dataUri: '',
+        width: 0,
+        height: 0,
+        error: reason
+      })
+    }
+
+    const { path: filePath, pageNumber, scale } = validation.data
+
+    try {
+      const result = await renderPDFPage(filePath, pageNumber, scale)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber: result.pageNumber,
+        dataUri: result.dataUri,
+        width: result.width,
+        height: result.height
+      })
+    } catch (err) {
+      const msg = `[IPC] pdf:render-page handler error for "${filePath}" page ${pageNumber}: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber,
+        dataUri: '',
+        width: 0,
+        height: 0,
+        error: String(err)
+      })
     }
   })
 }

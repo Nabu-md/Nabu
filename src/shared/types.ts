@@ -107,3 +107,30 @@ export interface Template {
   path: string
   content: string
 }
+
+/** PDF tab type for PDF viewer (Req 40.1) */
+export interface PDFTabData {
+  /** The PDF file path */
+  pdfPath: string
+  /** Current page number (1-indexed) */
+  currentPage: number
+  /** Zoom scale (0.5 to 2.0) */
+  scale: number
+}
+
+/** PDF annotation for persistence (Req 40.4, 40.5) */
+export interface PDFAnnotation {
+  id: string
+  page: number
+  rect: { x: number; y: number; w: number; h: number }
+  text: string
+  color: 'yellow' | 'green' | 'blue' | 'pink' | 'orange'
+  comment?: string
+  timestamp: number
+  linkedNotePath?: string
+}
+
+/** PDF annotation store (Req 40.4) */
+export interface PDFAnnotationStore {
+  [pdfPath: string]: PDFAnnotation[]
+}

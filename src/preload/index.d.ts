@@ -29,6 +29,24 @@ declare global {
         get(path: string, vaultId?: string): Promise<FileAST>
         readAsset(path: string): Promise<{ path: string; dataUri?: string; error?: string }>
       }
+      pdf: {
+        open(path: string): Promise<{
+          totalPages: number
+          metadata: { title?: string; author?: string; subject?: string; keywords?: string }
+          error?: string
+        }>
+        renderPage(
+          path: string,
+          pageNumber: number,
+          scale: number
+        ): Promise<{
+          pageNumber: number
+          dataUri: string
+          width: number
+          height: number
+          error?: string
+        }>
+      }
       folder: {
         create(path: string): Promise<{ success: boolean; error?: string }>
       }
