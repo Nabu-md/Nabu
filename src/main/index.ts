@@ -26,6 +26,8 @@ import { VaultWatcher } from './watcher'
 import { registerIPCHandlers, sendToRenderer, buildWatcherConfig } from './ipc'
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './settings'
+import { fnMonitor } from './fn-monitor'
+import { registerWidgetIPCHandlers, wireFnMonitorToWidget } from './widget-manager'
 import type { AppSettings } from './settings'
 
 // ---------------------------------------------------------------------------
@@ -411,6 +413,23 @@ app.whenReady().then(async () => {
     dialog.showErrorBox('IPC Error', `Failed to register IPC handlers:\n\n${String(err)}`)
     app.quit()
     return
+  }
+
+  // ---- Register widget IPC handlers (dictation/clipboard widget) ----
+  try {
+    registerWidgetIPCHandlers()
+  } catch (err) {
+    console.error('[App] Failed to register widget IPC handlers:', err)
+  }
+
+  // ---- Start fn-monitor for dictation (macOS only) ----
+  if (process.platform === 'darwin') {
+    try {
+      fnMonitor.start()
+      wireFnMonitorToWidget()
+    } catch (err) {
+      console.error('[App] Failed to start fn-monitor:', err)
+    }
   }
 
   // ---- Register vault path persistence listener ----

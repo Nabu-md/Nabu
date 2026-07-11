@@ -56,6 +56,7 @@ export enum IPCChannel {
   DICTATION_START = 'dictation:start',
   DICTATION_STOP = 'dictation:stop',
   DICTATION_STATUS = 'dictation:status',
+  DICTATION_RESULT = 'dictation:result',
   DICTATION_DOWNLOAD_MODEL = 'dictation:download-model',
   DICTATION_DOWNLOAD_PROGRESS = 'dictation:download-progress'
 }

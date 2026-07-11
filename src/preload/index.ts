@@ -171,6 +171,32 @@ const electronAPI = {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
       return () => ipcRenderer.removeListener(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
+    },
+    // Widget channels (for the dictation/clipboard widget window)
+    widgetModeChanged: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:mode-changed', listener)
+      return () => ipcRenderer.removeListener('widget:mode-changed', listener)
+    },
+    widgetDictationStarting: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-starting', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-starting', listener)
+    },
+    widgetDictationComplete: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-complete', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-complete', listener)
+    },
+    widgetDictationError: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-error', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-error', listener)
+    },
+    widgetInsertText: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:insert-text', listener)
+      return () => ipcRenderer.removeListener('widget:insert-text', listener)
     }
   }
 }

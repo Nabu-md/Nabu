@@ -363,3 +363,149 @@ export function getModelDownloadUrl(model: WhisperModel): string {
 export function getModelSize(model: WhisperModel): number {
   return MODEL_CONFIG[model].size
 }
+
+// Dictation state
+let micProcess: ChildProcess | null = null
+let dictationActive = false
+let dictationResolve: ((result: WhisperResult) => void) | null = null
+let dictationReject: ((err: Error) => void) | null = null
+
+/**
+ * Get the path to the mic-capture.swift helper.
+ */
+export function getMicCapturePath(): string {
+  const candidates = [
+    path.join(process.resourcesPath, 'mic-capture.swift'),
+    path.join(process.cwd(), 'scripts', 'mic-capture.swift'),
+    path.join(process.cwd(), 'mic-capture.swift')
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      require('fs').accessSync(candidate)
+      return candidate
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return candidates[0]
+}
+
+/**
+ * Start dictation: spawn mic-capture.swift and whisper, pipe mic → whisper stdin.
+ * Returns a promise that resolves with the transcription when fn is released.
+ */
+export function startDictation(model: WhisperModel = 'base'): Promise<WhisperResult> {
+  return new Promise((resolve, reject) => {
+    if (dictationActive) {
+      reject(new Error('Dictation already active'))
+      return
+    }
+
+    const binaryPath = getWhisperBinaryPath()
+    const modelPath = getModelPath(model)
+    const micPath = getMicCapturePath()
+
+    if (!isWhisperBinaryAvailable()) {
+      reject(new Error('Whisper binary not found'))
+      return
+    }
+
+    dictationActive = true
+    dictationResolve = resolve
+    dictationReject = reject
+
+    // Spawn whisper process
+    whisperProcess = spawn(
+      binaryPath,
+      ['-m', modelPath, '-t', '4', '--output-format', 'json', '--no-timestamps'],
+      { stdio: ['pipe', 'pipe', 'pipe'] }
+    )
+
+    // Spawn mic-capture.swift
+    // Use `swift` to run the script (available on macOS with Xcode command line tools)
+    micProcess = spawn('swift', [micPath], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    whisperProcess.stdout?.on('data', (data) => {
+      stdout += data.toString()
+    })
+
+    whisperProcess.stderr?.on('data', (data) => {
+      stderr += data.toString()
+    })
+
+    micProcess.stderr?.on('data', (data) => {
+      const msg = data.toString()
+      // Check for permission denied
+      if (msg.includes('Microphone access denied') || msg.includes('permission')) {
+        console.error('[Whisper] Microphone permission denied')
+        stopDictation()
+        dictationReject?.(new Error('Microphone permission denied'))
+      }
+    })
+
+    // Pipe mic output → whisper stdin
+    micProcess.stdout?.pipe(whisperProcess.stdin!)
+
+    whisperProcess.on('error', (err) => {
+      console.error('[Whisper] Process error:', err)
+      stopDictation()
+      dictationReject?.(err)
+    })
+
+    micProcess.on('error', (err) => {
+      console.error('[Whisper] Mic capture error:', err)
+      stopDictation()
+      dictationReject?.(err)
+    })
+
+    whisperProcess.on('close', (code) => {
+      whisperProcess = null
+
+      if (code !== 0) {
+        console.error('[Whisper] Exited with code:', code, stderr)
+        stopDictation()
+        dictationReject?.(new Error(`Whisper failed with code ${code}`))
+        return
+      }
+
+      try {
+        const result = JSON.parse(stdout) as WhisperResult
+        stopDictation()
+        dictationResolve?.(result)
+      } catch (e) {
+        console.error('[Whisper] Failed to parse output:', stdout)
+        stopDictation()
+        dictationReject?.(new Error('Invalid whisper output'))
+      }
+    })
+  })
+}
+
+/**
+ * Stop dictation: send SIGTERM to mic-capture, which flushes and exits.
+ * Whisper will then finish transcription and resolve the promise.
+ */
+export function stopDictation(): void {
+  if (micProcess) {
+    micProcess.kill('SIGTERM')
+    micProcess = null
+  }
+
+  dictationActive = false
+  dictationResolve = null
+  dictationReject = null
+}
+
+/**
+ * Check if dictation is currently active.
+ */
+export function isDictationActive(): boolean {
+  return dictationActive
+}

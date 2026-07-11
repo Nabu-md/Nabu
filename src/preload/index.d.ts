@@ -156,6 +156,13 @@ declare global {
         dictationDownloadProgress(
           callback: (data: { model: 'base' | 'large-v3-turbo-q5'; progress: number }) => void
         ): () => void
+        widgetModeChanged(callback: (data: { mode: 'clipboard' | 'dictation' }) => void): () => void
+        widgetDictationStarting(callback: () => void): () => void
+        widgetDictationComplete(
+          callback: (data: { text: string; silent: boolean }) => void
+        ): () => void
+        widgetDictationError(callback: (data: { error: string }) => void): () => void
+        widgetInsertText(callback: (data: { text: string }) => void): () => void
       }
     }
   }

@@ -612,3 +612,137 @@ button,
 ::-webkit-scrollbar-thumb:hover {
   background: #444444;
 }
+
+/* ============================================================
+   Dictation Widget Styles
+   ============================================================ */
+
+.dictation-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: rgba(235, 235, 245, 0.86);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.dictation-widget__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  width: 100%;
+}
+
+.dictation-widget__listening {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dictation-widget__waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 48px;
+}
+
+.dictation-widget__bar {
+  width: 4px;
+  background: linear-gradient(to top, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+  animation: dictationWaveform 0.8s ease-in-out infinite alternate;
+  transform-origin: bottom;
+}
+
+@keyframes dictationWaveform {
+  0% {
+    transform: scaleY(0.3);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+.dictation-widget__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(235, 235, 245, 0.6);
+  animation: dictationPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dictationPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.dictation-widget__button {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #3b82f6;
+  color: white;
+  transition: background 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.dictation-widget__button:hover {
+  background: #2563eb;
+}
+
+.dictation-widget__button--secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(235, 235, 245, 0.86);
+}
+
+.dictation-widget__button--secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dictation-widget__button--done {
+  margin-top: 8px;
+  padding: 6px 16px;
+  font-size: 12px;
+}
+
+.dictation-widget__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.dictation-widget__error-text {
+  font-size: 13px;
+  color: #ef4444;
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.dictation-widget__complete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dictation-widget__complete-text {
+  font-size: 14px;
+  color: #22c55e;
+  font-weight: 500;
+}

@@ -1960,7 +1960,7 @@ export function registerIPCHandlers(
 
     try {
       // Check if whisper binary is available
-      const { isWhisperBinaryAvailable, isModelInstalled, downloadModel } =
+      const { isWhisperBinaryAvailable, isModelInstalled, downloadModel, startDictation } =
         await import('./whisper')
 
       if (!isWhisperBinaryAvailable()) {
@@ -1980,6 +1980,23 @@ export function registerIPCHandlers(
           })
         }
       }
+
+      // Start dictation: spawn mic-capture.swift and whisper, pipe mic → whisper
+      startDictation(model)
+        .then((result) => {
+          // Send transcription result to renderer
+          _event.sender.send(IPCChannel.DICTATION_RESULT, {
+            text: result.text,
+            segments: result.segments
+          })
+        })
+        .catch((err) => {
+          console.error('[IPC] Dictation failed:', err)
+          _event.sender.send(IPCChannel.DICTATION_RESULT, {
+            text: '',
+            error: String(err)
+          })
+        })
 
       return DictationStartResultSchema.parse({ success: true })
     } catch (err) {
@@ -2002,10 +2019,10 @@ export function registerIPCHandlers(
     }
 
     try {
-      const { stopWhisper } = await import('./whisper')
-      // The actual transcription happens in the renderer via mic-capture
-      // This is a placeholder for the stop signal
-      stopWhisper()
+      const { stopDictation } = await import('./whisper')
+      // Stop dictation: send SIGTERM to mic-capture, which flushes and exits
+      // Whisper will then finish transcription and resolve the promise
+      stopDictation()
       return DictationStopResultSchema.parse({ success: true })
     } catch (err) {
       const msg = `[IPC] dictation:stop handler error: ${String(err)}`
