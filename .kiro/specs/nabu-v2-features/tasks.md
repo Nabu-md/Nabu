@@ -711,12 +711,12 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 16 — Hardening & Release
 
-- [ ] 104. Cross-cutting JSDoc + requirement traceability sweep
+- [x] 104. Cross-cutting JSDoc + requirement traceability sweep
   - Ensure every new source file in phases 12-15 cites `Requirements: 38.N, 39.N, 40.N, 41.N, 42.N, 43.N` in its JSDoc header.
   - Verify no v1 or existing v2 requirement citations were dropped during edits to existing files.
   - _Requirements: 44.1_
 
-- [ ] 105. Security review
+- [x] 105. Security review
   - Confirm the OCR Swift helper (`scripts/ocr.swift`) does not expose file system access beyond the provided image path.
   - Confirm the PDF viewer does not enable `nodeIntegration`, `allow-same-origin`, or sandbox escape in the viewer pane.
   - Confirm the whisper.cpp child process has no network access beyond the model download path (which is user-initiated).
@@ -724,7 +724,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Confirm `contextIsolation` remains enabled and no new preload scripts bypass it.
   - _Requirements: 44.2_
 
-- [ ] 106. Error-handling sweep
+- [x] 106. Error-handling sweep
   - Verify no phase 12-15 feature silently swallows errors:
     - OCR: corrupt images logged, companion note not created, no crash.
     - PDF annotation: annotation JSON corruption handled gracefully (backup from last save).
@@ -732,13 +732,13 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - All user-facing failures surface a message; developer-facing failures log with context.
   - _Requirements: 44.3_
 
-- [ ] 107. Documentation update
+- [x] 107. Documentation update
   - Update `README.md`: add Tag View in graph, Vision OCR, PDF annotation, and Audio Dictation to the feature list.
   - Update `ARCHITECTURE.md`: document new subsystems — OCR pipeline (`scripts/ocr.swift`, AsyncQueue integration), PDF viewer + annotation store, audio dictation (whisper.cpp, mic-capture, widget integration).
   - Update `CHANGELOG.md`: entries for each Phase 12-15 feature, one per release.
   - _Requirements: 44.4_
 
-- [ ] 108. Full regression sweep
+- [x] 108. Full regression sweep
   - Run the entire Vitest suite + all existing Playwright e2e specs.
   - Confirm no v1 or existing v2 correctness properties are violated by the new features.
   - Specifically test: existing clipboard widget still works for clipboard history after dictation mode was added (no regression on the `fn-down`/`fn-up` path).
