@@ -20,6 +20,15 @@ export function SettingsPanel(): React.JSX.Element | null {
     Array<{ id: string; label: string; description: string; enabled: boolean }>
   >([])
   const [toggleErrors, setToggleErrors] = useState<Record<string, string>>({})
+  // Dictation model state (Req 42.4, 42.5, 42.6)
+  const [dictationModel, setDictationModel] = useState<'base' | 'large-v3-turbo-q5'>('base')
+  const [dictationModelStatus, setDictationModelStatus] = useState<{
+    installed: boolean
+    downloading: boolean
+    downloadProgress: number
+  }>({ installed: false, downloading: false, downloadProgress: 0 })
+  const [dictationAvailable, setDictationAvailable] = useState(false)
+  const [dictationError, setDictationError] = useState<string | null>(null)
 
   // Fetch feature toggles on mount and when panel opens
   useEffect(() => {
@@ -276,6 +285,154 @@ export function SettingsPanel(): React.JSX.Element | null {
               </a>
               .
             </p>
+          </section>
+
+          {/* ----------------------------------------------------------------
+              Audio Dictation section (Req 42.4, 42.5, 42.6)
+          ---------------------------------------------------------------- */}
+          <section aria-labelledby="settings-dictation-heading">
+            <h3
+              id="settings-dictation-heading"
+              className="text-xs font-medium uppercase tracking-wider
+                         text-nabu-text-muted mb-3"
+            >
+              Audio Dictation
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              {/* Dictation model dropdown */}
+              <div>
+                <label className="text-xs text-nabu-text-muted block mb-1">Dictation model</label>
+                <select
+                  value={dictationModel}
+                  onChange={(e) => {
+                    const model = e.target.value as 'base' | 'large-v3-turbo-q5'
+                    setDictationModel(model)
+                    window.electron.dictation
+                      .status()
+                      .then((status) => {
+                        const s = status as {
+                          available: boolean
+                          modelStatus?: {
+                            model: string
+                            installed: boolean
+                            downloading: boolean
+                            downloadProgress: number
+                          }
+                        }
+                        if (s.modelStatus) {
+                          setDictationModelStatus({
+                            installed: s.modelStatus.installed,
+                            downloading: s.modelStatus.downloading,
+                            downloadProgress: s.modelStatus.downloadProgress
+                          })
+                        }
+                      })
+                      .catch(console.error)
+                  }}
+                  className="w-full px-3 py-2 rounded text-sm
+                             bg-nabu-bg-mute border border-nabu-border
+                             text-nabu-text focus:outline-none focus:border-nabu-accent"
+                >
+                  <option value="base">Base (Fast, ~250MB RAM)</option>
+                  <option value="large-v3-turbo-q5">Enhanced (Large-V3 Turbo Q5, ~1GB RAM)</option>
+                </select>
+              </div>
+
+              {/* Model status indicator */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-nabu-text-muted">Status:</span>
+                {dictationModelStatus.downloading ? (
+                  <span className="text-xs text-nabu-accent">
+                    Downloading… {dictationModelStatus.downloadProgress}%
+                  </span>
+                ) : dictationModelStatus.installed ? (
+                  <span className="text-xs text-green-400">Installed</span>
+                ) : (
+                  <span className="text-xs text-yellow-400">Not installed</span>
+                )}
+              </div>
+
+              {/* Download button for Enhanced model */}
+              {dictationModel === 'large-v3-turbo-q5' && !dictationModelStatus.installed && (
+                <button
+                  disabled={dictationModelStatus.downloading}
+                  onClick={async () => {
+                    setDictationModelStatus((prev) => ({
+                      ...prev,
+                      downloading: true,
+                      downloadProgress: 0
+                    }))
+                    setDictationError(null)
+                    try {
+                      // Listen for download progress
+                      const removeListener = window.electron.on.dictationDownloadProgress(
+                        (data: { model: string; progress: number }) => {
+                          if (data.model === 'large-v3-turbo-q5') {
+                            setDictationModelStatus((prev) => ({
+                              ...prev,
+                              downloadProgress: data.progress
+                            }))
+                          }
+                        }
+                      )
+                      const result =
+                        await window.electron.dictation.downloadModel('large-v3-turbo-q5')
+                      removeListener()
+                      if (result.success) {
+                        setDictationModelStatus((prev) => ({
+                          ...prev,
+                          installed: true,
+                          downloading: false,
+                          downloadProgress: 100
+                        }))
+                      } else {
+                        setDictationError(result.error ?? 'Download failed')
+                        setDictationModelStatus((prev) => ({
+                          ...prev,
+                          downloading: false,
+                          downloadProgress: 0
+                        }))
+                      }
+                    } catch (err) {
+                      setDictationError(err instanceof Error ? err.message : String(err))
+                      setDictationModelStatus((prev) => ({
+                        ...prev,
+                        downloading: false,
+                        downloadProgress: 0
+                      }))
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded text-sm text-left
+                             bg-nabu-accent hover:bg-nabu-accent-hover
+                             text-white transition-colors
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {dictationModelStatus.downloading ? (
+                    <span className="flex items-center gap-2">
+                      <Spinner />
+                      Downloading… {dictationModelStatus.downloadProgress}%
+                    </span>
+                  ) : (
+                    'Download Enhanced Model (~550 MB)'
+                  )}
+                </button>
+              )}
+
+              {/* Download error */}
+              {dictationError && (
+                <p role="alert" aria-live="assertive" className="text-xs text-red-400">
+                  {dictationError}
+                </p>
+              )}
+
+              {/* Dictation availability */}
+              {!dictationAvailable && (
+                <p className="text-xs text-yellow-400">
+                  Dictation unavailable — whisper binary not found.
+                </p>
+              )}
+            </div>
           </section>
 
           {/* ----------------------------------------------------------------
