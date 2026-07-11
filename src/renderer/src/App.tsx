@@ -127,6 +127,8 @@ export interface AppState {
   recentNotes: string[]
   /** Current graph view mode - Req 38.1 */
   graphMode: 'files' | 'tags' | 'blocks'
+  /** Page to navigate to when opening a PDF (for annotation links) - Req 40.8 */
+  pdfPage: number | null
 }
 
 /** Type helper for graph mode */
@@ -173,7 +175,7 @@ export type AppAction =
   | { type: 'TAG_FILTER_TOGGLE'; payload: string }
   | { type: 'SETTINGS_PANEL_TOGGLE' }
   | { type: 'GRAPH_VIEW_TOGGLE' }
-  | { type: 'PDF_OPENED'; payload: { path: string } }
+  | { type: 'PDF_OPENED'; payload: { path: string; page?: number } }
   | { type: 'PDF_CLOSED' }
   | { type: 'GRAPH_MODE_CHANGED'; payload: 'files' | 'tags' | 'blocks' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
@@ -227,6 +229,7 @@ const initialState: AppState = {
   graphViewOpen: false,
   pdfViewOpen: false,
   pdfPath: null,
+  pdfPage: null,
   theme: 'dark',
   vectorDisabled: false,
   vectorDisabledReason: null,
@@ -511,11 +514,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, graphViewOpen: !state.graphViewOpen }
 
     // Task 92: PDF viewer open/close (Req 40.1, 40.3)
+    // Task 95: Support page navigation for annotation links (Req 40.8)
     case 'PDF_OPENED': {
       return {
         ...state,
         pdfViewOpen: true,
         pdfPath: action.payload.path,
+        pdfPage: action.payload.page ?? null,
         graphViewOpen: false
       }
     }
@@ -1036,6 +1041,7 @@ function App(): React.JSX.Element {
               {state.pdfViewOpen ? (
                 <PdfViewer
                   filePath={state.pdfPath ?? ''}
+                  initialPage={state.pdfPage ?? undefined}
                   onClose={() => dispatch({ type: 'PDF_CLOSED' })}
                 />
               ) : state.graphViewOpen ? (

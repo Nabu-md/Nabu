@@ -24,6 +24,7 @@ export interface WikiLink extends Node {
   target: string // e.g., "Page Name"
   resolved: boolean // set by renderer during resolution
   blockRef?: string // for [[note#^id]] form, e.g. "block-id"
+  pageRef?: number // for [[pdf.pdf#page=N]] form, e.g. 5
 }
 
 export interface Callout extends Node {

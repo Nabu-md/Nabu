@@ -86,7 +86,7 @@ function resolveWikiLink(target: string, index: Map<string, string[]>): Resolved
 export interface WikiLinkProps {
   node: WikiLinkNode
   vaultFiles: FileEntry[]
-  onNavigate: (filePath: string, blockRef?: string) => void
+  onNavigate: (filePath: string, blockRef?: string, pageRef?: number) => void
   /** Optional alias index for resolving wiki-link targets that match aliases (Req 15.2). */
   aliasIndex?: Map<string, string[]>
 }
@@ -109,7 +109,11 @@ export function WikiLink({
   const resolved = resolveWikiLink(node.target, index)
 
   // Compute display suffix for block reference links
-  const displaySuffix = node.blockRef ? `#^${node.blockRef}` : ''
+  const displaySuffix = node.blockRef
+    ? `#^${node.blockRef}`
+    : node.pageRef
+      ? `#page=${node.pageRef}`
+      : ''
 
   // ---- Broken / unresolved link ----
   if (!resolved) {
@@ -129,7 +133,7 @@ export function WikiLink({
 
   const handleClick = (e: React.MouseEvent): void => {
     e.preventDefault()
-    onNavigate(resolved.path, node.blockRef)
+    onNavigate(resolved.path, node.blockRef, node.pageRef)
   }
 
   const linkClasses =

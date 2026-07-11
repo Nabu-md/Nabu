@@ -618,7 +618,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - If the user deletes an annotation (via the annotations sidebar), the corresponding note is NOT auto-deleted (they may have edited it). A "Delete annotation + linked note" option is available as a secondary action.
   - _Requirements: 40.6, 40.7_
 
-- [ ] 95. Wire annotated PDFs + cards into graph view
+- [x] 95. Wire annotated PDFs + cards into graph view
   - PDF files appear as nodes in the graph (both Files and Tags modes).
   - Each annotation note links back to the PDF via the `source` wikilink, so the graph shows an edge from the note → PDF.
   - Clicking a note that is an annotation card opens the PDF tab and navigates to the annotated page.

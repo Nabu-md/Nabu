@@ -7,7 +7,7 @@
  * `canvas` package to produce base64 PNG data URIs). The renderer only
  * displays the returned images, keeping the PDF parsing off the UI thread.
  *
- * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
+ * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5, 40.7, 40.8
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
@@ -22,6 +22,8 @@ interface PdfViewerProps {
   filePath: string
   /** Initial scale (0.5 to 2.0) */
   initialScale?: number
+  /** Initial page to navigate to (for annotation links) - Req 40.8 */
+  initialPage?: number
   /** Called when the user closes the PDF viewer */
   onClose?: () => void
 }
@@ -37,6 +39,7 @@ interface PdfViewerProps {
 export function PdfViewer({
   filePath,
   initialScale = 1.0,
+  initialPage,
   onClose
 }: PdfViewerProps): React.JSX.Element {
   const [totalPages, setTotalPages] = useState(0)
@@ -89,6 +92,14 @@ export function PdfViewer({
       cancelled = true
     }
   }, [filePath])
+
+  // Navigate to initialPage when PDF is loaded (Req 40.8)
+  useEffect(() => {
+    if (totalPages > 0 && initialPage && initialPage !== currentPage) {
+      const targetPage = Math.max(1, Math.min(initialPage, totalPages))
+      setCurrentPage(targetPage)
+    }
+  }, [totalPages, initialPage, currentPage])
 
   // Load annotations for this PDF (Req 40.4)
   useEffect(() => {
@@ -302,7 +313,7 @@ export function PdfViewer({
   }
 
   return (
-    <div className="pdf-viewer">
+    <div className="pdf-viewer flex h-full">
       {/* Toolbar */}
       <div className="pdf-viewer__toolbar flex items-center gap-2 p-2 border-b border-nabu-border">
         {onClose && (
@@ -402,7 +413,7 @@ export function PdfViewer({
       </div>
 
       {/* PDF Pages */}
-      <div className="pdf-viewer__pages flex flex-col items-center gap-4 p-4 overflow-auto">
+      <div className="pdf-viewer__pages flex flex-col items-center gap-4 p-4 overflow-auto flex-1">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
           <div
             key={pageNumber}
@@ -499,6 +510,48 @@ export function PdfViewer({
           </div>
         ))}
       </div>
+
+      {/* Annotations Sidebar (Req 40.7) */}
+      {annotations.length > 0 && (
+        <div className="pdf-viewer__sidebar w-64 border-l border-nabu-border overflow-y-auto">
+          <div className="p-2 border-b border-nabu-border">
+            <h3 className="text-sm font-semibold text-nabu-text">Annotations</h3>
+          </div>
+          <div className="p-2 space-y-2">
+            {annotations.map((annotation) => (
+              <div
+                key={annotation.id}
+                className="pdf-viewer__annotation-item p-2 rounded bg-nabu-surface hover:bg-nabu-border cursor-pointer"
+                onClick={() => {
+                  setCurrentPage(annotation.page)
+                  // Scroll to the page after state update
+                  setTimeout(() => {
+                    const element = pageRefs.current.get(annotation.page)
+                    element?.scrollIntoView({ behavior: 'smooth' })
+                  }, 0)
+                }}
+                title={`Page ${annotation.page}: ${annotation.text.substring(0, 40)}...`}
+              >
+                <div className="text-xs text-nabu-text-muted mb-1">Page {annotation.page}</div>
+                <div className="text-sm text-nabu-text line-clamp-2">{annotation.text}</div>
+                {annotation.comment && (
+                  <div className="text-xs text-nabu-text-muted mt-1 line-clamp-1">
+                    {annotation.comment}
+                  </div>
+                )}
+                {annotation.linkedNotePath && (
+                  <div
+                    className="text-xs text-nabu-accent mt-1 truncate"
+                    title={annotation.linkedNotePath}
+                  >
+                    Linked: {annotation.linkedNotePath.split('/').pop()}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

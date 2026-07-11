@@ -227,7 +227,7 @@ interface RenderContext {
   filePath: string
   optimisticToggles: Record<number, boolean>
   onToggle: (lineIndex: number) => void
-  onNavigate: (filePath: string, blockRef?: string) => void
+  onNavigate: (filePath: string, blockRef?: string, pageRef?: number) => void
   vaultFiles: import('@shared/types').FileEntry[]
   embedDepth: number
   aliasIndex?: Map<string, string[]>
@@ -1058,10 +1058,10 @@ export function NoteView(): React.JSX.Element {
   // ---- Wiki link navigation handler ----
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
-    (filePath: string, blockRef?: string) => {
+    (filePath: string, blockRef?: string, pageRef?: number) => {
       // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
       if (filePath.toLowerCase().endsWith('.pdf')) {
-        dispatch({ type: 'PDF_OPENED', payload: { path: filePath } })
+        dispatch({ type: 'PDF_OPENED', payload: { path: filePath, page: pageRef } })
         return
       }
       window.electron.file

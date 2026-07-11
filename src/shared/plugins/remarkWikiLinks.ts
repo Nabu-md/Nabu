@@ -4,6 +4,7 @@
  * Remark plugin that transforms [[Page Name]] wiki link syntax into wikiLink nodes.
  * Validates Requirement 2.6: Transform [[Page Name]] patterns in text nodes into
  * wikiLink AST nodes with target property.
+ * Also supports [[pdf.pdf#page=N]] for PDF page references (Req 40.8).
  */
 
 import { visit } from 'unist-util-visit'
@@ -14,6 +15,7 @@ interface WikiLink extends Node {
   type: 'wikiLink'
   target: string
   resolved: boolean
+  pageRef?: number // for [[pdf.pdf#page=N]] form
 }
 
 /**
@@ -46,11 +48,17 @@ function parseTextForWikiLinks(text: string): (Text | WikiLink)[] {
     }
 
     // Add the wiki link node
-    const target = match[1].trim()
+    const rawTarget = match[1].trim()
+    // Parse #page=N fragment for PDF page references
+    const pageMatch = rawTarget.match(/^(.+?\.pdf)#page=(\d+)$/i)
+    const target = pageMatch ? pageMatch[1] : rawTarget
+    const pageRef = pageMatch ? parseInt(pageMatch[2], 10) : undefined
+
     result.push({
       type: 'wikiLink',
       target,
-      resolved: false // Will be set by renderer during resolution
+      resolved: false, // Will be set by renderer during resolution
+      pageRef
     } as WikiLink)
 
     lastIndex = matchEnd
