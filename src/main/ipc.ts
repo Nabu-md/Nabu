@@ -68,7 +68,26 @@ import {
   KanbanGetDataSchema,
   KanbanGetDataResultSchema,
   KanbanSetStatusSchema,
-  KanbanSetStatusResultSchema
+  KanbanSetStatusResultSchema,
+  // PDF schemas (Req 40.1, 40.2, 40.4, 40.5)
+  PDFOpenSchema,
+  PDFOpenResultSchema,
+  PDFRenderPageSchema,
+  PDFRenderPageResultSchema,
+  PDFLoadAnnotationsSchema,
+  PDFLoadAnnotationsResultSchema,
+  PDFSaveAnnotationsSchema,
+  PDFSaveAnnotationsResultSchema,
+  // Dictation schemas (Req 41, 42)
+  DictationStartSchema,
+  DictationStartResultSchema,
+  DictationStopSchema,
+  DictationStopResultSchema,
+  DictationStatusSchema,
+  DictationStatusResultSchema,
+  DictationDownloadModelSchema,
+  DictationDownloadModelResultSchema,
+  DictationDownloadProgressSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -77,6 +96,8 @@ import { loadSettings, saveSettings } from './settings'
 import { substituteVariables } from './templates'
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
 import { vaultRegistry } from './vault-registry'
+import { enqueueOCR, createOCRCompanionNote } from './ocr-manager'
+import { getPDFInfo, renderPDFPage } from './pdf-viewer'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -383,6 +404,31 @@ export function buildWatcherConfig(
       })
       // Notify the renderer
       sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
+    },
+
+    onImageAdded: async (filePath: string) => {
+      // OCR processing (Req 39.2) - process image and create companion note
+      try {
+        const ocrResult = await enqueueOCR(filePath, vaultPath)
+        if (ocrResult) {
+          // Create companion .ocr.md note
+          const companionPath = await createOCRCompanionNote(filePath, ocrResult, vaultPath)
+          if (companionPath) {
+            // Index the companion note - trigger incremental index update
+            try {
+              const indexResult = await (stateManager as any).updateIndexesForFile?.(companionPath)
+              if (indexResult) {
+                sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+              }
+            } catch {
+              // updateIndexesForFile not yet available — silently ignore
+            }
+          }
+        }
+      } catch (ocrErr) {
+        // Graceful degradation - log but don't fail (Req 39.6)
+        console.debug(`[OCR] Failed for image ${filePath}: ${String(ocrErr)}`)
+      }
     },
 
     onError: (error: Error) => {
@@ -1877,6 +1923,193 @@ export function registerIPCHandlers(
   })
 
   // -------------------------------------------------------------------------
+  // pdf:open — open a PDF and return metadata + page count (Req 40.1, 40.2)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_OPEN, async (_event, rawPayload) => {
+    const validation = PDFOpenSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:open validation failed: ${reason}`)
+      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: reason })
+    }
+
+    const { path: filePath } = validation.data
+
+    try {
+      const info = await getPDFInfo(filePath)
+      return PDFOpenResultSchema.parse({
+        totalPages: info.totalPages,
+        metadata: {
+          title: info.metadata.title,
+          author: info.metadata.author,
+          subject: info.metadata.subject,
+          keywords: info.metadata.keywords
+        }
+      })
+    } catch (err) {
+      const msg = `[IPC] pdf:open handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:render-page — render a single PDF page to a base64 PNG (Req 40.2)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_RENDER_PAGE, async (_event, rawPayload) => {
+    const validation = PDFRenderPageSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:render-page validation failed: ${reason}`)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber: 0,
+        dataUri: '',
+        width: 0,
+        height: 0,
+        error: reason
+      })
+    }
+
+    const { path: filePath, pageNumber, scale } = validation.data
+
+    try {
+      const result = await renderPDFPage(filePath, pageNumber, scale)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber: result.pageNumber,
+        dataUri: result.dataUri,
+        width: result.width,
+        height: result.height
+      })
+    } catch (err) {
+      const msg = `[IPC] pdf:render-page handler error for "${filePath}" page ${pageNumber}: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFRenderPageResultSchema.parse({
+        pageNumber,
+        dataUri: '',
+        width: 0,
+        height: 0,
+        error: String(err)
+      })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:load-annotations — load annotations for a PDF (Req 40.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_LOAD_ANNOTATIONS, async (_event, rawPayload) => {
+    const validation = PDFLoadAnnotationsSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:load-annotations validation failed: ${reason}`)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: reason })
+    }
+
+    const { path: filePath } = validation.data
+
+    try {
+      const { loadPDFAnnotations } = await import('./pdf-viewer')
+      const annotations = await loadPDFAnnotations(filePath)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations })
+    } catch (err) {
+      const msg = `[IPC] pdf:load-annotations handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:save-annotations — save annotations for a PDF (Req 40.5)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_SAVE_ANNOTATIONS, async (_event, rawPayload) => {
+    const validation = PDFSaveAnnotationsSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:save-annotations validation failed: ${reason}`)
+      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { path: filePath, annotations } = validation.data
+
+    try {
+      const { savePDFAnnotations } = await import('./pdf-viewer')
+      await savePDFAnnotations(filePath, annotations)
+      return PDFSaveAnnotationsResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] pdf:save-annotations handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:start — start audio capture and whisper transcription (Req 41.3)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_START, async (_event, rawPayload) => {
+    const validation = DictationStartSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:start validation failed: ${reason}`)
+      return DictationStartResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { model = 'base' } = validation.data
+
+    try {
+      // Check if whisper binary is available
+      const { isWhisperBinaryAvailable, isModelInstalled, downloadModel, startDictation } =
+        await import('./whisper')
+
+      if (!isWhisperBinaryAvailable()) {
+        return DictationStartResultSchema.parse({
+          success: false,
+          error: 'Whisper binary not found. Please reinstall Nabu.'
+        })
+      }
+
+      // Check if model is installed, download if needed
+      if (!(await isModelInstalled(model))) {
+        const downloadResult = await downloadModel(model, () => {})
+        if (!downloadResult.success) {
+          return DictationStartResultSchema.parse({
+            success: false,
+            error: `Model download failed: ${downloadResult.error}`
+          })
+        }
+      }
+
+      // Start dictation: spawn mic-capture.swift and whisper, pipe mic → whisper
+      startDictation(model)
+        .then((result) => {
+          // Send transcription result to renderer
+          _event.sender.send(IPCChannel.DICTATION_RESULT, {
+            text: result.text,
+            segments: result.segments
+          })
+        })
+        .catch((err) => {
+          console.error('[IPC] Dictation failed:', err)
+          _event.sender.send(IPCChannel.DICTATION_RESULT, {
+            text: '',
+            error: String(err)
+          })
+        })
+
+      return DictationStartResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] dictation:start handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStartResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+    }
+  })
+
+  // -------------------------------------------------------------------------
   // kanban:set-status — update a note's frontmatter status property
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.KANBAN_SET_STATUS, async (_event, rawPayload) => {
@@ -1911,6 +2144,95 @@ export function registerIPCHandlers(
       console.error(msg)
       emitActivityLog('error', msg)
       return KanbanSetStatusResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:stop — stop dictation and return transcription (Req 41.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_STOP, async (_event, rawPayload) => {
+    const validation = DictationStopSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:stop validation failed: ${reason}`)
+      return DictationStopResultSchema.parse({ success: false, error: reason })
+    }
+
+    try {
+      const { stopDictation } = await import('./whisper')
+      // Stop dictation: send SIGTERM to mic-capture, which flushes and exits
+      // Whisper will then finish transcription and resolve the promise
+      stopDictation()
+      return DictationStopResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] dictation:stop handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStopResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:status — get dictation model status (Req 42.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_STATUS, async (_event, rawPayload) => {
+    const validation = DictationStatusSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:status validation failed: ${reason}`)
+      return DictationStatusResultSchema.parse({ available: false, error: reason })
+    }
+
+    try {
+      const { isWhisperBinaryAvailable, getModelStatus } = await import('./whisper')
+      const available = isWhisperBinaryAvailable()
+
+      if (!available) {
+        return DictationStatusResultSchema.parse({ available: false })
+      }
+
+      const modelStatus = await getModelStatus()
+      return DictationStatusResultSchema.parse({ available: true, modelStatus })
+    } catch (err) {
+      const msg = `[IPC] dictation:status handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStatusResultSchema.parse({ available: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:download-model — download a dictation model (Req 42.5)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_DOWNLOAD_MODEL, async (_event, rawPayload) => {
+    const validation = DictationDownloadModelSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:download-model validation failed: ${reason}`)
+      return DictationDownloadModelResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { model } = validation.data
+
+    try {
+      const { downloadModel } = await import('./whisper')
+
+      // Send progress updates to renderer
+      const { ipcMain } = require('electron')
+      const progressCallback = (progress: number) => {
+        _event.sender.send(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, {
+          model,
+          progress
+        })
+      }
+
+      const result = await downloadModel(model, progressCallback)
+      return DictationDownloadModelResultSchema.parse(result)
+    } catch (err) {
+      const msg = `[IPC] dictation:download-model handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationDownloadModelResultSchema.parse({ success: false, error: String(err) })
     }
   })
 }

@@ -6,7 +6,7 @@
  * Pending_Write_Lock check to distinguish app-initiated writes from external
  * edits, and an automatic restart sequence for fatal watcher errors.
  *
- * Requirements: 1.4, 5.5, 6.1, 6.2, 6.7, 6.8, 6.9
+ * Requirements: 1.4, 5.5, 6.1, 6.2, 6.7, 6.8, 6.9, 39.2
  */
 
 import { watch as chokidarWatch, FSWatcher } from 'chokidar'
@@ -25,6 +25,8 @@ export interface WatcherConfig {
   onFileChanged: (filePath: string, isExternal: boolean) => void
   /** Called when a new .md file appears in the vault */
   onFileAdded: (filePath: string) => void
+  /** Called when an image file is added to trigger OCR (Req 39.2) */
+  onImageAdded?: (filePath: string) => void
   /** Called when a .md file is deleted from the vault */
   onFileDeleted: (filePath: string) => void
   /** Called on watcher errors (after restart attempts are exhausted) */
@@ -133,8 +135,14 @@ export class VaultWatcher {
     })
 
     fsWatcher.on('add', (filePath: string) => {
-      if (!filePath.endsWith('.md')) return
-      this.handleAdd(filePath)
+      // Handle markdown files
+      if (filePath.endsWith('.md')) {
+        this.handleAdd(filePath)
+      }
+      // Handle image files for OCR (Req 39.2)
+      else if (this.config?.onImageAdded && this.isImageFile(filePath)) {
+        this.handleImageAdd(filePath)
+      }
     })
 
     fsWatcher.on('unlink', (filePath: string) => {
@@ -207,6 +215,28 @@ export class VaultWatcher {
     if (this.config) {
       this.config.onFileAdded(filePath)
     }
+  }
+
+  /**
+   * Handle an `add` event for a new image file to trigger OCR.
+   *
+   * Requirements: 39.2
+   */
+  private handleImageAdd(filePath: string): void {
+    if (this.config?.onImageAdded) {
+      this.config.onImageAdded(filePath)
+    }
+  }
+
+  /**
+   * Check if a file is an image based on extension.
+   *
+   * Requirements: 39.2
+   */
+  private isImageFile(filePath: string): boolean {
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff']
+    const ext = filePath.toLowerCase().slice(filePath.lastIndexOf('.'))
+    return imageExtensions.includes(ext)
   }
 
   /**

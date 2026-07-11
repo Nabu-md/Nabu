@@ -23,6 +23,23 @@ const electronAPI = {
     readAsset: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.ASSET_READ, { path })
   },
+  pdf: {
+    open: (path: string): Promise<unknown> => ipcRenderer.invoke(IPCChannel.PDF_OPEN, { path }),
+    renderPage: (path: string, pageNumber: number, scale: number): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_RENDER_PAGE, { path, pageNumber, scale }),
+    loadAnnotations: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_LOAD_ANNOTATIONS, { path }),
+    saveAnnotations: (path: string, annotations: unknown[]): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_SAVE_ANNOTATIONS, { path, annotations })
+  },
+  dictation: {
+    start: (model?: 'base' | 'large-v3-turbo-q5'): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.DICTATION_START, { model }),
+    stop: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.DICTATION_STOP, {}),
+    status: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.DICTATION_STATUS, {}),
+    downloadModel: (model: 'base' | 'large-v3-turbo-q5'): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.DICTATION_DOWNLOAD_MODEL, { model })
+  },
   folder: {
     create: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.FOLDER_CREATE, { path })
@@ -194,6 +211,37 @@ const electronAPI = {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.INDEX_BUILD, listener)
       return () => ipcRenderer.removeListener(IPCChannel.INDEX_BUILD, listener)
+    },
+    dictationDownloadProgress: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
+      return () => ipcRenderer.removeListener(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
+    },
+    // Widget channels (for the dictation/clipboard widget window)
+    widgetModeChanged: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:mode-changed', listener)
+      return () => ipcRenderer.removeListener('widget:mode-changed', listener)
+    },
+    widgetDictationStarting: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-starting', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-starting', listener)
+    },
+    widgetDictationComplete: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-complete', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-complete', listener)
+    },
+    widgetDictationError: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:dictation-error', listener)
+      return () => ipcRenderer.removeListener('widget:dictation-error', listener)
+    },
+    widgetInsertText: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on('widget:insert-text', listener)
+      return () => ipcRenderer.removeListener('widget:insert-text', listener)
     }
   }
 }

@@ -639,3 +639,175 @@ export const WidgetToggleSchema = z.object({
 })
 
 export type WidgetTogglePayload = z.infer<typeof WidgetToggleSchema>
+
+// ---------------------------------------------------------------------------
+// PDF schemas (Req 40.1, 40.2)
+// ---------------------------------------------------------------------------
+
+/** PDF open request schema */
+export const PDFOpenSchema = z.object({
+  path: z.string()
+})
+
+export const PDFOpenResultSchema = z.object({
+  totalPages: z.number().int(),
+  metadata: z.object({
+    title: z.string().optional(),
+    author: z.string().optional(),
+    subject: z.string().optional(),
+    keywords: z.string().optional()
+  }),
+  error: z.string().optional()
+})
+
+export type PDFOpenPayload = z.infer<typeof PDFOpenSchema>
+export type PDFOpenResult = z.infer<typeof PDFOpenResultSchema>
+
+/** PDF render page request schema */
+export const PDFRenderPageSchema = z.object({
+  path: z.string(),
+  pageNumber: z.number().int().positive(),
+  scale: z.number().positive()
+})
+
+export const PDFRenderPageResultSchema = z.object({
+  pageNumber: z.number().int(),
+  dataUri: z.string(),
+  width: z.number(),
+  height: z.number(),
+  error: z.string().optional()
+})
+
+export type PDFRenderPagePayload = z.infer<typeof PDFRenderPageSchema>
+export type PDFRenderPageResult = z.infer<typeof PDFRenderPageResultSchema>
+
+// ---------------------------------------------------------------------------
+// PDF annotation schemas (Req 40.4, 40.5)
+// ---------------------------------------------------------------------------
+
+/** A single PDF annotation (persisted per-PDF in .nabu/pdf-annotations) */
+export const PDFAnnotationSchema = z.object({
+  id: z.string(),
+  page: z.number().int(),
+  rect: z.object({
+    x: z.number(),
+    y: z.number(),
+    w: z.number(),
+    h: z.number()
+  }),
+  text: z.string(),
+  color: z.enum(['yellow', 'green', 'blue', 'pink', 'orange']),
+  comment: z.string().optional(),
+  timestamp: z.number(),
+  linkedNotePath: z.string().optional()
+})
+
+export type PDFAnnotationType = z.infer<typeof PDFAnnotationSchema>
+
+/** Load annotations for a PDF */
+export const PDFLoadAnnotationsSchema = z.object({
+  path: z.string()
+})
+
+export const PDFLoadAnnotationsResultSchema = z.object({
+  annotations: z.array(PDFAnnotationSchema)
+})
+
+export type PDFLoadAnnotationsPayload = z.infer<typeof PDFLoadAnnotationsSchema>
+export type PDFLoadAnnotationsResult = z.infer<typeof PDFLoadAnnotationsResultSchema>
+
+/** Save (replace) annotations for a PDF */
+export const PDFSaveAnnotationsSchema = z.object({
+  path: z.string(),
+  annotations: z.array(PDFAnnotationSchema)
+})
+
+export const PDFSaveAnnotationsResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+export type PDFSaveAnnotationsPayload = z.infer<typeof PDFSaveAnnotationsSchema>
+export type PDFSaveAnnotationsResult = z.infer<typeof PDFSaveAnnotationsResultSchema>
+
+// ---------------------------------------------------------------------------
+// Dictation schemas (Req 41, 42)
+// ---------------------------------------------------------------------------
+
+/** Whisper segment output */
+export const WhisperSegmentSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string()
+})
+
+/** Whisper transcription result */
+export const WhisperResultSchema = z.object({
+  text: z.string(),
+  segments: z.array(WhisperSegmentSchema),
+  error: z.string().optional()
+})
+
+/** Dictation start request */
+export const DictationStartSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']).optional()
+})
+
+export const DictationStartResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+/** Dictation stop request */
+export const DictationStopSchema = z.object({})
+
+export const DictationStopResultSchema = z.object({
+  success: z.boolean(),
+  result: WhisperResultSchema.optional(),
+  error: z.string().optional()
+})
+
+/** Dictation model status */
+export const DictationModelStatusSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']),
+  installed: z.boolean(),
+  downloading: z.boolean(),
+  downloadProgress: z.number().int().min(0).max(100)
+})
+
+/** Dictation status request */
+export const DictationStatusSchema = z.object({})
+
+export const DictationStatusResultSchema = z.object({
+  available: z.boolean(),
+  modelStatus: DictationModelStatusSchema.optional(),
+  error: z.string().optional()
+})
+
+/** Download dictation model request */
+export const DictationDownloadModelSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5'])
+})
+
+export const DictationDownloadModelResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+/** Download progress push (Main → Renderer) */
+export const DictationDownloadProgressSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']),
+  progress: z.number().int().min(0).max(100)
+})
+
+export type DictationStartPayload = z.infer<typeof DictationStartSchema>
+export type DictationStartResult = z.infer<typeof DictationStartResultSchema>
+export type DictationStopPayload = z.infer<typeof DictationStopSchema>
+export type DictationStopResult = z.infer<typeof DictationStopResultSchema>
+export type DictationModelStatus = z.infer<typeof DictationModelStatusSchema>
+export type DictationStatusResult = z.infer<typeof DictationStatusResultSchema>
+export type DictationDownloadModelPayload = z.infer<typeof DictationDownloadModelSchema>
+export type DictationDownloadModelResult = z.infer<typeof DictationDownloadModelResultSchema>
+export type DictationDownloadProgress = z.infer<typeof DictationDownloadProgressSchema>
+export type WhisperSegment = z.infer<typeof WhisperSegmentSchema>
+export type WhisperResult = z.infer<typeof WhisperResultSchema>

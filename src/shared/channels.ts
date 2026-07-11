@@ -56,5 +56,17 @@ export enum IPCChannel {
   // Clipboard widget
   CLIPBOARD_HISTORY_GET = 'clipboard:history-get',
   CLIPBOARD_HISTORY_CLEAR = 'clipboard:history-clear',
-  CLIPBOARD_HISTORY_COPY = 'clipboard:history-copy'
+  CLIPBOARD_HISTORY_COPY = 'clipboard:history-copy',
+  // PDF channels (Req 40.1, 40.2, 40.4, 40.5)
+  PDF_OPEN = 'pdf:open',
+  PDF_RENDER_PAGE = 'pdf:render-page',
+  PDF_LOAD_ANNOTATIONS = 'pdf:load-annotations',
+  PDF_SAVE_ANNOTATIONS = 'pdf:save-annotations',
+  // Dictation channels (Req 41, 42)
+  DICTATION_START = 'dictation:start',
+  DICTATION_STOP = 'dictation:stop',
+  DICTATION_STATUS = 'dictation:status',
+  DICTATION_RESULT = 'dictation:result',
+  DICTATION_DOWNLOAD_MODEL = 'dictation:download-model',
+  DICTATION_DOWNLOAD_PROGRESS = 'dictation:download-progress'
 }

@@ -1,155 +1,148 @@
 /**
  * fn-monitor.ts
  *
- * Bridge between the Swift CGEventTap helper and Electron's main process.
- * Spawns `fn-monitor.swift` as a child process, parses JSON events from
- * stdout, and emits typed events.
+ * Monitors the fn (Function) key on macOS using a Swift helper process.
+ * Emits 'fn-down' and 'fn-up' events to the widget manager.
  *
- * Events:
- *   'fn-down'   → fn key pressed
- *   'fn-up'     → fn key released
- *   'nav-up'    → arrow up while fn held
- *   'nav-down'  → arrow down while fn held
- *   'nav-left'  → arrow left while fn held
- *   'nav-right' → arrow right while fn held
- *   'error'     → monitor error / permission denied
+ * The fn key on macOS does not generate a standard keydown/keyup event that
+ * can be captured from JavaScript. Instead, we use a lightweight Swift helper
+ * that uses IOKit to monitor the fn key state and communicates via stdout.
  *
- * The monitor requires Accessibility permissions.
- * If permissions are denied, it exits immediately with an error event.
+ * Requirements: 41.4, 42.3
  */
 
+import { spawn, ChildProcess } from 'child_process'
+import path from 'path'
 import { EventEmitter } from 'events'
-import { spawn, type ChildProcess } from 'child_process'
-import * as path from 'path'
-import { app } from 'electron'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export interface FnMonitorEvent {
-  event: string
-  message?: string
+export interface FnEvent {
+  type: 'fn-down' | 'fn-up'
+  timestamp: number
 }
 
 // ---------------------------------------------------------------------------
 // FnMonitor
 // ---------------------------------------------------------------------------
 
-export class FnMonitor extends EventEmitter {
-  private proc: ChildProcess | null = null
-  private _running: boolean = false
-  private restartTimer: ReturnType<typeof setTimeout> | null = null
-
-  /** Whether the process is currently active. */
-  get running(): boolean {
-    return this._running
-  }
-
-  // ---------------------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------------------
+class FnMonitor extends EventEmitter {
+  private process: ChildProcess | null = null
+  private running = false
+  private buffer = ''
 
   /**
-   * Start the fn monitoring process. In development mode it runs the .swift
-   * file directly via the `swift` interpreter. In production it expects a
-   * pre-compiled binary.
+   * Get the path to the fn-monitor Swift helper.
+   */
+  private getHelperPath(): string {
+    const candidates = [
+      path.join(process.resourcesPath, 'fn-monitor.swift'),
+      path.join(process.cwd(), 'scripts', 'fn-monitor.swift'),
+      path.join(process.cwd(), 'fn-monitor.swift')
+    ]
+
+    for (const candidate of candidates) {
+      try {
+        require('fs').accessSync(candidate)
+        return candidate
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    return candidates[0]
+  }
+
+  /**
+   * Start monitoring the fn key.
+   * Spawns the Swift helper and listens for fn-down/fn-up events on stdout.
    */
   start(): void {
-    if (this._running) return
-    this.spawnProcess()
-  }
+    if (this.running) return
 
-  /** Stop the monitoring process. */
-  stop(): void {
-    if (this.restartTimer) {
-      clearTimeout(this.restartTimer)
-      this.restartTimer = null
-    }
-    this.killProcess()
-  }
-
-  // ---------------------------------------------------------------------------
-  // Internal
-  // ---------------------------------------------------------------------------
-
-  private spawnProcess(): void {
-    // Resolve the script/binary path
-    const isPackaged = app.isPackaged
-    const scriptPath = isPackaged
-      ? path.join(process.resourcesPath, 'fn-monitor')
-      : path.join(app.getAppPath(), 'scripts', 'fn-monitor.swift')
+    const helperPath = this.getHelperPath()
 
     try {
-      if (isPackaged) {
-        // Pre-compiled binary
-        this.proc = spawn(scriptPath, [], {
-          stdio: ['pipe', 'pipe', 'pipe']
-        })
-      } else {
-        // Run via swift interpreter
-        this.proc = spawn('swift', [scriptPath], {
-          stdio: ['pipe', 'pipe', 'pipe']
-        })
-      }
-    } catch (err) {
-      console.error('[FnMonitor] Failed to spawn process:', err)
-      this.emit('error', { event: 'error', message: String(err) })
+      require('fs').accessSync(helperPath)
+    } catch {
+      console.warn('[FnMonitor] Helper script not found at:', helperPath)
+      console.warn('[FnMonitor] Fn key monitoring disabled. Dictation will require manual start.')
+      this.running = false
       return
     }
 
-    this._running = true
+    this.running = true
 
-    // Parse stdout JSON lines
-    this.proc.stdout?.on('data', (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(Boolean)
-      for (const line of lines) {
-        try {
-          const parsed = JSON.parse(line) as FnMonitorEvent
-          this.emit(parsed.event, parsed)
-        } catch {
-          // Ignore non-JSON output
-        }
-      }
+    // Spawn the Swift helper
+    this.process = spawn('swift', [helperPath], {
+      stdio: ['pipe', 'pipe', 'pipe']
     })
 
-    // Capture stderr for debugging
-    this.proc.stderr?.on('data', (data: Buffer) => {
-      console.error('[FnMonitor] stderr:', data.toString().trim())
+    this.process.stdout?.on('data', (data: Buffer) => {
+      this.buffer += data.toString()
+      this.processBuffer()
     })
 
-    // Handle exit
-    this.proc.on('exit', (code, signal) => {
-      this._running = false
-      this.proc = null
-
-      if (code === 1) {
-        // Permission error — don't restart
-        console.warn('[FnMonitor] Process exited with code 1 (likely permission denied)')
-        this.emit('error', { event: 'error', message: 'Accessibility permission denied' })
-      } else if (code !== 0 && signal === null) {
-        // Unexpected exit — restart after a delay
-        console.warn(`[FnMonitor] Process exited unexpectedly (code=${code}), restarting...`)
-        this.restartTimer = setTimeout(() => this.spawnProcess(), 2000)
-      }
+    this.process.stderr?.on('data', (data: Buffer) => {
+      console.debug('[FnMonitor] stderr:', data.toString().trim())
     })
 
-    this.proc.on('error', (err) => {
+    this.process.on('error', (err) => {
       console.error('[FnMonitor] Process error:', err)
-      this._running = false
-      this.emit('error', { event: 'error', message: String(err) })
+      this.running = false
+    })
+
+    this.process.on('close', (code) => {
+      console.debug('[FnMonitor] Process exited with code:', code)
+      this.process = null
+      this.running = false
     })
   }
 
-  private killProcess(): void {
-    if (this.proc) {
+  /**
+   * Process the stdout buffer, extracting JSON lines.
+   */
+  private processBuffer(): void {
+    const lines = this.buffer.split('\n')
+    // Keep the last incomplete line in the buffer
+    this.buffer = lines.pop() ?? ''
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+
       try {
-        this.proc.kill('SIGTERM')
+        const event = JSON.parse(trimmed) as FnEvent
+        if (event.type === 'fn-down' || event.type === 'fn-up') {
+          this.emit(event.type, event)
+        }
       } catch {
-        // process already dead
+        // Ignore malformed JSON lines
+        console.debug('[FnMonitor] Ignoring malformed line:', trimmed)
       }
-      this.proc = null
     }
-    this._running = false
+  }
+
+  /**
+   * Stop monitoring the fn key.
+   */
+  stop(): void {
+    if (this.process) {
+      this.process.kill('SIGTERM')
+      this.process = null
+    }
+    this.running = false
+  }
+
+  /**
+   * Check if the monitor is running.
+   */
+  isRunning(): boolean {
+    return this.running
   }
 }
+
+// Singleton instance
+export const fnMonitor = new FnMonitor()

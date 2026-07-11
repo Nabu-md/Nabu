@@ -577,6 +577,11 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
 
   const handleFileClick = useCallback(
     async (node: TreeNode) => {
+      // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
+      if (node.path.toLowerCase().endsWith('.pdf')) {
+        dispatch({ type: 'PDF_OPENED', payload: { path: node.path } })
+        return
+      }
       try {
         const fileAST = await window.electron.file.get(node.path)
         dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })

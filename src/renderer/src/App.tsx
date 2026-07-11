@@ -15,6 +15,7 @@ import type { ExtendedSearchIndex } from '../../shared/extended-indexing'
 import { Sidebar, SidebarHandle } from './components/Sidebar'
 import { NoteView } from './components/NoteView'
 import { GraphView } from './components/GraphView'
+import { PdfViewer } from './components/PdfViewer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ContextPane } from './components/ContextPane'
 import { ActivityTimeline } from './components/ActivityTimeline'
@@ -42,6 +43,19 @@ export interface Tab {
   ast: Root | null
   raw: string | null
   mode: 'view' | 'edit' | 'live-preview'
+  scrollTop: number
+  cursor: number
+}
+
+/** PDF tab type for PDF viewer (Req 40.1) */
+export interface PDFTab {
+  id: string
+  path: string
+  mode: 'pdf'
+  pdfData: {
+    currentPage: number
+    scale: number
+  }
   scrollTop: number
   cursor: number
 }
@@ -99,6 +113,8 @@ export interface AppState {
   selectedTags: Set<string>
   settingsPanelOpen: boolean
   graphViewOpen: boolean
+  pdfViewOpen: boolean
+  pdfPath: string | null
   theme: 'dark' | 'light' | 'system'
   vectorDisabled: boolean
   vectorDisabledReason: string | null
@@ -109,7 +125,14 @@ export interface AppState {
   quickSwitcherOpen: boolean
   commandPaletteOpen: boolean
   recentNotes: string[]
+  /** Current graph view mode - Req 38.1 */
+  graphMode: 'files' | 'tags' | 'blocks'
+  /** Page to navigate to when opening a PDF (for annotation links) - Req 40.8 */
+  pdfPage: number | null
 }
+
+/** Type helper for graph mode */
+export type GraphMode = 'files' | 'tags' | 'blocks'
 
 // Backward-compatible accessor (getter function)
 export function getActiveVault(state: AppState): VaultMetadata | null {
@@ -152,6 +175,9 @@ export type AppAction =
   | { type: 'TAG_FILTER_TOGGLE'; payload: string }
   | { type: 'SETTINGS_PANEL_TOGGLE' }
   | { type: 'GRAPH_VIEW_TOGGLE' }
+  | { type: 'PDF_OPENED'; payload: { path: string; page?: number } }
+  | { type: 'PDF_CLOSED' }
+  | { type: 'GRAPH_MODE_CHANGED'; payload: 'files' | 'tags' | 'blocks' }
   | { type: 'THEME_CHANGED'; payload: 'dark' | 'light' | 'system' }
   | { type: 'VECTOR_STATUS_UPDATED'; payload: { disabled: boolean; reason: string | null } }
   | { type: 'EXTENDED_INDEX_BUILT'; payload: ExtendedSearchIndex }
@@ -201,6 +227,9 @@ const initialState: AppState = {
   selectedTags: new Set(),
   settingsPanelOpen: false,
   graphViewOpen: false,
+  pdfViewOpen: false,
+  pdfPath: null,
+  pdfPage: null,
   theme: 'dark',
   vectorDisabled: false,
   vectorDisabledReason: null,
@@ -210,7 +239,8 @@ const initialState: AppState = {
   searchResults: [],
   quickSwitcherOpen: false,
   commandPaletteOpen: false,
-  recentNotes: []
+  recentNotes: [],
+  graphMode: 'files'
 }
 
 // Generate a unique tab ID
@@ -482,6 +512,28 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'GRAPH_VIEW_TOGGLE':
       return { ...state, graphViewOpen: !state.graphViewOpen }
+
+    // Task 92: PDF viewer open/close (Req 40.1, 40.3)
+    // Task 95: Support page navigation for annotation links (Req 40.8)
+    case 'PDF_OPENED': {
+      return {
+        ...state,
+        pdfViewOpen: true,
+        pdfPath: action.payload.path,
+        pdfPage: action.payload.page ?? null,
+        graphViewOpen: false
+      }
+    }
+
+    case 'PDF_CLOSED':
+      return {
+        ...state,
+        pdfViewOpen: false,
+        pdfPath: null
+      }
+
+    case 'GRAPH_MODE_CHANGED':
+      return { ...state, graphMode: action.payload }
 
     case 'THEME_CHANGED':
       return { ...state, theme: action.payload }
@@ -999,7 +1051,17 @@ function App(): React.JSX.Element {
                 </div>
               }
             >
-              {state.graphViewOpen ? <GraphView /> : <NoteView />}
+              {state.pdfViewOpen ? (
+                <PdfViewer
+                  filePath={state.pdfPath ?? ''}
+                  initialPage={state.pdfPage ?? undefined}
+                  onClose={() => dispatch({ type: 'PDF_CLOSED' })}
+                />
+              ) : state.graphViewOpen ? (
+                <GraphView />
+              ) : (
+                <NoteView />
+              )}
             </ErrorBoundary>
           </main>
 

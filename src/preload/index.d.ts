@@ -8,7 +8,7 @@ import {
   Edge,
   Template
 } from '../shared/types'
-import type { SearchResponse } from '../shared/schemas'
+import type { SearchResponse, PDFAnnotationType } from '../shared/schemas'
 
 declare global {
   interface Window {
@@ -28,6 +28,53 @@ declare global {
       file: {
         get(path: string, vaultId?: string): Promise<FileAST>
         readAsset(path: string): Promise<{ path: string; dataUri?: string; error?: string }>
+      }
+      pdf: {
+        open(path: string): Promise<{
+          totalPages: number
+          metadata: { title?: string; author?: string; subject?: string; keywords?: string }
+          error?: string
+        }>
+        renderPage(
+          path: string,
+          pageNumber: number,
+          scale: number
+        ): Promise<{
+          pageNumber: number
+          dataUri: string
+          width: number
+          height: number
+          error?: string
+        }>
+        loadAnnotations(path: string): Promise<{
+          annotations: PDFAnnotationType[]
+          error?: string
+        }>
+        saveAnnotations(
+          path: string,
+          annotations: PDFAnnotationType[]
+        ): Promise<{ success: boolean; error?: string }>
+      }
+      dictation: {
+        start(model?: 'base' | 'large-v3-turbo-q5'): Promise<{ success: boolean; error?: string }>
+        stop(): Promise<{
+          success: boolean
+          result?: { text: string; segments: { start: number; end: number; text: string }[] }
+          error?: string
+        }>
+        status(): Promise<{
+          available: boolean
+          modelStatus?: {
+            model: 'base' | 'large-v3-turbo-q5'
+            installed: boolean
+            downloading: boolean
+            downloadProgress: number
+          }
+          error?: string
+        }>
+        downloadModel(
+          model: 'base' | 'large-v3-turbo-q5'
+        ): Promise<{ success: boolean; error?: string }>
       }
       folder: {
         create(path: string): Promise<{ success: boolean; error?: string }>
@@ -155,6 +202,16 @@ declare global {
         setupOpen(callback: () => void): () => void
         indexBuild(callback: (data: unknown) => void): () => void
         showClipboard(callback: () => void): () => void
+        dictationDownloadProgress(
+          callback: (data: { model: 'base' | 'large-v3-turbo-q5'; progress: number }) => void
+        ): () => void
+        widgetModeChanged(callback: (data: { mode: 'clipboard' | 'dictation' }) => void): () => void
+        widgetDictationStarting(callback: () => void): () => void
+        widgetDictationComplete(
+          callback: (data: { text: string; silent: boolean }) => void
+        ): () => void
+        widgetDictationError(callback: (data: { error: string }) => void): () => void
+        widgetInsertText(callback: (data: { text: string }) => void): () => void
       }
     }
   }

@@ -1,7 +1,24 @@
+/**
+ * GraphView.tsx — Knowledge graph visualization
+ *
+ * Displays the vault's graph of note relationships. Supports three modes:
+ * - Files mode: traditional node-per-file with wikilink edges
+ * - Tags mode: node-per-tag with co-occurrence edges (Req 38.2)
+ * - Blocks mode: placeholder for block references (Req 38.6)
+ *
+ * Requirements: 38.1, 38.2, 38.3, 38.4, 38.5, 38.6
+ */
+
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../App'
-import type { Edge } from '../../../shared/types'
+import type { Edge, FileEntry } from '../../../shared/types'
+import {
+  computeTagGraph,
+  getTagNodeColor,
+  getTagDisplayLabel,
+  getTagRecentNotes
+} from '../../../shared/graph-utils'
 
 // ---------------------------------------------------------------------------
 // Local type definitions for d3-force nodes/links
@@ -18,6 +35,10 @@ interface D3Node {
   vy?: number
   fx?: number | null
   fy?: number | null
+  // For tag nodes
+  count?: number
+  radius?: number
+  color?: string
   // d3 internal index
   index?: number
 }
@@ -55,8 +76,18 @@ export function GraphView(): React.JSX.Element {
   const [canvasW, setCanvasW] = useState(800)
   const [canvasH, setCanvasH] = useState(600)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
+  // Tooltip state for tag hover (Req 38.4)
+  const [hoveredTag, setHoveredTag] = useState<{
+    label: string
+    count: number
+    x: number
+    y: number
+    recentNotes: FileEntry[]
+  } | null>(null)
 
+  // ---------------------------------------------------------------------------
   // Resize observer
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -71,25 +102,68 @@ export function GraphView(): React.JSX.Element {
     return () => ro.disconnect()
   }, [])
 
-  // Build nodes and links, init simulation
+  // ---------------------------------------------------------------------------
+  // Build nodes and links based on graphMode
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     const files = state.vault?.files ?? []
-    const edges: Edge[] = state.graphEdges
+    const graphMode = state.graphMode
 
-    // Build nodes
-    const nodes: D3Node[] = files.map((f) => ({
-      id: f.path,
-      label: f.name,
-      x: canvasW / 2 + (Math.random() - 0.5) * 100,
-      y: canvasH / 2 + (Math.random() - 0.5) * 100
-    }))
+    let nodes: D3Node[]
+    let links: D3Link[]
+
+    if (graphMode === 'tags') {
+      // Tags mode: use computeTagGraph from graph-utils
+      if (state.extendedIndex) {
+        const tagGraph = computeTagGraph(state.extendedIndex, files)
+        nodes = tagGraph.nodes.map((n) => ({
+          id: n.id,
+          label: n.label,
+          x: canvasW / 2 + (Math.random() - 0.5) * 100,
+          y: canvasH / 2 + (Math.random() - 0.5) * 100,
+          count: n.count,
+          radius: n.radius,
+          color: getTagNodeColor(n.label)
+        }))
+        links = tagGraph.edges.map((e) => ({
+          source: e.source,
+          target: e.target
+        }))
+      } else {
+        nodes = []
+        links = []
+      }
+    } else if (graphMode === 'blocks') {
+      // Blocks mode: placeholder - show message if no block refs
+      const hasBlockRefs = state.extendedIndex && state.extendedIndex.blockRefs.size > 0
+      if (!hasBlockRefs) {
+        // No nodes in blocks mode when empty
+        nodes = []
+        links = []
+      } else {
+        // TODO: Implement block node rendering when block refs are populated
+        nodes = []
+        links = []
+      }
+    } else {
+      // Files mode (default): existing behavior
+      const edges: Edge[] = state.graphEdges
+
+      // Build nodes
+      nodes = files.map((f) => ({
+        id: f.path,
+        label: f.name,
+        x: canvasW / 2 + (Math.random() - 0.5) * 100,
+        y: canvasH / 2 + (Math.random() - 0.5) * 100
+      }))
+      // Build links (source/target start as string ids; d3 replaces with object refs)
+      const nodeIds = new Set(nodes.map((n) => n.id))
+      links = edges
+        .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
+        .map((e) => ({ source: e.source, target: e.target }))
+    }
+
     nodesRef.current = nodes
-
-    // Build links (source/target start as string ids; d3 replaces with object refs)
-    const nodeIds = new Set(nodes.map((n) => n.id))
-    const links: D3Link[] = edges
-      .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
-      .map((e) => ({ source: e.source, target: e.target }))
     linksRef.current = links
 
     // Stop previous simulation / animation frame
@@ -189,15 +263,67 @@ export function GraphView(): React.JSX.Element {
         getComputedStyle(document.documentElement).getPropertyValue('--nabu-accent') || '#60a5fa'
       const textColor =
         getComputedStyle(document.documentElement).getPropertyValue('--nabu-text') || '#e5e5e5'
+
+      // Tag node colors using CSS variables (same palette as tab groups)
+      const tagColors = {
+        blue:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-blue') ||
+          '#3b82f6',
+        red:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-red') ||
+          '#ef4444',
+        green:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-green') ||
+          '#10b981',
+        yellow:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-yellow') ||
+          '#f59e0b',
+        purple:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-purple') ||
+          '#8b5cf6',
+        orange:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-orange') ||
+          '#f97316',
+        cyan:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-cyan') ||
+          '#06b6d4',
+        pink:
+          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-pink') ||
+          '#ec4899'
+      }
+
       for (const node of visibleNodes) {
         const { x, y } = node
-        ctx.beginPath()
-        ctx.arc(x, y, 6, 0, Math.PI * 2)
-        ctx.fillStyle = accentColor
-        ctx.fill()
-        ctx.font = '10px sans-serif'
-        ctx.fillStyle = textColor
-        ctx.fillText(node.label, x + 9, y + 4)
+
+        if (graphMode === 'tags' && node.radius !== undefined) {
+          // Draw tag nodes as rounded pills
+          const radius = node.radius
+          const color = node.color ? tagColors[node.color as keyof typeof tagColors] : accentColor
+
+          ctx.fillStyle = color
+          ctx.beginPath()
+          // Draw rounded rectangle (pill shape)
+          const labelWidth = Math.max(radius * 2, node.label.length * 6)
+          const height = radius * 1.6
+          ctx.roundRect(x - labelWidth / 2, y - height / 2, labelWidth, height, height / 2)
+          ctx.fill()
+
+          // Draw label inside pill
+          ctx.font = '10px sans-serif'
+          ctx.fillStyle = '#fff'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(getTagDisplayLabel(node.label), x, y)
+        } else {
+          // Draw file nodes as circles (existing behavior)
+          ctx.beginPath()
+          ctx.arc(x, y, 6, 0, Math.PI * 2)
+          ctx.fillStyle = accentColor
+          ctx.fill()
+          ctx.font = '10px sans-serif'
+          ctx.fillStyle = textColor
+          ctx.fillText(node.label, x + 9, y + 4)
+        }
       }
 
       ctx.restore()
@@ -211,7 +337,7 @@ export function GraphView(): React.JSX.Element {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.vault, state.graphEdges, canvasW, canvasH])
+  }, [state.vault, state.graphEdges, state.extendedIndex, state.graphMode, canvasW, canvasH])
 
   // Sync transform into the draw closure whenever it changes
   useEffect(() => {
@@ -251,6 +377,8 @@ export function GraphView(): React.JSX.Element {
         dragNodeRef.current = node
         node.fx = node.x
         node.fy = node.y
+        // Clear tooltip when dragging starts
+        setHoveredTag(null)
       } else {
         panStartRef.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y }
       }
@@ -260,6 +388,7 @@ export function GraphView(): React.JSX.Element {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
+      // If dragging, don't show tooltip
       if (dragNodeRef.current) {
         const rect = canvasRef.current?.getBoundingClientRect()
         if (!rect) return
@@ -268,7 +397,11 @@ export function GraphView(): React.JSX.Element {
         dragNodeRef.current.fx = wx
         dragNodeRef.current.fy = wy
         simRef.current?.alphaTarget(0.1).restart()
-      } else if (panStartRef.current) {
+        return
+      }
+
+      // If panning, don't show tooltip
+      if (panStartRef.current) {
         const dx = e.clientX - panStartRef.current.x
         const dy = e.clientY - panStartRef.current.y
         setTransform((prev) => ({
@@ -276,9 +409,34 @@ export function GraphView(): React.JSX.Element {
           x: panStartRef.current!.tx + dx,
           y: panStartRef.current!.ty + dy
         }))
+        return
+      }
+
+      // Check for tag hover in tags mode
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const cx = e.clientX - rect.left
+      const cy = e.clientY - rect.top
+      const node = findNode(cx, cy)
+
+      if (state.graphMode === 'tags' && node && state.extendedIndex && node.count !== undefined) {
+        const recentNotes = getTagRecentNotes(
+          node.label,
+          state.vault?.files ?? [],
+          state.extendedIndex.tagIndex
+        )
+        setHoveredTag({
+          label: node.label,
+          count: node.count,
+          x: e.clientX,
+          y: e.clientY,
+          recentNotes
+        })
+      } else {
+        setHoveredTag(null)
       }
     },
-    [transform]
+    [findNode, transform, state.graphMode, state.extendedIndex, state.vault?.files]
   )
 
   const handleMouseUp = useCallback(() => {
@@ -291,6 +449,10 @@ export function GraphView(): React.JSX.Element {
     panStartRef.current = null
   }, [])
 
+  const handleMouseLeave = useCallback(() => {
+    setHoveredTag(null)
+  }, [])
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const rect = canvasRef.current?.getBoundingClientRect()
@@ -299,16 +461,27 @@ export function GraphView(): React.JSX.Element {
       const cy = e.clientY - rect.top
       const node = findNode(cx, cy)
       if (node) {
-        window.electron.file
-          .get(node.id)
-          .then((fileAST) => {
-            dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-            dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
-          })
-          .catch(console.error)
+        if (state.graphMode === 'tags') {
+          // Tags mode: dispatch to filter file tree (Req 38.5)
+          dispatch({ type: 'TAG_FILTER_TOGGLE', payload: node.label })
+          setHoveredTag(null)
+        } else {
+          // Files mode: open the note (or PDF viewer pane)
+          if (node.id.toLowerCase().endsWith('.pdf')) {
+            dispatch({ type: 'PDF_OPENED', payload: { path: node.id } })
+            return
+          }
+          window.electron.file
+            .get(node.id)
+            .then((fileAST) => {
+              dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+              dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
+            })
+            .catch(console.error)
+        }
       }
     },
-    [findNode, dispatch]
+    [findNode, dispatch, state.graphMode]
   )
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
@@ -319,6 +492,51 @@ export function GraphView(): React.JSX.Element {
       scale: Math.max(0.1, Math.min(5, prev.scale * factor))
     }))
   }, [])
+
+  // Handle graph mode toggle
+  const handleGraphModeChange = (newMode: 'files' | 'tags' | 'blocks'): void => {
+    dispatch({ type: 'GRAPH_MODE_CHANGED', payload: newMode })
+  }
+
+  // Render tooltip for tag hover (Req 38.4)
+  const renderTagTooltip = (): React.JSX.Element | null => {
+    if (!hoveredTag) return null
+
+    return (
+      <div
+        className="absolute pointer-events-none bg-nabu-bg-pop border border-nabu-border rounded px-2 py-1 text-xs shadow-lg z-10"
+        style={{
+          left: hoveredTag.x + 10,
+          top: hoveredTag.y - 10,
+          maxWidth: '250px'
+        }}
+      >
+        <div className="font-semibold text-nabu-accent mb-1">{hoveredTag.label}</div>
+        <div className="text-nabu-text-muted mb-1">
+          {hoveredTag.count} {hoveredTag.count === 1 ? 'note' : 'notes'}
+        </div>
+        {hoveredTag.recentNotes.length > 0 && (
+          <div className="text-nabu-text-faint">
+            Recent: {hoveredTag.recentNotes.map((n) => n.name).join(', ')}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Render blocks mode placeholder
+  const renderBlocksPlaceholder = (): React.JSX.Element => {
+    const hasBlockRefs = state.extendedIndex && state.extendedIndex.blockRefs.size > 0
+    return (
+      <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
+        <p className="text-center max-w-md">
+          {!hasBlockRefs
+            ? 'Use block references (`^id`) to populate this view'
+            : 'Block references are being processed...'}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="graph-view flex flex-col h-full" aria-label="Graph view">
@@ -334,6 +552,51 @@ export function GraphView(): React.JSX.Element {
                      text-nabu-text placeholder:text-nabu-text-faint
                      focus:outline-none focus:border-nabu-accent transition-colors"
         />
+
+        {/* Graph mode toggle - Req 38.1 */}
+        <div role="radiogroup" aria-label="Graph view mode" className="flex gap-1">
+          <button
+            role="radio"
+            aria-checked={state.graphMode === 'files'}
+            onClick={() => handleGraphModeChange('files')}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              state.graphMode === 'files'
+                ? 'bg-nabu-accent/20 text-nabu-accent'
+                : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
+            }`}
+            title="Files view - node per file with wikilink edges"
+          >
+            Files
+          </button>
+          <button
+            role="radio"
+            aria-checked={state.graphMode === 'tags'}
+            onClick={() => handleGraphModeChange('tags')}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              state.graphMode === 'tags'
+                ? 'bg-nabu-accent/20 text-nabu-accent'
+                : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
+            }`}
+            title="Tags view - node per tag with co-occurrence edges"
+          >
+            Tags
+          </button>
+          <button
+            role="radio"
+            aria-checked={state.graphMode === 'blocks'}
+            onClick={() => handleGraphModeChange('blocks')}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              state.graphMode === 'blocks'
+                ? 'bg-nabu-accent/20 text-nabu-accent'
+                : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
+            }`}
+            title="Blocks view - placeholder for block references"
+          >
+            Blocks
+          </button>
+        </div>
+
+        {/* Graph scope toggle (global/local) */}
         <div role="radiogroup" aria-label="Graph scope" className="flex gap-1">
           <button
             role="radio"
@@ -374,10 +637,11 @@ export function GraphView(): React.JSX.Element {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           onClick={handleClick}
           onWheel={handleWheel}
         />
+        {renderTagTooltip()}
         {state.vault === null && (
           <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
             No vault open
@@ -388,6 +652,7 @@ export function GraphView(): React.JSX.Element {
             No notes in vault
           </div>
         )}
+        {state.graphMode === 'blocks' && renderBlocksPlaceholder()}
       </div>
     </div>
   )

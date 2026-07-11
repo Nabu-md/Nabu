@@ -70,6 +70,29 @@ vi.mock('electron', () => ({
   }
 }))
 
+// Mock pdfjs-dist for Node.js test environment (DOMMatrix is not available)
+vi.mock('pdfjs-dist', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  getDocument: vi.fn(() => ({
+    promise: Promise.resolve({
+      numPages: 1,
+      getMetadata: vi.fn().mockResolvedValue(null),
+      getPage: vi.fn().mockResolvedValue({
+        getViewport: vi.fn(() => ({ width: 600, height: 800 })),
+        render: vi.fn(() => ({ promise: Promise.resolve() }))
+      })
+    })
+  }))
+}))
+
+// Mock canvas package
+vi.mock('canvas', () => ({
+  createCanvas: vi.fn(() => ({
+    getContext: vi.fn(() => ({})),
+    toDataURL: vi.fn(() => 'data:image/png;base64,mock')
+  }))
+}))
+
 // ---------------------------------------------------------------------------
 // Mock StateManager, VectorManager, VaultWatcher
 // ---------------------------------------------------------------------------
