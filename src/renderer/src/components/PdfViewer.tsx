@@ -7,7 +7,7 @@
  * `canvas` package to produce base64 PNG data URIs). The renderer only
  * displays the returned images, keeping the PDF parsing off the UI thread.
  *
- * Requirements: 40.1, 40.2, 40.3
+ * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
@@ -48,6 +48,8 @@ export function PdfViewer({
   const [isAnnotating, setIsAnnotating] = useState(false)
   const [selectedColor, setSelectedColor] = useState<PDFAnnotation['color']>('yellow')
   const [error, setError] = useState<string | null>(null)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
   const pageRefs = useRef<Map<number, HTMLImageElement>>(new Map())
 
   // Open PDF (metadata + page count) via IPC (Req 40.2)
@@ -87,6 +89,45 @@ export function PdfViewer({
       cancelled = true
     }
   }, [filePath])
+
+  // Load annotations for this PDF (Req 40.4)
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAnnotations(): Promise<void> {
+      try {
+        const result = await window.electron.pdf.loadAnnotations(filePath)
+        if (!cancelled) {
+          setAnnotations(result.annotations ?? [])
+        }
+      } catch (err) {
+        console.warn('Failed to load PDF annotations:', err)
+      }
+    }
+
+    if (totalPages > 0) {
+      void loadAnnotations()
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [filePath, totalPages])
+
+  // Save annotations when they change (Req 40.5)
+  useEffect(() => {
+    if (totalPages === 0) return
+
+    const saveTimeout = setTimeout(() => {
+      void window.electron.pdf
+        .saveAnnotations(filePath, annotations)
+        .catch((err) => console.warn('Failed to save PDF annotations:', err))
+    }, 500) // Debounce saves
+
+    return () => {
+      clearTimeout(saveTimeout)
+    }
+  }, [annotations, filePath, totalPages])
 
   // Render a single page via IPC (Req 40.2)
   const renderPage = useCallback(
@@ -162,6 +203,51 @@ export function PdfViewer({
       setIsAnnotating(false)
     },
     [isAnnotating, selectedColor]
+  )
+
+  // Update comment for an annotation
+  const updateComment = useCallback((annotationId: string, comment: string) => {
+    setAnnotations((prev) => prev.map((a) => (a.id === annotationId ? { ...a, comment } : a)))
+  }, [])
+
+  // Start editing a comment
+  const startEditComment = useCallback((annotation: PDFAnnotation) => {
+    setEditingCommentId(annotation.id)
+    setCommentText(annotation.comment ?? '')
+  }, [])
+
+  // Save comment and exit edit mode
+  const saveComment = useCallback(() => {
+    if (editingCommentId) {
+      updateComment(editingCommentId, commentText)
+      setEditingCommentId(null)
+      setCommentText('')
+    }
+  }, [editingCommentId, commentText, updateComment])
+
+  // Create a note from an annotation
+  const createNoteFromAnnotation = useCallback(
+    async (annotation: PDFAnnotation) => {
+      const pdfName = filePath.split('/').pop()?.replace('.pdf', '') ?? 'pdf'
+      const title = annotation.text.substring(0, 60) || 'PDF Annotation'
+      const isoDate = new Date(annotation.timestamp).toISOString()
+
+      const body = [
+        `> ${annotation.text}`,
+        annotation.comment ? `\n${annotation.comment}` : '',
+        '',
+        `Source: [[${pdfName}.pdf#page=${annotation.page}]]`
+      ].join('\n')
+
+      const frontmatter = `---\nsource: [[${pdfName}.pdf]]\npage: ${annotation.page}\nannotation_date: ${isoDate}\n---\n\n`
+
+      try {
+        await window.electron.note.create('', title, frontmatter + body)
+      } catch (err) {
+        console.error('Failed to create note from annotation:', err)
+      }
+    },
+    [filePath]
   )
 
   // Navigation handlers
@@ -343,17 +429,66 @@ export function PdfViewer({
               .map((annotation) => (
                 <div
                   key={annotation.id}
-                  className="pdf-viewer__annotation absolute pointer-events-none"
+                  className="pdf-viewer__annotation-group absolute"
                   style={{
                     left: annotation.rect.x,
                     top: annotation.rect.y,
-                    width: annotation.rect.w,
-                    height: annotation.rect.h,
-                    backgroundColor: annotation.color,
-                    opacity: 0.3
+                    width: annotation.rect.w
                   }}
-                  title={annotation.text}
-                />
+                >
+                  <div
+                    className="pdf-viewer__annotation absolute pointer-events-auto cursor-pointer"
+                    style={{
+                      left: 0,
+                      top: 0,
+                      width: annotation.rect.w,
+                      height: annotation.rect.h,
+                      backgroundColor: annotation.color,
+                      opacity: 0.3
+                    }}
+                    title={annotation.text}
+                    onClick={() => startEditComment(annotation)}
+                  />
+                  {editingCommentId === annotation.id && (
+                    <div className="pdf-viewer__annotation-editor absolute top-full left-0 mt-1 bg-nabu-surface border border-nabu-border rounded p-2 shadow-lg z-10">
+                      <textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Add a comment..."
+                        className="w-full h-16 text-sm bg-nabu-bg text-nabu-text p-1 rounded"
+                        autoFocus
+                      />
+                      <div className="flex gap-1 mt-1">
+                        <button
+                          onClick={saveComment}
+                          className="px-2 py-1 text-xs rounded bg-nabu-accent text-nabu-bg"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingCommentId(null)
+                            setCommentText('')
+                          }}
+                          className="px-2 py-1 text-xs rounded hover:bg-nabu-border"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            void createNoteFromAnnotation(annotation)
+                            setEditingCommentId(null)
+                            setCommentText('')
+                          }}
+                          className="px-2 py-1 text-xs rounded hover:bg-nabu-border"
+                          title="Create note from this annotation"
+                        >
+                          Create note
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
           </div>
         ))}

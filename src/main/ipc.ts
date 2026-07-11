@@ -64,11 +64,15 @@ import {
   FavoritesGetSchema,
   FavoritesToggleSchema,
   FavoritesRemoveSchema,
-  // PDF schemas (Req 40.1, 40.2)
+  // PDF schemas (Req 40.1, 40.2, 40.4, 40.5)
   PDFOpenSchema,
   PDFOpenResultSchema,
   PDFRenderPageSchema,
-  PDFRenderPageResultSchema
+  PDFRenderPageResultSchema,
+  PDFLoadAnnotationsSchema,
+  PDFLoadAnnotationsResultSchema,
+  PDFSaveAnnotationsSchema,
+  PDFSaveAnnotationsResultSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -1888,6 +1892,56 @@ export function registerIPCHandlers(
         height: 0,
         error: String(err)
       })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:load-annotations — load annotations for a PDF (Req 40.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_LOAD_ANNOTATIONS, async (_event, rawPayload) => {
+    const validation = PDFLoadAnnotationsSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:load-annotations validation failed: ${reason}`)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: reason })
+    }
+
+    const { path: filePath } = validation.data
+
+    try {
+      const { loadPDFAnnotations } = await import('./pdf-viewer')
+      const annotations = await loadPDFAnnotations(filePath)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations })
+    } catch (err) {
+      const msg = `[IPC] pdf:load-annotations handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // pdf:save-annotations — save annotations for a PDF (Req 40.5)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PDF_SAVE_ANNOTATIONS, async (_event, rawPayload) => {
+    const validation = PDFSaveAnnotationsSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] pdf:save-annotations validation failed: ${reason}`)
+      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { path: filePath, annotations } = validation.data
+
+    try {
+      const { savePDFAnnotations } = await import('./pdf-viewer')
+      await savePDFAnnotations(filePath, annotations)
+      return PDFSaveAnnotationsResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] pdf:save-annotations handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: String(err) })
     }
   })
 }

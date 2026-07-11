@@ -47,7 +47,9 @@ export enum IPCChannel {
   NOTE_UNIQUE = 'note:unique',
   SETTINGS_GET_FEATURE_TOGGLES = 'settings:getFeatureToggles',
   SETTINGS_SET_FEATURE_TOGGLE = 'settings:setFeatureToggle',
-  // PDF channels (Req 40.1, 40.2)
+  // PDF channels (Req 40.1, 40.2, 40.4, 40.5)
   PDF_OPEN = 'pdf:open',
-  PDF_RENDER_PAGE = 'pdf:render-page'
+  PDF_RENDER_PAGE = 'pdf:render-page',
+  PDF_LOAD_ANNOTATIONS = 'pdf:load-annotations',
+  PDF_SAVE_ANNOTATIONS = 'pdf:save-annotations'
 }

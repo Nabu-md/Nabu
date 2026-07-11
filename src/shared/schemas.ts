@@ -586,3 +586,52 @@ export const PDFRenderPageResultSchema = z.object({
 
 export type PDFRenderPagePayload = z.infer<typeof PDFRenderPageSchema>
 export type PDFRenderPageResult = z.infer<typeof PDFRenderPageResultSchema>
+
+// ---------------------------------------------------------------------------
+// PDF annotation schemas (Req 40.4, 40.5)
+// ---------------------------------------------------------------------------
+
+/** A single PDF annotation (persisted per-PDF in .nabu/pdf-annotations) */
+export const PDFAnnotationSchema = z.object({
+  id: z.string(),
+  page: z.number().int(),
+  rect: z.object({
+    x: z.number(),
+    y: z.number(),
+    w: z.number(),
+    h: z.number()
+  }),
+  text: z.string(),
+  color: z.enum(['yellow', 'green', 'blue', 'pink', 'orange']),
+  comment: z.string().optional(),
+  timestamp: z.number(),
+  linkedNotePath: z.string().optional()
+})
+
+export type PDFAnnotationType = z.infer<typeof PDFAnnotationSchema>
+
+/** Load annotations for a PDF */
+export const PDFLoadAnnotationsSchema = z.object({
+  path: z.string()
+})
+
+export const PDFLoadAnnotationsResultSchema = z.object({
+  annotations: z.array(PDFAnnotationSchema)
+})
+
+export type PDFLoadAnnotationsPayload = z.infer<typeof PDFLoadAnnotationsSchema>
+export type PDFLoadAnnotationsResult = z.infer<typeof PDFLoadAnnotationsResultSchema>
+
+/** Save (replace) annotations for a PDF */
+export const PDFSaveAnnotationsSchema = z.object({
+  path: z.string(),
+  annotations: z.array(PDFAnnotationSchema)
+})
+
+export const PDFSaveAnnotationsResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+export type PDFSaveAnnotationsPayload = z.infer<typeof PDFSaveAnnotationsSchema>
+export type PDFSaveAnnotationsResult = z.infer<typeof PDFSaveAnnotationsResultSchema>

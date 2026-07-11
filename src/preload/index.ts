@@ -26,7 +26,11 @@ const electronAPI = {
   pdf: {
     open: (path: string): Promise<unknown> => ipcRenderer.invoke(IPCChannel.PDF_OPEN, { path }),
     renderPage: (path: string, pageNumber: number, scale: number): Promise<unknown> =>
-      ipcRenderer.invoke(IPCChannel.PDF_RENDER_PAGE, { path, pageNumber, scale })
+      ipcRenderer.invoke(IPCChannel.PDF_RENDER_PAGE, { path, pageNumber, scale }),
+    loadAnnotations: (path: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_LOAD_ANNOTATIONS, { path }),
+    saveAnnotations: (path: string, annotations: unknown[]): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.PDF_SAVE_ANNOTATIONS, { path, annotations })
   },
   folder: {
     create: (path: string): Promise<unknown> =>

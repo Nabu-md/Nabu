@@ -598,7 +598,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - The viewer pane reuses the existing `openTabs` system: a PDF open creates a new tab with a special `Tab.type = 'pdf'` field.
   - _Requirements: 40.1, 40.2, 40.3_
 
-- [ ] 93. Implement annotation overlay
+- [x] 93. Implement annotation overlay
   - When a PDF tab is active, text selection on the rendered page canvas triggers an annotation toolbar: "Highlight" and "Create note" buttons.
   - Highlight: applies a semi-transparent yellow overlay on selected text region (stored per-pdf in `.nabu/pdf-annotations/<pdf-name>.json` as `{ page, rect: {x,y,w,h}, text, color, timestamp }`).
   - Comment: After highlighting, the user can type a comment in an inline text area that appears below the highlighted region.

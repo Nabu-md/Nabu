@@ -8,7 +8,7 @@ import {
   Edge,
   Template
 } from '../shared/types'
-import type { SearchResponse } from '../shared/schemas'
+import type { SearchResponse, PDFAnnotationType } from '../shared/schemas'
 
 declare global {
   interface Window {
@@ -46,6 +46,14 @@ declare global {
           height: number
           error?: string
         }>
+        loadAnnotations(path: string): Promise<{
+          annotations: PDFAnnotationType[]
+          error?: string
+        }>
+        saveAnnotations(
+          path: string,
+          annotations: PDFAnnotationType[]
+        ): Promise<{ success: boolean; error?: string }>
       }
       folder: {
         create(path: string): Promise<{ success: boolean; error?: string }>

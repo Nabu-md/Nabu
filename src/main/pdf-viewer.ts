@@ -5,7 +5,7 @@
  * Provides IPC handlers for opening PDFs and rendering pages to base64 PNG.
  * Rendering uses the `canvas` package for Node.js canvas operations.
  *
- * Requirements: 40.1, 40.2, 40.3
+ * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
  */
 
 import {
@@ -16,12 +16,19 @@ import {
 } from 'pdfjs-dist'
 import { createCanvas } from 'canvas'
 import fs from 'fs/promises'
+import { PDFAnnotationType } from '../shared/schemas'
 
 // Configure PDF.js worker for Node.js environment (same pattern as pdf-importer)
-GlobalWorkerOptions.workerSrc =
-  require('pdfjs-dist/build/pdf.worker.js').fileToPath?.(
-    'node_modules/pdfjs-dist/build/pdf.worker.min.js'
-  ) ?? require.resolve('pdfjs-dist/build/pdf.worker.min.js')
+// Wrap in try-catch to handle test environment where the worker file may not exist
+try {
+  GlobalWorkerOptions.workerSrc =
+    require('pdfjs-dist/build/pdf.worker.js').fileToPath?.(
+      'node_modules/pdfjs-dist/build/pdf.worker.min.js'
+    ) ?? require.resolve('pdfjs-dist/build/pdf.worker.min.js')
+} catch {
+  // In test environment, worker may not be available - that's OK
+  GlobalWorkerOptions.workerSrc = ''
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,9 +99,7 @@ export async function extractPDFText(filePath: string): Promise<PDFTextResult> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)
     const textContent = await page.getTextContent()
-    const pageText = textContent.items
-      .map((item) => (item as { str?: string }).str ?? '')
-      .join(' ')
+    const pageText = textContent.items.map((item) => (item as { str?: string }).str ?? '').join(' ')
     pageTexts.push(pageText)
   }
 
@@ -174,8 +179,72 @@ export function clearPDFCache(_filePath: string): void {
   // PDF document cleanup is handled by pdfjs internally
 }
 
+// ---------------------------------------------------------------------------
+// PDF Annotations (Req 40.4, 40.5)
+// ---------------------------------------------------------------------------
+
 /**
- * Clear all cached PDFs.
+ * Get the path to the annotations JSON file for a PDF.
+ * Annotations are stored in .nabu/pdf-annotations/<pdf-name>.json
+ */
+function getAnnotationsPath(filePath: string): string {
+  const path = require('path')
+  const { vaultRegistry } = require('./vault-registry')
+  const vault = vaultRegistry.getVaultForPath(filePath)
+  if (!vault) {
+    throw new Error(`No vault found for path: ${filePath}`)
+  }
+  const pdfName = path.basename(filePath, '.pdf')
+  return path.join(vault.path, '.nabu', 'pdf-annotations', `${pdfName}.json`)
+}
+
+/**
+ * Load annotations for a PDF from the .nabu/pdf-annotations directory.
+ * Returns an empty array if no annotations file exists.
+ */
+export async function loadPDFAnnotations(filePath: string): Promise<PDFAnnotationType[]> {
+  const path = require('path')
+  const annotationsPath = getAnnotationsPath(filePath)
+
+  try {
+    const data = await fs.readFile(annotationsPath, 'utf-8')
+    const parsed = JSON.parse(data)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (err) {
+    // File doesn't exist or is invalid - return empty array
+    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return []
+    }
+    console.warn(`[pdf-viewer] Failed to load annotations for ${filePath}:`, err)
+    return []
+  }
+}
+
+/**
+ * Save annotations for a PDF to the .nabu/pdf-annotations directory.
+ * Creates the directory if it doesn't exist.
+ */
+export async function savePDFAnnotations(
+  filePath: string,
+  annotations: PDFAnnotationType[]
+): Promise<void> {
+  const path = require('path')
+  const annotationsPath = getAnnotationsPath(filePath)
+  const dir = path.dirname(annotationsPath)
+
+  // Ensure directory exists
+  await fs.mkdir(dir, { recursive: true })
+
+  // Write annotations to file
+  await fs.writeFile(annotationsPath, JSON.stringify(annotations, null, 2), 'utf-8')
+}
+
+// ---------------------------------------------------------------------------
+// Cleanup
+// ---------------------------------------------------------------------------
+
+/**
+ * Clear PDF cache for a specific file (e.g., when file changes).
  */
 export function clearAllPDFCache(): void {
   // PDF document cleanup is handled by pdfjs internally
