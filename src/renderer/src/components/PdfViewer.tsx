@@ -242,7 +242,13 @@ export function PdfViewer({
       const frontmatter = `---\nsource: [[${pdfName}.pdf]]\npage: ${annotation.page}\nannotation_date: ${isoDate}\n---\n\n`
 
       try {
-        await window.electron.note.create('', title, frontmatter + body)
+        const result = await window.electron.note.create('', title, frontmatter + body)
+        // Update annotation with linked note path
+        if (result && result.path) {
+          setAnnotations((prev) =>
+            prev.map((a) => (a.id === annotation.id ? { ...a, linkedNotePath: result.path } : a))
+          )
+        }
       } catch (err) {
         console.error('Failed to create note from annotation:', err)
       }

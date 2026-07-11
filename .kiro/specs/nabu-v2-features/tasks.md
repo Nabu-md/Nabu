@@ -605,7 +605,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Annotations persist across PDF tab open/close cycles (loaded from the JSON file on open, saved on each add/change).
   - _Requirements: 40.4, 40.5_
 
-- [ ] 94. Create annotation → note card pipeline
+- [x] 94. Create annotation → note card pipeline
   - When the user clicks "Create note from this annotation," spawn `note:create` with:
     - Title: auto-generated from first 60 characters of the highlighted text (or user-provided).
     - Body: blockquote of highlighted text, followed by the user's comment (if any).
