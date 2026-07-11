@@ -645,7 +645,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Bundle size addition: ~140 MB (model) + ~2 MB (binary). Acceptable for a developer tool — one-time download.
   - _Requirements: 41.1, 41.2, 41.6_
 
-- [ ] 98. Build microphone capture + audio streaming bridge
+- [x] 98. Build microphone capture + audio streaming bridge
   - Create a Swift helper (`scripts/mic-capture.swift`) that:
     - Requests microphone permission (macOS `AVAudioSession`).
     - Captures audio from the default input device at 16kHz, 16-bit mono PCM.
@@ -655,7 +655,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - When transcription is complete (whisper process exits), the main process parses the JSON output from whisper's stdout and sends the transcribed text to the renderer.
   - _Requirements: 41.3, 42.1_
 
-- [ ] 99. Integrate dictation mode into clipboard widget
+- [x] 99. Integrate dictation mode into clipboard widget
   - The clipboard widget (already wired with fn-monitor in `widget-manager.ts`) gains a third mode alongside its existing clipboard-history mode: **dictation mode**.
   - When fn is held and the widget appears, the user can switch to dictation mode via a microphone icon button in the widget's toolbar.
   - Dictation mode UI:
@@ -667,7 +667,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - If the user already has the clipboard widget open and presses the mic button, it switches to dictation mode without closing/reopening.
   - _Requirements: 41.4, 42.2_
 
-- [ ] 100. Implement fn-release → transcription insertion flow
+- [x] 100. Implement fn-release → transcription insertion flow
   - The fn-monitor already emits `fn-down` and `fn-up` events (see `fn-monitor.ts`).
   - Extend `widget-manager.ts`:
     - On `fn-down` while in dictation mode: start audio capture + whisper transcription (streaming).
@@ -678,7 +678,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - The dictation flow should feel instantaneous: fn-down → see widget waveform → speak → fn-up → text appears → widget gone. Target: < 1 second from fn-release to text insertion for short dictations (Base model latency ~700-900ms on M-series).
   - _Requirements: 41.4, 41.5, 42.3_
 
-- [ ] 101. Add Large-V3 Turbo Q5 model download toggle in Settings
+- [x] 101. Add Large-V3 Turbo Q5 model download toggle in Settings
   - Settings panel → "Audio Dictation" section with:
     - **Dictation model**: dropdown showing "Base (Fast, ~250MB RAM)" and "Enhanced (Large-V3 Turbo Q5, ~1GB RAM)".
     - **Status indicator**: "Installed" / "Downloading… X%" / "Not installed" for the Enhanced model.
@@ -692,7 +692,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Error states: download failure → retry button; corrupted download → hash verification against expected SHA256 before use, re-download if mismatch; disk full → warning with space required.
   - _Requirements: 42.4, 42.5, 42.6, 43.3_
 
-- [ ] 102. Handle errors: permissions, crash recovery, silence detection, model failures
+- [x] 102. Handle errors: permissions, crash recovery, silence detection, model failures
   - **Microphone permission**: On first dictation attempt, macOS shows the system mic permission dialog. If denied, the widget shows a one-line notice: "Microphone access required. Enable in System Settings > Privacy & Security > Microphone." Store the permission state so we don't re-prompt every fn-hold.
   - **Whisper process crash**: If whisper.cpp exits unexpectedly, restart it (max 2 retries per session). Log error with context. If persistent failure, disable dictation mode and show a Settings badge "Dictation unavailable — whisper process error."
   - **Silence detection**: If the user holds fn but doesn't speak for 15 seconds, auto-finish the dictation (no text inserted, widget hides). This prevents accidental fn-holds from keeping the widget open indefinitely.
@@ -700,7 +700,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - **Large model download failure**: Show the error in Settings with retry button. The Base model remains as fallback — the user can still dictate while the Large model download is broken.
   - _Requirements: 43.1, 43.2, 43.3, 43.4_
 
-- [ ] 103. Phase 15 verification
+- [x] 103. Phase 15 verification
   - Unit tests: whisper output parser (JSON → transcribed text); silence-detection timer logic; model file path resolution; download progress calculation.
   - Integration test: spawn `whisper` binary with a known WAV fixture → verify stdout JSON is parsed correctly → verify transcribed text matches expected output.
   - E2E: open a note → press fn → widget appears in dictation mode → speak → release fn → verify transcribed text appears at cursor → repeat with Large model selected → verify model switch works.
