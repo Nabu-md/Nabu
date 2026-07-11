@@ -32,6 +32,14 @@ const electronAPI = {
     saveAnnotations: (path: string, annotations: unknown[]): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.PDF_SAVE_ANNOTATIONS, { path, annotations })
   },
+  dictation: {
+    start: (model?: 'base' | 'large-v3-turbo-q5'): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.DICTATION_START, { model }),
+    stop: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.DICTATION_STOP, {}),
+    status: (): Promise<unknown> => ipcRenderer.invoke(IPCChannel.DICTATION_STATUS, {}),
+    downloadModel: (model: 'base' | 'large-v3-turbo-q5'): Promise<unknown> =>
+      ipcRenderer.invoke(IPCChannel.DICTATION_DOWNLOAD_MODEL, { model })
+  },
   folder: {
     create: (path: string): Promise<unknown> =>
       ipcRenderer.invoke(IPCChannel.FOLDER_CREATE, { path })
@@ -158,6 +166,11 @@ const electronAPI = {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
       ipcRenderer.on(IPCChannel.INDEX_BUILD, listener)
       return () => ipcRenderer.removeListener(IPCChannel.INDEX_BUILD, listener)
+    },
+    dictationDownloadProgress: (callback: (data: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
+      ipcRenderer.on(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
+      return () => ipcRenderer.removeListener(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, listener)
     }
   }
 }

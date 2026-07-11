@@ -55,6 +55,27 @@ declare global {
           annotations: PDFAnnotationType[]
         ): Promise<{ success: boolean; error?: string }>
       }
+      dictation: {
+        start(model?: 'base' | 'large-v3-turbo-q5'): Promise<{ success: boolean; error?: string }>
+        stop(): Promise<{
+          success: boolean
+          result?: { text: string; segments: { start: number; end: number; text: string }[] }
+          error?: string
+        }>
+        status(): Promise<{
+          available: boolean
+          modelStatus?: {
+            model: 'base' | 'large-v3-turbo-q5'
+            installed: boolean
+            downloading: boolean
+            downloadProgress: number
+          }
+          error?: string
+        }>
+        downloadModel(
+          model: 'base' | 'large-v3-turbo-q5'
+        ): Promise<{ success: boolean; error?: string }>
+      }
       folder: {
         create(path: string): Promise<{ success: boolean; error?: string }>
       }
@@ -132,6 +153,9 @@ declare global {
         setupCreate(callback: () => void): () => void
         setupOpen(callback: () => void): () => void
         indexBuild(callback: (data: unknown) => void): () => void
+        dictationDownloadProgress(
+          callback: (data: { model: 'base' | 'large-v3-turbo-q5'; progress: number }) => void
+        ): () => void
       }
     }
   }

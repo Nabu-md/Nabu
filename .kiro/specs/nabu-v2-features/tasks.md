@@ -625,7 +625,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
   - Annotations sidebar in the PDF view: lists all annotations for the current PDF, each showing: highlighted text snippet, comment preview, linked note title. Click an annotation → navigate to that page + scroll to highlight.
   - _Requirements: 40.7, 40.8_
 
-- [ ] 96. Phase 14 verification
+- [x] 96. Phase 14 verification
   - Unit tests: annotation persistence (JSON write/read round-trip); note card template generation; annotation → note title truncation.
   - E2E: open a PDF in Nabu → verify page renders → select text → highlight → add comment → create note card → verify note appears in file tree with correct frontmatter → switch to graph view → verify PDF node + annotation note nodes + edge between them → open the annotation note → click source link → verify PDF opens to correct page.
   - Full Vitest suite green.
@@ -635,7 +635,7 @@ These 9 features correspond to Obsidian core plugins (R27–35). Each is indepen
 
 ### Phase 15 — Audio Dictation (Whisper.cpp)
 
-- [ ] 97. Bundle whisper.cpp with Base model
+- [x] 97. Bundle whisper.cpp with Base model
   - Integrate [whisper.cpp](https://github.com/ggerganov/whisper.cpp) as a vendored dependency:
     - Prebuild the `whisper` CLI binary for macOS arm64 + x86_64 (universal binary or per-arch).
     - Include the `ggml-base.en.bin` model file (~140 MB) in the app's `resources/` directory for production builds.

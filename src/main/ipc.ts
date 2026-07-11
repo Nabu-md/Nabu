@@ -1944,4 +1944,138 @@ export function registerIPCHandlers(
       return PDFSaveAnnotationsResultSchema.parse({ success: false, error: String(err) })
     }
   })
+
+  // -------------------------------------------------------------------------
+  // dictation:start — start audio capture and whisper transcription (Req 41.3)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_START, async (_event, rawPayload) => {
+    const validation = DictationStartSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:start validation failed: ${reason}`)
+      return DictationStartResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { model = 'base' } = validation.data
+
+    try {
+      // Check if whisper binary is available
+      const { isWhisperBinaryAvailable, isModelInstalled, downloadModel } =
+        await import('./whisper')
+
+      if (!isWhisperBinaryAvailable()) {
+        return DictationStartResultSchema.parse({
+          success: false,
+          error: 'Whisper binary not found. Please reinstall Nabu.'
+        })
+      }
+
+      // Check if model is installed, download if needed
+      if (!(await isModelInstalled(model))) {
+        const downloadResult = await downloadModel(model, () => {})
+        if (!downloadResult.success) {
+          return DictationStartResultSchema.parse({
+            success: false,
+            error: `Model download failed: ${downloadResult.error}`
+          })
+        }
+      }
+
+      return DictationStartResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] dictation:start handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStartResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:stop — stop dictation and return transcription (Req 41.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_STOP, async (_event, rawPayload) => {
+    const validation = DictationStopSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:stop validation failed: ${reason}`)
+      return DictationStopResultSchema.parse({ success: false, error: reason })
+    }
+
+    try {
+      const { stopWhisper } = await import('./whisper')
+      // The actual transcription happens in the renderer via mic-capture
+      // This is a placeholder for the stop signal
+      stopWhisper()
+      return DictationStopResultSchema.parse({ success: true })
+    } catch (err) {
+      const msg = `[IPC] dictation:stop handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStopResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:status — get dictation model status (Req 42.4)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_STATUS, async (_event, rawPayload) => {
+    const validation = DictationStatusSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:status validation failed: ${reason}`)
+      return DictationStatusResultSchema.parse({ available: false, error: reason })
+    }
+
+    try {
+      const { isWhisperBinaryAvailable, getModelStatus } = await import('./whisper')
+      const available = isWhisperBinaryAvailable()
+
+      if (!available) {
+        return DictationStatusResultSchema.parse({ available: false })
+      }
+
+      const modelStatus = await getModelStatus()
+      return DictationStatusResultSchema.parse({ available: true, modelStatus })
+    } catch (err) {
+      const msg = `[IPC] dictation:status handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationStatusResultSchema.parse({ available: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // dictation:download-model — download a dictation model (Req 42.5)
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.DICTATION_DOWNLOAD_MODEL, async (_event, rawPayload) => {
+    const validation = DictationDownloadModelSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] dictation:download-model validation failed: ${reason}`)
+      return DictationDownloadModelResultSchema.parse({ success: false, error: reason })
+    }
+
+    const { model } = validation.data
+
+    try {
+      const { downloadModel } = await import('./whisper')
+
+      // Send progress updates to renderer
+      const { ipcMain } = require('electron')
+      const progressCallback = (progress: number) => {
+        _event.sender.send(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, {
+          model,
+          progress
+        })
+      }
+
+      const result = await downloadModel(model, progressCallback)
+      return DictationDownloadModelResultSchema.parse(result)
+    } catch (err) {
+      const msg = `[IPC] dictation:download-model handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return DictationDownloadModelResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
 }

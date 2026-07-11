@@ -51,5 +51,11 @@ export enum IPCChannel {
   PDF_OPEN = 'pdf:open',
   PDF_RENDER_PAGE = 'pdf:render-page',
   PDF_LOAD_ANNOTATIONS = 'pdf:load-annotations',
-  PDF_SAVE_ANNOTATIONS = 'pdf:save-annotations'
+  PDF_SAVE_ANNOTATIONS = 'pdf:save-annotations',
+  // Dictation channels (Req 41, 42)
+  DICTATION_START = 'dictation:start',
+  DICTATION_STOP = 'dictation:stop',
+  DICTATION_STATUS = 'dictation:status',
+  DICTATION_DOWNLOAD_MODEL = 'dictation:download-model',
+  DICTATION_DOWNLOAD_PROGRESS = 'dictation:download-progress'
 }

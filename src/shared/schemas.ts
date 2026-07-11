@@ -635,3 +635,85 @@ export const PDFSaveAnnotationsResultSchema = z.object({
 
 export type PDFSaveAnnotationsPayload = z.infer<typeof PDFSaveAnnotationsSchema>
 export type PDFSaveAnnotationsResult = z.infer<typeof PDFSaveAnnotationsResultSchema>
+
+// ---------------------------------------------------------------------------
+// Dictation schemas (Req 41, 42)
+// ---------------------------------------------------------------------------
+
+/** Whisper segment output */
+export const WhisperSegmentSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string()
+})
+
+/** Whisper transcription result */
+export const WhisperResultSchema = z.object({
+  text: z.string(),
+  segments: z.array(WhisperSegmentSchema),
+  error: z.string().optional()
+})
+
+/** Dictation start request */
+export const DictationStartSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']).optional()
+})
+
+export const DictationStartResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+/** Dictation stop request */
+export const DictationStopSchema = z.object({})
+
+export const DictationStopResultSchema = z.object({
+  success: z.boolean(),
+  result: WhisperResultSchema.optional(),
+  error: z.string().optional()
+})
+
+/** Dictation model status */
+export const DictationModelStatusSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']),
+  installed: z.boolean(),
+  downloading: z.boolean(),
+  downloadProgress: z.number().int().min(0).max(100)
+})
+
+/** Dictation status request */
+export const DictationStatusSchema = z.object({})
+
+export const DictationStatusResultSchema = z.object({
+  available: z.boolean(),
+  modelStatus: DictationModelStatusSchema.optional(),
+  error: z.string().optional()
+})
+
+/** Download dictation model request */
+export const DictationDownloadModelSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5'])
+})
+
+export const DictationDownloadModelResultSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional()
+})
+
+/** Download progress push (Main → Renderer) */
+export const DictationDownloadProgressSchema = z.object({
+  model: z.enum(['base', 'large-v3-turbo-q5']),
+  progress: z.number().int().min(0).max(100)
+})
+
+export type DictationStartPayload = z.infer<typeof DictationStartSchema>
+export type DictationStartResult = z.infer<typeof DictationStartResultSchema>
+export type DictationStopPayload = z.infer<typeof DictationStopSchema>
+export type DictationStopResult = z.infer<typeof DictationStopResultSchema>
+export type DictationModelStatus = z.infer<typeof DictationModelStatusSchema>
+export type DictationStatusResult = z.infer<typeof DictationStatusResultSchema>
+export type DictationDownloadModelPayload = z.infer<typeof DictationDownloadModelSchema>
+export type DictationDownloadModelResult = z.infer<typeof DictationDownloadModelResultSchema>
+export type DictationDownloadProgress = z.infer<typeof DictationDownloadProgressSchema>
+export type WhisperSegment = z.infer<typeof WhisperSegmentSchema>
+export type WhisperResult = z.infer<typeof WhisperResultSchema>
