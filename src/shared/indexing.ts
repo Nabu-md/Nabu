@@ -176,7 +176,7 @@ function extractTagsFromYaml(yaml: string): string[] {
     // Single scalar value on same line (not a standard tags format, skip)
     return tags
   }
-
+  
   // Block list format: subsequent lines starting with `  - `
   for (let i = tagsLineIndex + 1; i < lines.length; i++) {
     const line = lines[i]
@@ -196,4 +196,40 @@ function extractTagsFromYaml(yaml: string): string[] {
   }
 
   return tags
+}
+
+// ---------------------------------------------------------------------------
+// Index removal helpers (used for incremental delete/rename operations)
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove all entries for `filePath` from a full-text index (Map<word, Set<filePath>>).
+ * Prunes empty word entries to prevent index drift.
+ */
+export function removeFileFromFullTextIndex(
+  index: Map<string, Set<string>>,
+  filePath: string
+): void {
+  for (const [word, paths] of index) {
+    paths.delete(filePath)
+    if (paths.size === 0) {
+      index.delete(word)
+    }
+  }
+}
+
+/**
+ * Remove all entries for `filePath` from a tag index (Map<tag, Set<filePath>>).
+ * Prunes empty tag entries to prevent index drift.
+ */
+export function removeFileFromTagIndex(
+  index: Map<string, Set<string>>,
+  filePath: string
+): void {
+  for (const [tag, paths] of index) {
+    paths.delete(filePath)
+    if (paths.size === 0) {
+      index.delete(tag)
+    }
+  }
 }

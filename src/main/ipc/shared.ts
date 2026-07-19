@@ -341,7 +341,17 @@ export function buildWatcherConfig(
         const ast = await stateManager.getAST(filePath)
         sendToRenderer(IPCChannel.NOTE_UPDATED, { path: filePath, ast, isExternal })
 
+        // Update text indexes for external edits (Phase 7.2 fix)
         if (!stateManager.hasPendingWrite(filePath)) {
+          try {
+            const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+            if (indexResult) {
+              sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+            }
+          } catch {
+            // updateIndexesForFile not yet available — silently ignore
+          }
+
           try {
             const content = await fs.readFile(filePath, 'utf-8')
             vectorManager.embedFile(filePath, content)
@@ -360,7 +370,17 @@ export function buildWatcherConfig(
     onFileAdded: async (filePath: string) => {
       sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath, files: vaultMeta.files })
 
+      // Update text indexes for newly added files (Phase 7.2 fix)
       if (!stateManager.hasPendingWrite(filePath)) {
+        try {
+          const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+          if (indexResult) {
+            sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+          }
+        } catch {
+          // updateIndexesForFile not yet available — silently ignore
+        }
+
         try {
           const content = await fs.readFile(filePath, 'utf-8')
           vectorManager.embedFile(filePath, content)
@@ -374,9 +394,14 @@ export function buildWatcherConfig(
     },
 
     onFileDeleted: (filePath: string) => {
+      // Remove from text indexes (Phase 7.2 fix)
+      stateManager.removeFileFromIndexes(filePath)
+
+      // Remove from vector index
       vectorManager.removeFile(filePath).catch((err) => {
         emitActivityLog('error', `[IPC] Failed to remove vector for "${filePath}": ${String(err)}`)
       })
+
       sendToRenderer(IPCChannel.NOTE_DELETED, { path: filePath })
     },
 

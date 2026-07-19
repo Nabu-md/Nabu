@@ -83,6 +83,17 @@ export function registerNotesIPC(ctx: IPCContext): void {
     try {
       const { stateManager: sm } = getSessionForVault(vaultId)
       await sm.toggleTask(filePath, lineIndex)
+
+      // Update indexes after task toggle (Phase 7.2 fix)
+      try {
+        const indexResult = await (sm as any).updateIndexesForFile?.(filePath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // updateIndexesForFile not yet available — silently ignore
+      }
+
       return TaskToggleResultSchema.parse({ success: true })
     } catch (err) {
       const normalized = normalizeError(err, { path: filePath, lineIndex })
@@ -108,6 +119,17 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
     try {
       await stateManager.toggleTask(filePath, lineIndex)
+
+      // Update indexes after task toggle (Phase 7.2 fix)
+      try {
+        const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // updateIndexesForFile not yet available — silently ignore
+      }
+
       return TaskToggleResultSchema.parse({ success: true })
     } catch (err) {
       const normalized = normalizeError(err, { path: filePath, lineIndex })
@@ -166,6 +188,20 @@ export function registerNotesIPC(ctx: IPCContext): void {
       }
 
       const ast = await stateManager.getAST(filePath)
+
+      // Update indexes for the newly created file
+      try {
+        const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // updateIndexesForFile not yet available — silently ignore
+      }
+
+      // Embed new file in vector index
+      vectorManager.embedFile(filePath, content)
+
       const response = FileGetResultSchema.parse({ path: filePath, ast })
       return response
     } catch (err) {
@@ -203,7 +239,6 @@ export function registerNotesIPC(ctx: IPCContext): void {
       stateManager.setPendingWrite(filePath)
       await fs.writeFile(filePath, finalContent, 'utf-8')
       stateManager.invalidateAST(filePath)
-      stateManager.clearPendingWrite(filePath)
 
       try {
         const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
@@ -215,6 +250,10 @@ export function registerNotesIPC(ctx: IPCContext): void {
       }
 
       vectorManager.embedFile(filePath, content)
+
+      // Clear pending write lock AFTER indexing completes to prevent
+      // the watcher from triggering a duplicate re-index (Phase 7.2 fix).
+      stateManager.clearPendingWrite(filePath)
 
       return { success: true }
     } catch (err) {
@@ -244,6 +283,26 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
     try {
       await fs.rename(oldPath, normalisedNewPath)
+
+      // Update vault file list and indexes (Phase 7.2 fix)
+      try {
+        const indexResult = await (stateManager as any).renameFile?.(oldPath, normalisedNewPath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // renameFile not yet available — silently ignore
+      }
+
+      // Update vector index
+      try {
+        const content = await fs.readFile(normalisedNewPath, 'utf-8')
+        await vectorManager.renameFile(oldPath, normalisedNewPath, content)
+      } catch (err) {
+        // Vector rename failure is non-fatal
+        console.warn(`[IPC] note:rename vector update failed for "${oldPath}" → "${normalisedNewPath}":`, err)
+      }
+
       return { success: true }
     } catch (err) {
       const normalized = normalizeError(err, { oldPath, newPath: normalisedNewPath })
@@ -270,14 +329,18 @@ export function registerNotesIPC(ctx: IPCContext): void {
     try {
       await fs.rm(filePath)
 
-      try {
-        const indexResult = await (stateManager as any).buildIndexes?.()
-        if (indexResult) {
-          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
-        }
-      } catch {
-        // buildIndexes not yet available — silently ignore
-      }
+      // Incrementally remove from indexes instead of full rebuild (Phase 7.2 fix)
+      stateManager.removeFileFromIndexes(filePath)
+
+      // Remove from vector index
+      await vectorManager.removeFile(filePath)
+
+      // Send updated indexes to renderer
+      const serialized = stateManager.getSerializedIndexes()
+      sendToRenderer(IPCChannel.INDEX_BUILD, {
+        ...serialized,
+        edges: [] // edges will be stale until next full build; watcher will refresh
+      })
 
       return { success: true }
     } catch (err) {
@@ -470,6 +533,22 @@ export function registerNotesIPC(ctx: IPCContext): void {
       }
 
       const ast = await stateManager.getAST(filePath)
+
+      // Update indexes for newly created daily note (Phase 7.2 fix)
+      if (created) {
+        try {
+          const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+          if (indexResult) {
+            sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+          }
+        } catch {
+          // updateIndexesForFile not yet available — silently ignore
+        }
+
+        // Embed new file in vector index
+        vectorManager.embedFile(filePath, content)
+      }
+
       return NoteDailyResultSchema.parse({
         path: filePath,
         ast,
@@ -678,6 +757,17 @@ export function registerNotesIPC(ctx: IPCContext): void {
       stateManager.setPendingWrite(filePath)
       await fs.writeFile(filePath, newContent, 'utf-8')
       stateManager.invalidateAST(filePath)
+
+      // Update indexes after properties write (Phase 7.2 fix)
+      try {
+        const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // updateIndexesForFile not yet available — silently ignore
+      }
+
       stateManager.clearPendingWrite(filePath)
 
       return PropertiesWriteResultSchema.parse({ success: true })
@@ -755,6 +845,20 @@ export function registerNotesIPC(ctx: IPCContext): void {
       }
 
       const ast = await stateManager.getAST(filePath)
+
+      // Update indexes for the newly created unique note (Phase 7.2 fix)
+      try {
+        const indexResult = await (stateManager as any).updateIndexesForFile?.(filePath)
+        if (indexResult) {
+          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+        }
+      } catch {
+        // updateIndexesForFile not yet available — silently ignore
+      }
+
+      // Embed new file in vector index
+      vectorManager.embedFile(filePath, content)
+
       return NoteUniqueResultSchema.parse({ path: filePath, ast })
     } catch (err) {
       const normalized = normalizeError(err, { vaultPath })

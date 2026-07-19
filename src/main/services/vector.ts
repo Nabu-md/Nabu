@@ -179,6 +179,26 @@ export class VectorManager {
   }
 
   /**
+   * Rename a file's vector in the Vectra index.
+   *
+   * Removes the old path entry and queues the new path for embedding.
+   * Does not throw — failures are logged and silently ignored.
+   */
+  async renameFile(oldPath: string, newPath: string, text: string): Promise<void> {
+    if (!this.index || this.embeddingsDisabled) return
+
+    // Remove old vector
+    try {
+      await this.index.deleteItem(oldPath)
+    } catch (err) {
+      this.log('error', `Failed to remove vector for "${oldPath}": ${String(err)}`)
+    }
+
+    // Queue new vector
+    this.embedFile(newPath, text)
+  }
+
+  /**
    * Return the current status of the vector index.
    *
    * When embeddings are disabled (model did not load), returns `disabled: true`

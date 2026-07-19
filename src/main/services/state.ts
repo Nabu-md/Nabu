@@ -15,7 +15,12 @@ import { visit } from 'unist-util-visit'
 
 import { parseFile } from './parser'
 import { buildGraph } from '@shared/graph'
-import { buildFullTextIndex, buildTagIndex } from '@shared/indexing'
+import {
+  buildFullTextIndex,
+  buildTagIndex,
+  removeFileFromFullTextIndex,
+  removeFileFromTagIndex
+} from '@shared/indexing'
 import {
   buildExtendedIndex,
   updateExtendedIndexForFile,
@@ -486,6 +491,92 @@ export class StateManager {
   /** Return the extended search index for the current vault. */
   getExtendedIndex(): ExtendedSearchIndex {
     return this.extendedIndex
+  }
+
+  /**
+   * Serialize the current in-memory indexes to plain objects for IPC transport
+   * without rebuilding. Used after incremental updates (delete, rename).
+   */
+  getSerializedIndexes(): {
+    ftIndex: Record<string, string[]>
+    tagIndex: Record<string, string[]>
+    extendedIndex: {
+      positions: Record<string, Record<string, number[]>>
+      lineSnippets: Record<string, string[]>
+      tagIndex: Record<string, string[]>
+      aliasIndex: Record<string, string[]>
+      propertyIndex: Record<string, Record<string, string[]>>
+      blockRefs: Record<string, Record<string, string>>
+    }
+  } {
+    const ftIndexObj: Record<string, string[]> = {}
+    for (const [k, v] of this.fullTextIndex) ftIndexObj[k] = Array.from(v)
+
+    const tagIndexObj: Record<string, string[]> = {}
+    for (const [k, v] of this.tagIndex) tagIndexObj[k] = Array.from(v)
+
+    const extendedIndexObj = serializeExtendedIndex(this.extendedIndex)
+
+    return { ftIndex: ftIndexObj, tagIndex: tagIndexObj, extendedIndex: extendedIndexObj }
+  }
+
+  // -------------------------------------------------------------------------
+  // Incremental index removal (for delete/rename operations)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Remove all in-memory index entries for `filePath` without re-parsing.
+   * Used by delete and rename operations where the file is no longer needed
+   * in the index (or will be re-indexed under a new path).
+   */
+  removeFileFromIndexes(filePath: string): void {
+    removeFileFromFullTextIndex(this.fullTextIndex, filePath)
+    removeFileFromTagIndex(this.tagIndex, filePath)
+    updateExtendedIndexForFile(this.extendedIndex, filePath, undefined)
+  }
+
+  /**
+   * Update the vault file list to reflect a rename: replace `oldPath` with
+   * `newPath` in `currentVault.files`.
+   */
+  renameFileInVault(oldPath: string, newPath: string): void {
+    if (!this.currentVault) return
+    const file = this.currentVault.files.find((f) => f.path === oldPath)
+    if (file) {
+      file.path = newPath
+      file.name = path.basename(newPath, '.md')
+    }
+  }
+
+  /**
+   * Perform a full rename operation on the indexes:
+   * 1. Remove all entries for the old path
+   * 2. Update the vault file list
+   * 3. Re-index the file under its new path
+   *
+   * Returns the updated index data for IPC transport.
+   */
+  async renameFile(oldPath: string, newPath: string): Promise<{
+    ftIndex: Record<string, string[]>
+    tagIndex: Record<string, string[]>
+    edges: Edge[]
+    extendedIndex: {
+      positions: Record<string, Record<string, number[]>>
+      lineSnippets: Record<string, string[]>
+      tagIndex: Record<string, string[]>
+      aliasIndex: Record<string, string[]>
+      propertyIndex: Record<string, Record<string, string[]>>
+      blockRefs: Record<string, Record<string, string>>
+    }
+  }> {
+    // 1. Remove old path from all indexes
+    this.removeFileFromIndexes(oldPath)
+
+    // 2. Update vault file list
+    this.renameFileInVault(oldPath, newPath)
+
+    // 3. Re-index under new path
+    return this.updateIndexesForFile(newPath)
   }
 }
 

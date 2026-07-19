@@ -145,7 +145,7 @@ export class VaultService {
    * Trigger an index build if the StateManager supports it, pushing the result
    * to the renderer. Guarded so missing support is silently ignored.
    */
-  private async triggerIndexBuild(): Promise<void> {
+  private async triggerIndexBuild(): Promise<unknown | null> {
     try {
       const indexResult = await (this.stateManager as any).buildIndexes?.()
       if (indexResult) {
@@ -159,8 +159,10 @@ export class VaultService {
           payload: indexResult
         })
       }
+      return indexResult ?? null
     } catch {
       // buildIndexes not yet available — silently ignore
+      return null
     }
   }
 
@@ -445,6 +447,9 @@ export class VaultService {
       // that previously lived here).
       this.registerAndWatch(vaultPath, vaultMeta)
 
+      // Build indexes before creating the window so we can send them on load (Phase 7.2 fix)
+      const indexResult = await this.triggerIndexBuild()
+
       // Create a new BrowserWindow for this vault (Req 22.7)
       const newWindow = new BrowserWindow({
         width: 1200,
@@ -470,8 +475,11 @@ export class VaultService {
         newWindow.show()
       })
 
-      // Send vault state to the new window
+      // Send vault state and indexes to the new window
       newWindow.webContents.once('did-finish-load', () => {
+        if (indexResult) {
+          newWindow.webContents.send(IPCChannel.INDEX_BUILD, indexResult)
+        }
         sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath, files: vaultMeta.files })
       })
 
@@ -557,9 +565,16 @@ export class VaultService {
     // Register vault session + start the file watcher through the single
     // owner path (Phase 4.3 — was previously an inline watcher.start).
     this.registerAndWatch(testVaultPath, vaultMeta)
-    // Push vault state to the renderer. This may arrive before or after
+
+    // Build indexes for test vault (Phase 7.2 fix)
+    const indexResult = await this.triggerIndexBuild()
+
+    // Push vault state and indexes to the renderer. This may arrive before or after
     // React mounts. The renderer also polls via vault:get-current so
     // whichever path succeeds first wins.
+    if (indexResult) {
+      sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+    }
     sendToRenderer(IPCChannel.NOTES_LOADED, {
       vaultPath: testVaultPath,
       files: vaultMeta.files
