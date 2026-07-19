@@ -16,6 +16,7 @@ import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
 import { appEventBus } from '@shared/events'
+import { loadSettings } from './settings'
 import {
   startDictation,
   stopDictation,
@@ -438,6 +439,15 @@ class WidgetManager {
    * Clean up resources.
    */
   destroy(): void {
+    this.remove()
+  }
+
+  /**
+   * Remove the widget (lifecycle terminal state).
+   * Hides and closes the widget window, releasing all resources.
+   * This is the single authoritative removal path.
+   */
+  remove(): void {
     this.hide()
     if (this.widgetWindow && !this.widgetWindow.isDestroyed()) {
       this.widgetWindow.close()
@@ -475,10 +485,32 @@ class WidgetManager {
   }
 
   /**
-   * Set the keyboard shortcut for the widget.
+   * Set the keyboard shortcut for the widget (in-memory state owner).
+   * Persistence of the shortcut is owned by the settings layer; this method
+   * is the single in-memory owner and is the only place the runtime shortcut
+   * is mutated.
    */
   setShortcut(shortcut: string): void {
     this.state.currentShortcut = shortcut
+  }
+
+  /**
+   * Initialize / restore the widget lifecycle owner.
+   *
+   * This is the single authoritative entry point for the Persist + Restore
+   * lifecycle stages. It loads the persisted shortcut from settings and
+   * enables the widget. All other callers (IPC handlers, bootstrap) must
+   * route initialization through this method rather than duplicating the
+   * loadSettings → setEnabled sequence.
+   */
+  async initialize(): Promise<void> {
+    try {
+      const settings = await loadSettings()
+      this.setEnabled(true, settings.clipboardShortcut)
+    } catch (err) {
+      console.error('[WidgetManager] Failed to initialize widget:', err)
+      this.setEnabled(true)
+    }
   }
 }
 

@@ -100,7 +100,7 @@ export type AppEvents = {
 export const EVENT_OWNERSHIP: { [K in keyof AppEvents]: EventOwnership } = {
   VaultOpened: {
     publisher: 'Services (VaultService)',
-    subscribers: 'Services (VectorManager, VaultWatcher, WidgetService)'
+    subscribers: 'Services (VectorManager, VaultWatcher)'
   },
   VaultClosed: {
     publisher: 'Services (VaultService)',
@@ -116,7 +116,7 @@ export const EVENT_OWNERSHIP: { [K in keyof AppEvents]: EventOwnership } = {
   },
   WidgetRegistered: {
     publisher: 'Services (WidgetManager)',
-    subscribers: 'Services (WidgetService, DictationService)'
+    subscribers: 'Services (DictationService)'
   },
   DictationFinished: {
     publisher: 'Services (DictationService / Whisper)',

@@ -8,9 +8,13 @@
  * widget:set-shortcut).
  *
  * This is a pure structural extraction from the previous monolithic
- * `src/main/ipc.ts`, `src/main/services/widget-manager.ts`
- * (registerWidgetIPCHandlers), and `src/main/services/widget-service.ts`
- * (clipboard-history + widget:set-shortcut). Handler behavior is unchanged.
+ * `src/main/ipc.ts` and `src/main/services/widget-manager.ts`
+ * (registerWidgetIPCHandlers). Handler behavior is unchanged.
+ *
+ * Lifecycle ownership: every widget transition is delegated to the single
+ * authoritative owner, `widgetManager`. Initialization (Persist + Restore)
+ * is performed exclusively via `widgetManager.initialize()`; no other
+ * caller duplicates the loadSettings → setEnabled sequence.
  */
 
 import { ipcMain } from 'electron'
@@ -29,7 +33,7 @@ import { widgetManager } from '../services/widget-manager'
 import type { WidgetMode } from '../services/widget-manager'
 import type { WhisperModel } from '../services/whisper'
 import { ClipboardHistory } from '../services/clipboard-history'
-import { loadSettings } from '../services/settings'
+import { loadSettings, saveSettings } from '../services/settings'
 
 import type { IPCContext } from './context'
 import {
@@ -222,18 +226,19 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
   })
 
   ipcMain.handle('widget:set-shortcut', async (_event, { shortcut }: { shortcut: string }) => {
+    // Single authoritative entry for shortcut changes: update in-memory state
+    // via the lifecycle owner AND persist to settings so both paths agree.
     widgetManager.setShortcut(shortcut)
+    const current = await loadSettings()
+    await saveSettings({ ...current, clipboardShortcut: shortcut })
   })
 
-  // Widgets start enabled by default with saved shortcut.
-  loadSettings()
-    .then((s) => {
-      widgetManager.setEnabled(true, s.clipboardShortcut)
-    })
-    .catch((err) => {
-      console.error('[WidgetsIPC] Failed to load widget shortcut:', err)
-      widgetManager.setEnabled(true)
-    })
+  // Widget lifecycle initialization (Persist + Restore) is owned exclusively
+  // by WidgetManager.initialize(). This is the single init path; no other
+  // caller duplicates the loadSettings → setEnabled sequence.
+  widgetManager.initialize().catch((err) => {
+    console.error('[WidgetsIPC] Widget initialization failed:', err)
+  })
 }
 
 /**
