@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 #### Phase 12 — Graph View Modes
 - **Tag View mode** — visualize tag co-occurrence as nodes in the graph with color-coded tags
-- **Blocks View mode** — placeholder for future block reference visualization
+- **Blocks View mode** — visualize block references (`^id` definitions linked from `[[Note#^id]]` links) as a graph of notes and their blocks
 
 #### Phase 13 — macOS Vision OCR Pipeline
 - **Automatic OCR** — extract text from images using macOS Vision framework on file add

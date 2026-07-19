@@ -10,7 +10,9 @@ import {
   computeTagNodeRadius,
   getTagNodeColor,
   getTagDisplayLabel,
-  getTagRecentNotes
+  getTagRecentNotes,
+  computeBlockGraph,
+  extractBlockRefLinks
 } from '../../src/shared/graph-utils'
 import type { ExtendedSearchIndex } from '../../src/shared/extended-indexing'
 import type { FileEntry } from '../../src/shared/types'
@@ -240,5 +242,92 @@ describe('getTagRecentNotes', () => {
     expect(result.length).toBe(2)
     expect(result[0].name).toBe('note1.md')
     expect(result[1].name).toBe('note2.md')
+  })
+})
+
+describe('extractBlockRefLinks', () => {
+  it('extracts a single block reference link', () => {
+    const content = 'See [[Note Name#^block-1]] for details.'
+    const links = extractBlockRefLinks(content)
+
+    expect(links).toEqual([{ targetNote: 'Note Name', blockId: 'block-1' }])
+  })
+
+  it('extracts embed-style block references', () => {
+    const content = '![[Other Note#^abc]] and [[Note#^xyz]]'
+    const links = extractBlockRefLinks(content)
+
+    expect(links).toEqual([
+      { targetNote: 'Other Note', blockId: 'abc' },
+      { targetNote: 'Note', blockId: 'xyz' }
+    ])
+  })
+
+  it('deduplicates repeated block references', () => {
+    const content = '[[Note#^same]] and again [[Note#^same]]'
+    const links = extractBlockRefLinks(content)
+
+    expect(links).toEqual([{ targetNote: 'Note', blockId: 'same' }])
+  })
+
+  it('returns empty array when no block references present', () => {
+    const content = 'A plain [[wiki link]] with no block ref.'
+    const links = extractBlockRefLinks(content)
+
+    expect(links).toEqual([])
+  })
+})
+
+describe('computeBlockGraph', () => {
+  const blockRefs: Record<string, Record<string, string>> = {
+    '/vault/source.md': { 'block-a': 'L10', 'block-b': 'L20' },
+    '/vault/target.md': { 'block-x': 'L5' }
+  }
+
+  it('creates a node per defined block and links it to its owner note (Req 38.6)', () => {
+    const graph = computeBlockGraph(blockRefs, [])
+
+    // 2 note nodes + 3 block nodes
+    expect(graph.nodes.length).toBe(5)
+
+    const blockNode = graph.nodes.find((n) => n.id === '/vault/source.md#^block-a')
+    expect(blockNode).toBeDefined()
+    expect(blockNode?.isBlock).toBe(true)
+    expect(blockNode?.ownerPath).toBe('/vault/source.md')
+    expect(blockNode?.line).toBe(10)
+
+    // Each block should have an edge from its owning note
+    expect(
+      graph.edges.some(
+        (e) => e.source === '/vault/source.md' && e.target === '/vault/source.md#^block-a'
+      )
+    ).toBe(true)
+  })
+
+  it('adds cross-note reference edges to defined blocks (Req 38.6)', () => {
+    const refs = [{ source: '/vault/source.md', targetNote: '/vault/target.md', blockId: 'block-x' }]
+    const graph = computeBlockGraph(blockRefs, refs)
+
+    expect(
+      graph.edges.some(
+        (e) => e.source === '/vault/source.md' && e.target === '/vault/target.md#^block-x'
+      )
+    ).toBe(true)
+  })
+
+  it('ignores references to undefined blocks', () => {
+    const refs = [{ source: '/vault/source.md', targetNote: 'target.md', blockId: 'does-not-exist' }]
+    const graph = computeBlockGraph(blockRefs, refs)
+
+    expect(
+      graph.edges.some((e) => e.target === '/vault/target.md#^does-not-exist')
+    ).toBe(false)
+  })
+
+  it('returns only note nodes when no blocks are defined', () => {
+    const graph = computeBlockGraph({}, [])
+
+    expect(graph.nodes.length).toBe(0)
+    expect(graph.edges.length).toBe(0)
   })
 })
