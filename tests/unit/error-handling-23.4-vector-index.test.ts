@@ -81,7 +81,7 @@ vi.mock('@xenova/transformers', () => {
 // ---------------------------------------------------------------------------
 // Module under test (imported after mocks are registered)
 // ---------------------------------------------------------------------------
-import { VectorManager } from '@main/vector'
+import { VectorManager } from '@main/services/vector'
 
 // ---------------------------------------------------------------------------
 // Test helpers

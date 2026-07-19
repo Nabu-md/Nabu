@@ -16,8 +16,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 // ── Module under test ──────────────────────────────────────────────────────
-import { StateManager } from '@main/state'
-import { VaultWatcher, type WatcherConfig } from '@main/watcher'
+import { StateManager } from '@main/services/state'
+import { VaultWatcher, type WatcherConfig } from '@main/services/watcher'
 
 // ── chokidar mock ──────────────────────────────────────────────────────────
 vi.mock('chokidar', () => {

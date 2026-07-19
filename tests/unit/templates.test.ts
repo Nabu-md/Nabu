@@ -6,7 +6,7 @@
 
 import { describe, it } from 'vitest'
 import * as fc from 'fast-check'
-import { substituteVariables } from '../../src/main/templates'
+import { substituteVariables } from '../../src/main/services/templates'
 
 // ---- Generators ----
 

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { generateUniqueNoteName, substituteUniqueNoteVariables } from '../../src/main/unique-note'
+import { generateUniqueNoteName, substituteUniqueNoteVariables } from '../../src/main/services/unique-note'
 
 describe('generateUniqueNoteName', () => {
   it('generates default YYYYMMDDHHmmss format', () => {

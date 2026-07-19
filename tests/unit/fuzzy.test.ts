@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { matchScore, fuzzySearch, type FuzzyItem } from '../../src/renderer/src/utils/fuzzy'
+import { matchScore, fuzzySearch, type FuzzyItem } from '../../src/renderer/src/features/search/fuzzy'
 
 // ---------------------------------------------------------------------------
 // matchScore — core matching algorithm

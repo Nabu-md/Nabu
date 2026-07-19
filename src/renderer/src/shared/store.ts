@@ -324,7 +324,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const existingTab = state.openTabs.find((t) => t.path === path)
       if (existingTab) {
         // Tab exists, just activate it
-        return syncActiveAliases({ ...state, activeTabId: existingTab.id })
+        return {
+          ...syncActiveAliases({ ...state, activeTabId: existingTab.id }),
+          currentFile: existingTab.path,
+          currentAST: existingTab.ast
+        }
       }
       // Create new tab
       const newTab: Tab = {
@@ -336,11 +340,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         scrollTop: 0,
         cursor: 0
       }
-      return syncActiveAliases({
-        ...state,
-        openTabs: [...state.openTabs, newTab],
-        activeTabId: newTab.id
-      })
+      return {
+        ...syncActiveAliases({
+          ...state,
+          openTabs: [...state.openTabs, newTab],
+          activeTabId: newTab.id
+        }),
+        currentFile: newTab.path,
+        currentAST: newTab.ast
+      }
     }
 
     case 'TAB_CLOSED': {
@@ -351,24 +359,34 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
       // Determine new active tab
       let newActiveTabId: string | null = state.activeTabId
+      let newActiveTab: Tab | null = null
       if (wasActive && remainingTabs.length > 0) {
         // Activate the next tab (or previous if closing last)
         const newIndex = Math.min(tabIndex, remainingTabs.length - 1)
         newActiveTabId = remainingTabs[newIndex]?.id ?? null
+        newActiveTab = remainingTabs[newIndex] ?? null
       }
 
-      return syncActiveAliases({
-        ...state,
-        openTabs: remainingTabs,
-        activeTabId: newActiveTabId
-      })
+      return {
+        ...syncActiveAliases({
+          ...state,
+          openTabs: remainingTabs,
+          activeTabId: newActiveTabId
+        }),
+        currentFile: newActiveTab?.path ?? null,
+        currentAST: newActiveTab?.ast ?? null
+      }
     }
 
     case 'TAB_ACTIVATED': {
       const { tabId } = action.payload
       const activatedTab = state.openTabs.find((t) => t.id === tabId)
       if (!activatedTab) return state
-      return syncActiveAliases({ ...state, activeTabId: tabId })
+      return {
+        ...syncActiveAliases({ ...state, activeTabId: tabId }),
+        currentFile: activatedTab.path,
+        currentAST: activatedTab.ast
+      }
     }
 
     case 'TAB_UPDATED': {
@@ -376,7 +394,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const updatedTabs = state.openTabs.map((tab) =>
         tab.id === tabId ? { ...tab, ...patch } : tab
       )
-      return syncActiveAliases({ ...state, openTabs: updatedTabs })
+      const updatedActive = updatedTabs.find((t) => t.id === state.activeTabId) ?? null
+      return {
+        ...syncActiveAliases({ ...state, openTabs: updatedTabs }),
+        // Keep currentFile/currentAST in sync when the active tab is patched.
+        currentFile:
+          state.activeTabId === tabId ? (updatedActive?.path ?? state.currentFile) : state.currentFile,
+        currentAST:
+          state.activeTabId === tabId ? (updatedActive?.ast ?? state.currentAST) : state.currentAST
+      }
     }
 
     // Backward-compatible FILE_LOADED (used by existing IPC handler)

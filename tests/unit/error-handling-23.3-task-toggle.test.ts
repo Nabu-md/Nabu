@@ -16,7 +16,7 @@ import { tmpdir, platform } from 'os'
 import { join } from 'path'
 
 // ── Module under test ──────────────────────────────────────────────────────
-import { StateManager } from '@main/state'
+import { StateManager } from '@main/services/state'
 
 // ---------------------------------------------------------------------------
 // Helpers

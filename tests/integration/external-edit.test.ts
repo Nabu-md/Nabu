@@ -21,11 +21,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EventEmitter } from 'events'
-import type { WatcherConfig } from '@main/watcher'
-import { VaultWatcher } from '@main/watcher'
-import { StateManager } from '@main/state'
-import { appReducer } from '@renderer/App'
-import type { AppState, AppAction } from '@renderer/App'
+import type { WatcherConfig } from '@main/services/watcher'
+import { VaultWatcher } from '@main/services/watcher'
+import { StateManager } from '@main/services/state'
+import { appReducer } from '@renderer/shared/store'
+import type { AppState, AppAction } from '@renderer/shared/store'
 
 // ---------------------------------------------------------------------------
 // Top-level chokidar mock — must be at module level so Vitest hoisting works.
@@ -50,7 +50,6 @@ function makeInitialState(): AppState {
     currentAST: null,
     toggleStates: new Map(),
     contextPaneOpen: false,
-    activityLog: [],
     contextResults: []
   }
 }
@@ -268,72 +267,120 @@ describe('Part 1 — VaultWatcher debounce and Pending_Write_Lock', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Part 2 — Renderer reducer: ActivityTimeline recording
+// Part 2 — Renderer: ActivityTimeline recording (Req 6.5)
+//
+// The activity log was moved out of the app reducer (Phase 5.2/5.3 state
+// cleanup) into the widget service (`widgetService`), which subscribes to the
+// `activity:log` IPC channel and exposes entries via `subscribeActivity`.
+// These tests verify the current implementation of Req 6.5.
 // ---------------------------------------------------------------------------
 
-describe('Part 2 — Renderer reducer: ActivityTimeline recording (Req 6.5)', () => {
-  // -------------------------------------------------------------------------
-  // Test 5 — AST_UPDATED with isExternal adds ActivityEntry (Req 6.5)
-  // -------------------------------------------------------------------------
-  it('adds ActivityEntry with { filePath, timestamp, isExternal: true } on external note:updated (Req 6.5)', () => {
-    const state = makeInitialState()
+// widgetService pulls in the preload bridge (window.electron) at module load.
+// It is imported dynamically inside the test after a minimal window stub is
+// installed, so the renderer module can be evaluated in the node test env.
 
-    // Simulate receiving note:updated (isExternal: true) — App.tsx dispatches
-    // AST_UPDATED + ACTIVITY_ADD when it receives the IPC message.
-    const timestamp = 1700000000000
-    vi.setSystemTime(timestamp)
+describe('Part 2 — Renderer: ActivityTimeline recording (Req 6.5)', () => {
+  let recordExternalActivity: (filePath: string) => void
+  let subscribeActivity: (cb: (entries: any[]) => void) => () => void
 
-    const afterAstUpdate = appReducer(state, {
-      type: 'AST_UPDATED',
-      payload: { path: '/vault/note.md', ast: MOCK_AST as any, isExternal: true }
-    })
-
-    const afterActivityAdd = appReducer(afterAstUpdate, {
-      type: 'ACTIVITY_ADD',
-      payload: { filePath: '/vault/note.md', timestamp, isExternal: true }
-    })
-
-    expect(afterActivityAdd.activityLog).toHaveLength(1)
-    const entry = afterActivityAdd.activityLog[0]
-    expect(entry.filePath).toBe('/vault/note.md')
-    expect(entry.timestamp).toBe(timestamp)
-    expect(entry.isExternal).toBe(true)
-
-    vi.useRealTimers()
+  beforeAll(async () => {
+    const noop = () => {}
+    const asyncNoop = async () => {}
+    ;(globalThis as any).window = {
+      electron: {
+        vault: { open: asyncNoop, close: asyncNoop, switch: asyncNoop, getRecents: asyncNoop, getCurrent: asyncNoop, create: asyncNoop, scan: asyncNoop, openInNewWindow: asyncNoop },
+        file: { get: asyncNoop, readAsset: asyncNoop },
+        pdf: { open: asyncNoop, renderPage: asyncNoop, loadAnnotations: asyncNoop, saveAnnotations: asyncNoop },
+        dictation: { start: asyncNoop, stop: asyncNoop, status: asyncNoop, downloadModel: asyncNoop },
+        folder: { create: asyncNoop },
+        note: { create: asyncNoop, save: asyncNoop, rename: asyncNoop, delete: asyncNoop, getRaw: asyncNoop, exportHtml: asyncNoop, daily: asyncNoop },
+        favorites: { get: asyncNoop, toggle: asyncNoop, remove: asyncNoop },
+        templates: { list: asyncNoop },
+        settings: { get: asyncNoop, set: asyncNoop, getFeatureToggles: asyncNoop, setFeatureToggle: asyncNoop },
+        task: { toggle: asyncNoop },
+        context: { query: asyncNoop, reindex: asyncNoop, status: asyncNoop },
+        search: { query: asyncNoop },
+        properties: { read: asyncNoop, write: asyncNoop },
+        viewState: { getFold: asyncNoop, setFold: asyncNoop },
+        kanban: { getData: asyncNoop, setStatus: asyncNoop },
+        clipboardHistory: { get: asyncNoop, clear: asyncNoop, copy: asyncNoop },
+        widget: { setShortcut: asyncNoop },
+        on: {
+          noteLoaded: noop,
+          noteOpenRequested: noop,
+          noteUpdated: noop,
+          noteDeleted: noop,
+          contextSearch: noop,
+          activityLog: noop,
+          vaultOpened: noop,
+          notesLoaded: noop,
+          focusSearch: noop,
+          openSettings: noop,
+          setupCreate: noop,
+          setupOpen: noop,
+          showClipboard: noop,
+          indexBuild: noop,
+          dictationDownloadProgress: noop,
+          widgetModeChanged: noop,
+          widgetDictationStarting: noop,
+          widgetDictationComplete: noop,
+          widgetDictationError: noop,
+          widgetInsertText: noop
+        }
+      }
+    }
+    const mod = await import('@renderer/features/widgets/widgetService')
+    recordExternalActivity = mod.recordExternalActivity
+    subscribeActivity = mod.subscribeActivity
   })
 
-  // -------------------------------------------------------------------------
-  // Test 6 — isExternal flag: external vs internal write (Req 6.5)
-  // -------------------------------------------------------------------------
-  it('records isExternal: false for Nabu-initiated (internal) writes (Req 6.5)', () => {
-    const state = makeInitialState()
-
-    // Internal write: isExternal is false (or undefined → defaults to false)
-    const afterActivityAdd = appReducer(state, {
-      type: 'ACTIVITY_ADD',
-      payload: { filePath: '/vault/note.md', timestamp: Date.now(), isExternal: false }
+  it('records an external ActivityEntry with isExternal: true (Req 6.5)', () => {
+    const entries: Array<{ filePath: string; timestamp: number; isExternal: boolean }> = []
+    const unsub = subscribeActivity((e) => {
+      entries.length = 0
+      entries.push(...e)
     })
 
-    expect(afterActivityAdd.activityLog).toHaveLength(1)
-    expect(afterActivityAdd.activityLog[0].isExternal).toBe(false)
+    recordExternalActivity('/vault/note.md')
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0].filePath).toBe('/vault/note.md')
+    expect(entries[0].isExternal).toBe(true)
+
+    unsub()
   })
 
-  it('records isExternal: true for external edits and isExternal: false for internal (Req 6.5)', () => {
-    let state = makeInitialState()
-    const now = Date.now()
+  it('prepends the most recent entry first (Req 6.5)', () => {
+    const entries: Array<{ filePath: string; timestamp: number; isExternal: boolean }> = []
+    const unsub = subscribeActivity((e) => {
+      entries.length = 0
+      entries.push(...e)
+    })
 
-    state = appReducer(state, {
-      type: 'ACTIVITY_ADD',
-      payload: { filePath: '/vault/note.md', timestamp: now, isExternal: true }
-    })
-    state = appReducer(state, {
-      type: 'ACTIVITY_ADD',
-      payload: { filePath: '/vault/other.md', timestamp: now + 1, isExternal: false }
-    })
+    recordExternalActivity('/vault/note.md')
+    recordExternalActivity('/vault/other.md')
 
     // Most recent entry is first (prepended)
-    expect(state.activityLog[0].isExternal).toBe(false)
-    expect(state.activityLog[1].isExternal).toBe(true)
+    expect(entries[0].filePath).toBe('/vault/other.md')
+    expect(entries[1].filePath).toBe('/vault/note.md')
+
+    unsub()
+  })
+
+  it('caps activityLog at 100 entries (Req 6.5)', () => {
+    const entries: Array<{ filePath: string; timestamp: number; isExternal: boolean }> = []
+    const unsub = subscribeActivity((e) => {
+      entries.length = 0
+      entries.push(...e)
+    })
+
+    for (let i = 0; i < 105; i++) {
+      recordExternalActivity(`/vault/note${i}.md`)
+    }
+
+    expect(entries).toHaveLength(100)
+
+    unsub()
   })
 
   // -------------------------------------------------------------------------
@@ -364,20 +411,7 @@ describe('Part 2 — Renderer reducer: ActivityTimeline recording (Req 6.5)', ()
     expect(afterUpdate.currentAST).toBe(originalAst)
   })
 
-  // -------------------------------------------------------------------------
-  // Test: ActivityLog is capped at 100 entries
-  // -------------------------------------------------------------------------
-  it('caps activityLog at 100 entries', () => {
-    let state = makeInitialState()
-    for (let i = 0; i < 105; i++) {
-      state = appReducer(state, {
-        type: 'ACTIVITY_ADD',
-        payload: { filePath: `/vault/note${i}.md`, timestamp: i, isExternal: false }
-      })
-    }
-    expect(state.activityLog).toHaveLength(100)
   })
-})
 
 // ---------------------------------------------------------------------------
 // Part 3 — FileTree animation logic (Req 6.6)

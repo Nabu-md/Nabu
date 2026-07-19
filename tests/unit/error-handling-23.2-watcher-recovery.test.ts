@@ -51,7 +51,7 @@ vi.mock('chokidar', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-import { VaultWatcher, type WatcherConfig } from '@main/watcher'
+import { VaultWatcher, type WatcherConfig } from '@main/services/watcher'
 
 function makeConfig(overrides: Partial<WatcherConfig> = {}): WatcherConfig {
   return {

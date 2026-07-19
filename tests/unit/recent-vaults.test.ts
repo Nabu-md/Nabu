@@ -12,7 +12,7 @@ import {
   DEFAULT_SETTINGS,
   AppSettings,
   RecentVaultEntry
-} from '../../src/main/settings'
+} from '../../src/main/services/settings'
 
 // ---------------------------------------------------------------------------
 // Helper

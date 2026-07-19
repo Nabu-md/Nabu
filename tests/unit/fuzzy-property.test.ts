@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest'
 import * as fc from 'fast-check'
-import { fuzzySearch, type FuzzyItem } from '../../src/renderer/src/utils/fuzzy'
+import { fuzzySearch, type FuzzyItem } from '../../src/renderer/src/features/search/fuzzy'
 
 // ---------------------------------------------------------------------------
 // Generators

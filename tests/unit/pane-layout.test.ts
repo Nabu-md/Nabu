@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { appReducer, type AppState, type Workspace } from '../../src/renderer/src/App'
+import { appReducer, type AppState, type Workspace } from '../../src/renderer/src/shared/store'
 import type { Root } from 'mdast'
 
 // Helper to create a complete initial state

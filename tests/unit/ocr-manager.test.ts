@@ -33,7 +33,7 @@ vi.mock('fs/promises', () => ({
   }
 }))
 
-import { isImageFile } from '../../src/main/ocr-manager'
+import { isImageFile } from '../../src/main/services/ocr-manager'
 
 describe('isImageFile', () => {
   it('returns true for PNG files', () => {

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { appReducer, type AppState, type AppAction } from '../../src/renderer/src/App'
+import { appReducer, type AppState, type AppAction } from '../../src/renderer/src/shared/store'
 import type { Root } from 'mdast'
 
 // ---------------------------------------------------------------------------

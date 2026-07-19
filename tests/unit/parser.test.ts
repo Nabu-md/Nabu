@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { writeFile, unlink, mkdtemp } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { parseFile, serializeAST, getASTMeta } from '@main/parser'
+import { parseFile, serializeAST, getASTMeta } from '@main/services/parser'
 import type { Root } from 'mdast'
 
 // ---------------------------------------------------------------------------

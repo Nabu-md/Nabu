@@ -20,7 +20,7 @@ import { readdirSync } from 'fs'
 import { writeFile, mkdir, rm } from 'fs/promises'
 import { join, resolve } from 'path'
 import { tmpdir } from 'os'
-import { parseFile, serializeAST } from '@main/parser'
+import { parseFile, serializeAST } from '@main/services/parser'
 import type { Root } from 'mdast'
 
 // ---------------------------------------------------------------------------

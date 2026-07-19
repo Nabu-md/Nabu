@@ -9,7 +9,7 @@ import {
   getCommands,
   resetRegistry,
   seedPaneCommands
-} from '../../src/renderer/src/commands/registry'
+} from '../../src/renderer/src/shared/commands/registry'
 
 // ---------------------------------------------------------------------------
 // Tests

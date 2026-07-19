@@ -14,7 +14,7 @@ import {
   unregisterCommand,
   seedCommands,
   type Command
-} from '../../src/renderer/src/commands/registry'
+} from '../../src/renderer/src/shared/commands/registry'
 
 // ---------------------------------------------------------------------------
 // Helpers

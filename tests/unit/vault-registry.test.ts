@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { VaultRegistry, type VaultSession } from '../../src/main/vault-registry'
+import { VaultRegistry, type VaultSession } from '../../src/main/services/vault-registry'
 import type { VaultMetadata, FileEntry } from '../../src/shared/types'
 
 // Mock types for testing - partial interfaces

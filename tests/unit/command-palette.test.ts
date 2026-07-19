@@ -15,8 +15,8 @@ import {
   registerCommand,
   getCommands,
   type Command
-} from '../../src/renderer/src/commands/registry'
-import { matchScore } from '../../src/renderer/src/utils/fuzzy'
+} from '../../src/renderer/src/shared/commands/registry'
+import { matchScore } from '../../src/renderer/src/features/search/fuzzy'
 
 // ---------------------------------------------------------------------------
 // Helpers

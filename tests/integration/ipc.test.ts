@@ -53,6 +53,13 @@ const mockWin = {
 }
 
 vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn((name: string) => `/mock/userData/${name}`)
+  },
+  clipboard: {
+    readText: vi.fn(() => ''),
+    writeText: vi.fn()
+  },
   ipcMain: {
     handle: vi.fn((channel: string, handler: Function) => {
       mockHandlers.set(channel, handler)
@@ -127,7 +134,12 @@ const mockWatcher = {
 // Import ipc.ts AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { registerIPCHandlers, sendToRenderer, setLegacyManagers } from '../../src/main/ipc'
+import {
+  registerAllIPC,
+  createIPCContext,
+  sendToRenderer,
+  setLegacyManagers
+} from '../../src/main/ipc'
 
 // ---------------------------------------------------------------------------
 // Helper: invoke a registered ipcMain handler as if called from renderer
@@ -148,7 +160,9 @@ beforeEach(() => {
   mockHandlers.clear()
   mockSentMessages.length = 0
 
-  registerIPCHandlers(mockStateManager as any, mockVectorManager as any, mockWatcher as any)
+  registerAllIPC(
+    createIPCContext(mockStateManager as any, mockVectorManager as any, mockWatcher as any)
+  )
 
   // Set legacy managers for backward compatibility dispatch (Req 22.3)
   setLegacyManagers(mockStateManager as any, mockVectorManager as any, mockWatcher as any)
