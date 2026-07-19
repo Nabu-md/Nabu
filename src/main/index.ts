@@ -83,8 +83,11 @@ export function createWindow(bounds?: AppSettings['windowBounds']): BrowserWindo
   })
 
   // Load renderer: dev server URL or built file
-  if (process.env['VITE_DEV_SERVER_URL']) {
-    mainWindow.loadURL(process.env['VITE_DEV_SERVER_URL']).catch((err) => {
+  // electron-vite v5 exposes the renderer dev server URL via ELECTRON_RENDERER_URL
+  // (older electron-vite versions used VITE_DEV_SERVER_URL).
+  const rendererDevUrl = process.env['ELECTRON_RENDERER_URL'] ?? process.env['VITE_DEV_SERVER_URL']
+  if (rendererDevUrl) {
+    mainWindow.loadURL(rendererDevUrl).catch((err) => {
       console.error('[Window] Failed to load dev server URL:', err)
     })
   } else {
