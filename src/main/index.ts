@@ -18,19 +18,18 @@ import {
   MenuItemConstructorOptions
 } from 'electron'
 import * as path from 'path'
-import fs from 'fs/promises'
 
 import { StateManager } from './services/state'
 import { VectorManager } from './services/vector'
 import { VaultWatcher } from './services/watcher'
-import { registerIPCHandlers, sendToRenderer, buildWatcherConfig, onWidgetToggle } from './ipc'
+import { registerIPCHandlers, onWidgetToggle } from './ipc'
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './services/settings'
 import { fnMonitor } from './services/fn-monitor'
 import { registerWidgetIPCHandlers, wireFnMonitorToWidget, widgetManager } from './services/widget-manager'
 import type { AppSettings } from './services/settings'
-import { ClipboardHistory } from './services/clipboard-history'
-import { vaultRegistry } from './services/vault-registry'
+import { VaultService } from './services/vault-service'
+import { WidgetService } from './services/widget-service'
 
 // ---------------------------------------------------------------------------
 // createWindow
@@ -293,66 +292,8 @@ export function registerMenu(mainWindow: BrowserWindow): void {
  *
  * Requirements: 1.7, 1.8
  */
-async function restoreVault(
-  stateManager: StateManager,
-  vectorManager: VectorManager,
-  watcher: VaultWatcher,
-  mainWindow: BrowserWindow
-): Promise<void> {
-  const settings = await loadSettings()
-
-  if (!settings.lastVaultPath) {
-    // No previously opened vault — renderer will show the picker
-    mainWindow.webContents.send(IPCChannel.VAULT_OPEN, { showPicker: true })
-    return
-  }
-
-  try {
-    // Check path is readable (Req 1.8)
-    await fs.access(settings.lastVaultPath, fs.constants.R_OK)
-  } catch {
-    // Path no longer accessible — show error then fall back to picker (Req 1.8)
-    await dialog
-      .showMessageBox(mainWindow, {
-        type: 'error',
-        title: 'Vault Not Found',
-        message: 'Could not reopen last vault',
-        detail: `"${settings.lastVaultPath}" no longer exists or is not readable.\n\nPlease select a different vault.`,
-        buttons: ['OK']
-      })
-      .catch(() => {})
-
-    // Clear the stale path so we don't retry on next launch
-    await saveSettings({ ...settings, lastVaultPath: null })
-
-    // Signal renderer to show vault picker (Req 1.6, 1.8)
-    mainWindow.webContents.send(IPCChannel.VAULT_OPEN, { showPicker: true })
-    return
-  }
-
-  try {
-    const vaultMeta = await stateManager.openVault(settings.lastVaultPath)
-
-    // Start the file watcher for the restored vault (uses shared config with vector embedding)
-    watcher.start(
-      buildWatcherConfig(stateManager, vectorManager, settings.lastVaultPath, vaultMeta)
-    )
-  } catch (err) {
-    console.error('[restoreVault] Failed to open vault:', err)
-
-    await dialog
-      .showMessageBox(mainWindow, {
-        type: 'error',
-        title: 'Vault Error',
-        message: 'Failed to open vault',
-        detail: `${String(err)}\n\nPlease select a different vault.`,
-        buttons: ['OK']
-      })
-      .catch(() => {})
-
-    await saveSettings({ ...settings, lastVaultPath: null })
-    mainWindow.webContents.send(IPCChannel.VAULT_OPEN, { showPicker: true })
-  }
+async function restoreVault(vaultService: VaultService, mainWindow: BrowserWindow): Promise<void> {
+  await vaultService.restoreVault(mainWindow)
 }
 
 // ---------------------------------------------------------------------------
@@ -461,109 +402,33 @@ app.whenReady().then(async () => {
       .initialize({ indexPath: nabuDir, modelPath })
       .catch((err) => console.error('[App] Vector manager init failed:', err))
 
-    // ---- Clipboard widget: start history service + widget manager ----
-    const clipboardHistory = new ClipboardHistory()
-    clipboardHistory.start()
-
-    // Register clipboard IPC handlers (widget reads/writes clipboard via these)
-    ipcMain.handle('clipboard:history-get', async (_event, { max }) => {
-      const entries = clipboardHistory.getRecent(max ?? 8)
-      return { entries }
-    })
-    ipcMain.handle('clipboard:history-clear', async () => {
-      await clipboardHistory.clear()
-    })
-    ipcMain.handle('clipboard:history-copy', async (_event, { text }) => {
-      try {
-        clipboardHistory.copyToClipboard(text)
-        return { success: true }
-      } catch (err) {
-        return { success: false, error: String(err) }
-      }
-    })
-
-    // Widget starts enabled by default with saved shortcut
-    loadSettings().then((s) => {
-      widgetManager.setEnabled(true, s.clipboardShortcut)
-    }).catch((err) => {
-      console.error('[App] Failed to load widget shortcut:', err)
-      widgetManager.setEnabled(true)
-    })
-
-    // Listen for shortcut changes from the Settings panel
-    ipcMain.handle('widget:set-shortcut', async (_event, { shortcut }: { shortcut: string }) => {
-      widgetManager.setShortcut(shortcut)
-    })
+    // ---- Widget service: start history service, register widget IPC handlers ----
+    // All widget lifecycle / coordination business logic now lives in
+    // WidgetService; bootstrap only initializes and delegates.
+    const widgetService = new WidgetService()
+    widgetService.registerIPCHandlers()
 
     // Wire feature-toggle changes for clipboard-widget to WidgetManager
     onWidgetToggle((enabled: boolean) => {
       widgetManager.setEnabled(enabled)
     })
-
-    // ---- Widget: create-note — saves a quick note to the active vault ----
-    ipcMain.handle('widget:create-note', async (_event, { name, content, timestamp }) => {
-      try {
-        const session = vaultRegistry.getActive()
-        if (!session) return { success: false, error: 'No vault open' }
-        const vaultPath = session.vaultPath
-        const now = new Date()
-        const safeName = timestamp
-          ? `${name} ${now.toISOString().slice(0, 10)} ${now.toTimeString().slice(0, 8).replace(/:/g, '-')}`
-          : name
-        const filePath = path.join(vaultPath, `${safeName}.md`)
-        await fs.writeFile(filePath, content, 'utf-8')
-        void session.stateManager.invalidateAST(filePath)
-        return { success: true, path: filePath }
-      } catch (err) {
-        return { success: false, error: String(err) }
-      }
-    })
-
-    // ---- Widget: fetch-title — fetch a URL and extract the page title ----
-    ipcMain.handle('widget:fetch-title', async (_event, { url }) => {
-      try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 5000)
-        const response = await fetch(url, { signal: controller.signal })
-        clearTimeout(timeout)
-        const html = await response.text()
-        const match = html.match(/<title[^>]*>([^<]*)<\/title>/i)
-        return { title: match ? match[1].trim() : url }
-      } catch {
-        return { title: url }
-      }
-    })
-
-    // ---- Widget: open-note — tell the main window to open a file ----
-    ipcMain.handle('widget:open-note', (_event, { path: filePath }) => {
-      mainWindow.webContents.send('widget:open-note-request', { path: filePath })
-    })
   })
 
   // ---- Restore last vault once the renderer is ready ----
+  // VaultService owns the vault lifecycle business logic; bootstrap delegates.
+  const vaultService = new VaultService(stateManager, vectorManager, watcher)
   mainWindow.webContents.once('did-finish-load', () => {
     // Support NABU_TEST_VAULT env var for E2E test injection (bypasses persisted settings)
     const testVaultPath = process.env['NABU_TEST_VAULT']
     if (testVaultPath) {
-      stateManager
-        .openVault(testVaultPath)
-        .then((vaultMeta) => {
-          // Start the file watcher (uses shared config with vector embedding)
-          watcher.start(buildWatcherConfig(stateManager, vectorManager, testVaultPath, vaultMeta))
-          // Push vault state to the renderer. This may arrive before or after
-          // React mounts. The renderer also polls via vault:get-current so
-          // whichever path succeeds first wins.
-          sendToRenderer(IPCChannel.NOTES_LOADED, {
-            vaultPath: testVaultPath,
-            files: vaultMeta.files
-          })
-        })
+      vaultService
+        .openTestVault(testVaultPath)
         .catch((err) => {
           console.error('[App] NABU_TEST_VAULT open failed:', err)
         })
       return
     }
-    restoreVault(stateManager, vectorManager, watcher, mainWindow).catch((err) => {
+    restoreVault(vaultService, mainWindow).catch((err) => {
       console.error('[App] restoreVault error:', err)
     })
   })
