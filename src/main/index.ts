@@ -20,17 +20,17 @@ import {
 import * as path from 'path'
 import fs from 'fs/promises'
 
-import { StateManager } from './state'
-import { VectorManager } from './vector'
-import { VaultWatcher } from './watcher'
+import { StateManager } from './services/state'
+import { VectorManager } from './services/vector'
+import { VaultWatcher } from './services/watcher'
 import { registerIPCHandlers, sendToRenderer, buildWatcherConfig, onWidgetToggle } from './ipc'
 import { IPCChannel } from '../shared/channels'
-import { loadSettings, saveSettings } from './settings'
-import { fnMonitor } from './fn-monitor'
-import { registerWidgetIPCHandlers, wireFnMonitorToWidget, widgetManager } from './widget-manager'
-import type { AppSettings } from './settings'
-import { ClipboardHistory } from './clipboard-history'
-import { vaultRegistry } from './vault-registry'
+import { loadSettings, saveSettings } from './services/settings'
+import { fnMonitor } from './services/fn-monitor'
+import { registerWidgetIPCHandlers, wireFnMonitorToWidget, widgetManager } from './services/widget-manager'
+import type { AppSettings } from './services/settings'
+import { ClipboardHistory } from './services/clipboard-history'
+import { vaultRegistry } from './services/vault-registry'
 
 // ---------------------------------------------------------------------------
 // createWindow

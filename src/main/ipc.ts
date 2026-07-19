@@ -101,20 +101,20 @@ import {
 
 import { search } from '../shared/search-query'
 
-import { loadSettings, saveSettings } from './settings'
-import { substituteVariables } from './templates'
+import { loadSettings, saveSettings } from './services/settings'
+import { substituteVariables } from './services/templates'
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
-import { vaultRegistry } from './vault-registry'
-import { enqueueOCR, createOCRCompanionNote } from './ocr-manager'
-import { getPDFInfo, renderPDFPage } from './pdf-viewer'
-import { setFoldState, loadViewState } from './view-state'
+import { vaultRegistry } from './services/vault-registry'
+import { enqueueOCR, createOCRCompanionNote } from './services/ocr-manager'
+import { getPDFInfo, renderPDFPage } from './services/pdf-viewer'
+import { setFoldState, loadViewState } from './services/view-state'
 import { readBookmarks, addBookmark, removeBookmark } from './bookmarks'
-import { mergeNotes } from './composer'
-import { generateUniqueNoteName } from './unique-note'
+import { mergeNotes } from './services/composer'
+import { generateUniqueNoteName } from './services/unique-note'
 
-import type { StateManager } from './state'
-import type { VectorManager } from './vector'
-import type { VaultWatcher, WatcherConfig } from './watcher'
+import type { StateManager } from './services/state'
+import type { VectorManager } from './services/vector'
+import type { VaultWatcher, WatcherConfig } from './services/watcher'
 
 // ---------------------------------------------------------------------------
 // Legacy singleton managers — used for backward compatibility during migration
@@ -2031,7 +2031,7 @@ export function registerIPCHandlers(
     const { path: filePath } = validation.data
 
     try {
-      const { loadPDFAnnotations } = await import('./pdf-viewer')
+      const { loadPDFAnnotations } = await import('./services/pdf-viewer')
       const annotations = await loadPDFAnnotations(filePath)
       return PDFLoadAnnotationsResultSchema.parse({ annotations })
     } catch (err) {
@@ -2056,7 +2056,7 @@ export function registerIPCHandlers(
     const { path: filePath, annotations } = validation.data
 
     try {
-      const { savePDFAnnotations } = await import('./pdf-viewer')
+      const { savePDFAnnotations } = await import('./services/pdf-viewer')
       await savePDFAnnotations(filePath, annotations)
       return PDFSaveAnnotationsResultSchema.parse({ success: true })
     } catch (err) {
@@ -2083,7 +2083,7 @@ export function registerIPCHandlers(
     try {
       // Check if whisper binary is available
       const { isWhisperBinaryAvailable, isModelInstalled, downloadModel, startDictation } =
-        await import('./whisper')
+        await import('./services/whisper')
 
       if (!isWhisperBinaryAvailable()) {
         return DictationStartResultSchema.parse({
@@ -2179,7 +2179,7 @@ export function registerIPCHandlers(
     }
 
     try {
-      const { stopDictation } = await import('./whisper')
+      const { stopDictation } = await import('./services/whisper')
       // Stop dictation: send SIGTERM to mic-capture, which flushes and exits
       // Whisper will then finish transcription and resolve the promise
       stopDictation()
@@ -2204,7 +2204,7 @@ export function registerIPCHandlers(
     }
 
     try {
-      const { isWhisperBinaryAvailable, getModelStatus } = await import('./whisper')
+      const { isWhisperBinaryAvailable, getModelStatus } = await import('./services/whisper')
       const available = isWhisperBinaryAvailable()
 
       if (!available) {
@@ -2235,7 +2235,7 @@ export function registerIPCHandlers(
     const { model } = validation.data
 
     try {
-      const { downloadModel } = await import('./whisper')
+      const { downloadModel } = await import('./services/whisper')
 
       // Send progress updates to renderer
       const progressCallback = (progress: number) => {

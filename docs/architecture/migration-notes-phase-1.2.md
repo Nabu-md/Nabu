@@ -118,3 +118,81 @@ Rationale: innermost/additive first, most-entangled last, so breakage is localiz
 - [ ] `renderer/src/features/*` and `renderer/src/hooks/` scaffolding created.
 - [ ] Feature-by-feature move plan (Sections 2–3) followed with a build gate after each.
 - [ ] All imports updated; Gate A (build) green; smoke launch verified.
+
+---
+
+## 9. Phase 1.2 Completion Record (Structural Migration)
+
+> Executed as a **move-only** structural migration. No logic changed, no APIs renamed,
+> no abstractions introduced. `npm run typecheck` (Gate A) and `npm run build` both pass.
+
+### 9.1 Migration Summary (moved directories)
+
+| Original location | New location | Reason |
+| --- | --- | --- |
+| `src/main/vault-registry.ts`, `state.ts`, `watcher.ts` | `src/main/services/` | Vault capability staging (→ VaultService/IndexService in 1.3) |
+| `src/main/composer.ts`, `unique-note.ts`, `random-note.ts`, `templates.ts`, `parser.ts` | `src/main/services/` | Notes capability staging (→ NoteService/TemplateService) |
+| `src/main/vector.ts`, `bases.ts` | `src/main/services/` | Search capability staging (→ SearchService/IndexService) |
+| `src/main/pdf-viewer.ts`, `importers/pdf-importer.ts`, `importers/docx-importer.ts`, `importer-base.ts` | `src/main/services/` | PDF capability staging (→ PdfService) |
+| `src/main/widget-manager.ts`, `widget-template.ts`, `clipboard-history.ts` | `src/main/services/` | Widgets capability staging (→ WidgetService) |
+| `src/main/whisper.ts`, `fn-monitor.ts`, `audio-recorder.ts`, `ocr-manager.ts` | `src/main/services/` | Dictation/AI capability staging (→ DictationService) |
+| `src/main/settings.ts`, `view-state.ts` | `src/main/services/` | Settings capability staging (→ SettingsService) |
+| `src/renderer/src/components/GraphView.tsx`, `CytoscapeGraphView.tsx` | `src/renderer/src/features/graph/` | Graph feature ownership |
+| `src/renderer/src/components/SettingsPanel.tsx` | `src/renderer/src/features/settings/` | Settings feature ownership |
+| `src/renderer/src/components/SearchPanel.tsx`, `QuickSwitcher.tsx`, `CommandPalette.tsx`, `utils/fuzzy.ts` | `src/renderer/src/features/search/` | Search feature ownership |
+| `src/renderer/src/components/PdfViewer.tsx`, `blocks/SandboxedHtml.tsx` | `src/renderer/src/features/pdf/` | PDF feature ownership |
+| `src/renderer/src/components/DictationWidget.tsx`, `ActivityTimeline.tsx` | `src/renderer/src/features/widgets/` | Widgets feature ownership |
+| `src/renderer/src/components/FileTree.tsx`, `Sidebar.tsx`, `SetupWizard.tsx`, `FavoritesPanel.tsx`, `FavoriteToggle.tsx`, `TagsPanel.tsx`, `PaneLayout.tsx` | `src/renderer/src/features/vault/` | Vault feature ownership |
+| `src/renderer/src/components/NoteView.tsx`, `MarkdownEditor.tsx`, `OutlinePanel.tsx`, `FindReplaceBar.tsx`, `ContextPane.tsx`, `blocks/*`, `markdown/pipeline.ts` | `src/renderer/src/features/notes/` (+ `blocks/`, `markdown/`) | Notes feature ownership |
+| `src/shared/` | `src/shared/` (unchanged) | Already at target; no move required |
+
+**Not moved (per migration notes §2/§3):**
+- `src/main/index.ts`, `src/main/ipc.ts` — bootstrap & IPC handlers stay (split in 1.3/1.4).
+- `src/main/plugins/*` — remark re-export shims; markdown infra, not a feature; nothing imports them.
+- `src/renderer/src/components/icons.tsx`, `Versions.tsx` — shared UI, kept in `components/`.
+- `src/renderer/src/commands/` — cross-feature registry, kept at `renderer/src/commands/`.
+- `src/main/ipc/` — empty scaffold created; populated in Phase 1.3/1.4.
+
+### 9.2 Import Summary (categories updated)
+
+- **Main → services:** `src/main/index.ts` and `src/main/ipc.ts` updated `./state`, `./vector`,
+  `./watcher`, `./settings`, `./fn-monitor`, `./widget-manager`, `./clipboard-history`,
+  `./vault-registry`, `./templates`, `./ocr-manager`, `./pdf-viewer`, `./view-state`,
+  `./composer`, `./unique-note`, `./whisper` → `./services/<name>` (incl. dynamic `import()`).
+- **Services → shared:** all `../shared/*` inside `src/main/services/` → `../../shared/*`
+  (one extra `../` due to added `services/` depth).
+- **Importers:** `../importer-base` → `./importer-base` (same folder after move).
+- **Renderer App.tsx:** `./components/<X>` → `./features/<feature>/<X>` for all 11 feature components.
+- **Renderer feature files (depth +1):** `../App` → `../../App`; `../../../shared` → `../../../../shared`;
+  `./icons` → `../../components/icons`; `../commands/registry` → `../../commands/registry`;
+  `../utils/fuzzy` → `./fuzzy` (co-located in search feature).
+- **Renderer blocks (depth +2):** `../../App` → `../../../App`; `../../../shared` → `../../../../shared`.
+- **Cross-feature:** `NoteView` `./blocks/SandboxedHtml` → `../pdf/SandboxedHtml`;
+  `Sidebar` `./OutlinePanel` → `../notes/OutlinePanel`; `NoteView` `./FavoriteToggle` → `../vault/FavoriteToggle`.
+- **Aliases preserved:** `@shared/*`, `@main/*`, `@renderer/*` used unchanged (no new aliases introduced).
+
+### 9.3 Files Moved (relocated)
+
+Main services (23 files): `vault-registry.ts`, `state.ts`, `watcher.ts`, `composer.ts`,
+`unique-note.ts`, `random-note.ts`, `templates.ts`, `parser.ts`, `vector.ts`, `bases.ts`,
+`pdf-viewer.ts`, `pdf-importer.ts`, `docx-importer.ts`, `importer-base.ts`, `widget-manager.ts`,
+`widget-template.ts`, `clipboard-history.ts`, `whisper.ts`, `fn-monitor.ts`, `audio-recorder.ts`,
+`ocr-manager.ts`, `settings.ts`, `view-state.ts`.
+
+Renderer features (37 files): graph (2), settings (1), search (4), pdf (2), widgets (2),
+vault (7), notes (5 top-level + 11 blocks + 1 markdown/pipeline = 17).
+
+Shared: 0 moved (already at target).
+
+### 9.4 Verification
+
+- **Build status:** `npm run build` → exit 0 (electron-vite build succeeded).
+- **Compilation status:** `npm run typecheck` (Gate A) → exit 0; `typecheck:node` and
+  `typecheck:web` both clean, no `TS2307`/migration-related errors.
+- **Remaining migration issues:** none. No broken, duplicate, or stale imports detected in a
+  final scan. Behavior unchanged (move-only; no logic edits).
+
+> Note: `shared/models/` stubs and `renderer/src/hooks/` were listed as scaffolding in §8 but
+> are additive/deferred items not required for the structural move; the move itself is complete
+> and Gate A is green. Service extraction, IPC splitting, and `shared/models` split remain in
+> Phases 1.3 / 1.4 / later.
