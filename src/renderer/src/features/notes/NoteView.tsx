@@ -44,33 +44,22 @@ import { MarkdownEditor } from './MarkdownEditor'
 import katex from 'katex'
 // parseMarkdown imported but used via IPC for Live Preview mode
 // import { parseMarkdown } from './markdown/pipeline'
-
-// ---------------------------------------------------------------------------
-// Timeout constant
-// ---------------------------------------------------------------------------
-
-const IPC_TIMEOUT_MS = 3000
+import {
+  loadNoteFile as cmdLoadNoteFile,
+  saveNote as cmdSaveNote,
+  enterEditMode as cmdEnterEditMode,
+  exitEditMode as cmdExitEditMode,
+  exitLivePreviewMode as cmdExitLivePreviewMode,
+  navigateToNote as cmdNavigateToNote,
+  writeProperties as cmdWriteProperties,
+  persistHeadingFold as cmdPersistHeadingFold,
+  exportNoteHtml as cmdExportNoteHtml,
+  retryLoadNote as cmdRetryLoadNote
+} from './noteCommands'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Returns a promise that rejects after `ms` milliseconds. */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Request timed out')), ms)
-    promise.then(
-      (val) => {
-        clearTimeout(timer)
-        resolve(val)
-      },
-      (err) => {
-        clearTimeout(timer)
-        reject(err)
-      }
-    )
-  })
-}
 
 /**
  * Replace the YAML frontmatter section in raw markdown content.
@@ -795,15 +784,7 @@ function OutgoingLinksPanel(): React.JSX.Element | null {
                   disabled={isBroken}
                   onClick={() => {
                     if (isBroken) return
-                    window.electron.file
-                      .get(ol.targetPath)
-                      .then((fileAST) => {
-                        dispatch({
-                          type: 'FILE_LOADED',
-                          payload: { path: fileAST.path, ast: fileAST.ast }
-                        })
-                      })
-                      .catch(console.error)
+                    cmdNavigateToNote(ol.targetPath, dispatch).catch(console.error)
                   }}
                   className={`w-full text-left px-3 py-2 rounded transition-colors group ${
                     isBroken ? 'cursor-not-allowed opacity-50' : 'hover:bg-white/8 cursor-pointer'
@@ -880,15 +861,7 @@ function BacklinksPanel(): React.JSX.Element | null {
               <button
                 type="button"
                 onClick={() => {
-                  window.electron.file
-                    .get(bl.sourcePath)
-                    .then((fileAST) => {
-                      dispatch({
-                        type: 'FILE_LOADED',
-                        payload: { path: fileAST.path, ast: fileAST.ast }
-                      })
-                    })
-                    .catch(console.error)
+                  cmdNavigateToNote(bl.sourcePath, dispatch).catch(console.error)
                 }}
                 className="w-full text-left px-3 py-2 rounded hover:bg-white/8 transition-colors group"
               >
@@ -964,13 +937,9 @@ export function NoteView(): React.JSX.Element {
     setError(null)
     setOptimisticToggles({})
 
-    withTimeout(window.electron.file.get(currentFile), IPC_TIMEOUT_MS)
-      .then((fileAST) => {
+    cmdLoadNoteFile(currentFile, dispatch)
+      .then(() => {
         if (cancelled) return
-        dispatch({
-          type: 'FILE_LOADED',
-          payload: { path: fileAST.path, ast: fileAST.ast }
-        })
         setIsLoading(false)
       })
       .catch((err: unknown) => {
@@ -983,7 +952,7 @@ export function NoteView(): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [currentFile]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentFile, dispatch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Listen for external note:updated IPC messages ----
   useEffect(() => {
@@ -1032,69 +1001,17 @@ export function NoteView(): React.JSX.Element {
   const saveNote = useCallback(async () => {
     if (!currentFile) return
     setSaveStatus('saving')
-    try {
-      const result = await window.electron.note.save(currentFile, editContent)
-      if (result.success) {
-        setSaveStatus('saved')
-        setEditDirty(false)
-        // Clear "saved" indicator after 2s
-        setTimeout(() => setSaveStatus('idle'), 2000)
-      } else {
-        setSaveStatus('error')
-        setSaveError(result.error ?? 'Save failed')
-      }
-    } catch (err) {
+    const result = await cmdSaveNote(currentFile, editContent)
+    if (result.success) {
+      setSaveStatus('saved')
+      setEditDirty(false)
+      // Clear "saved" indicator after 2s
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    } else {
       setSaveStatus('error')
-      setSaveError(err instanceof Error ? err.message : 'Save failed')
+      setSaveError(result.error ?? 'Save failed')
     }
   }, [currentFile, editContent])
-
-  // ---- Toggle edit mode ----
-  const enterEditMode = useCallback(async (): Promise<void> => {
-    if (!currentFile) return
-    try {
-      const result = await window.electron.note.getRaw(currentFile)
-      dispatch({ type: 'EDIT_MODE_ENTER', payload: result.content ?? '' })
-    } catch (err) {
-      console.error('[NoteView] getRaw error:', err)
-    }
-  }, [currentFile, dispatch])
-
-  const exitEditMode = useCallback(async (): Promise<void> => {
-    if (!currentFile) return
-    // Clear auto-save timer
-    if (autoSaveTimer.current !== null) {
-      clearTimeout(autoSaveTimer.current)
-      autoSaveTimer.current = null
-    }
-    try {
-      const fileAST = await window.electron.file.get(currentFile)
-      dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-    } catch (err) {
-      console.error('[NoteView] file.get on exit error:', err)
-    }
-    dispatch({ type: 'EDIT_MODE_EXIT' })
-  }, [currentFile, dispatch])
-
-  // ---- Live Preview mode handlers (Req 23.4, 23.5, 23.8) ----
-  const exitLivePreviewMode = useCallback(async (): Promise<void> => {
-    if (!currentFile) return
-    // Clear debounced parse timer
-    if (livePreviewTimer.current !== null) {
-      clearTimeout(livePreviewTimer.current)
-      livePreviewTimer.current = null
-    }
-    // Save before exiting (Req 23.5)
-    try {
-      const result = await window.electron.note.save(currentFile, livePreviewContent)
-      if (!result.success) {
-        console.error('[NoteView] Live Preview save error:', result.error)
-      }
-    } catch (err) {
-      console.error('[NoteView] Live Preview save error:', err)
-    }
-    dispatch({ type: 'LIVE_PREVIEW_MODE_EXIT' })
-  }, [currentFile, dispatch])
 
   // ---- Find/Replace state ----
   const [showFindReplace, setShowFindReplace] = useState(false)
@@ -1104,16 +1021,17 @@ export function NoteView(): React.JSX.Element {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault()
+        if (!currentFile) return
         if (state.editMode) {
-          exitEditMode().catch(console.error)
+          cmdExitEditMode(currentFile, dispatch).catch(console.error)
         } else {
-          enterEditMode().catch(console.error)
+          cmdEnterEditMode(currentFile, dispatch).catch(console.error)
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        if (state.editMode) {
+        if (state.editMode && currentFile) {
           e.preventDefault()
-          saveNote().catch(console.error)
+          cmdSaveNote(currentFile, editContent).catch(console.error)
         }
       }
       // Cmd+H / Ctrl+H for find/replace (Phase 0b)
@@ -1126,7 +1044,7 @@ export function NoteView(): React.JSX.Element {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.editMode, state.livePreviewMode, enterEditMode, exitEditMode, saveNote])
+  }, [state.editMode, state.livePreviewMode, currentFile, editContent, dispatch])
 
   // ---- Cleanup auto-save timer on unmount ----
   useEffect(() => {
@@ -1164,15 +1082,8 @@ export function NoteView(): React.JSX.Element {
   // WikiLink now resolves internally and passes the resolved absolute file path.
   const handleNavigate = useCallback(
     (filePath: string, blockRef?: string, pageRef?: number) => {
-      // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
-      if (filePath.toLowerCase().endsWith('.pdf')) {
-        dispatch({ type: 'PDF_OPENED', payload: { path: filePath, page: pageRef } })
-        return
-      }
-      window.electron.file
-        .get(filePath)
-        .then((fileAST) => {
-          dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+      cmdNavigateToNote(filePath, dispatch, { blockRef, pageRef })
+        .then(() => {
           if (blockRef) {
             // After the AST is dispatched, the next render will trigger the
             // scroll-to-block effect in the useEffect below.
@@ -1188,14 +1099,7 @@ export function NoteView(): React.JSX.Element {
   const handlePropertiesSave = useCallback(
     async (newYaml: string) => {
       if (!currentFile) return
-      try {
-        const result = await window.electron.properties.write(currentFile, newYaml)
-        if (!result.success) {
-          console.error('[NoteView] properties write error:', result.error)
-        }
-      } catch (err) {
-        console.error('[NoteView] properties save error:', err)
-      }
+      await cmdWriteProperties(currentFile, newYaml)
     },
     [currentFile]
   )
@@ -1217,49 +1121,17 @@ export function NoteView(): React.JSX.Element {
   // ---- HTML export handler ----
   const handleExportHtml = useCallback(async () => {
     if (!currentFile) return
-    const noteHtml = articleRef.current?.outerHTML ?? ''
-    const getVar = (v: string): string =>
-      getComputedStyle(document.documentElement).getPropertyValue(v).trim() || ''
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${currentFile.split('/').pop()?.replace(/\.md$/i, '') ?? 'Note'}</title>
-<style>
-body { background: ${getVar('--nabu-bg') || '#0a0a0a'}; color: ${getVar('--nabu-text') || '#e5e5e5'}; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
-h1,h2,h3,h4,h5,h6 { color: ${getVar('--nabu-text') || '#e5e5e5'}; }
-a { color: ${getVar('--nabu-accent') || '#60a5fa'}; }
-code { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; font-family: monospace; }
-pre { background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 6px; overflow-x: auto; }
-blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; padding-left: 1rem; opacity: 0.7; }
-</style>
-</head>
-<body>${noteHtml}</body>
-</html>`
-    try {
-      const result = await window.electron.note.exportHtml(currentFile, html)
-      if (!result.success && result.error) {
-        console.error('[NoteView] HTML export failed:', result.error)
-      }
-    } catch (err) {
-      console.error('[NoteView] HTML export error:', err)
-    }
+    await cmdExportNoteHtml(currentFile, articleRef.current)
   }, [currentFile])
 
   // ---- Retry handler ----
   const handleRetry = useCallback(() => {
     if (!currentFile) return
-    // Force a reload by clearing the AST and triggering the effect again
-    dispatch({ type: 'FILE_LOADED', payload: { path: currentFile, ast: null as unknown as Root } })
     setError(null)
     setIsLoading(true)
 
-    withTimeout(window.electron.file.get(currentFile), IPC_TIMEOUT_MS)
-      .then((fileAST) => {
-        dispatch({
-          type: 'FILE_LOADED',
-          payload: { path: fileAST.path, ast: fileAST.ast }
-        })
+    cmdRetryLoadNote(currentFile, dispatch)
+      .then(() => {
         setIsLoading(false)
       })
       .catch((err: unknown) => {
@@ -1278,11 +1150,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
       const newState = !headingFoldStates[headingId]
       setHeadingFoldStates((prev) => ({ ...prev, [headingId]: newState }))
       // Persist to main process
-      try {
-        await window.electron.viewState?.setFold(state.vault.path, currentFile, headingId, newState)
-      } catch {
-        // viewState API may not be available yet
-      }
+      await cmdPersistHeadingFold(state.vault.path, currentFile, headingId, newState)
     },
     [currentFile, headingFoldStates, state.vault]
   )
@@ -1322,7 +1190,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
             <button
               type="button"
               aria-label="Switch to view mode"
-              onClick={() => exitEditMode().catch(console.error)}
+              onClick={() => cmdExitEditMode(currentFile, dispatch).catch(console.error)}
               className="note-toolbar__btn"
               title="Switch to view mode"
             >
@@ -1336,7 +1204,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 type="button"
                 aria-label="Save note"
                 disabled={saveStatus === 'saving'}
-                onClick={() => saveNote().catch(console.error)}
+                onClick={() => saveNote()}
                 className="note-toolbar__btn"
                 title="Save note"
               >
@@ -1353,7 +1221,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               // Reset auto-save debounce
               if (autoSaveTimer.current !== null) clearTimeout(autoSaveTimer.current)
               autoSaveTimer.current = setTimeout(() => {
-                if (editDirty) saveNote().catch(console.error)
+                if (editDirty) saveNote()
               }, 1000)
             }}
             showFindReplace={showFindReplace}
@@ -1370,7 +1238,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
             <button
               type="button"
               aria-label="Switch to view mode"
-              onClick={() => exitLivePreviewMode().catch(console.error)}
+              onClick={() => cmdExitLivePreviewMode(currentFile, livePreviewContent, dispatch).catch(console.error)}
               className="note-toolbar__btn"
               title="Switch to view mode"
             >
@@ -1381,7 +1249,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 type="button"
                 aria-label="Save note"
                 onClick={() =>
-                  window.electron.note.save(currentFile, livePreviewContent).catch(console.error)
+                  cmdSaveNote(currentFile, livePreviewContent).catch(console.error)
                 }
                 className="note-toolbar__btn"
                 title="Save note"
@@ -1441,7 +1309,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               <button
                 type="button"
                 aria-label="Switch to edit mode"
-                onClick={() => enterEditMode().catch(console.error)}
+                onClick={() => cmdEnterEditMode(currentFile, dispatch).catch(console.error)}
                 className="note-toolbar__btn"
                 title="Edit note"
               >

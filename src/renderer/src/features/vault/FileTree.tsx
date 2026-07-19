@@ -9,6 +9,13 @@ import React, {
 import { useAppContext } from '../../shared/store'
 import { FileEntry, Template } from '@shared/types'
 import { PlusIcon, FolderPlusIcon } from '../../shared/components/icons'
+import {
+  renameFile as cmdRenameFile,
+  deleteFile as cmdDeleteFile,
+  createFolder as cmdCreateFolder,
+  createNote as cmdCreateNote,
+  openTreeFile as cmdOpenTreeFile
+} from './vaultCommands'
 
 // ---------------------------------------------------------------------------
 // TreeNode
@@ -422,124 +429,74 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
     }
   }, [showRenameInput])
 
-  // Rename handler
+  // Rename handler (delegates orchestration to vaultCommands)
   const handleRename = useCallback(async () => {
-    if (!contextMenuTarget || !renameValue.trim()) {
-      setRenameError('Name cannot be empty.')
-      return
-    }
+    if (!contextMenuTarget) return
     setMenuLoading(true)
     setRenameError(null)
-    try {
-      const parts = contextMenuTarget.path.split('/')
-      parts.pop()
-      const parentDir = parts.join('/')
-      const newPath = parentDir + '/' + renameValue.trim()
-      const result = await window.electron.note.rename(contextMenuTarget.path, newPath)
-      if (!result.success) {
-        setRenameError(result.error ?? 'Failed to rename.')
-        setMenuLoading(false)
-        return
-      }
-      // If renamed file was the current file, reload it at the new path
-      if (state.currentFile === contextMenuTarget.path) {
-        const fileAST = await window.electron.file.get(newPath)
-        dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
-      }
-      setContextMenuTarget(null)
-      setShowRenameInput(false)
-      setRenameError(null)
-    } catch (err) {
-      setRenameError(err instanceof Error ? err.message : 'Unknown error.')
-    } finally {
+    const result = await cmdRenameFile(contextMenuTarget.path, renameValue, state.currentFile, dispatch)
+    if (!result.success) {
+      setRenameError(result.error ?? 'Failed to rename.')
       setMenuLoading(false)
+      return
     }
+    setContextMenuTarget(null)
+    setShowRenameInput(false)
+    setRenameError(null)
+    setMenuLoading(false)
   }, [contextMenuTarget, renameValue, state.currentFile, dispatch])
 
-  // Delete handler
+  // Delete handler (delegates orchestration to vaultCommands)
   const handleDelete = useCallback(async () => {
     if (!contextMenuTarget) return
     setMenuLoading(true)
     setRenameError(null)
-    try {
-      const result = await window.electron.note.delete(contextMenuTarget.path)
-      if (!result.success) {
-        setRenameError(result.error ?? 'Failed to delete.')
-        setMenuLoading(false)
-        return
-      }
-      setContextMenuTarget(null)
-      setShowDeleteConfirm(false)
-    } catch (err) {
-      setRenameError(err instanceof Error ? err.message : 'Unknown error.')
-    } finally {
+    const result = await cmdDeleteFile(contextMenuTarget.path)
+    if (!result.success) {
+      setRenameError(result.error ?? 'Failed to delete.')
       setMenuLoading(false)
+      return
     }
+    setContextMenuTarget(null)
+    setShowDeleteConfirm(false)
+    setMenuLoading(false)
   }, [contextMenuTarget])
 
+  // Create folder handler (delegates orchestration to vaultCommands)
   const handleCreateFolder = useCallback(async () => {
     if (!state.vault) return
-    const trimmed = folderName.trim()
-    if (!trimmed) {
-      setFolderError('Folder name cannot be empty.')
-      return
-    }
     setFolderLoading(true)
     setFolderError(null)
-    try {
-      const fullPath = state.vault.path + '/' + trimmed
-      const result = await window.electron.folder.create(fullPath)
-      if (!result.success) {
-        setFolderError(result.error ?? 'Failed to create folder.')
-        setFolderLoading(false)
-        return
-      }
-      // Refresh vault tree
-      const updatedVault = await window.electron.vault.scan()
-      dispatch({ type: 'VAULT_OPENED', payload: updatedVault })
-      // Close dialog and reset state
-      setShowFolderDialog(false)
-      setFolderName('')
-      setFolderError(null)
-    } catch (err) {
-      setFolderError(err instanceof Error ? err.message : 'Unknown error.')
-    } finally {
+    const result = await cmdCreateFolder(state.vault.path, folderName, dispatch)
+    if (!result.success) {
+      setFolderError(result.error ?? 'Failed to create folder.')
       setFolderLoading(false)
-    }
-  }, [state.vault, folderName, dispatch])
-
-  const handleCreateNote = useCallback(async () => {
-    if (!state.vault) return
-    const trimmed = noteName.trim()
-    if (!trimmed) {
-      setNoteError('Note name cannot be empty.')
       return
     }
+    // Close dialog and reset state
+    setShowFolderDialog(false)
+    setFolderName('')
+    setFolderError(null)
+    setFolderLoading(false)
+  }, [state.vault, folderName, dispatch])
+
+  // Create note handler (delegates orchestration to vaultCommands)
+  const handleCreateNote = useCallback(async () => {
+    if (!state.vault) return
     setNoteLoading(true)
     setNoteError(null)
-    try {
-      const result = await window.electron.note.create(
-        state.vault.path,
-        trimmed,
-        selectedTemplate?.content
-      )
-      // Refresh vault tree
-      const updatedVault = await window.electron.vault.scan()
-      dispatch({ type: 'VAULT_OPENED', payload: updatedVault })
-      // Enter edit mode with the new note
-      const rawResult = await window.electron.note.getRaw(result.path)
-      dispatch({ type: 'EDIT_MODE_ENTER', payload: rawResult.content ?? '' })
-      dispatch({ type: 'FILE_LOADED', payload: { path: result.path, ast: result.ast } })
-      // Close dialog and reset state
-      setShowNoteDialog(false)
-      setNoteName('')
-      setNoteError(null)
-      setSelectedTemplate(null)
-    } catch (err) {
-      setNoteError(err instanceof Error ? err.message : 'Unknown error.')
-    } finally {
+    const result = await cmdCreateNote(state.vault.path, noteName, selectedTemplate, dispatch)
+    if (!result.success) {
+      setNoteError(result.error ?? 'Failed to create note.')
       setNoteLoading(false)
+      return
     }
+    // Close dialog and reset state
+    setShowNoteDialog(false)
+    setNoteName('')
+    setNoteError(null)
+    setSelectedTemplate(null)
+    setNoteLoading(false)
   }, [state.vault, noteName, selectedTemplate, dispatch])
   const tree = React.useMemo(() => {
     if (!state.vault) return []
@@ -578,14 +535,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
 
   const handleFileClick = useCallback(
     async (node: TreeNode) => {
-      // PDF files open in the dedicated PDF viewer pane (Req 40.1, 40.3)
-      if (node.path.toLowerCase().endsWith('.pdf')) {
-        dispatch({ type: 'PDF_OPENED', payload: { path: node.path } })
-        return
-      }
       try {
-        const fileAST = await window.electron.file.get(node.path)
-        dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+        await cmdOpenTreeFile(node.path, dispatch)
       } catch (err) {
         console.error('[FileTree] Failed to load file:', node.path, err)
       }

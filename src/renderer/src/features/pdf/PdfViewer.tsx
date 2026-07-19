@@ -12,6 +12,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { PDFAnnotation } from '@shared/types'
+import { createNoteFromAnnotation as cmdCreateNoteFromAnnotation } from './pdfCommands'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -230,32 +231,14 @@ export function PdfViewer({
     }
   }, [editingCommentId, commentText, updateComment])
 
-  // Create a note from an annotation
+  // Create a note from an annotation (delegates orchestration to pdfCommands)
   const createNoteFromAnnotation = useCallback(
     async (annotation: PDFAnnotation) => {
-      const pdfName = filePath.split('/').pop()?.replace('.pdf', '') ?? 'pdf'
-      const title = annotation.text.substring(0, 60) || 'PDF Annotation'
-      const isoDate = new Date(annotation.timestamp).toISOString()
-
-      const body = [
-        `> ${annotation.text}`,
-        annotation.comment ? `\n${annotation.comment}` : '',
-        '',
-        `Source: [[${pdfName}.pdf#page=${annotation.page}]]`
-      ].join('\n')
-
-      const frontmatter = `---\nsource: [[${pdfName}.pdf]]\npage: ${annotation.page}\nannotation_date: ${isoDate}\n---\n\n`
-
-      try {
-        const result = await window.electron.note.create('', title, frontmatter + body)
-        // Update annotation with linked note path
-        if (result && result.path) {
-          setAnnotations((prev) =>
-            prev.map((a) => (a.id === annotation.id ? { ...a, linkedNotePath: result.path } : a))
-          )
-        }
-      } catch (err) {
-        console.error('Failed to create note from annotation:', err)
+      const linkedPath = await cmdCreateNoteFromAnnotation(filePath, annotation)
+      if (linkedPath) {
+        setAnnotations((prev) =>
+          prev.map((a) => (a.id === annotation.id ? { ...a, linkedNotePath: linkedPath } : a))
+        )
       }
     },
     [filePath]
