@@ -12,7 +12,7 @@
  * Requirements: 41.4, 42.2, 42.3, 43.1, 43.2, 43.4
  */
 
-import { BrowserWindow, ipcMain, screen } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
 import { appEventBus } from '@shared/events'
@@ -435,15 +435,6 @@ class WidgetManager {
   }
 
   /**
-   * Register IPC handlers for widget communication.
-   * Called from index.ts during app initialization.
-   */
-  registerIPCHandlers(): void {
-    // IPC handlers are registered in the standalone function registerWidgetIPCHandlers
-    // This method exists for API compatibility
-  }
-
-  /**
    * Clean up resources.
    */
   destroy(): void {
@@ -493,66 +484,6 @@ class WidgetManager {
 
 // Singleton instance
 export const widgetManager = new WidgetManager()
-
-// ---------------------------------------------------------------------------
-// IPC Handlers for widget
-// ---------------------------------------------------------------------------
-
-/**
- * Register IPC handlers for widget communication.
- * Called from index.ts during app initialization.
- */
-export function registerWidgetIPCHandlers(): void {
-  // Widget: show clipboard mode
-  ipcMain.handle('widget:show-clipboard', () => {
-    widgetManager.show('clipboard')
-  })
-
-  // Widget: show dictation mode
-  ipcMain.handle('widget:show-dictation', () => {
-    widgetManager.show('dictation')
-  })
-
-  // Widget: hide
-  ipcMain.handle('widget:hide', () => {
-    widgetManager.hide()
-  })
-
-  // Widget: toggle mode
-  ipcMain.handle('widget:switch-mode', (_event, mode: WidgetMode) => {
-    widgetManager.switchMode(mode)
-  })
-
-  // Widget: get state
-  ipcMain.handle('widget:get-state', () => {
-    return widgetManager.getState()
-  })
-
-  // Widget: set model
-  ipcMain.handle('widget:set-model', (_event, model: WhisperModel) => {
-    widgetManager.setModel(model)
-  })
-
-  // Widget: get model
-  ipcMain.handle('widget:get-model', () => {
-    return widgetManager.getModel()
-  })
-
-  // Widget: check dictation availability
-  ipcMain.handle('widget:dictation-available', async () => {
-    return await widgetManager.isDictationAvailable()
-  })
-
-  // Widget: set microphone permission
-  ipcMain.handle('widget:set-mic-permission', (_event, granted: boolean) => {
-    widgetManager.setMicPermission(granted)
-  })
-
-  // Widget: insert text at cursor (from widget's "Done" button)
-  ipcMain.handle('widget:insert-text', (_event, text: string) => {
-    widgetManager.insertTextAtCursor(text)
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Fn key event wiring

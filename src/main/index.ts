@@ -22,14 +22,13 @@ import * as path from 'path'
 import { StateManager } from './services/state'
 import { VectorManager } from './services/vector'
 import { VaultWatcher } from './services/watcher'
-import { registerIPCHandlers, onWidgetToggle } from './ipc'
+import { registerAllIPC, createIPCContext, setLegacyManagers, onWidgetToggle } from './ipc'
 import { IPCChannel } from '@shared/channels'
 import { loadSettings, saveSettings } from './services/settings'
 import { fnMonitor } from './services/fn-monitor'
-import { registerWidgetIPCHandlers, wireFnMonitorToWidget, widgetManager } from './services/widget-manager'
+import { wireFnMonitorToWidget, widgetManager } from './services/widget-manager'
 import type { AppSettings } from './services/settings'
 import { VaultService } from './services/vault-service'
-import { WidgetService } from './services/widget-service'
 
 // ---------------------------------------------------------------------------
 // createWindow
@@ -351,21 +350,16 @@ app.whenReady().then(async () => {
     return
   }
 
-  // ---- Register IPC handlers ----
+  // ---- Register IPC handlers (feature modules) ----
   try {
-    registerIPCHandlers(stateManager, vectorManager, watcher)
+    setLegacyManagers(stateManager, vectorManager, watcher)
+    const ipcContext = createIPCContext(stateManager, vectorManager, watcher)
+    registerAllIPC(ipcContext)
   } catch (err) {
     console.error('[App] Failed to register IPC handlers:', err)
     dialog.showErrorBox('IPC Error', `Failed to register IPC handlers:\n\n${String(err)}`)
     app.quit()
     return
-  }
-
-  // ---- Register widget IPC handlers (dictation/clipboard widget) ----
-  try {
-    registerWidgetIPCHandlers()
-  } catch (err) {
-    console.error('[App] Failed to register widget IPC handlers:', err)
   }
 
   // ---- Start fn-monitor for dictation (macOS only) ----
@@ -402,13 +396,9 @@ app.whenReady().then(async () => {
       .initialize({ indexPath: nabuDir, modelPath })
       .catch((err) => console.error('[App] Vector manager init failed:', err))
 
-    // ---- Widget service: start history service, register widget IPC handlers ----
-    // All widget lifecycle / coordination business logic now lives in
-    // WidgetService; bootstrap only initializes and delegates.
-    const widgetService = new WidgetService()
-    widgetService.registerIPCHandlers()
-
-    // Wire feature-toggle changes for clipboard-widget to WidgetManager
+    // Wire feature-toggle changes for clipboard-widget to WidgetManager.
+    // Widget IPC handlers (kanban, clipboard-history, widget window controls)
+    // are registered once by registerWidgetsIPC() in the bootstrap above.
     onWidgetToggle((enabled: boolean) => {
       widgetManager.setEnabled(enabled)
     })

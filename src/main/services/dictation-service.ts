@@ -29,7 +29,7 @@ import {
   DictationDownloadModelSchema,
   DictationDownloadModelResultSchema
 } from '@shared/schemas'
-import { emitActivityLog, formatZodError } from '../ipc'
+import { emitActivityLog, formatZodError } from '../ipc/shared'
 import { appEventBus } from '@shared/events'
 
 import type { IpcMainInvokeEvent } from 'electron'
@@ -50,7 +50,7 @@ export class DictationService {
    * @param event - the IPC event, used to send the transcription result back
    *   to the requesting renderer window.
    */
-  async start(event: IpcMainInvokeEvent, rawPayload: unknown): Promise<unknown> {
+   async start(_event: IpcMainInvokeEvent, rawPayload: unknown): Promise<unknown> {
     const validation = DictationStartSchema.safeParse(rawPayload)
     if (!validation.success) {
       const reason = formatZodError(validation.error)
@@ -86,13 +86,9 @@ export class DictationService {
       // Start dictation: spawn mic-capture.swift and whisper, pipe mic → whisper
       startDictation(model)
         .then((result) => {
-          // Send transcription result to renderer
-          event.sender.send(IPCChannel.DICTATION_RESULT, {
-            text: result.text,
-            segments: result.segments
-          })
-
           // Notify internal subscribers (services only) that dictation finished.
+          // The widget consumes widget:dictation-complete instead of the
+          // dead dictation:result push channel.
           appEventBus.publish('DictationFinished', {
             widgetId: 'clipboard-dictation-widget',
             result: { text: result.text, segments: result.segments }
@@ -100,10 +96,6 @@ export class DictationService {
         })
         .catch((err) => {
           console.error('[DictationService] Dictation failed:', err)
-          event.sender.send(IPCChannel.DICTATION_RESULT, {
-            text: '',
-            error: String(err)
-          })
         })
 
       return DictationStartResultSchema.parse({ success: true })

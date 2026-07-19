@@ -216,20 +216,6 @@ const electronAPI = {
       invoke(C.ClipboardHistoryCopyContract, { text })
   },
   widget: {
-    toggle: (): Promise<Res<typeof C.WidgetToggleContract.response>> =>
-      invokeVoid(C.WidgetToggleContract),
-    move: (dx: number, dy: number): Promise<Res<typeof C.WidgetMoveContract.response>> =>
-      invoke(C.WidgetMoveContract, { dx, dy }),
-    resize: (opts: Res<typeof C.WidgetResizeContract.request>): Promise<Res<typeof C.WidgetResizeContract.response>> =>
-      invoke(C.WidgetResizeContract, opts),
-    createNote: (
-      opts: Res<typeof C.WidgetCreateNoteContract.request>
-    ): Promise<Res<typeof C.WidgetCreateNoteContract.response>> =>
-      invoke(C.WidgetCreateNoteContract, opts),
-    fetchTitle: (url: string): Promise<Res<typeof C.WidgetFetchTitleContract.response>> =>
-      invoke(C.WidgetFetchTitleContract, { url }),
-    openNote: (path: string): Promise<Res<typeof C.WidgetOpenNoteContract.response>> =>
-      invoke(C.WidgetOpenNoteContract, { path }),
     setShortcut: (shortcut: string): Promise<Res<typeof C.WidgetSetShortcutContract.response>> =>
       invoke(C.WidgetSetShortcutContract, { shortcut })
   },

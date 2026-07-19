@@ -137,14 +137,6 @@ declare global {
         copy(text: string): Promise<Res<typeof C.ClipboardHistoryCopyContract.response>>
       }
       widget: {
-        toggle(): Promise<Res<typeof C.WidgetToggleContract.response>>
-        move(dx: number, dy: number): Promise<Res<typeof C.WidgetMoveContract.response>>
-        resize(opts: Req<typeof C.WidgetResizeContract.request>): Promise<Res<typeof C.WidgetResizeContract.response>>
-        createNote(
-          opts: Req<typeof C.WidgetCreateNoteContract.request>
-        ): Promise<Res<typeof C.WidgetCreateNoteContract.response>>
-        fetchTitle(url: string): Promise<Res<typeof C.WidgetFetchTitleContract.response>>
-        openNote(path: string): Promise<Res<typeof C.WidgetOpenNoteContract.response>>
         setShortcut(shortcut: string): Promise<Res<typeof C.WidgetSetShortcutContract.response>>
       }
       on: {

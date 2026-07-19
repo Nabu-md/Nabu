@@ -27,7 +27,7 @@ import {
   PDFSaveAnnotationsSchema,
   PDFSaveAnnotationsResultSchema
 } from '@shared/schemas'
-import { emitActivityLog, formatZodError } from '../ipc'
+import { emitActivityLog, formatZodError } from '../ipc/shared'
 import {
   getPDFInfo,
   renderPDFPage,

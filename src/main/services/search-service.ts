@@ -15,7 +15,7 @@
 
 import { SearchQuerySchema, SearchResponseSchema } from '@shared/schemas'
 import { search } from '@shared/search-query'
-import { emitActivityLog, formatZodError } from '../ipc'
+import { emitActivityLog, formatZodError } from '../ipc/shared'
 
 import type { StateManager } from './state'
 

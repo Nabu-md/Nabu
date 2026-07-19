@@ -29,7 +29,7 @@ import {
 } from '@shared/schemas'
 import { loadSettings, saveSettings } from './settings'
 import { vaultRegistry } from './vault-registry'
-import { sendToRenderer, buildWatcherConfig, emitActivityLog, formatZodError } from '../ipc'
+import { sendToRenderer, buildWatcherConfig, emitActivityLog, formatZodError } from '../ipc/shared'
 import { appEventBus } from '@shared/events'
 
 import type { StateManager } from './state'
