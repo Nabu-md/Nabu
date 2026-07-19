@@ -157,6 +157,25 @@ export async function listSnapshots(vaultPath: string): Promise<Snapshot[]> {
 }
 
 /**
+ * Remove all snapshots for a specific note (used when a note is deleted or renamed).
+ */
+export async function removeSnapshotsForNote(vaultPath: string, notePath: string): Promise<void> {
+  const snapDir = getSnapshotDir(vaultPath)
+  const relativePath = toVaultRelative(vaultPath, notePath).replace(/\.md$/, '')
+
+  try {
+    const files = await fs.readdir(snapDir)
+    for (const f of files) {
+      if (f.startsWith(relativePath)) {
+        await fs.unlink(path.join(snapDir, f)).catch(() => {})
+      }
+    }
+  } catch {
+    // Directory may not exist
+  }
+}
+
+/**
  * Restore a snapshot to a note or create as new note.
  */
 export async function restoreSnapshot(

@@ -27,6 +27,7 @@ export interface VectorConfig {
 interface VaultFileRef {
   path: string
   text: string
+  mtime?: number
 }
 
 type EmbedTask = VaultFileRef
@@ -154,10 +155,10 @@ export class VectorManager {
    *
    * Requirements: 1.8, 9.2, 9.3
    */
-  embedFile(filePath: string, text: string): void {
+  embedFile(filePath: string, text: string, mtime?: number): void {
     if (this.embeddingsDisabled || !this.index) return
     if (!text || text.trim().length === 0) return // Requirement 1.8
-    this.queue.enqueue({ path: filePath, text })
+    this.queue.enqueue({ path: filePath, text, mtime })
   }
 
   /**
@@ -184,7 +185,7 @@ export class VectorManager {
    * Removes the old path entry and queues the new path for embedding.
    * Does not throw — failures are logged and silently ignored.
    */
-  async renameFile(oldPath: string, newPath: string, text: string): Promise<void> {
+  async renameFile(oldPath: string, newPath: string, text: string, mtime?: number): Promise<void> {
     if (!this.index || this.embeddingsDisabled) return
 
     // Remove old vector
@@ -195,7 +196,7 @@ export class VectorManager {
     }
 
     // Queue new vector
-    this.embedFile(newPath, text)
+    this.embedFile(newPath, text, mtime)
   }
 
   /**
@@ -360,7 +361,7 @@ export class VectorManager {
       const metadata: FileMetadata = {
         path: task.path,
         name: path.basename(task.path, '.md'),
-        mtime: Date.now(),
+        mtime: task.mtime ?? Date.now(),
         charCount: task.text.length
       }
 

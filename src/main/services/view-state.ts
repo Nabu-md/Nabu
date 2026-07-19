@@ -154,6 +154,22 @@ export function clearViewStateCache(): void {
 }
 
 /**
+ * Remove view state for a specific file (used when a note is deleted or renamed).
+ * Clears both the in-memory cache and the persisted file.
+ */
+export async function clearViewStateForFile(vaultPath: string, notePath: string): Promise<void> {
+  const cacheKey = `${vaultPath}:${notePath}`
+  viewStateCache.delete(cacheKey)
+
+  try {
+    const filePath = getViewStateFile(vaultPath, notePath)
+    await fs.unlink(filePath).catch(() => {})
+  } catch {
+    // File may not exist — ignore
+  }
+}
+
+/**
  * Generate a unique ID for a heading based on its position and text.
  * This ID is used to track fold state per heading.
  */

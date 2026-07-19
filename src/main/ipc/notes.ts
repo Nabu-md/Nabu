@@ -46,7 +46,10 @@ import { loadSettings } from '../services/settings'
 import { substituteVariables } from '../services/templates'
 import { mergeNotes } from '../services/composer'
 import { generateUniqueNoteName } from '../services/unique-note'
-import { loadViewState, setFoldState } from '../services/view-state'
+import { loadViewState, setFoldState, clearViewStateForFile } from '../services/view-state'
+import { removeSnapshotsForNote } from '../snapshots'
+import { removeFileFromBookmarks, renameFileInBookmarks } from '../bookmarks'
+import { removeFavorite, renameFavorite } from '../favorites'
 
 import type { IPCContext } from './context'
 import {
@@ -303,6 +306,15 @@ export function registerNotesIPC(ctx: IPCContext): void {
         console.warn(`[IPC] note:rename vector update failed for "${oldPath}" → "${normalisedNewPath}":`, err)
       }
 
+      // Clean up associated metadata (Phase 7.3 fix)
+      const vaultPath = stateManager.getCurrentVault()?.path
+      if (vaultPath) {
+        await clearViewStateForFile(vaultPath, oldPath)
+        await removeSnapshotsForNote(vaultPath, oldPath)
+        await renameFileInBookmarks(vaultPath, oldPath, normalisedNewPath)
+        await renameFavorite(vaultPath, oldPath, normalisedNewPath)
+      }
+
       return { success: true }
     } catch (err) {
       const normalized = normalizeError(err, { oldPath, newPath: normalisedNewPath })
@@ -334,6 +346,15 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
       // Remove from vector index
       await vectorManager.removeFile(filePath)
+
+      // Clean up associated metadata (Phase 7.3 fix)
+      const vaultPath = stateManager.getCurrentVault()?.path
+      if (vaultPath) {
+        await clearViewStateForFile(vaultPath, filePath)
+        await removeSnapshotsForNote(vaultPath, filePath)
+        await removeFileFromBookmarks(vaultPath, filePath)
+        await removeFavorite(vaultPath, filePath)
+      }
 
       // Send updated indexes to renderer
       const serialized = stateManager.getSerializedIndexes()

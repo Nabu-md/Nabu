@@ -120,3 +120,27 @@ export async function removeFileFromBookmarks(
   }
   return bookmarks
 }
+
+/**
+ * Rename a file path in all bookmark lists (used when a note is renamed).
+ */
+export async function renameFileInBookmarks(
+  vaultPath: string,
+  oldPath: string,
+  newPath: string
+): Promise<BookmarksCollection> {
+  const bookmarks = await readBookmarks(vaultPath)
+  let changed = false
+  for (const listName of Object.keys(bookmarks)) {
+    const list = bookmarks[listName]
+    const index = list.indexOf(oldPath)
+    if (index >= 0) {
+      list[index] = newPath
+      changed = true
+    }
+  }
+  if (changed) {
+    await writeBookmarks(vaultPath, bookmarks)
+  }
+  return bookmarks
+}

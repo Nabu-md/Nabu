@@ -74,3 +74,17 @@ export async function removeFavorite(vaultPath: string, filePath: string): Promi
   }
   return favorites
 }
+
+/**
+ * Rename a file path in favorites (e.g. when a note is renamed).
+ * Returns the updated list.
+ */
+export async function renameFavorite(vaultPath: string, oldPath: string, newPath: string): Promise<string[]> {
+  const favorites = await readFavorites(vaultPath)
+  const index = favorites.indexOf(oldPath)
+  if (index >= 0) {
+    favorites[index] = newPath
+    await writeFavorites(vaultPath, favorites)
+  }
+  return favorites
+}
