@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Node, Root, Text } from 'mdast'
 import { SearchResult } from '@shared/types'
 import { useAppContext } from '../../App'
+import { ipc } from '../../ipc'
 
 // ---------------------------------------------------------------------------
 // Plain-text extraction from mdast
@@ -78,13 +79,13 @@ export function ContextPane(): React.JSX.Element {
     const text = currentAST ? astToPlainText(currentAST) : currentFile
     if (!text) return
 
-    window.electron.context
+    ipc.context
       .query(text)
       .then((response) => {
         // response is either SearchResult[] (v1 compat) or { results, disabled?, reason? }
         const data = Array.isArray(response)
-          ? { results: response }
-          : (response as { results: SearchResult[]; disabled?: boolean; reason?: string })
+          ? { results: response as SearchResult[] }
+          : (response as unknown as { results: SearchResult[]; disabled?: boolean; reason?: string })
 
         dispatch({ type: 'CONTEXT_RESULTS', payload: data.results })
 

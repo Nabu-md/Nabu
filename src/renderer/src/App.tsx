@@ -26,6 +26,7 @@ import { CommandPalette } from './features/search/CommandPalette'
 import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './components/icons'
 import { seedCommands, registerCommand } from './commands/registry'
 import type { SearchQueryResult } from '@shared/search-query'
+import { ipc } from './ipc'
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -954,7 +955,7 @@ function App(): React.JSX.Element {
     // if the first call happens before the vault is fully loaded.
     const pollForVault = async (attempts = 0): Promise<void> => {
       try {
-        const vaultMeta = await window.electron.vault.getCurrent()
+        const vaultMeta = await ipc.vault.getCurrent()
         if (vaultMeta) {
           dispatch({ type: 'VAULT_OPENED', payload: vaultMeta })
         } else if (attempts < 10) {
