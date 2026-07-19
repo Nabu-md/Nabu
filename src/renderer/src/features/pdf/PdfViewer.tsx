@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { PDFAnnotation } from '../../../../shared/types'
+import { PDFAnnotation } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Props

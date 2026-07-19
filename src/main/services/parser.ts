@@ -29,7 +29,7 @@ const remarkGfm = unwrap<typeof _remarkGfm>(_remarkGfm)
 const remarkMath = unwrap<typeof _remarkMath>(_remarkMath)
 
 // Import the shared buildProcessor for the markdown pipeline
-import { buildProcessor } from '../../shared/markdown'
+import { buildProcessor } from '@shared/markdown'
 
 // ---------------------------------------------------------------------------
 // Public types

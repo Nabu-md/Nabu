@@ -9,7 +9,7 @@
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { FileEntry } from '../../shared/types'
+import type { FileEntry } from '@shared/types'
 
 export interface BaseConfig {
   id: string

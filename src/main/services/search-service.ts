@@ -13,8 +13,8 @@
  * Requirements: 13.1, 13.2, 13.3
  */
 
-import { SearchQuerySchema, SearchResponseSchema } from '../../shared/schemas'
-import { search } from '../../shared/search-query'
+import { SearchQuerySchema, SearchResponseSchema } from '@shared/schemas'
+import { search } from '@shared/search-query'
 import { emitActivityLog, formatZodError } from '../ipc'
 
 import type { StateManager } from './state'

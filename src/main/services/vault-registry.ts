@@ -7,7 +7,7 @@
  * Requirements: 22.2, 22.10
  */
 
-import type { VaultMetadata } from '../../shared/types'
+import type { VaultMetadata } from '@shared/types'
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
 import type { VaultWatcher } from './watcher'

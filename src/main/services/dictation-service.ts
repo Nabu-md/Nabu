@@ -18,7 +18,7 @@
  * Requirements: 41.3, 41.4, 42.4, 42.5
  */
 
-import { IPCChannel } from '../../shared/channels'
+import { IPCChannel } from '@shared/channels'
 import {
   DictationStartSchema,
   DictationStartResultSchema,
@@ -28,9 +28,9 @@ import {
   DictationStatusResultSchema,
   DictationDownloadModelSchema,
   DictationDownloadModelResultSchema
-} from '../../shared/schemas'
+} from '@shared/schemas'
 import { emitActivityLog, formatZodError } from '../ipc'
-import { appEventBus } from '../../shared/events'
+import { appEventBus } from '@shared/events'
 
 import type { IpcMainInvokeEvent } from 'electron'
 

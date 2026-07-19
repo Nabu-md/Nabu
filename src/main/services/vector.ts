@@ -11,7 +11,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { pipeline, env } from '@xenova/transformers'
 import { LocalIndex } from 'vectra'
-import type { SearchResult } from '../../shared/types'
+import type { SearchResult } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,7 +212,7 @@ export class VectorManager {
    *
    * Requirements: 1.5, 1.6
    */
-  async reindexAll(files: import('../../shared/types').FileEntry[]): Promise<number> {
+  async reindexAll(files: import('@shared/types').FileEntry[]): Promise<number> {
     if (this.embeddingsDisabled || !this.index) return 0
 
     let processed = 0

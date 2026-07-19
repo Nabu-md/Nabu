@@ -12,13 +12,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../../App'
-import type { Edge, FileEntry } from '../../../../shared/types'
+import type { Edge, FileEntry } from '@shared/types'
 import {
   computeTagGraph,
   getTagNodeColor,
   getTagDisplayLabel,
   getTagRecentNotes
-} from '../../../../shared/graph-utils'
+} from '@shared/graph-utils'
 
 // ---------------------------------------------------------------------------
 // Local type definitions for d3-force nodes/links

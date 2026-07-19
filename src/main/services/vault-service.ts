@@ -19,18 +19,18 @@ import { app, dialog, BrowserWindow } from 'electron'
 import path from 'path'
 import fs from 'fs/promises'
 
-import { IPCChannel } from '../../shared/channels'
+import { IPCChannel } from '@shared/channels'
 import {
   VaultOpenSchema,
   VaultCloseSchema,
   VaultSwitchSchema,
   VaultScanResultSchema,
   VaultCreateSchema
-} from '../../shared/schemas'
+} from '@shared/schemas'
 import { loadSettings, saveSettings } from './settings'
 import { vaultRegistry } from './vault-registry'
 import { sendToRenderer, buildWatcherConfig, emitActivityLog, formatZodError } from '../ipc'
-import { appEventBus } from '../../shared/events'
+import { appEventBus } from '@shared/events'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -116,7 +116,7 @@ export class VaultService {
    */
   private registerAndWatch(
     vaultPath: string,
-    vaultMeta: { files: import('../../shared/types').FileEntry[] }
+    vaultMeta: { files: import('@shared/types').FileEntry[] }
   ): void {
     vaultRegistry.register(
       vaultPath, // vaultId is the vault path

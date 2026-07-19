@@ -10,5 +10,5 @@
  * Requirements: 8.1, 8.3, 8.6
  */
 
-export * from '../../shared/plugins/remarkCallouts'
-export { remarkCallouts as default } from '../../shared/plugins/remarkCallouts'
+export * from '@shared/plugins/remarkCallouts'
+export { remarkCallouts as default } from '@shared/plugins/remarkCallouts'

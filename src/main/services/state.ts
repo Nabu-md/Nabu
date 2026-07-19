@@ -14,15 +14,15 @@ import type { Root } from 'mdast'
 import { visit } from 'unist-util-visit'
 
 import { parseFile } from './parser'
-import { buildGraph } from '../../shared/graph'
-import { buildFullTextIndex, buildTagIndex } from '../../shared/indexing'
+import { buildGraph } from '@shared/graph'
+import { buildFullTextIndex, buildTagIndex } from '@shared/indexing'
 import {
   buildExtendedIndex,
   updateExtendedIndexForFile,
   createEmptyIndex
-} from '../../shared/extended-indexing'
-import type { ExtendedSearchIndex } from '../../shared/extended-indexing'
-import type { VaultMetadata, FileEntry, Edge } from '../../shared/types'
+} from '@shared/extended-indexing'
+import type { ExtendedSearchIndex } from '@shared/extended-indexing'
+import type { VaultMetadata, FileEntry, Edge } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // StateManager

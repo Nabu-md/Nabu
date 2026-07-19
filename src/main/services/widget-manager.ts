@@ -15,7 +15,7 @@
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
-import { appEventBus } from '../../shared/events'
+import { appEventBus } from '@shared/events'
 import {
   startDictation,
   stopDictation,

@@ -5,5 +5,5 @@
  * Re-exported from shared/plugins for backward compatibility.
  */
 
-export * from '../../shared/plugins/remarkWikiLinks'
-export { remarkWikiLinks as default } from '../../shared/plugins/remarkWikiLinks'
+export * from '@shared/plugins/remarkWikiLinks'
+export { remarkWikiLinks as default } from '@shared/plugins/remarkWikiLinks'

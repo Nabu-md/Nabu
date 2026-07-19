@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { Node, Root, Text } from 'mdast'
-import { SearchResult } from '../../../../shared/types'
+import { SearchResult } from '@shared/types'
 import { useAppContext } from '../../App'
 
 // ---------------------------------------------------------------------------

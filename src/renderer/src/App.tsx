@@ -10,8 +10,8 @@ import React, {
   ReactNode
 } from 'react'
 import { Root } from 'mdast'
-import { VaultMetadata, ActivityEntry, SearchResult, Edge } from '../../shared/types'
-import type { ExtendedSearchIndex } from '../../shared/extended-indexing'
+import { VaultMetadata, ActivityEntry, SearchResult, Edge } from '@shared/types'
+import type { ExtendedSearchIndex } from '@shared/extended-indexing'
 import { Sidebar, SidebarHandle } from './features/vault/Sidebar'
 import { NoteView } from './features/notes/NoteView'
 import { GraphView } from './features/graph/GraphView'
@@ -25,7 +25,7 @@ import { QuickSwitcher } from './features/search/QuickSwitcher'
 import { CommandPalette } from './features/search/CommandPalette'
 import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './components/icons'
 import { seedCommands, registerCommand } from './commands/registry'
-import type { SearchQueryResult } from '../../shared/search-query'
+import type { SearchQueryResult } from '@shared/search-query'
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -779,7 +779,7 @@ function App(): React.JSX.Element {
 
     const offContextSearch = electron.on.contextSearch((data) => {
       const payload = data as Record<string, unknown>
-      const results = (payload['results'] ?? data) as import('../../shared/types').SearchResult[]
+      const results = (payload['results'] ?? data) as import('@shared/types').SearchResult[]
       dispatch({ type: 'CONTEXT_RESULTS', payload: results })
     })
 

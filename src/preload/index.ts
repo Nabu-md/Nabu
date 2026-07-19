@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { IPCChannel } from '../shared/channels'
+import { IPCChannel } from '@shared/channels'
 
 // Build the electron API object
 const electronAPI = {

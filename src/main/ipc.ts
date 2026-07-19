@@ -13,7 +13,7 @@ import { ZodError } from 'zod'
 import path from 'path'
 import fs from 'fs/promises'
 
-import { IPCChannel } from '../shared/channels'
+import { IPCChannel } from '@shared/channels'
 import {
   // Incoming schemas (Renderer → Main)
   FileGetSchema,
@@ -71,7 +71,7 @@ import {
   NoteComposeResultSchema,
   NoteUniqueSchema,
   NoteUniqueResultSchema
-} from '../shared/schemas'
+} from '@shared/schemas'
 
 import { loadSettings, saveSettings } from './services/settings'
 import { substituteVariables } from './services/templates'
@@ -333,7 +333,7 @@ export function buildWatcherConfig(
   stateManager: StateManager,
   vectorManager: VectorManager,
   vaultPath: string,
-  vaultMeta: { files: import('../shared/types').FileEntry[] }
+  vaultMeta: { files: import('@shared/types').FileEntry[] }
 ): WatcherConfig {
   return {
     vaultPath,
@@ -1511,7 +1511,7 @@ export function registerIPCHandlers(
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.SETTINGS_GET_FEATURE_TOGGLES, async (_event) => {
     try {
-      const { getFeatureToggles, getDefaultState } = await import('../shared/feature-toggles')
+      const { getFeatureToggles, getDefaultState } = await import('@shared/feature-toggles')
       const toggles = getFeatureToggles()
       const result = toggles.map((t) => ({
         ...t,
@@ -1540,7 +1540,7 @@ export function registerIPCHandlers(
     const { id, enabled } = validation.data
 
     try {
-      const { setFeatureEnabled } = await import('../shared/feature-toggles')
+      const { setFeatureEnabled } = await import('@shared/feature-toggles')
       setFeatureEnabled(id, enabled)
 
       // Notify the widget manager when clipboard-widget toggles
