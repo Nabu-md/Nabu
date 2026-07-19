@@ -1,0 +1,120 @@
+# Migration Planning Notes — Phase 1.2 (Feature Folder Migration)
+
+> **Status:** Planning input produced during Phase 1.1 (design only).
+> **These notes are advisory for Phase 1.2.** No files are moved and no imports are changed by this document.
+> **Companions:** [architecture.md](./architecture.md), [domain-models.md](./domain-models.md)
+
+Phase 1.2 moves existing files into the feature-oriented target layout and updates imports. The build must pass (Gate A) after **each** move, and behavior must remain identical.
+
+---
+
+## 1. Guiding Rules for 1.2
+
+1. **Move, don't rewrite.** No service extraction (that is Phase 1.3), no IPC contract changes (Phase 1.4), no logic edits.
+2. **One feature at a time.** After each feature's move, run the build and a smoke launch before the next.
+3. **Additive-first for `shared/models`.** Create model files; do not delete existing `shared/types.ts` entries yet.
+4. **Preserve public signatures.** Handlers/preload/exports keep identical names so imports elsewhere stay valid.
+5. **Smallest revertible commits.** Each move is independently revertible.
+
+---
+
+## 2. Current → Target Mapping (Main)
+
+The current main process concentrates logic in `index.ts` (bootstrap) and `ipc.ts` (~95 KB of handlers). In 1.2 these files are **relocated/grouped**, not decomposed (decomposition is 1.3). Feature-owned modules move under a service filename; the `ipc/` folder is **created but populated later**.
+
+| Current file | Target (Phase 1.2 destination) | Notes |
+| --- | --- | --- |
+| `main/index.ts` | `main/index.ts` (stays) | Bootstrap remains; logic extraction deferred to 1.3 |
+| `main/ipc.ts` | `main/ipc.ts` (stays for now) | Split into `main/ipc/*.ts` during 1.3/1.4 |
+| `main/vault-registry.ts`, `main/state.ts`, `main/watcher.ts` | grouped under **Vault** capability → `main/services/` staging | Becomes `VaultService`/`IndexService` inputs in 1.3 |
+| `main/composer.ts`, `main/unique-note.ts`, `main/random-note.ts`, `main/templates.ts`, `main/parser.ts` | **Notes** capability → `main/services/` staging | Feeds `NoteService`/`TemplateService` |
+| `main/vector.ts`, `main/search-*`, `main/bases.ts` | **Search** capability → `main/services/` staging | Feeds `SearchService`/`IndexService` |
+| `main/pdf-viewer.ts`, `main/importers/pdf-importer.ts` | **PDF** capability → `main/services/` staging | Feeds `PdfService` |
+| `main/widget-manager.ts`, `main/widget-template.ts`, `main/clipboard-history.ts` | **Widgets** capability → `main/services/` staging | Feeds `WidgetService` |
+| `main/whisper.ts`, `main/fn-monitor.ts`, `main/audio-recorder.ts`, `main/ocr-manager.ts` | **Dictation/AI** capability → `main/services/` staging | Feeds `DictationService` |
+| `main/settings.ts`, `main/view-state.ts`, `main/feature-toggles` usage | **Settings** capability → `main/services/` staging | Feeds `SettingsService` |
+| `main/plugins/*` | keep as `main/plugins/` | Remark plugins; markdown infra, not a feature |
+
+> **Important:** In 1.2 the goal is grouping into the new folders with imports updated. Actual extraction into the named `*Service.ts` classes happens in 1.3. Where a file already is a self-contained capability, it may be renamed/moved directly; where logic is entangled in `ipc.ts`/`index.ts`, only the folder scaffolding is created in 1.2.
+
+---
+
+## 3. Current → Target Mapping (Renderer)
+
+Create `renderer/src/features/<feature>/` and move feature-owned components/blocks/utilities into them. Keep `components/` for genuinely shared UI.
+
+| Feature folder | Move in from `renderer/src/components/` (and blocks) |
+| --- | --- |
+| `features/notes/` | `NoteView.tsx`, `MarkdownEditor.tsx`, `OutlinePanel.tsx`, `FindReplaceBar.tsx`, `ContextPane.tsx`, `blocks/*` (CodeBlock, TaskList, ToggleBlock, WikiLink, EmbedBlock, KanbanBlock, MermaidBlock, PropertiesView, SlashCommands, InlineTagChip, PagePreview, OCRTextPanel), `markdown/pipeline.ts` |
+| `features/search/` | `SearchPanel.tsx`, `QuickSwitcher.tsx`, `CommandPalette.tsx`, `utils/fuzzy.ts` |
+| `features/graph/` | `GraphView.tsx`, `CytoscapeGraphView.tsx` |
+| `features/settings/` | `SettingsPanel.tsx` |
+| `features/widgets/` | `DictationWidget.tsx`, `Clipboard*` UI, `ActivityTimeline.tsx` |
+| `features/pdf/` | `PdfViewer.tsx`, `blocks/SandboxedHtml.tsx` (review ownership) |
+| `features/vault/` | `FileTree.tsx`, `Sidebar.tsx`, `SetupWizard.tsx`, `FavoritesPanel.tsx`, `FavoriteToggle.tsx`, `TagsPanel.tsx`, `PaneLayout.tsx` |
+| `components/` (stays shared) | `icons.tsx`, `Versions.tsx`, and any component used by ≥2 features |
+| `hooks/` (new) | Extract shared hooks as they surface during moves |
+
+> `commands/` and `commands/feature-registrations.ts` stay at `renderer/src/commands/` (cross-feature registry, Goal 11). Per-feature command *definitions* may later move into their feature folders.
+
+---
+
+## 4. Current → Target Mapping (Shared)
+
+| Current file | Target |
+| --- | --- |
+| *(new)* | `shared/models/{Note,Vault,Workspace,Tag,GraphNode,Attachment}.ts` + `index.ts` |
+| `shared/types.ts` | Split: domain concepts → `shared/models/`; non-domain/AST types → `shared/types/` (deferred; keep `types.ts` until consumers updated) |
+| `shared/schemas.ts` | `shared/schemas/` (consolidated in Phase 1.4) |
+| `shared/channels.ts` | `shared/contracts/channels.ts` (Phase 1.4) |
+| `shared/graph.ts`, `shared/graph-utils.ts` | `shared/utils/` (pure graph builders) |
+| `shared/indexing.ts`, `shared/extended-indexing.ts`, `shared/search-query.ts` | `shared/utils/` (pure index/query helpers) |
+| `shared/markdown.ts`, `shared/remarkFootnotes.ts`, `shared/plugins/*` | keep as shared markdown utilities |
+| `shared/feature-toggles.ts` | `shared/types/` or `shared/utils/` per content |
+
+---
+
+## 5. Sequencing Within Phase 1.2
+
+Recommended order (each step = build + smoke-test gate):
+
+1. **Add `shared/models/`** (additive, zero risk).
+2. **Create empty `main/services/`, `main/services/adapters/`, `main/ipc/`** scaffolding.
+3. **Create `renderer/src/features/*` and `renderer/src/hooks/`** scaffolding.
+4. **Migrate renderer features** one folder at a time (start with the most self-contained: `graph`, then `settings`, then `search`, then `pdf`, then `widgets`, then `vault`, finally `notes` — the largest/most entangled last).
+5. **Migrate main capability files** into `services/` staging one capability at a time.
+6. **Update imports** after each move; run build.
+
+Rationale: innermost/additive first, most-entangled last, so breakage is localized and each gate is meaningful.
+
+---
+
+## 6. Risks & Mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| Import breakage during moves | Move one unit at a time; run `tsc`/build after each; use path aliases in 1.6 to reduce churn |
+| Hidden coupling surfaced by moves | Do not "fix" coupling in 1.2; note it and defer to 1.3/1.5 |
+| Circular imports between new folders | Keep `shared/models` dependency-free; features import shared, never each other's internals |
+| `NoteView.tsx` (48 KB) and `ipc.ts` (95 KB) hard to move cleanly | Move as-is in 1.2; decompose in 1.3; keep exports stable |
+| Test path breakage (`tests/`) | Update test import paths alongside each move; keep fixtures in place |
+| Behavior regression from accidental edits | Strict "move-only" discipline; diff review confirms no logic delta |
+
+---
+
+## 7. Rollback Considerations for 1.2
+
+- Each feature move is a **separate commit**; revert the single commit to undo.
+- New folders are additive until files are moved in — deleting an empty scaffold is harmless.
+- No old file is deleted until its new location builds and launches, so any move is reversible without behavior loss.
+- Universal rollback: revert file moves and import edits in the smallest set that restores the green build (per Phase 1 Rollback Strategy).
+
+---
+
+## 8. Handoff Checklist to Phase 1.2
+
+- [ ] `shared/models/` type stubs created from [domain-models.md](./domain-models.md).
+- [ ] `main/services/`, `main/services/adapters/`, `main/ipc/` scaffolding created.
+- [ ] `renderer/src/features/*` and `renderer/src/hooks/` scaffolding created.
+- [ ] Feature-by-feature move plan (Sections 2–3) followed with a build gate after each.
+- [ ] All imports updated; Gate A (build) green; smoke launch verified.
