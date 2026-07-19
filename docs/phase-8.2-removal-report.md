@@ -111,11 +111,39 @@ The Phase 8.1 report contained several inaccuracies that were corrected during t
 ## 5. Summary
 
 - **Files removed:** 12
+- **Test files removed:** 1 (`tests/unit/footnotes.test.ts`)
 - **Unused imports removed:** 1 (`path` in `src/main/ipc/shared.ts`)
 - **Exports kept (for valid reasons):** Multiple (test usage, internal use, backward compatibility)
 - **TypeScript errors:** 0 (all resolved)
 
 The codebase is now cleaner with dead modules removed and no TypeScript errors.
+
+---
+
+## 6. Phase 8.3 Verification Notes
+
+During Phase 8.3 verification, the following blocking issues were identified and resolved:
+
+### 6.1 Test File Reference to Removed Module
+
+**Issue:** `tests/unit/footnotes.test.ts` imported `extractFootnotes` from `../../src/shared/remarkFootnotes`, but the module was removed in Phase 8.2.
+
+**Resolution:** Deleted `tests/unit/footnotes.test.ts` as the module it tested no longer exists.
+
+### 6.2 Non-existent Function Reference in Test
+
+**Issue:** `tests/unit/unique-note.test.ts` imported `substituteUniqueNoteVariables` from `../../src/main/services/unique-note`, but this function never existed in the source file.
+
+**Resolution:** Removed the `substituteUniqueNoteVariables` test block from `tests/unit/unique-note.test.ts`.
+
+### 6.3 Final Verification Results
+
+| Check | Result |
+|-------|--------|
+| `npm install` | ✅ Passed |
+| `npm run typecheck` | ✅ Passed (0 errors, 0 warnings) |
+| `npm run test` | ✅ Passed (47 test files, 711 tests) |
+| `npm run build` | ✅ Passed |
 
 ---
 

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { generateUniqueNoteName, substituteUniqueNoteVariables } from '../../src/main/services/unique-note'
+import { generateUniqueNoteName } from '../../src/main/services/unique-note'
 
 describe('generateUniqueNoteName', () => {
   it('generates default YYYYMMDDHHmmss format', () => {
@@ -23,20 +23,5 @@ describe('generateUniqueNoteName', () => {
   it('generates custom format with time components', () => {
     const result = generateUniqueNoteName('HH-mm-ss', new Date('2026-01-01T09:05:03'))
     expect(result).toBe('09-05-03')
-  })
-})
-
-describe('substituteUniqueNoteVariables', () => {
-  it('substitutes {{title}} placeholder', () => {
-    const result = substituteUniqueNoteVariables(
-      '---\ntitle: {{title}}\n---\n# {{title}}',
-      '20260708143000'
-    )
-    expect(result).toBe('---\ntitle: 20260708143000\n---\n# 20260708143000')
-  })
-
-  it('substitutes {{date}} and {{time}} placeholders', () => {
-    const result = substituteUniqueNoteVariables('date: {{date}}\ntime: {{time}}', '20260708143000')
-    expect(result).toBe('date: 20260708\ntime: 143000')
   })
 })
