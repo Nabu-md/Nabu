@@ -8,17 +8,14 @@
  * Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 16.1, 16.2, 16.3, 16.4, 16.6, 22.3, 22.9
  */
 
-import { ipcMain, dialog, BrowserWindow, app } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { ZodError } from 'zod'
 import path from 'path'
 import fs from 'fs/promises'
-import { join } from 'path'
 
 import { IPCChannel } from '../shared/channels'
 import {
   // Incoming schemas (Renderer → Main)
-  VaultOpenSchema,
-  VaultCloseSchema,
   FileGetSchema,
   TaskToggleSchema,
   ContextQuerySchema,
@@ -30,7 +27,6 @@ import {
   FeatureTogglesResultSchema,
   SetFeatureToggleSchema,
   SetFeatureToggleResultSchema,
-  VaultCreateSchema,
   FolderCreateSchema,
   NoteCreateSchema,
   NoteSaveSchema,
@@ -40,7 +36,6 @@ import {
   NoteExportHtmlSchema,
   TemplatesListSchema,
   // Outgoing schemas (Main → Renderer)
-  VaultScanResultSchema,
   FileGetResultSchema,
   TaskToggleResultSchema,
   ContextSearchResultSchema,
@@ -53,8 +48,6 @@ import {
   TemplatesListResultSchema,
   IndexBuildSchema,
   AssetReadSchema,
-  SearchQuerySchema,
-  SearchResponseSchema,
   PropertiesReadSchema,
   PropertiesReadResultSchema,
   PropertiesWriteSchema,
@@ -73,44 +66,26 @@ import {
   KanbanGetDataResultSchema,
   KanbanSetStatusSchema,
   KanbanSetStatusResultSchema,
-  // PDF schemas (Req 40.1, 40.2, 40.4, 40.5)
-  PDFOpenSchema,
-  PDFOpenResultSchema,
-  PDFRenderPageSchema,
-  PDFRenderPageResultSchema,
-  PDFLoadAnnotationsSchema,
-  PDFLoadAnnotationsResultSchema,
-  PDFSaveAnnotationsSchema,
-  PDFSaveAnnotationsResultSchema,
-  // Dictation schemas (Req 41, 42)
-  DictationStartSchema,
-  DictationStartResultSchema,
-  DictationStopSchema,
-  DictationStopResultSchema,
-  DictationStatusSchema,
-  DictationStatusResultSchema,
-  DictationDownloadModelSchema,
-  DictationDownloadModelResultSchema,
   // Additional schemas
-  VaultSwitchSchema,
   NoteComposeSchema,
   NoteComposeResultSchema,
   NoteUniqueSchema,
   NoteUniqueResultSchema
 } from '../shared/schemas'
 
-import { search } from '../shared/search-query'
-
 import { loadSettings, saveSettings } from './services/settings'
 import { substituteVariables } from './services/templates'
 import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
 import { vaultRegistry } from './services/vault-registry'
 import { enqueueOCR, createOCRCompanionNote } from './services/ocr-manager'
-import { getPDFInfo, renderPDFPage } from './services/pdf-viewer'
 import { setFoldState, loadViewState } from './services/view-state'
 import { readBookmarks, addBookmark, removeBookmark } from './bookmarks'
 import { mergeNotes } from './services/composer'
 import { generateUniqueNoteName } from './services/unique-note'
+import { VaultService } from './services/vault-service'
+import { SearchService } from './services/search-service'
+import { PdfService } from './services/pdf-service'
+import { DictationService } from './services/dictation-service'
 
 import type { StateManager } from './services/state'
 import type { VectorManager } from './services/vector'
@@ -211,7 +186,7 @@ function getSessionForVault(vaultId: string | undefined): {
  * Build a structured activity:log payload and broadcast it to all renderer
  * windows. Used internally for validation warnings and handler errors.
  */
-function emitActivityLog(level: 'info' | 'warn' | 'error', message: string): void {
+export function emitActivityLog(level: 'info' | 'warn' | 'error', message: string): void {
   const payload = ActivityLogSchema.safeParse({
     level,
     message,
@@ -231,7 +206,7 @@ function emitActivityLog(level: 'info' | 'warn' | 'error', message: string): voi
  * Format a Zod validation error into a short readable string suitable for
  * an activity:log message.
  */
-function formatZodError(err: ZodError): string {
+export function formatZodError(err: ZodError): string {
   return err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')
 }
 
@@ -507,50 +482,6 @@ export function sendToRenderer(channel: IPCChannel, payload: unknown): void {
 }
 
 // ---------------------------------------------------------------------------
-// copyDefaultTemplates
-// ---------------------------------------------------------------------------
-
-/**
- * Copy default template `.md` files from the bundled `default-templates`
- * resource directory into `<vaultPath>/_templates/` on first open.
- *
- * - Only copies if `_templates/` does not already exist (first-open guard).
- * - Resolves the source directory from `process.resourcesPath` when packaged,
- *   or from the local `resources/` folder in development.
- * - Failures are non-fatal: a warning is emitted to activity:log and the
- *   vault open / create flow continues normally.
- *
- * Requirements: 9.3
- */
-async function copyDefaultTemplates(vaultPath: string): Promise<void> {
-  const templatesDir = path.join(vaultPath, '_templates')
-
-  // Only copy on first open — skip if _templates already exists
-  try {
-    await fs.access(templatesDir)
-    return // directory exists; nothing to do
-  } catch {
-    // Directory does not exist — proceed with copy
-  }
-
-  // Resolve source directory based on whether the app is packaged
-  const srcDir = app.isPackaged
-    ? path.join(process.resourcesPath, 'default-templates')
-    : path.join(__dirname, '..', '..', '..', 'resources', 'default-templates')
-
-  // Create the _templates directory
-  await fs.mkdir(templatesDir, { recursive: true })
-
-  // Read all .md files from the source dir and copy each to _templates/
-  const dirents = await fs.readdir(srcDir, { withFileTypes: true })
-  await Promise.all(
-    dirents
-      .filter((d) => d.isFile() && d.name.endsWith('.md'))
-      .map((d) => fs.copyFile(path.join(srcDir, d.name), path.join(templatesDir, d.name)))
-  )
-}
-
-// ---------------------------------------------------------------------------
 // registerIPCHandlers
 // ---------------------------------------------------------------------------
 
@@ -621,18 +552,20 @@ export function registerIPCHandlers(
   }
 
   // -------------------------------------------------------------------------
+  // Service instantiation — business logic now lives in focused services.
+  // The handlers below are thin wrappers that delegate to these services.
+  // -------------------------------------------------------------------------
+  const vaultService = new VaultService(stateManager, vectorManager, watcher)
+  const searchService = new SearchService(stateManager)
+  const pdfService = new PdfService()
+  const dictationService = new DictationService()
+
+  // -------------------------------------------------------------------------
   // vault:get-current — renderer pulls current vault state on mount
   // -------------------------------------------------------------------------
   ipcMain.removeHandler('vault:get-current')
   ipcMain.handle('vault:get-current', async (_event) => {
-    try {
-      const vault = stateManager.getCurrentVault()
-      if (!vault) return null
-      return VaultScanResultSchema.parse(vault)
-    } catch (err) {
-      console.error('[IPC] vault:get-current error:', err)
-      return null
-    }
+    return vaultService.getCurrentVault()
   })
 
   // -------------------------------------------------------------------------
@@ -640,116 +573,19 @@ export function registerIPCHandlers(
   // Requirements: 22.5, 22.6
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_OPEN, async (_event, rawPayload) => {
-    let parsedPath: string | undefined
-
-    // Validate incoming payload (path is optional)
-    const validation = VaultOpenSchema.safeParse(rawPayload ?? {})
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] vault:open validation failed: ${reason}`)
-      return { error: reason }
-    }
-
-    parsedPath = validation.data.path
-
-    // If no path provided, show native folder picker
-    if (!parsedPath) {
-      const focusedWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
-      const result = await dialog.showOpenDialog(focusedWindow, {
-        properties: ['openDirectory'],
-        title: 'Open Vault',
-        buttonLabel: 'Open'
-      })
-
-      if (result.canceled || result.filePaths.length === 0) {
-        return { canceled: true }
-      }
-
-      parsedPath = result.filePaths[0]
-    }
-
-    try {
-      const vaultMeta = await stateManager.openVault(parsedPath)
-
-      // Copy default templates on first open (non-fatal)
-      try {
-        await copyDefaultTemplates(parsedPath)
-      } catch (copyErr) {
-        emitActivityLog(
-          'warn',
-          `[IPC] vault:open — failed to copy default templates: ${String(copyErr)}`
-        )
-      }
-
-      // Register vault session in the registry (Req 22.5)
-      // For now, we use the legacy singleton managers as the default session
-      // This will be enhanced when we fully migrate to per-vault managers
-      vaultRegistry.register(
-        parsedPath, // vaultId is the vault path
-        parsedPath,
-        stateManager,
-        vectorManager,
-        watcher
-      )
-      vaultRegistry.setActive(parsedPath)
-
-      // Start the file watcher (uses shared config with vector embedding)
-      watcher.start(buildWatcherConfig(stateManager, vectorManager, parsedPath, vaultMeta))
-
-      const response = VaultScanResultSchema.parse(vaultMeta)
-
-      // Trigger index build (task 9 implements buildIndexes; guard with try/catch)
-      try {
-        const indexResult = await (stateManager as any).buildIndexes?.()
-        if (indexResult) {
-          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
-        }
-      } catch {
-        // buildIndexes not yet available — silently ignore
-      }
-
-      // Notify renderer that vault was opened (via validated channel)
-      sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath: parsedPath, files: vaultMeta.files })
-
-      return response
-    } catch (err) {
-      const msg = `[IPC] vault:open handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { error: String(err) }
-    }
+    const result = await vaultService.openVault(rawPayload ?? {})
+    if (result.error) return { error: result.error }
+    if (result.canceled) return { canceled: true }
+    return result.vault
   })
 
   // -------------------------------------------------------------------------
   // vault:scan — re-scan the current vault and return updated metadata
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_SCAN, async (_event, _rawPayload) => {
-    try {
-      const currentVault = stateManager.getCurrentVault()
-      if (!currentVault) {
-        return { error: 'No vault is currently open' }
-      }
-
-      const vaultMeta = await stateManager.openVault(currentVault.path)
-      const response = VaultScanResultSchema.parse(vaultMeta)
-
-      // Trigger index build (task 9 implements buildIndexes; guard with try/catch)
-      try {
-        const indexResult = await (stateManager as any).buildIndexes?.()
-        if (indexResult) {
-          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
-        }
-      } catch {
-        // buildIndexes not yet available — silently ignore
-      }
-
-      return response
-    } catch (err) {
-      const msg = `[IPC] vault:scan handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { error: String(err) }
-    }
+    const result = await vaultService.scanVault()
+    if (result.error) return { error: result.error }
+    return result.vault
   })
 
   // -------------------------------------------------------------------------
@@ -757,30 +593,7 @@ export function registerIPCHandlers(
   // Requirements: 22.5, 22.6
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_CLOSE, async (_event, rawPayload) => {
-    const validation = VaultCloseSchema.safeParse(rawPayload ?? {})
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] vault:close validation failed: ${reason}`)
-      return { error: reason }
-    }
-
-    const vaultId = validation.data.vaultId
-
-    try {
-      // Close vault session in registry if vaultId provided
-      if (vaultId) {
-        vaultRegistry.close(vaultId)
-      } else {
-        // Fall back to stopping the legacy watcher
-        watcher.stop()
-      }
-      return { success: true }
-    } catch (err) {
-      const msg = `[IPC] vault:close handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { error: String(err) }
-    }
+    return vaultService.closeVault(rawPayload)
   })
 
   // -------------------------------------------------------------------------
@@ -993,30 +806,7 @@ export function registerIPCHandlers(
   // search:query — execute a text search against the extended search index
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.SEARCH_QUERY, async (_event, rawPayload) => {
-    const validation = SearchQuerySchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] search:query validation failed: ${reason}`)
-      return { results: [] }
-    }
-
-    const { query } = validation.data
-    const vault = stateManager.getCurrentVault()
-    if (!vault) {
-      return { results: [] }
-    }
-
-    try {
-      const results = search(query, vault.files, vault.path, stateManager.getExtendedIndex(), (p) =>
-        stateManager.getASTSync(p)
-      )
-      return SearchResponseSchema.parse({ results })
-    } catch (err) {
-      const msg = `[IPC] search:query handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { results: [] }
-    }
+    return searchService.query(rawPayload)
   })
 
   // -------------------------------------------------------------------------
@@ -1024,79 +814,7 @@ export function registerIPCHandlers(
   // Requirements: 22.7
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_OPEN_IN_NEW_WINDOW, async (_event, rawPayload) => {
-    const validation = VaultOpenSchema.safeParse(rawPayload ?? {})
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] vault:open-in-new-window validation failed: ${reason}`)
-      return { error: reason }
-    }
-
-    const vaultPath = validation.data.path
-    if (!vaultPath) {
-      return { error: 'No vault path provided' }
-    }
-
-    try {
-      // Check path is accessible
-      await fs.access(vaultPath, fs.constants.R_OK)
-
-      // Open the vault in the registry (Req 22.7)
-      const vaultMeta = await stateManager.openVault(vaultPath)
-
-      // Copy default templates on first open (non-fatal)
-      try {
-        await copyDefaultTemplates(vaultPath)
-      } catch (copyErr) {
-        emitActivityLog(
-          'warn',
-          `[IPC] vault:open-in-new-window — failed to copy default templates: ${String(copyErr)}`
-        )
-      }
-
-      // Register vault session in the registry
-      vaultRegistry.register(vaultPath, vaultPath, stateManager, vectorManager, watcher)
-      vaultRegistry.setActive(vaultPath)
-
-      // Start the file watcher for this vault
-      watcher.start(buildWatcherConfig(stateManager, vectorManager, vaultPath, vaultMeta))
-
-      // Create a new BrowserWindow for this vault (Req 22.7)
-      const newWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        show: false,
-        autoHideMenuBar: false,
-        webPreferences: {
-          preload: join(__dirname, '../preload/index.js'),
-          sandbox: false,
-          contextIsolation: true,
-          nodeIntegration: false
-        }
-      })
-
-      // Load renderer in the new window
-      if (process.env['VITE_DEV_SERVER_URL']) {
-        await newWindow.loadURL(process.env['VITE_DEV_SERVER_URL'])
-      } else {
-        await newWindow.loadFile(join(__dirname, '../renderer/index.html'))
-      }
-
-      newWindow.on('ready-to-show', () => {
-        newWindow.show()
-      })
-
-      // Send vault state to the new window
-      newWindow.webContents.once('did-finish-load', () => {
-        sendToRenderer(IPCChannel.NOTES_LOADED, { vaultPath, files: vaultMeta.files })
-      })
-
-      return { success: true, path: vaultPath }
-    } catch (err) {
-      const msg = `[IPC] vault:open-in-new-window handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { error: String(err) }
-    }
+    return vaultService.openVaultInNewWindow(rawPayload)
   })
 
   // -------------------------------------------------------------------------
@@ -1217,51 +935,9 @@ export function registerIPCHandlers(
   // vault:create — create a new vault directory and open it
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_CREATE, async (_event, rawPayload) => {
-    const validation = VaultCreateSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] vault:create validation failed: ${reason}`)
-      return { error: reason }
-    }
-
-    const { parentPath, name } = validation.data
-    const newPath = path.join(parentPath, name)
-
-    try {
-      // Create the vault directory
-      await fs.mkdir(newPath, { recursive: true })
-
-      // Write a Welcome.md file as the initial note
-      const welcomePath = path.join(newPath, 'Welcome.md')
-      const welcomeContent = `# Welcome to ${name}\n\nThis is your new vault. Start writing!\n`
-      stateManager.setPendingWrite(welcomePath)
-      try {
-        await fs.writeFile(welcomePath, welcomeContent, 'utf-8')
-      } finally {
-        stateManager.clearPendingWrite(welcomePath)
-      }
-
-      // Open the newly created vault
-      const vaultMeta = await stateManager.openVault(newPath)
-      const result = VaultScanResultSchema.parse(vaultMeta)
-
-      // Trigger index build (task 9 implements buildIndexes; guard with try/catch)
-      try {
-        const indexResult = await (stateManager as any).buildIndexes?.()
-        if (indexResult) {
-          sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
-        }
-      } catch {
-        // buildIndexes not yet available — silently ignore
-      }
-
-      return result
-    } catch (err) {
-      const msg = `[IPC] vault:create handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { error: String(err) }
-    }
+    const result = await vaultService.createVault(rawPayload)
+    if (result.error) return { error: result.error }
+    return result.vault
   })
 
   // -------------------------------------------------------------------------
@@ -1948,185 +1624,35 @@ export function registerIPCHandlers(
   // pdf:open — open a PDF and return metadata + page count (Req 40.1, 40.2)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.PDF_OPEN, async (_event, rawPayload) => {
-    const validation = PDFOpenSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] pdf:open validation failed: ${reason}`)
-      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: reason })
-    }
-
-    const { path: filePath } = validation.data
-
-    try {
-      const info = await getPDFInfo(filePath)
-      return PDFOpenResultSchema.parse({
-        totalPages: info.totalPages,
-        metadata: {
-          title: info.metadata.title,
-          author: info.metadata.author,
-          subject: info.metadata.subject,
-          keywords: info.metadata.keywords
-        }
-      })
-    } catch (err) {
-      const msg = `[IPC] pdf:open handler error for "${filePath}": ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return PDFOpenResultSchema.parse({ totalPages: 0, metadata: {}, error: String(err) })
-    }
+    return pdfService.open(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // pdf:render-page — render a single PDF page to a base64 PNG (Req 40.2)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.PDF_RENDER_PAGE, async (_event, rawPayload) => {
-    const validation = PDFRenderPageSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] pdf:render-page validation failed: ${reason}`)
-      return PDFRenderPageResultSchema.parse({
-        pageNumber: 0,
-        dataUri: '',
-        width: 0,
-        height: 0,
-        error: reason
-      })
-    }
-
-    const { path: filePath, pageNumber, scale } = validation.data
-
-    try {
-      const result = await renderPDFPage(filePath, pageNumber, scale)
-      return PDFRenderPageResultSchema.parse({
-        pageNumber: result.pageNumber,
-        dataUri: result.dataUri,
-        width: result.width,
-        height: result.height
-      })
-    } catch (err) {
-      const msg = `[IPC] pdf:render-page handler error for "${filePath}" page ${pageNumber}: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return PDFRenderPageResultSchema.parse({
-        pageNumber,
-        dataUri: '',
-        width: 0,
-        height: 0,
-        error: String(err)
-      })
-    }
+    return pdfService.renderPage(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // pdf:load-annotations — load annotations for a PDF (Req 40.4)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.PDF_LOAD_ANNOTATIONS, async (_event, rawPayload) => {
-    const validation = PDFLoadAnnotationsSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] pdf:load-annotations validation failed: ${reason}`)
-      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: reason })
-    }
-
-    const { path: filePath } = validation.data
-
-    try {
-      const { loadPDFAnnotations } = await import('./services/pdf-viewer')
-      const annotations = await loadPDFAnnotations(filePath)
-      return PDFLoadAnnotationsResultSchema.parse({ annotations })
-    } catch (err) {
-      const msg = `[IPC] pdf:load-annotations handler error for "${filePath}": ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return PDFLoadAnnotationsResultSchema.parse({ annotations: [], error: String(err) })
-    }
+    return pdfService.loadAnnotations(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // pdf:save-annotations — save annotations for a PDF (Req 40.5)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.PDF_SAVE_ANNOTATIONS, async (_event, rawPayload) => {
-    const validation = PDFSaveAnnotationsSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] pdf:save-annotations validation failed: ${reason}`)
-      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: reason })
-    }
-
-    const { path: filePath, annotations } = validation.data
-
-    try {
-      const { savePDFAnnotations } = await import('./services/pdf-viewer')
-      await savePDFAnnotations(filePath, annotations)
-      return PDFSaveAnnotationsResultSchema.parse({ success: true })
-    } catch (err) {
-      const msg = `[IPC] pdf:save-annotations handler error for "${filePath}": ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return PDFSaveAnnotationsResultSchema.parse({ success: false, error: String(err) })
-    }
+    return pdfService.saveAnnotations(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // dictation:start — start audio capture and whisper transcription (Req 41.3)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.DICTATION_START, async (_event, rawPayload) => {
-    const validation = DictationStartSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] dictation:start validation failed: ${reason}`)
-      return DictationStartResultSchema.parse({ success: false, error: reason })
-    }
-
-    const { model = 'base' } = validation.data
-
-    try {
-      // Check if whisper binary is available
-      const { isWhisperBinaryAvailable, isModelInstalled, downloadModel, startDictation } =
-        await import('./services/whisper')
-
-      if (!isWhisperBinaryAvailable()) {
-        return DictationStartResultSchema.parse({
-          success: false,
-          error: 'Whisper binary not found. Please reinstall Nabu.'
-        })
-      }
-
-      // Check if model is installed, download if needed
-      if (!(await isModelInstalled(model))) {
-        const downloadResult = await downloadModel(model, () => {})
-        if (!downloadResult.success) {
-          return DictationStartResultSchema.parse({
-            success: false,
-            error: `Model download failed: ${downloadResult.error}`
-          })
-        }
-      }
-
-      // Start dictation: spawn mic-capture.swift and whisper, pipe mic → whisper
-      startDictation(model)
-        .then((result) => {
-          // Send transcription result to renderer
-          _event.sender.send(IPCChannel.DICTATION_RESULT, {
-            text: result.text,
-            segments: result.segments
-          })
-        })
-        .catch((err) => {
-          console.error('[IPC] Dictation failed:', err)
-          _event.sender.send(IPCChannel.DICTATION_RESULT, {
-            text: '',
-            error: String(err)
-          })
-        })
-
-      return DictationStartResultSchema.parse({ success: true })
-    } catch (err) {
-      const msg = `[IPC] dictation:start handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return DictationStartResultSchema.parse({ success: false, error: String(err) })
-    }
+    return dictationService.start(_event, rawPayload)
   })
 
   // -------------------------------------------------------------------------
@@ -2171,141 +1697,35 @@ export function registerIPCHandlers(
   // dictation:stop — stop dictation and return transcription (Req 41.4)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.DICTATION_STOP, async (_event, rawPayload) => {
-    const validation = DictationStopSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] dictation:stop validation failed: ${reason}`)
-      return DictationStopResultSchema.parse({ success: false, error: reason })
-    }
-
-    try {
-      const { stopDictation } = await import('./services/whisper')
-      // Stop dictation: send SIGTERM to mic-capture, which flushes and exits
-      // Whisper will then finish transcription and resolve the promise
-      stopDictation()
-      return DictationStopResultSchema.parse({ success: true })
-    } catch (err) {
-      const msg = `[IPC] dictation:stop handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return DictationStopResultSchema.parse({ success: false, error: String(err) })
-    }
+    return dictationService.stop(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // dictation:status — get dictation model status (Req 42.4)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.DICTATION_STATUS, async (_event, rawPayload) => {
-    const validation = DictationStatusSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] dictation:status validation failed: ${reason}`)
-      return DictationStatusResultSchema.parse({ available: false, error: reason })
-    }
-
-    try {
-      const { isWhisperBinaryAvailable, getModelStatus } = await import('./services/whisper')
-      const available = isWhisperBinaryAvailable()
-
-      if (!available) {
-        return DictationStatusResultSchema.parse({ available: false })
-      }
-
-      const modelStatus = await getModelStatus()
-      return DictationStatusResultSchema.parse({ available: true, modelStatus })
-    } catch (err) {
-      const msg = `[IPC] dictation:status handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return DictationStatusResultSchema.parse({ available: false, error: String(err) })
-    }
+    return dictationService.status(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // dictation:download-model — download a dictation model (Req 42.5)
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.DICTATION_DOWNLOAD_MODEL, async (_event, rawPayload) => {
-    const validation = DictationDownloadModelSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] dictation:download-model validation failed: ${reason}`)
-      return DictationDownloadModelResultSchema.parse({ success: false, error: reason })
-    }
-
-    const { model } = validation.data
-
-    try {
-      const { downloadModel } = await import('./services/whisper')
-
-      // Send progress updates to renderer
-      const progressCallback = (progress: number) => {
-        _event.sender.send(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, {
-          model,
-          progress
-        })
-      }
-
-      const result = await downloadModel(model, progressCallback)
-      return DictationDownloadModelResultSchema.parse(result)
-    } catch (err) {
-      const msg = `[IPC] dictation:download-model handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return DictationDownloadModelResultSchema.parse({ success: false, error: String(err) })
-    }
+    return dictationService.downloadModel(_event, rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // vault:switch — switch to a different vault
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_SWITCH, async (_event, rawPayload) => {
-    const validation = VaultSwitchSchema.safeParse(rawPayload)
-    if (!validation.success) {
-      const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[IPC] vault:switch validation failed: ${reason}`)
-      return { success: false, error: reason }
-    }
-
-    const { vaultId } = validation.data
-
-    try {
-      // Check if the vault is already open in the registry
-      const session = vaultRegistry.get(vaultId)
-      if (session) {
-        vaultRegistry.setActive(vaultId)
-        return { success: true }
-      }
-
-      // If not in registry, check if it's the current vault
-      const currentVault = stateManager.getCurrentVault()
-      if (currentVault && currentVault.path === vaultId) {
-        return { success: true }
-      }
-
-      return { success: false, error: 'Vault not found in registry' }
-    } catch (err) {
-      const msg = `[IPC] vault:switch handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
-    }
+    return vaultService.switchVault(rawPayload)
   })
 
   // -------------------------------------------------------------------------
   // vault:get-recents — get list of recently opened vaults
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.VAULT_GET_RECENTS, async (_event, _rawPayload) => {
-    try {
-      const settings = await loadSettings()
-      // recentVaults is already an array of { path, name, lastOpened }
-      const recents = settings.recentVaults ?? []
-      return { recents }
-    } catch (err) {
-      const msg = `[IPC] vault:get-recents handler error: ${String(err)}`
-      console.error(msg)
-      emitActivityLog('error', msg)
-      return { recents: [] }
-    }
+    return vaultService.getRecents()
   })
 
   // -------------------------------------------------------------------------
