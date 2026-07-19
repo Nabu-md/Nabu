@@ -440,20 +440,10 @@ export class VaultService {
         )
       }
 
-      // Register vault session in the registry
-      vaultRegistry.register(
-        vaultPath,
-        vaultPath,
-        this.stateManager,
-        this.vectorManager,
-        this.watcher
-      )
-      vaultRegistry.setActive(vaultPath)
-
-      // Start the file watcher for this vault
-      this.watcher.start(
-        buildWatcherConfig(this.stateManager, this.vectorManager, vaultPath, vaultMeta)
-      )
+      // Register vault session + start the file watcher through the single
+      // owner path (Phase 4.3 — eliminates the duplicate inline registration
+      // that previously lived here).
+      this.registerAndWatch(vaultPath, vaultMeta)
 
       // Create a new BrowserWindow for this vault (Req 22.7)
       const newWindow = new BrowserWindow({
@@ -537,10 +527,9 @@ export class VaultService {
     try {
       const vaultMeta = await this.stateManager.openVault(settings.lastVaultPath)
 
-      // Start the file watcher for the restored vault (uses shared config with vector embedding)
-      this.watcher.start(
-        buildWatcherConfig(this.stateManager, this.vectorManager, settings.lastVaultPath, vaultMeta)
-      )
+      // Register vault session + start the file watcher through the single
+      // owner path (Phase 4.3 — was previously an inline watcher.start).
+      this.registerAndWatch(settings.lastVaultPath, vaultMeta)
     } catch (err) {
       console.error('[VaultService] Failed to open vault:', err)
 
@@ -565,10 +554,9 @@ export class VaultService {
    */
   async openTestVault(testVaultPath: string): Promise<void> {
     const vaultMeta = await this.stateManager.openVault(testVaultPath)
-    // Start the file watcher (uses shared config with vector embedding)
-    this.watcher.start(
-      buildWatcherConfig(this.stateManager, this.vectorManager, testVaultPath, vaultMeta)
-    )
+    // Register vault session + start the file watcher through the single
+    // owner path (Phase 4.3 — was previously an inline watcher.start).
+    this.registerAndWatch(testVaultPath, vaultMeta)
     // Push vault state to the renderer. This may arrive before or after
     // React mounts. The renderer also polls via vault:get-current so
     // whichever path succeeds first wins.

@@ -9,6 +9,7 @@
 
 import { join } from 'path'
 import fs from 'fs/promises'
+import { toVaultRelative } from '@shared/path'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,8 +38,11 @@ function getViewStateDir(vaultPath: string): string {
  */
 function getViewStateFile(vaultPath: string, notePath: string): string {
   const dir = getViewStateDir(vaultPath)
-  // Convert note path to a safe filename (relative to vault)
-  const relativePath = notePath.replace(vaultPath, '').replace(/^\/+/, '').replace(/\//g, '--')
+  // Convert note path to a safe filename (relative to vault).
+  // Canonical vault-relative resolution (Phase 4.3) replaces the previous
+  // `notePath.replace(vaultPath, '')` which was unsafe for vault names that
+  // are substrings of later path segments.
+  const relativePath = toVaultRelative(vaultPath, notePath).replace(/\//g, '--')
   return join(dir, `${relativePath}.json`)
 }
 

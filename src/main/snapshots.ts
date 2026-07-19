@@ -9,6 +9,7 @@
 
 import path from 'path'
 import fs from 'fs/promises'
+import { toVaultRelative } from '@shared/path'
 
 interface Snapshot {
   timestamp: number
@@ -70,7 +71,7 @@ export async function createSnapshot(
  * Prune snapshots for a single note to stay under cap.
  */
 async function pruneNoteSnapshots(vaultPath: string, notePath: string, cap: number): Promise<void> {
-  const relativePath = notePath.replace(vaultPath, '').replace(/^\//, '').replace(/\.md$/, '')
+  const relativePath = toVaultRelative(vaultPath, notePath).replace(/\.md$/, '')
   const snapDir = getSnapshotDir(vaultPath)
 
   try {
@@ -165,7 +166,7 @@ export async function restoreSnapshot(
   asNew: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   const snapDir = getSnapshotDir(vaultPath)
-  const relativePath = notePath.replace(vaultPath, '').replace(/^\//, '').replace(/\.md$/, '')
+  const relativePath = toVaultRelative(vaultPath, notePath).replace(/\.md$/, '')
   const snapPath = path.join(snapDir, `${relativePath}-${snapshotTimestamp}.json`)
 
   try {

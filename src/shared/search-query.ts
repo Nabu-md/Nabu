@@ -14,6 +14,7 @@
 import type { Root } from 'mdast'
 import type { ExtendedSearchIndex } from './extended-indexing'
 import type { FileEntry } from './types'
+import { toVaultRelative } from './path'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -508,15 +509,12 @@ function getFilesForTag(tag: string, extIndex: ExtendedSearchIndex): string[] {
 
 /**
  * Compute relative path from vaultPath to filePath.
+ *
+ * Delegates to the canonical, deterministic resolver in `./path`
+ * (Phase 4.3) so vault-relative resolution is consistent across the app.
  */
 function getRelativePath(vaultPath: string, filePath: string): string {
-  // Simple path-relative computation without requiring Node path module
-  // (since this is shared code that may run in the renderer)
-  if (filePath.startsWith(vaultPath)) {
-    const rel = filePath.slice(vaultPath.length)
-    return rel.startsWith('/') ? rel.slice(1) : rel
-  }
-  return filePath
+  return toVaultRelative(vaultPath, filePath)
 }
 
 /**
