@@ -1,7 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
-import { useAppContext } from '../../App'
-import { ActivityEntry } from '@shared/types'
+import { useWidgetActivity, type ActivityEntry } from './widgetService'
 
 // ---------------------------------------------------------------------------
 // External badge
@@ -64,8 +63,7 @@ function EntryRow({ entry }: EntryRowProps): React.JSX.Element {
 // ---------------------------------------------------------------------------
 
 export function ActivityTimeline(): React.JSX.Element {
-  const { state } = useAppContext()
-  const { activityLog } = state
+  const activityLog = useWidgetActivity()
 
   return (
     <aside

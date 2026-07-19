@@ -11,20 +11,8 @@
  * Requirements: 41.4, 42.2, 42.3, 43.1, 43.2, 43.4
  */
 
-import React, { useEffect, useState, useCallback } from 'react'
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type WidgetMode = 'clipboard' | 'dictation'
-
-interface DictationState {
-  status: 'idle' | 'listening' | 'complete' | 'error'
-  text: string
-  error: string | null
-  silent: boolean
-}
+import React, { useCallback } from 'react'
+import { useWidgetDictation } from './widgetService'
 
 // ---------------------------------------------------------------------------
 // Waveform Animation Component
@@ -55,85 +43,30 @@ const WaveformAnimation: React.FC = () => {
 // ---------------------------------------------------------------------------
 
 const DictationWidget: React.FC = () => {
-  const [_mode, setMode] = useState<WidgetMode>('dictation')
-  const [dictationState, setDictationState] = useState<DictationState>({
-    status: 'idle',
-    text: '',
-    error: null,
-    silent: false
-  })
-  const [micPermissionError, setMicPermissionError] = useState(false)
+  const { state: dictationState, start, stop } = useWidgetDictation()
 
-  // Listen for IPC messages from the main process
-  useEffect(() => {
-    const { electron } = window
-
-    // Listen for mode changes
-    const removeModeChanged = electron.on.widgetModeChanged((data: unknown) => {
-      const { mode: newMode } = data as { mode: WidgetMode }
-      setMode(newMode)
-      if (newMode === 'dictation') {
-        setDictationState({ status: 'listening', text: '', error: null, silent: false })
-      }
-    })
-
-    // Listen for dictation starting
-    const removeDictationStarting = electron.on.widgetDictationStarting(() => {
-      setDictationState({ status: 'listening', text: '', error: null, silent: false })
-    })
-
-    // Listen for dictation complete
-    const removeDictationComplete = electron.on.widgetDictationComplete((data: unknown) => {
-      const { text, silent } = data as { text: string; silent: boolean }
-      setDictationState({
-        status: 'complete',
-        text,
-        error: null,
-        silent: silent ?? false
-      })
-    })
-
-    // Listen for dictation errors
-    const removeDictationError = electron.on.widgetDictationError((data: unknown) => {
-      const { error } = data as { error: string }
-      setDictationState({
-        status: 'error',
-        text: '',
-        error,
-        silent: false
-      })
-      if (error && error.includes('Microphone access')) {
-        setMicPermissionError(true)
-      }
-    })
-
-    return () => {
-      removeModeChanged()
-      removeDictationStarting()
-      removeDictationComplete()
-      removeDictationError()
-    }
-  }, [])
+  // Microphone permission error is derived directly from dictation state —
+  // no separate state or effect needed.
+  const micPermissionError =
+    dictationState.status === 'error' && !!dictationState.error?.includes('Microphone access')
 
   // Handle "Done" button click
   const handleDone = useCallback(async () => {
     try {
-      await window.electron.dictation.stop()
+      await stop()
     } catch (err) {
       console.error('[DictationWidget] Failed to stop dictation:', err)
     }
-  }, [])
+  }, [stop])
 
   // Handle microphone permission retry
   const handleRetryPermission = useCallback(async () => {
-    setMicPermissionError(false)
-    setDictationState({ status: 'idle', text: '', error: null, silent: false })
     try {
-      await window.electron.dictation.start()
+      await start()
     } catch (err) {
       console.error('[DictationWidget] Failed to start dictation:', err)
     }
-  }, [])
+  }, [start])
 
   // Render the widget content
   const renderContent = (): React.ReactNode => {

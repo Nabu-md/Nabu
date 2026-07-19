@@ -10,8 +10,9 @@ import React, {
   ReactNode
 } from 'react'
 import { Root } from 'mdast'
-import { VaultMetadata, ActivityEntry, SearchResult, Edge } from '@shared/types'
+import { VaultMetadata, SearchResult, Edge } from '@shared/types'
 import type { ExtendedSearchIndex } from '@shared/extended-indexing'
+import { recordExternalActivity } from './features/widgets/widgetService'
 import { Sidebar, SidebarHandle } from './features/vault/Sidebar'
 import { NoteView } from './features/notes/NoteView'
 import { GraphView } from './features/graph/GraphView'
@@ -103,7 +104,6 @@ export interface AppState {
   currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
   contextPaneOpen: boolean
-  activityLog: ActivityEntry[]
   contextResults: SearchResult[]
   showSetup: boolean
   editMode: boolean // compat alias: openTabs[activeTabId]?.mode === 'edit'
@@ -163,7 +163,6 @@ export type AppAction =
   | { type: 'AST_UPDATED'; payload: { path: string; ast: Root; isExternal?: boolean } }
   | { type: 'TOGGLE_BLOCK'; payload: { filePath: string; headingId: string; isOpen: boolean } }
   | { type: 'CONTEXT_PANE_TOGGLE' }
-  | { type: 'ACTIVITY_ADD'; payload: ActivityEntry }
   | { type: 'FILE_DELETED'; payload: { path: string } }
   | { type: 'CONTEXT_RESULTS'; payload: SearchResult[] }
   | { type: 'SETUP_TOGGLE' }
@@ -216,7 +215,6 @@ const initialState: AppState = {
   currentAST: null,
   toggleStates: new Map(),
   contextPaneOpen: false,
-  activityLog: [],
   contextResults: [],
   // vault restore (existing `pollForVault`) dispatches `VAULT_OPENED` which sets `showSetup: false`, so the wizard only shows when no vault is auto-restored
   showSetup: true,
@@ -458,12 +456,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'CONTEXT_PANE_TOGGLE':
       return { ...state, contextPaneOpen: !state.contextPaneOpen }
-
-    case 'ACTIVITY_ADD':
-      return {
-        ...state,
-        activityLog: [action.payload, ...state.activityLog].slice(0, 100)
-      }
 
     case 'FILE_DELETED':
       return {
@@ -755,10 +747,7 @@ function App(): React.JSX.Element {
     const offNoteUpdated = electron.on.noteUpdated(({ path, ast, isExternal }) => {
       dispatch({ type: 'AST_UPDATED', payload: { path, ast, isExternal } })
       if (isExternal) {
-        dispatch({
-          type: 'ACTIVITY_ADD',
-          payload: { filePath: path, timestamp: Date.now(), isExternal: true }
-        })
+        recordExternalActivity(path)
       }
     })
 
@@ -786,20 +775,6 @@ function App(): React.JSX.Element {
 
     const offFocusSearch = electron.on.focusSearch(() => {
       sidebarRef.current?.focusSearch()
-    })
-
-    const offActivityLog = electron.on.activityLog((entry) => {
-      // activity:log messages have { level, message, timestamp } shape.
-      // Convert to ActivityEntry for the timeline display.
-      const logEntry = entry as unknown as { level: string; message: string; timestamp: number }
-      dispatch({
-        type: 'ACTIVITY_ADD',
-        payload: {
-          filePath: logEntry.message ?? '',
-          timestamp: logEntry.timestamp ?? Date.now(),
-          isExternal: false
-        }
-      })
     })
 
     // Handle vault:opened-test — used by E2E tests to inject vault state without
@@ -890,7 +865,6 @@ function App(): React.JSX.Element {
       offNoteDeleted()
       offNoteOpenRequested()
       offContextSearch()
-      offActivityLog()
       offVaultOpened()
       offNotesLoaded()
       offFocusSearch()
