@@ -34,11 +34,6 @@ type Dispatch = (action: AppAction) => void
 // Rename
 // ---------------------------------------------------------------------------
 
-export interface RenameResult {
-  success: boolean
-  error: string | null
-}
-
 /**
  * Rename a file. Computes the new path from the parent directory, calls the
  * rename IPC, and — if the renamed file was the active note — reloads it at the
@@ -49,7 +44,7 @@ export async function renameFile(
   newName: string,
   currentFile: string | null,
   dispatch: Dispatch
-): Promise<RenameResult> {
+): Promise<{ success: boolean; error: string | null }> {
   if (!newName.trim()) {
     return { success: false, error: 'Name cannot be empty.' }
   }
@@ -79,13 +74,8 @@ export async function renameFile(
 // Delete
 // ---------------------------------------------------------------------------
 
-export interface DeleteResult {
-  success: boolean
-  error: string | null
-}
-
 /** Delete a file via IPC. */
-export async function deleteFile(filePath: string): Promise<DeleteResult> {
+export async function deleteFile(filePath: string): Promise<{ success: boolean; error: string | null }> {
   try {
     const result = await ipc.note.delete(filePath)
     if (!result.success) {
@@ -104,11 +94,6 @@ export async function deleteFile(filePath: string): Promise<DeleteResult> {
 // Create folder
 // ---------------------------------------------------------------------------
 
-export interface CreateFolderResult {
-  success: boolean
-  error: string | null
-}
-
 /**
  * Create a folder under the vault. Validates the (trimmed) name, calls the
  * folder-create IPC, then re-scans the vault and dispatches `VAULT_OPENED`
@@ -118,7 +103,7 @@ export async function createFolder(
   vaultPath: string,
   folderName: string,
   dispatch: Dispatch
-): Promise<CreateFolderResult> {
+): Promise<{ success: boolean; error: string | null }> {
   const trimmed = folderName.trim()
   if (!trimmed) {
     return { success: false, error: 'Folder name cannot be empty.' }
@@ -144,11 +129,6 @@ export async function createFolder(
 // Create note
 // ---------------------------------------------------------------------------
 
-export interface CreateNoteResult {
-  success: boolean
-  error: string | null
-}
-
 /**
  * Create a note from a template (or empty). Validates the (trimmed) name,
  * calls the note-create IPC, re-scans the vault, then enters edit mode with the
@@ -159,7 +139,7 @@ export async function createNote(
   noteName: string,
   selectedTemplate: Template | null,
   dispatch: Dispatch
-): Promise<CreateNoteResult> {
+): Promise<{ success: boolean; error: string | null }> {
   const trimmed = noteName.trim()
   if (!trimmed) {
     return { success: false, error: 'Note name cannot be empty.' }

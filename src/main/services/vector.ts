@@ -17,7 +17,7 @@ import type { SearchResult } from '@shared/types'
 // Types
 // ---------------------------------------------------------------------------
 
-export interface VectorConfig {
+interface VectorConfig {
   /** Absolute path to the `.nabu/` directory */
   indexPath: string
   /** Absolute path to the bundled ONNX model directory */

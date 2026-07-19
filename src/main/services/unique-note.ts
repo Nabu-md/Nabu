@@ -30,13 +30,3 @@ export function generateUniqueNoteName(
     .replace('mm', min)
     .replace('ss', sec)
 }
-
-/**
- * Parse a template and inject unique-note variables.
- */
-export function substituteUniqueNoteVariables(template: string, noteName: string): string {
-  return template
-    .replace(/\{\{title\}\}/g, noteName)
-    .replace(/\{\{date\}\}/g, noteName.slice(0, 8)) // YYYYMMDD
-    .replace(/\{\{time\}\}/g, noteName.slice(8)) // HHmmss
-}

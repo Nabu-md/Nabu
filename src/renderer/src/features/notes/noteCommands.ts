@@ -81,13 +81,8 @@ export async function loadNoteFile(
 // Save
 // ---------------------------------------------------------------------------
 
-export interface SaveResult {
-  success: boolean
-  error: string | null
-}
-
 /** Persist note content via IPC. Returns success/error for UI status. */
-export async function saveNote(filePath: string, content: string): Promise<SaveResult> {
+export async function saveNote(filePath: string, content: string): Promise<{ success: boolean; error: string | null }> {
   try {
     const result = await ipc.note.save(filePath, content)
     if (result.success) {
@@ -246,6 +241,3 @@ export async function retryLoadNote(
   dispatch({ type: 'FILE_LOADED', payload: { path: filePath, ast: null as unknown as Root } })
   return loadNoteFile(filePath, dispatch)
 }
-
-// Re-export the timeout so callers (e.g. retry effect) can use a consistent value.
-export const NOTE_IPC_TIMEOUT_MS = IPC_TIMEOUT_MS

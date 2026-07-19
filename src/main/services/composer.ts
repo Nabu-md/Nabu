@@ -11,17 +11,6 @@ import path from 'node:path'
 import type { FileEntry } from '@shared/types'
 
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface SourceNote {
-  path: string
-  name: string
-  frontmatter: Record<string, unknown>
-  content: string
-}
-
-// ---------------------------------------------------------------------------
 // Merge Notes
 // ---------------------------------------------------------------------------
 
@@ -121,53 +110,4 @@ export async function mergeNotes(
     previewMarkdown,
     warning: warnings.length > 0 ? warnings.join('; ') : undefined
   }
-}
-
-// ---------------------------------------------------------------------------
-// Merge Tags
-// ---------------------------------------------------------------------------
-
-/**
- * Combine frontmatter tags from multiple notes.
- */
-export function mergeTags(notesMetadata: { tags?: string[] }[]): string[] {
-  const tagSet = new Set<string>()
-  for (const meta of notesMetadata) {
-    for (const tag of meta.tags ?? []) {
-      tagSet.add(tag)
-    }
-  }
-  return Array.from(tagSet).sort()
-}
-
-// ---------------------------------------------------------------------------
-// Scalar Conflict Detection
-// ---------------------------------------------------------------------------
-
-/**
- * Check for conflicting scalar fields in frontmatter.
- * Returns list of field names that have different values across notes.
- */
-export function checkScalarConflicts(notesFrontmatter: Record<string, unknown>[]): string[] {
-  const scalarFields = new Map<string, string>() // field -> source note
-  const conflicts: string[] = []
-
-  for (let i = 0; i < notesFrontmatter.length; i++) {
-    const fm = notesFrontmatter[i]
-    for (const [key, value] of Object.entries(fm)) {
-      if (key === 'tags') continue // Tags are merged, not checked for conflicts
-
-      const stringValue = String(value)
-      if (scalarFields.has(key)) {
-        // Check if values differ
-        if (scalarFields.get(key) !== stringValue) {
-          conflicts.push(key)
-        }
-      } else {
-        scalarFields.set(key, stringValue)
-      }
-    }
-  }
-
-  return [...new Set(conflicts)]
 }

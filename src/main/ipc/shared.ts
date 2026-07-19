@@ -7,7 +7,6 @@
 
 import { BrowserWindow } from 'electron'
 import { ZodError } from 'zod'
-import path from 'path'
 import fs from 'fs/promises'
 
 import { IPCChannel } from '@shared/channels'
@@ -480,6 +479,3 @@ export function sendToRenderer(channel: IPCChannel, payload: unknown): void {
     }
   }
 }
-
-// Re-export path for modules that need it (kept here to avoid duplication).
-export { path }
