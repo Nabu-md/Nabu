@@ -55,7 +55,7 @@ const WaveformAnimation: React.FC = () => {
 // ---------------------------------------------------------------------------
 
 const DictationWidget: React.FC = () => {
-  const [mode, setMode] = useState<WidgetMode>('dictation')
+  const [_mode, setMode] = useState<WidgetMode>('dictation')
   const [dictationState, setDictationState] = useState<DictationState>({
     status: 'idle',
     text: '',

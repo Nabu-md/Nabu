@@ -175,12 +175,6 @@ export function PdfViewer({
     setPageImages({})
   }, [scale])
 
-  // Scroll to a specific page
-  const scrollToPage = useCallback((pageNumber: number) => {
-    const element = pageRefs.current.get(pageNumber)
-    element?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
   // Create an annotation from the current text selection on a page image
   const handlePageMouseUp = useCallback(
     (pageNumber: number, img: HTMLImageElement) => {

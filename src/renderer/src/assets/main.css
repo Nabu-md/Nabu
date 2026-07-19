@@ -23,85 +23,135 @@
   --color-nabu-accent-hover: var(--nabu-accent-hover);
 
   /* Widths */
-  --width-sidebar: 240px;
+  --width-ribbon: 46px;
+  --width-sidebar-panel: 240px;
   --width-note-max: 720px;
 
   /* Animations */
   --animate-blue-pulse: bluePulse 600ms ease-in-out;
   --animate-toggle-expand: toggleExpand 150ms ease-out;
   --animate-toggle-collapse: toggleCollapse 150ms ease-out;
-
-  /* Keyframes */
-  @keyframes bluePulse {
-    0% {
-      color: rgba(235, 235, 245, 0.86);
-    }
-    50% {
-      color: #3b82f6;
-    }
-    100% {
-      color: rgba(235, 235, 245, 0.86);
-    }
-  }
-  @keyframes toggleExpand {
-    from {
-      grid-template-rows: 0fr;
-      opacity: 0;
-    }
-    to {
-      grid-template-rows: 1fr;
-      opacity: 1;
-    }
-  }
-  @keyframes toggleCollapse {
-    from {
-      grid-template-rows: 1fr;
-      opacity: 1;
-    }
-    to {
-      grid-template-rows: 0fr;
-      opacity: 0;
-    }
-  }
 }
 
 /* ============================================================
-   App shell — three-panel grid layout
+   App shell — sidebar sizes to content, note fills rest
    ============================================================ */
 
 .app-container {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: 1fr auto auto;
-  grid-template-areas:
-    'sidebar note'
-    'sidebar activity'
-    'context context';
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   background: var(--color-background);
   color: var(--color-text);
-  font-family:
-    -apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-/* Sidebar — left column, full height spanning all rows */
+/* Sidebar — sizes to ribbon + panel width */
 .sidebar {
-  grid-area: sidebar;
   grid-row: 1 / -1;
   display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Icon ribbon — always visible, 46px */
+.sidebar-ribbon {
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  width: var(--width-ribbon);
+  min-width: var(--width-ribbon);
+  padding: 8px 0;
+  gap: 2px;
+  background: var(--nabu-bg);
+  border-right: 1px solid var(--nabu-border);
+  z-index: 10;
+}
+
+.sidebar-ribbon__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nabu-text-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+
+.sidebar-ribbon__btn:hover {
+  background: var(--nabu-bg-mute);
+  color: var(--nabu-text);
+}
+
+.sidebar-ribbon__btn--active {
+  background: var(--nabu-bg-mute);
+  color: var(--nabu-accent);
+}
+
+.sidebar-ribbon__btn--collapse {
+  width: 28px;
+  height: 28px;
+  margin-top: auto;
+  color: var(--nabu-text-faint);
+}
+
+.sidebar-ribbon__btn--collapse:hover {
+  color: var(--nabu-text-muted);
+}
+
+/* Sidebar panel — 240px, slides in when active */
+.sidebar-panel {
+  width: var(--width-sidebar-panel);
+  min-width: var(--width-sidebar-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--nabu-bg-soft);
+  border-right: 1px solid var(--nabu-border);
+  animation: panelSlideIn 120ms ease-out;
+}
+
+@keyframes panelSlideIn {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: var(--width-sidebar-panel);
+    opacity: 1;
+  }
+}
+
+.sidebar-panel__header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--nabu-border);
+  min-height: 40px;
+}
+
+.sidebar-panel__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nabu-text);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-panel__body {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--ev-c-black-soft);
-  border-right: 1px solid #333333;
-  min-width: 0;
 }
 
 /* Center note area */
 .note-container {
-  grid-area: note;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -109,13 +159,61 @@
   background: var(--color-background);
 }
 
-/* Search panel — right-side column, appears when .app-container gets --search-open */
+/* Top toolbar (icon row above note content) */
+.note-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--nabu-border);
+  background: var(--nabu-bg);
+}
+
+.note-toolbar__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nabu-text-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+
+.note-toolbar__btn:hover {
+  background: var(--nabu-bg-mute);
+  color: var(--nabu-text);
+}
+
+.note-toolbar__btn--active {
+  background: var(--nabu-bg-mute);
+  color: var(--nabu-accent);
+}
+
+.note-toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--nabu-border);
+  margin: 0 4px;
+}
+
+/* Search panel — right-side column */
 .app-container--search-open {
-  grid-template-columns: 240px 1fr 360px;
-  grid-template-areas:
-    'sidebar note search'
-    'sidebar activity search'
-    'context context context';
+  grid-template-columns: auto 1fr 360px;
+}
+
+.search-panel {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--nabu-bg-soft);
+  border-left: 1px solid var(--nabu-border);
+  min-width: 0;
 }
 
 .search-panel {

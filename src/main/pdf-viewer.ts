@@ -190,12 +190,12 @@ export function clearPDFCache(_filePath: string): void {
 function getAnnotationsPath(filePath: string): string {
   const path = require('path')
   const { vaultRegistry } = require('./vault-registry')
-  const vault = vaultRegistry.getVaultForPath(filePath)
-  if (!vault) {
-    throw new Error(`No vault found for path: ${filePath}`)
+  const session = vaultRegistry.getActive()
+  if (!session) {
+    throw new Error(`No vault is currently open`)
   }
   const pdfName = path.basename(filePath, '.pdf')
-  return path.join(vault.path, '.nabu', 'pdf-annotations', `${pdfName}.json`)
+  return path.join(session.vaultPath, '.nabu', 'pdf-annotations', `${pdfName}.json`)
 }
 
 /**
@@ -203,7 +203,6 @@ function getAnnotationsPath(filePath: string): string {
  * Returns an empty array if no annotations file exists.
  */
 export async function loadPDFAnnotations(filePath: string): Promise<PDFAnnotationType[]> {
-  const path = require('path')
   const annotationsPath = getAnnotationsPath(filePath)
 
   try {

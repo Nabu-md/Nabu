@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 import { useAppContext } from '../App'
 import { FileEntry, Template } from '../../../shared/types'
+import { PlusIcon, FolderPlusIcon } from './icons'
 
 // ---------------------------------------------------------------------------
 // TreeNode
@@ -633,12 +634,15 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             setFolderError(null)
             setShowFolderDialog(true)
           }}
-          className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs rounded
+          className="flex flex-1 items-center justify-center rounded
                      bg-nabu-bg-mute border border-nabu-border text-nabu-text-muted
                      hover:text-nabu-text hover:border-nabu-accent transition-colors
                      disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ height: 28 }}
+          type="button"
+          title="Create folder"
         >
-          <span aria-hidden="true">+</span> Folder
+          <FolderPlusIcon size={14} />
         </button>
         <button
           aria-label="Create note"
@@ -658,12 +662,15 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             setShowNoteDialog(true)
             setNoteLoading(false)
           }}
-          className="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs rounded
+          className="flex flex-1 items-center justify-center rounded
                      bg-nabu-bg-mute border border-nabu-border text-nabu-text-muted
                      hover:text-nabu-text hover:border-nabu-accent transition-colors
                      disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ height: 28 }}
+          type="button"
+          title="Create note"
         >
-          <span aria-hidden="true">+</span> Note
+          <PlusIcon size={14} />
         </button>
       </div>
 

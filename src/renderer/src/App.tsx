@@ -23,6 +23,7 @@ import { SetupWizard } from './components/SetupWizard'
 import { SearchPanel } from './components/SearchPanel'
 import { QuickSwitcher } from './components/QuickSwitcher'
 import { CommandPalette } from './components/CommandPalette'
+import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './components/icons'
 import { seedCommands, registerCommand } from './commands/registry'
 import type { SearchQueryResult } from '../../shared/search-query'
 
@@ -1021,24 +1022,50 @@ function App(): React.JSX.Element {
           <Sidebar ref={sidebarRef} />
 
           <main className="note-container">
-            {/* Tab bar: Note | Graph */}
-            <div className="flex items-center border-b border-nabu-border shrink-0">
+            {/* Toolbar: icon row */}
+            <div className="note-toolbar shrink-0">
               <button
                 onClick={() => {
                   if (state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
                 }}
-                className={`px-4 py-2 text-sm border-b-2 transition-colors ${!state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
+                className={`note-toolbar__btn ${!state.graphViewOpen ? 'note-toolbar__btn--active' : ''}`}
+                title="Note view"
+                aria-label="Note view"
+                type="button"
               >
-                Note
+                <NoteIcon size={16} />
               </button>
               <button
                 onClick={() => {
                   if (!state.graphViewOpen) dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
                 }}
-                className={`px-4 py-2 text-sm border-b-2 transition-colors ${state.graphViewOpen ? 'border-nabu-accent text-nabu-accent' : 'border-transparent text-nabu-text-muted hover:text-nabu-text'}`}
+                className={`note-toolbar__btn ${state.graphViewOpen ? 'note-toolbar__btn--active' : ''}`}
+                title="Graph view"
+                aria-label="Graph view"
+                type="button"
               >
-                Graph
+                <GraphIcon size={16} />
               </button>
+              {!state.graphViewOpen && state.currentAST && (
+                <>
+                  <div className="note-toolbar__divider" />
+                  <button
+                    onClick={() => {
+                      if (state.editMode) {
+                        dispatch({ type: 'EDIT_MODE_EXIT' })
+                      } else if (state.currentFile) {
+                        dispatch({ type: 'EDIT_MODE_ENTER', payload: state.currentRaw ?? '' })
+                      }
+                    }}
+                    className={`note-toolbar__btn ${state.editMode ? 'note-toolbar__btn--active' : ''}`}
+                    title={state.editMode ? 'Preview' : 'Edit'}
+                    aria-label={state.editMode ? 'Preview' : 'Edit'}
+                    type="button"
+                  >
+                    {state.editMode ? <EyeIcon size={16} /> : <EditIcon size={16} />}
+                  </button>
+                </>
+              )}
             </div>
 
             <ErrorBoundary

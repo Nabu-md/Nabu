@@ -27,10 +27,9 @@ import { registerIPCHandlers, sendToRenderer, buildWatcherConfig, onWidgetToggle
 import { IPCChannel } from '../shared/channels'
 import { loadSettings, saveSettings } from './settings'
 import { fnMonitor } from './fn-monitor'
-import { registerWidgetIPCHandlers, wireFnMonitorToWidget } from './widget-manager'
+import { registerWidgetIPCHandlers, wireFnMonitorToWidget, widgetManager } from './widget-manager'
 import type { AppSettings } from './settings'
 import { ClipboardHistory } from './clipboard-history'
-import { WidgetManager } from './widget-manager'
 import { vaultRegistry } from './vault-registry'
 
 // ---------------------------------------------------------------------------
@@ -480,8 +479,6 @@ app.whenReady().then(async () => {
       }
     })
 
-    const widgetManager = new WidgetManager()
-    widgetManager.registerIPCHandlers()
     // Widget starts enabled by default with saved shortcut
     loadSettings().then((s) => {
       widgetManager.setEnabled(true, s.clipboardShortcut)

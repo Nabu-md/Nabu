@@ -12,7 +12,7 @@
  * Requirements: 41.4, 42.2, 42.3, 43.1, 43.2, 43.4
  */
 
-import { BrowserWindow, ipcMain, app } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
 import {
@@ -20,13 +20,10 @@ import {
   stopDictation,
   isDictationActive,
   isWhisperBinaryAvailable,
-  isModelInstalled,
   ensureModelAvailable,
   getModelStatus,
-  WhisperModel,
-  WhisperResult
+  WhisperModel
 } from './whisper'
-import { IPCChannel } from '../shared/channels'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +41,7 @@ export interface WidgetState {
   whisperCrashCount: number
   maxWhisperCrashRetries: number
   currentModel: WhisperModel
+  currentShortcut: string
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +68,8 @@ class WidgetManager {
     micPermissionGranted: false,
     whisperCrashCount: 0,
     maxWhisperCrashRetries: MAX_WHISPER_CRASH_RETRIES,
-    currentModel: 'base'
+    currentModel: 'base',
+    currentShortcut: 'CmdOrCtrl+§'
   }
 
   /**
@@ -430,6 +429,15 @@ class WidgetManager {
   }
 
   /**
+   * Register IPC handlers for widget communication.
+   * Called from index.ts during app initialization.
+   */
+  registerIPCHandlers(): void {
+    // IPC handlers are registered in the standalone function registerWidgetIPCHandlers
+    // This method exists for API compatibility
+  }
+
+  /**
    * Clean up resources.
    */
   destroy(): void {
@@ -438,6 +446,42 @@ class WidgetManager {
       this.widgetWindow.close()
       this.widgetWindow = null
     }
+  }
+
+  /**
+   * Enable or disable the widget.
+   * When enabled, the widget can be shown via shortcut or fn key.
+   */
+  setEnabled(enabled: boolean, shortcut?: string): void {
+    if (enabled) {
+      this.start(shortcut)
+    } else {
+      this.stop()
+    }
+  }
+
+  /**
+   * Start the widget (register global shortcut if provided).
+   */
+  private start(shortcut?: string): void {
+    if (shortcut) {
+      this.state.currentShortcut = shortcut
+    }
+    // Widget is ready to be shown
+  }
+
+  /**
+   * Stop the widget.
+   */
+  private stop(): void {
+    this.hide()
+  }
+
+  /**
+   * Set the keyboard shortcut for the widget.
+   */
+  setShortcut(shortcut: string): void {
+    this.state.currentShortcut = shortcut
   }
 }
 

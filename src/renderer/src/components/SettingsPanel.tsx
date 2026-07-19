@@ -27,7 +27,7 @@ export function SettingsPanel(): React.JSX.Element | null {
     downloading: boolean
     downloadProgress: number
   }>({ installed: false, downloading: false, downloadProgress: 0 })
-  const [dictationAvailable, setDictationAvailable] = useState(false)
+  const [dictationAvailable, _setDictationAvailable] = useState(false)
   const [dictationError, setDictationError] = useState<string | null>(null)
 
   // Fetch feature toggles on mount and when panel opens

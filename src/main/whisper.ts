@@ -10,7 +10,6 @@
 import { spawn, ChildProcess } from 'child_process'
 import path from 'path'
 import fs from 'fs/promises'
-import os from 'os'
 
 // Model types
 export type WhisperModel = 'base' | 'large-v3-turbo-q5'
@@ -47,8 +46,6 @@ const MODEL_CONFIG = {
 // Whisper process state
 let whisperProcess: ChildProcess | null = null
 let currentModel: WhisperModel = 'base'
-let crashRetryCount = 0
-const MAX_CRASH_RETRIES = 2
 
 /**
  * Get the path to the whisper binary.
@@ -292,7 +289,7 @@ export async function downloadModel(
     const https = require('https')
     const { createWriteStream } = require('fs')
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       https
         .get(modelConfig.url, (response: any) => {
           if (response.statusCode !== 200) {

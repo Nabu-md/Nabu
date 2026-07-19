@@ -72,18 +72,18 @@ body {
    them via var() so Tailwind utilities reflect theme switches.
    ============================================================ */
 
-/* Dark (default) */
+/* Dark (default) — Obsidian-inspired palette */
 [data-theme='dark'] {
-  --nabu-bg: #0a0a0a;
-  --nabu-bg-soft: #18181b;
-  --nabu-bg-mute: #1a1a1a;
-  --nabu-text: #e5e5e5;
-  --nabu-text-muted: #a3a3a3;
+  --nabu-bg: #191919;
+  --nabu-bg-soft: #1e1e1e;
+  --nabu-bg-mute: #252525;
+  --nabu-text: #d4d4d4;
+  --nabu-text-muted: #8a8a8a;
   --nabu-text-faint: #525252;
-  --nabu-accent: #60a5fa;
-  --nabu-accent-hover: #93bbfd;
-  --nabu-border: #2a2a2a;
-  --nabu-border-subtle: #1f1f23;
+  --nabu-accent: #5b9cf5;
+  --nabu-accent-hover: #7bb3fa;
+  --nabu-border: #2e2e2e;
+  --nabu-border-subtle: #252525;
 }
 
 /* Light */

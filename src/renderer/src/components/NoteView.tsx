@@ -39,6 +39,7 @@ import { PropertiesView } from './blocks/PropertiesView'
 import { KanbanBlock } from './blocks/KanbanBlock'
 import { renderInlineTagText } from './blocks/InlineTagChip'
 import { FavoriteToggle } from './FavoriteToggle'
+import { SaveIcon, DownloadIcon, EditIcon, EyeIcon } from './icons'
 import { MarkdownEditor } from './MarkdownEditor'
 import katex from 'katex'
 // parseMarkdown imported but used via IPC for Live Preview mode
@@ -1271,17 +1272,20 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
   // ---- Heading fold state management (Phase 2) ----
   const [headingFoldStates, setHeadingFoldStates] = useState<Record<string, boolean>>({})
 
-  const handleHeadingToggle = useCallback(async (headingId: string) => {
-    if (!currentFile || !state.vault) return
-    const newState = !headingFoldStates[headingId]
-    setHeadingFoldStates((prev) => ({ ...prev, [headingId]: newState }))
-    // Persist to main process
-    try {
-      await window.electron.viewState?.setFold(state.vault.path, currentFile, headingId, newState)
-    } catch {
-      // viewState API may not be available yet
-    }
-  }, [currentFile, headingFoldStates, state.vault])
+  const handleHeadingToggle = useCallback(
+    async (headingId: string) => {
+      if (!currentFile || !state.vault) return
+      const newState = !headingFoldStates[headingId]
+      setHeadingFoldStates((prev) => ({ ...prev, [headingId]: newState }))
+      // Persist to main process
+      try {
+        await window.electron.viewState?.setFold(state.vault.path, currentFile, headingId, newState)
+      } catch {
+        // viewState API may not be available yet
+      }
+    },
+    [currentFile, headingFoldStates, state.vault]
+  )
 
   // ---- Render context ----
   const renderCtx: RenderContext = {
@@ -1319,9 +1323,10 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               type="button"
               aria-label="Switch to view mode"
               onClick={() => exitEditMode().catch(console.error)}
-              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+              className="note-toolbar__btn"
+              title="Switch to view mode"
             >
-              View Mode
+              <EyeIcon size={16} />
             </button>
             <div className="flex items-center gap-2">
               {saveStatus === 'saving' && <span className="text-xs text-white/50">Saving…</span>}
@@ -1332,9 +1337,10 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 aria-label="Save note"
                 disabled={saveStatus === 'saving'}
                 onClick={() => saveNote().catch(console.error)}
-                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="note-toolbar__btn"
+                title="Save note"
               >
-                Save
+                <SaveIcon size={16} />
               </button>
             </div>
           </div>
@@ -1365,9 +1371,10 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
               type="button"
               aria-label="Switch to view mode"
               onClick={() => exitLivePreviewMode().catch(console.error)}
-              className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+              className="note-toolbar__btn"
+              title="Switch to view mode"
             >
-              View Mode
+              <EyeIcon size={16} />
             </button>
             <div className="flex items-center gap-2">
               <button
@@ -1376,9 +1383,10 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 onClick={() =>
                   window.electron.note.save(currentFile, livePreviewContent).catch(console.error)
                 }
-                className="px-3 py-1 text-sm rounded bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+                className="note-toolbar__btn"
+                title="Save note"
               >
-                Save
+                <SaveIcon size={16} />
               </button>
             </div>
           </div>
@@ -1405,7 +1413,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
         currentAST !== null && (
           <>
             {/* View/edit toolbar */}
-            <div className="flex items-center justify-end gap-2 px-8 pt-4">
+            <div className="flex items-center justify-end gap-1 px-8 pt-4">
               {currentFile && <FavoriteToggle filePath={currentFile} size="md" />}
               <button
                 type="button"
@@ -1413,9 +1421,10 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 aria-disabled={!currentFile}
                 disabled={!currentFile}
                 onClick={() => window.print()}
-                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="note-toolbar__btn"
+                title="Export as PDF"
               >
-                PDF
+                <DownloadIcon size={16} />
               </button>
               <button
                 type="button"
@@ -1423,17 +1432,20 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
                 aria-disabled={!currentFile}
                 disabled={!currentFile}
                 onClick={handleExportHtml}
-                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="note-toolbar__btn"
+                title="Export as HTML"
               >
-                HTML
+                <DownloadIcon size={16} />
               </button>
+              <div className="note-toolbar__divider" />
               <button
                 type="button"
                 aria-label="Switch to edit mode"
                 onClick={() => enterEditMode().catch(console.error)}
-                className="px-3 py-1 text-xs rounded bg-white/8 hover:bg-white/15 text-white/50 hover:text-white/70 transition-colors"
+                className="note-toolbar__btn"
+                title="Edit note"
               >
-                Edit
+                <EditIcon size={16} />
               </button>
             </div>
             <article

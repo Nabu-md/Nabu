@@ -86,8 +86,7 @@ import {
   DictationStatusSchema,
   DictationStatusResultSchema,
   DictationDownloadModelSchema,
-  DictationDownloadModelResultSchema,
-  DictationDownloadProgressSchema
+  DictationDownloadModelResultSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -2106,8 +2105,6 @@ export function registerIPCHandlers(
       return DictationStartResultSchema.parse({ success: false, error: String(err) })
     }
   })
-    }
-  })
 
   // -------------------------------------------------------------------------
   // kanban:set-status — update a note's frontmatter status property
@@ -2218,7 +2215,6 @@ export function registerIPCHandlers(
       const { downloadModel } = await import('./whisper')
 
       // Send progress updates to renderer
-      const { ipcMain } = require('electron')
       const progressCallback = (progress: number) => {
         _event.sender.send(IPCChannel.DICTATION_DOWNLOAD_PROGRESS, {
           model,
