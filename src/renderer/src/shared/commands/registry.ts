@@ -9,7 +9,7 @@
  * Requirements: 5.2, 5.3, 5.6
  */
 
-import type { AppAction } from '../App'
+import type { AppAction } from '../../App'
 
 // ---------------------------------------------------------------------------
 // Types

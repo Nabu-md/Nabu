@@ -24,7 +24,7 @@ import {
   OutlineIcon,
   SettingsIcon,
   ChevronLeftIcon
-} from '../../components/icons'
+} from '../../shared/components/icons'
 
 // ---------------------------------------------------------------------------
 // Sidebar section configuration

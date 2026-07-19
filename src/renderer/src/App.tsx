@@ -24,10 +24,10 @@ import { SetupWizard } from './features/vault/SetupWizard'
 import { SearchPanel } from './features/search/SearchPanel'
 import { QuickSwitcher } from './features/search/QuickSwitcher'
 import { CommandPalette } from './features/search/CommandPalette'
-import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './components/icons'
-import { seedCommands, registerCommand } from './commands/registry'
+import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './shared/components/icons'
+import { seedCommands, registerCommand } from './shared/commands/registry'
 import type { SearchQueryResult } from '@shared/search-query'
-import { ipc } from './ipc'
+import { ipc } from './shared/ipc'
 
 // ---------------------------------------------------------------------------
 // State shape

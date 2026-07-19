@@ -8,7 +8,7 @@ import React, {
 } from 'react'
 import { useAppContext } from '../../App'
 import { FileEntry, Template } from '@shared/types'
-import { PlusIcon, FolderPlusIcon } from '../../components/icons'
+import { PlusIcon, FolderPlusIcon } from '../../shared/components/icons'
 
 // ---------------------------------------------------------------------------
 // TreeNode

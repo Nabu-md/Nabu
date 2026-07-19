@@ -30,7 +30,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { ipc } from '../../ipc'
+import { ipc } from '../../shared/ipc'
 import type { ActivityEntry } from '@shared/models'
 
 export type { ActivityEntry }
