@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 
 // ---------------------------------------------------------------------------
 // SettingsPanel

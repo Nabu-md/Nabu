@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 
 // ---------------------------------------------------------------------------
 // Types

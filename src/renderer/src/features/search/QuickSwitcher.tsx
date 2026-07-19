@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import { fuzzySearch, type FuzzyItem, type FuzzyMatch, type FuzzyRange } from './fuzzy'
 
 // ---------------------------------------------------------------------------

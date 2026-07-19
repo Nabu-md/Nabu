@@ -12,9 +12,9 @@
 import React, { forwardRef, useState, useCallback } from 'react'
 import { FileTree, FileTreeHandle } from './FileTree'
 import { TagsPanel } from './TagsPanel'
-import { OutlinePanel } from '../notes/OutlinePanel'
+import { OutlinePanel } from '../../shared/components/OutlinePanel'
 import { FavoritesPanel } from './FavoritesPanel'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import {
   FilesIcon,
   SearchIcon,

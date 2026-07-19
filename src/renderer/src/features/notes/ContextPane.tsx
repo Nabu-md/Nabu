@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Node, Root, Text } from 'mdast'
 import { SearchResult } from '@shared/types'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import { ipc } from '../../shared/ipc'
 
 // ---------------------------------------------------------------------------

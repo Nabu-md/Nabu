@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react'
-import { useAppContext, type Tab } from '../../App'
+import { useAppContext, type Tab } from '../../shared/store'
 
 // ---------------------------------------------------------------------------
 // PaneLayout component

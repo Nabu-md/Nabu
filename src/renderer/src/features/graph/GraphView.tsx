@@ -11,7 +11,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import type { Edge, FileEntry } from '@shared/types'
 import {
   computeTagGraph,

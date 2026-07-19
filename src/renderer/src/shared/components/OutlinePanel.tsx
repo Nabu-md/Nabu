@@ -1,15 +1,17 @@
 /**
- * OutlinePanel.tsx
+ * OutlinePanel.tsx — Current-note heading outline (shared component)
  *
- * Sidebar panel showing the heading hierarchy of the current note.
- * Tracks the active heading via IntersectionObserver and scrolls
- * to headings on click.
+ * Relocated from `features/notes/OutlinePanel.tsx` during Phase 5.3 to remove
+ * the cross-feature dependency `vault/Sidebar` → `notes/OutlinePanel`. The
+ * outline panel is consumed by the vault Sidebar, so it is genuinely shared
+ * UI and belongs in `shared/components/` (matching the Phase 5.1 pattern for
+ * `FavoriteToggle` and `SandboxedHtml`). Behavior is unchanged.
  *
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6
  */
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../store'
 import type { Root, Heading } from 'mdast'
 // Parent type from unist - used for AST type checking
 

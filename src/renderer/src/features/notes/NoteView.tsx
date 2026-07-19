@@ -27,7 +27,7 @@ import {
   WikiLink as WikiLinkNode,
   Callout
 } from '@shared/types'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'

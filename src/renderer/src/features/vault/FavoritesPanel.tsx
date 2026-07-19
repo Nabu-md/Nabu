@@ -8,7 +8,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 
 export function FavoritesPanel(): React.JSX.Element {
   const { state, dispatch } = useAppContext()

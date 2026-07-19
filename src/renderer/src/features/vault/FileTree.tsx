@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState
 } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 import { FileEntry, Template } from '@shared/types'
 import { PlusIcon, FolderPlusIcon } from '../../shared/components/icons'
 

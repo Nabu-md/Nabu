@@ -11,7 +11,7 @@
 import React, { useCallback } from 'react'
 import type { Text } from 'mdast'
 import { INLINE_TAG_RE } from '@shared/extended-indexing'
-import { useAppContext } from '../../../App'
+import { useAppContext } from '../../../shared/store'
 
 // ---------------------------------------------------------------------------
 // Props

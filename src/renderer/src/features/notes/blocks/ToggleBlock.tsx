@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Node } from 'mdast'
 import { ToggleBlock as ToggleBlockNode } from '@shared/types'
-import { AppContext } from '../../../App'
+import { AppContext } from '../../../shared/store'
 
 // ---------------------------------------------------------------------------
 // Props

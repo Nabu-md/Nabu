@@ -12,7 +12,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Node, Parent } from 'mdast'
 import { FileEntry } from '@shared/types'
-import { useAppContext } from '../../../App'
+import { useAppContext } from '../../../shared/store'
 import { OCRTextPanel } from './OCRTextPanel'
 
 // ---------------------------------------------------------------------------

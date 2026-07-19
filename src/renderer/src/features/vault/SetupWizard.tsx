@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 
 // ---------------------------------------------------------------------------
 // SetupWizard

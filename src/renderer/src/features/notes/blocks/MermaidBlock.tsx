@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import type { MermaidConfig } from 'mermaid'
-import { useAppContext } from '../../../App'
+import { useAppContext } from '../../../shared/store'
 
 // ---------------------------------------------------------------------------
 // Types

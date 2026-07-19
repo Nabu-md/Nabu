@@ -8,7 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react'
-import { useAppContext } from '../../App'
+import { useAppContext } from '../../shared/store'
 
 interface FavoriteToggleProps {
   filePath: string
