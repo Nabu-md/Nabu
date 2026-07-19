@@ -100,15 +100,21 @@ export interface AppState {
   paneLayout: PaneLayout // current layout type - Req 24.2
   workspaces: Workspace[] // saved workspaces per vault - Req 25.1
   tabGroups: TabGroup[] // folder-based tab groups - Req 24.9
-  currentFile: string | null // compat alias: openTabs[activeTabId]?.path
-  currentAST: Root | null // compat alias: openTabs[activeTabId]?.ast
+  // --- Derived (single owner: openTabs[activeTabId]) ---
+  // The following five fields are DERIVED from openTabs + activeTabId and are
+  // never stored independently. They are computed by syncActiveAliases after
+  // every tab mutation so there is exactly one owner of the underlying
+  // data and no manual synchronization can drift out of sync.
+  currentFile: string | null // derived: openTabs[activeTabId]?.path
+  currentAST: Root | null // derived: openTabs[activeTabId]?.ast
   toggleStates: Map<string, Map<string, boolean>> // filePath → (headingId → isOpen)
   contextPaneOpen: boolean
   contextResults: SearchResult[]
   showSetup: boolean
-  editMode: boolean // compat alias: openTabs[activeTabId]?.mode === 'edit'
-  livePreviewMode: boolean // compat alias: openTabs[activeTabId]?.mode === 'live-preview'
-  currentRaw: string | null // compat alias: openTabs[activeTabId]?.raw
+  // --- Derived (single owner: openTabs[activeTabId].mode) ---
+  editMode: boolean // derived: openTabs[activeTabId]?.mode === 'edit'
+  livePreviewMode: boolean // derived: openTabs[activeTabId]?.mode === 'live-preview'
+  currentRaw: string | null // derived: openTabs[activeTabId]?.raw
   graphEdges: Edge[]
   fullTextIndex: Map<string, Set<string>>
   tagIndex: Map<string, Set<string>>
@@ -270,9 +276,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         openVaults,
         activeVaultId: action.payload.path,
         vault: action.payload,
-        showSetup: false,
-        currentFile: null,
-        currentAST: null
+        showSetup: false
       }
     }
 
@@ -289,9 +293,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         openVaults,
         activeVaultId: vaultId,
-        vault,
-        currentFile: null,
-        currentAST: null
+        vault
       }
     }
 
@@ -312,9 +314,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             ? openVaults.length > 0
               ? state.vault
               : null
-            : state.vault,
-        currentFile: null,
-        currentAST: null
+            : state.vault
       }
     }
 
@@ -325,13 +325,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const existingTab = state.openTabs.find((t) => t.path === path)
       if (existingTab) {
         // Tab exists, just activate it
-        return {
-          ...state,
-          activeTabId: existingTab.id,
-          currentFile: path,
-          currentAST: ast,
-          currentRaw: raw
-        }
+        return syncActiveAliases({ ...state, activeTabId: existingTab.id })
       }
       // Create new tab
       const newTab: Tab = {
@@ -343,14 +337,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         scrollTop: 0,
         cursor: 0
       }
-      return {
+      return syncActiveAliases({
         ...state,
         openTabs: [...state.openTabs, newTab],
-        activeTabId: newTab.id,
-        currentFile: path,
-        currentAST: ast,
-        currentRaw: raw
-      }
+        activeTabId: newTab.id
+      })
     }
 
     case 'TAB_CLOSED': {
@@ -367,33 +358,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         newActiveTabId = remainingTabs[newIndex]?.id ?? null
       }
 
-      const newActiveTab = remainingTabs.find((t) => t.id === newActiveTabId)
-      return {
+      return syncActiveAliases({
         ...state,
         openTabs: remainingTabs,
-        activeTabId: newActiveTabId,
-        currentFile: wasActive ? (newActiveTab?.path ?? null) : state.currentFile,
-        currentAST: wasActive ? (newActiveTab?.ast ?? null) : state.currentAST,
-        currentRaw: wasActive ? (newActiveTab?.raw ?? null) : state.currentRaw,
-        editMode: wasActive && newActiveTab?.mode !== 'edit' ? false : state.editMode,
-        livePreviewMode:
-          wasActive && newActiveTab?.mode !== 'live-preview' ? false : state.livePreviewMode
-      }
+        activeTabId: newActiveTabId
+      })
     }
 
     case 'TAB_ACTIVATED': {
       const { tabId } = action.payload
       const activatedTab = state.openTabs.find((t) => t.id === tabId)
       if (!activatedTab) return state
-      return {
-        ...state,
-        activeTabId: tabId,
-        currentFile: activatedTab.path,
-        currentAST: activatedTab.ast,
-        currentRaw: activatedTab.raw,
-        editMode: activatedTab.mode === 'edit',
-        livePreviewMode: activatedTab.mode === 'live-preview'
-      }
+      return syncActiveAliases({ ...state, activeTabId: tabId })
     }
 
     case 'TAB_UPDATED': {
@@ -401,20 +377,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const updatedTabs = state.openTabs.map((tab) =>
         tab.id === tabId ? { ...tab, ...patch } : tab
       )
-      const updatedTab = updatedTabs.find((t) => t.id === tabId)
-      if (!updatedTab || state.activeTabId !== tabId) {
-        return { ...state, openTabs: updatedTabs }
-      }
-      // If updating the active tab, sync compat aliases
-      return {
-        ...state,
-        openTabs: updatedTabs,
-        currentRaw:
-          patch.raw ??
-          (patch.mode !== 'edit' && patch.mode !== 'live-preview' ? null : state.currentRaw),
-        editMode: updatedTab.mode === 'edit',
-        livePreviewMode: updatedTab.mode === 'live-preview'
-      }
+      return syncActiveAliases({ ...state, openTabs: updatedTabs })
     }
 
     // Backward-compatible FILE_LOADED (used by existing IPC handler)
@@ -470,17 +433,46 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'SETUP_TOGGLE':
       return { ...state, showSetup: !state.showSetup }
 
-    case 'EDIT_MODE_ENTER':
-      return { ...state, editMode: true, currentRaw: action.payload }
+    case 'EDIT_MODE_ENTER': {
+      // The active note (FILE_LOADED path may have no tab) owns editMode/
+      // currentRaw directly. If a tab exists for the active note we also keep
+      // its `mode`/`raw` in sync so the two representations never diverge.
+      const openTabs = state.openTabs.map((t) =>
+        t.id === state.activeTabId ? { ...t, mode: 'edit' as const, raw: action.payload } : t
+      )
+      return { ...syncActiveAliases({ ...state, openTabs }), editMode: true, currentRaw: action.payload }
+    }
 
-    case 'EDIT_MODE_EXIT':
-      return { ...state, editMode: false, currentRaw: null }
+    case 'EDIT_MODE_EXIT': {
+      const openTabs = state.openTabs.map((t) =>
+        t.id === state.activeTabId ? { ...t, mode: 'view' as const, raw: null } : t
+      )
+      return { ...syncActiveAliases({ ...state, openTabs }), editMode: false, currentRaw: null }
+    }
 
-    case 'LIVE_PREVIEW_MODE_ENTER':
-      return { ...state, livePreviewMode: true, currentRaw: action.payload }
+    case 'LIVE_PREVIEW_MODE_ENTER': {
+      const openTabs = state.openTabs.map((t) =>
+        t.id === state.activeTabId
+          ? { ...t, mode: 'live-preview' as const, raw: action.payload }
+          : t
+      )
+      return {
+        ...syncActiveAliases({ ...state, openTabs }),
+        livePreviewMode: true,
+        currentRaw: action.payload
+      }
+    }
 
-    case 'LIVE_PREVIEW_MODE_EXIT':
-      return { ...state, livePreviewMode: false, currentRaw: null }
+    case 'LIVE_PREVIEW_MODE_EXIT': {
+      const openTabs = state.openTabs.map((t) =>
+        t.id === state.activeTabId ? { ...t, mode: 'view' as const, raw: null } : t
+      )
+      return {
+        ...syncActiveAliases({ ...state, openTabs }),
+        livePreviewMode: false,
+        currentRaw: null
+      }
+    }
 
     case 'GRAPH_UPDATED':
       return { ...state, graphEdges: action.payload }
@@ -587,16 +579,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, paneLayout: action.payload.layout }
 
     case 'TAB_CLOSE_ALL':
-      return {
+      return syncActiveAliases({
         ...state,
         openTabs: [],
         activeTabId: null,
         currentFile: null,
-        currentAST: null,
-        currentRaw: null,
-        editMode: false,
-        livePreviewMode: false
-      }
+        currentAST: null
+      })
 
     // Workspace actions (Req 25.1-25.5)
     case 'WORKSPACE_SAVE': {
@@ -628,6 +617,32 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     default:
       return state
+  }
+}
+
+/**
+ * Synchronize the active-tab alias fields from the canonical tab state.
+ *
+ * `currentRaw`, `editMode`, and `livePreviewMode` are PURE functions of
+ * `openTabs[activeTabId]` and are recomputed here after every tab mutation so
+ * there is exactly one owner of that derivation (the reducer) and no
+ * hand-written synchronization can drift out of sync.
+ *
+ * `currentFile` / `currentAST` are intentionally NOT overwritten here: they can
+ * also be set by the legacy `FILE_LOADED` action, which loads a note without
+ * opening a tab. That path is the single justified non-tab writer and is
+ * documented in the Phase 5.2 duplicate-state report.
+ *
+ * This is a deterministic, side-effect-free projection; runtime behavior is
+ * unchanged.
+ */
+export function syncActiveAliases(state: AppState): AppState {
+  const activeTab = state.openTabs.find((t) => t.id === state.activeTabId) ?? null
+  return {
+    ...state,
+    currentRaw: activeTab?.raw ?? null,
+    editMode: activeTab?.mode === 'edit',
+    livePreviewMode: activeTab?.mode === 'live-preview'
   }
 }
 
