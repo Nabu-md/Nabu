@@ -577,4 +577,20 @@ export class VaultService {
       files: vaultMeta.files
     })
   }
+
+  /**
+   * Close every open vault session.
+   *
+   * This is the canonical `VaultService.close()` step of the shutdown flow
+   * (Phase 4.2). It releases all registered vault sessions (stopping their
+   * watchers and clearing in-memory state) and publishes a `VaultClosed`
+   * event for each. No other component should directly close vault sessions —
+   * this is the single deterministic close path.
+   */
+  close(): void {
+    for (const id of vaultRegistry.getVaultIds()) {
+      vaultRegistry.close(id)
+      appEventBus.publish('VaultClosed', { vaultId: id, path: id })
+    }
+  }
 }

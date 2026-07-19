@@ -157,6 +157,13 @@ export class VaultRegistry {
   getVaultCount(): number {
     return this.sessions.size
   }
+
+  /**
+   * Get the ids of all currently open vault sessions.
+   */
+  getVaultIds(): string[] {
+    return Array.from(this.sessions.keys())
+  }
 }
 
 // ---------------------------------------------------------------------------

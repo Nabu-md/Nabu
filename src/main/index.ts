@@ -14,7 +14,6 @@ import {
   Menu,
   dialog,
   shell,
-  ipcMain,
   MenuItemConstructorOptions
 } from 'electron'
 import * as path from 'path'
@@ -29,6 +28,7 @@ import { fnMonitor } from './services/fn-monitor'
 import { wireFnMonitorToWidget, widgetManager } from './services/widget-manager'
 import type { AppSettings } from './services/settings'
 import { VaultService } from './services/vault-service'
+import { WorkspaceService } from './services/workspace-service'
 
 // ---------------------------------------------------------------------------
 // createWindow
@@ -277,40 +277,39 @@ export function registerMenu(mainWindow: BrowserWindow): void {
 }
 
 // ---------------------------------------------------------------------------
-// restoreVault
+// restoreVault — canonical startup lifecycle
 // ---------------------------------------------------------------------------
 
 /**
- * Attempt to reopen the last-used vault on launch.
+ * Canonical startup lifecycle (Phase 4.2):
  *
- * - Loads `lastVaultPath` from settings
- * - Checks readability via `fs.access`
- * - If readable: calls `stateManager.openVault()` and pushes `notes:loaded`
- * - If invalid/missing: shows an error dialog and signals the renderer to
- *   display the vault picker
+ *   Application Startup
+ *     → VaultService.open()      (vault ready)
+ *     → WorkspaceService.load()  (workspace active)
+ *
+ * VaultService owns the vault lifecycle (open/restore). WorkspaceService owns
+ * the workspace lifecycle (restore session state from settings). The two are
+ * coordinated here in a single deterministic path; no other component drives
+ * vault or workspace lifecycle directly.
  *
  * Requirements: 1.7, 1.8
  */
-async function restoreVault(vaultService: VaultService, mainWindow: BrowserWindow): Promise<void> {
+async function restoreVault(
+  vaultService: VaultService,
+  workspaceService: WorkspaceService,
+  mainWindow: BrowserWindow
+): Promise<void> {
+  // 1. Restore workspace session state (reads lastVaultPath / recentVaults).
+  await workspaceService.load()
+
+  // 2. VaultService opens the restored vault (or signals the picker).
   await vaultService.restoreVault(mainWindow)
-}
 
-// ---------------------------------------------------------------------------
-// Persist last vault path when vault:open resolves
-// ---------------------------------------------------------------------------
-
-/**
- * Listen for successful vault:open results from the IPC layer and persist the
- * chosen path to settings so it can be restored on the next launch.
- *
- * Requirements: 1.7
- */
-function registerVaultPersistence(): void {
-  ipcMain.on('vault:opened', (_event, vaultPath: string) => {
-    loadSettings()
-      .then((s) => saveSettings({ ...s, lastVaultPath: vaultPath }))
-      .catch((err) => console.error('[Settings] Failed to persist vault path:', err))
-  })
+  // 3. Mark the restored vault active in the workspace session.
+  const lastVaultPath = workspaceService.getLastVaultPath()
+  if (lastVaultPath) {
+    workspaceService.initialize(lastVaultPath)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -372,15 +371,18 @@ app.whenReady().then(async () => {
     }
   }
 
-  // ---- Register vault path persistence listener ----
-  registerVaultPersistence()
-
   // ---- Create window (restore saved bounds) ----
   const settings = await loadSettings()
   const mainWindow = createWindow(settings.windowBounds ?? undefined)
 
   // ---- Register macOS application menu ----
   registerMenu(mainWindow)
+
+  // ---- Instantiate lifecycle services ----
+  // VaultService owns vault lifecycle; WorkspaceService owns workspace lifecycle.
+  // Both are constructed once and shared across the canonical flow.
+  const vaultService = new VaultService(stateManager, vectorManager, watcher)
+  const workspaceService = new WorkspaceService()
 
   // ---- Deferred: initialise vector index after window is visible ----
   mainWindow.once('ready-to-show', () => {
@@ -405,8 +407,7 @@ app.whenReady().then(async () => {
   })
 
   // ---- Restore last vault once the renderer is ready ----
-  // VaultService owns the vault lifecycle business logic; bootstrap delegates.
-  const vaultService = new VaultService(stateManager, vectorManager, watcher)
+  // Canonical startup flow: VaultService.open() → WorkspaceService.load().
   mainWindow.webContents.once('did-finish-load', () => {
     // Support NABU_TEST_VAULT env var for E2E test injection (bypasses persisted settings)
     const testVaultPath = process.env['NABU_TEST_VAULT']
@@ -418,9 +419,20 @@ app.whenReady().then(async () => {
         })
       return
     }
-    restoreVault(vaultService, mainWindow).catch((err) => {
+    restoreVault(vaultService, workspaceService, mainWindow).catch((err) => {
       console.error('[App] restoreVault error:', err)
     })
+  })
+
+  // ---- Canonical shutdown flow (Phase 4.2) ----
+  // WorkspaceService.save() → VaultService.close() → app quit.
+  app.on('before-quit', async (_event) => {
+    try {
+      await workspaceService.save()
+    } catch (err) {
+      console.error('[App] WorkspaceService.save failed:', err)
+    }
+    vaultService.close()
   })
 
   // Re-create window on macOS dock click when no windows are open
