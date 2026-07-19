@@ -56,7 +56,9 @@ import {
   injectAutoProperty,
   extractFrontmatter,
   replaceFrontmatterRaw,
-  sendToRenderer
+  sendToRenderer,
+  normalizeError,
+  errorToString
 } from './shared'
 
 /**
@@ -83,10 +85,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       await sm.toggleTask(filePath, lineIndex)
       return TaskToggleResultSchema.parse({ success: true })
     } catch (err) {
-      const msg = `[IPC] task:toggle handler error for "${filePath}" line ${lineIndex}: ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath, lineIndex })
+      const msg = `[IPC] task:toggle handler error for "${filePath}" line ${lineIndex}: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return TaskToggleResultSchema.parse({ success: false, error: String(err) })
+      return TaskToggleResultSchema.parse({ success: false, error: errorToString(normalized) })
     }
   })
 
@@ -107,10 +110,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       await stateManager.toggleTask(filePath, lineIndex)
       return TaskToggleResultSchema.parse({ success: true })
     } catch (err) {
-      const msg = `[IPC] note:toggle handler error for "${filePath}" line ${lineIndex}: ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath, lineIndex })
+      const msg = `[IPC] note:toggle handler error for "${filePath}" line ${lineIndex}: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return TaskToggleResultSchema.parse({ success: false, error: String(err) })
+      return TaskToggleResultSchema.parse({ success: false, error: errorToString(normalized) })
     }
   })
 
@@ -165,13 +169,14 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const response = FileGetResultSchema.parse({ path: filePath, ast })
       return response
     } catch (err) {
-      const msg = `[IPC] note:create handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] note:create handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return {
         path: filePath,
         ast: null,
-        error: { line: 0, column: 0, message: String(err) }
+        error: { line: 0, column: 0, message: errorToString(normalized) }
       }
     }
   })
@@ -214,10 +219,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       return { success: true }
     } catch (err) {
       stateManager.clearPendingWrite(filePath)
-      const msg = `[IPC] note:save handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] note:save handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -240,10 +246,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       await fs.rename(oldPath, normalisedNewPath)
       return { success: true }
     } catch (err) {
-      const msg = `[IPC] note:rename handler error "${oldPath}" → "${normalisedNewPath}": ${String(err)}`
+      const normalized = normalizeError(err, { oldPath, newPath: normalisedNewPath })
+      const msg = `[IPC] note:rename handler error "${oldPath}" → "${normalisedNewPath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -274,10 +281,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
       return { success: true }
     } catch (err) {
-      const msg = `[IPC] note:delete handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] note:delete handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -298,10 +306,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const content = await fs.readFile(filePath, 'utf-8')
       return { path: filePath, content }
     } catch (err) {
-      const msg = `[IPC] note:get-raw handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] note:get-raw handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { path: filePath, error: String(err) }
+      return { path: filePath, error: errorToString(normalized) }
     }
   })
 
@@ -340,10 +349,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const dataUri = `data:${mime};base64,${buffer.toString('base64')}`
       return { path: filePath, dataUri }
     } catch (err) {
-      const msg = `[IPC] asset:read handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] asset:read handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { path: filePath, error: String(err) }
+      return { path: filePath, error: errorToString(normalized) }
     }
   })
 
@@ -381,10 +391,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
       return { success: true, savedPath }
     } catch (err) {
-      const msg = `[IPC] note:export-html handler error for "${notePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: notePath })
+      const msg = `[IPC] note:export-html handler error for "${notePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -465,10 +476,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
         created
       })
     } catch (err) {
-      const msg = `[IPC] note:daily handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] note:daily handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { path: '', ast: null, created: false, error: String(err) }
+      return { path: '', ast: null, created: false, error: errorToString(normalized) }
     }
   })
 
@@ -508,10 +520,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
         ast: result
       })
     } catch (err) {
-      const msg = `[IPC] note:random error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, tagFilter })
+      const msg = `[IPC] note:random error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { error: String(err) }
+      return { error: errorToString(normalized) }
     }
   })
 
@@ -550,7 +563,8 @@ export function registerNotesIPC(ctx: IPCContext): void {
 
       return TemplatesListResultSchema.parse({ templates })
     } catch (err) {
-      const msg = `[IPC] templates:list handler error for vault "${vaultPath}": ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] templates:list handler error for vault "${vaultPath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { templates: [] }
@@ -574,7 +588,8 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const state = await loadViewState(vaultPath, notePath)
       return state.foldStates[headingId] ?? true
     } catch (err) {
-      const msg = `[IPC] view-state:get-fold handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, notePath, headingId })
+      const msg = `[IPC] view-state:get-fold handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return true // Default to open on error
@@ -597,7 +612,8 @@ export function registerNotesIPC(ctx: IPCContext): void {
     try {
       await setFoldState(vaultPath, notePath, headingId, isOpen)
     } catch (err) {
-      const msg = `[IPC] view-state:set-fold handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, notePath, headingId })
+      const msg = `[IPC] view-state:set-fold handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
     }
@@ -625,7 +641,8 @@ export function registerNotesIPC(ctx: IPCContext): void {
         yaml
       })
     } catch (err) {
-      const msg = `[IPC] properties:read handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] properties:read handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { path: filePath, properties: {}, yaml: '' }
@@ -666,10 +683,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       return PropertiesWriteResultSchema.parse({ success: true })
     } catch (err) {
       stateManager.clearPendingWrite(filePath)
-      const msg = `[IPC] properties:write error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] properties:write error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return PropertiesWriteResultSchema.parse({ success: false, error: String(err) })
+      return PropertiesWriteResultSchema.parse({ success: false, error: errorToString(normalized) })
     }
   })
 
@@ -695,10 +713,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const result = await mergeNotes(sourcePaths, vaultPath, vault.files)
       return NoteComposeResultSchema.parse(result)
     } catch (err) {
-      const msg = `[IPC] note:compose handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, sourcePaths })
+      const msg = `[IPC] note:compose handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { previewMarkdown: '', warning: String(err) }
+      return { previewMarkdown: '', warning: errorToString(normalized) }
     }
   })
 
@@ -738,10 +757,11 @@ export function registerNotesIPC(ctx: IPCContext): void {
       const ast = await stateManager.getAST(filePath)
       return NoteUniqueResultSchema.parse({ path: filePath, ast })
     } catch (err) {
-      const msg = `[IPC] note:unique handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] note:unique handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { path: '', error: String(err) }
+      return { path: '', error: errorToString(normalized) }
     }
   })
 }
