@@ -26,7 +26,7 @@ import {
   PDFLoadAnnotationsResultSchema,
   PDFSaveAnnotationsSchema,
   PDFSaveAnnotationsResultSchema
-} from '../../shared/schemas'
+} from '@shared/schemas'
 import { emitActivityLog, formatZodError } from '../ipc'
 import {
   getPDFInfo,

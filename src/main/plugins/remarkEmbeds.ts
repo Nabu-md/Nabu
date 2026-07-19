@@ -11,5 +11,5 @@
  * Requirements: 11.1, 11.7
  */
 
-export * from '../../shared/plugins/remarkEmbeds'
-export { remarkEmbeds as default } from '../../shared/plugins/remarkEmbeds'
+export * from '@shared/plugins/remarkEmbeds'
+export { remarkEmbeds as default } from '@shared/plugins/remarkEmbeds'

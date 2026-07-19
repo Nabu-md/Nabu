@@ -7,8 +7,8 @@ import {
   ActivityEntry,
   Edge,
   Template
-} from '../shared/types'
-import type { SearchResponse, PDFAnnotationType } from '../shared/schemas'
+} from '@shared/types'
+import type { SearchResponse, PDFAnnotationType } from '@shared/schemas'
 
 declare global {
   interface Window {

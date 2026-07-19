@@ -18,5 +18,5 @@
  * Requirements: 20.1, 20.2, 20.5, 20.6
  */
 
-export * from '../../shared/plugins/remarkBlockRefs'
-export { remarkBlockRefs as default } from '../../shared/plugins/remarkBlockRefs'
+export * from '@shared/plugins/remarkBlockRefs'
+export { remarkBlockRefs as default } from '@shared/plugins/remarkBlockRefs'

@@ -12,7 +12,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 const cytoscape = require('cytoscape')
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const layout = require('cose-bilkent')
-import type { Edge, FileEntry } from '../../../../shared/types'
+import type { Edge, FileEntry } from '@shared/types'
 
 // Register the layout extension
 cytoscape.use(layout)

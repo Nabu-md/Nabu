@@ -8,7 +8,7 @@
  */
 
 import path from 'node:path'
-import type { FileEntry } from '../../shared/types'
+import type { FileEntry } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Types

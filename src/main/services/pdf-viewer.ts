@@ -23,7 +23,7 @@ async function initCanvas() {
 
 import fs from 'fs/promises'
 import path from 'path'
-import { PDFAnnotationType } from '../../shared/schemas'
+import { PDFAnnotationType } from '@shared/schemas'
 import { vaultRegistry } from './vault-registry'
 
 // PDF.js is dynamically imported to avoid DOMMatrix error at module load time

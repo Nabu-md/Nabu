@@ -7,7 +7,7 @@
  * Requirements: 37.2, 37.3, 37.7, 37.9
  */
 
-import { registerFeatureToggle } from '../../../shared/feature-toggles'
+import { registerFeatureToggle } from '@shared/feature-toggles'
 import { registerCommand, unregisterCommand } from './registry'
 
 // Track registered command IDs per feature for teardown
@@ -334,7 +334,7 @@ registerFeatureToggle({
 
 export function initializeFeatureToggles(): void {
   // Import and initialize enabled features on app startup
-  const { initializeEnabledFeatures } = require('../../shared/feature-toggles')
+  const { initializeEnabledFeatures } = require('@shared/feature-toggles')
   initializeEnabledFeatures()
 }
 
@@ -361,6 +361,6 @@ export function resetFeatureRegistrations(): void {
     }
     featureCommandMap.delete(id)
   }
-  const { resetFeatureToggles } = require('../../shared/feature-toggles')
+  const { resetFeatureToggles } = require('@shared/feature-toggles')
   resetFeatureToggles()
 }
