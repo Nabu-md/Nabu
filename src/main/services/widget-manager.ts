@@ -15,6 +15,7 @@
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
+import { appEventBus } from '../../shared/events'
 import {
   startDictation,
   stopDictation,
@@ -110,6 +111,12 @@ class WidgetManager {
 
     this.widgetWindow.on('closed', () => {
       this.widgetWindow = null
+    })
+
+    // Notify internal subscribers (services only) that the widget window is ready.
+    appEventBus.publish('WidgetRegistered', {
+      widgetId: 'clipboard-dictation-widget',
+      kind: 'clipboard'
     })
 
     // Prevent the widget from stealing focus

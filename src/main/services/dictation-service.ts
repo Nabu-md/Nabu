@@ -30,6 +30,7 @@ import {
   DictationDownloadModelResultSchema
 } from '../../shared/schemas'
 import { emitActivityLog, formatZodError } from '../ipc'
+import { appEventBus } from '../../shared/events'
 
 import type { IpcMainInvokeEvent } from 'electron'
 
@@ -89,6 +90,12 @@ export class DictationService {
           event.sender.send(IPCChannel.DICTATION_RESULT, {
             text: result.text,
             segments: result.segments
+          })
+
+          // Notify internal subscribers (services only) that dictation finished.
+          appEventBus.publish('DictationFinished', {
+            widgetId: 'clipboard-dictation-widget',
+            result: { text: result.text, segments: result.segments }
           })
         })
         .catch((err) => {
@@ -175,7 +182,10 @@ export class DictationService {
     const validation = DictationDownloadModelSchema.safeParse(rawPayload)
     if (!validation.success) {
       const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[DictationService] dictation:download-model validation failed: ${reason}`)
+      emitActivityLog(
+        'warn',
+        `[DictationService] dictation:download-model validation failed: ${reason}`
+      )
       return DictationDownloadModelResultSchema.parse({ success: false, error: reason })
     }
 

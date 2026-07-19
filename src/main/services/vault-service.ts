@@ -30,6 +30,7 @@ import {
 import { loadSettings, saveSettings } from './settings'
 import { vaultRegistry } from './vault-registry'
 import { sendToRenderer, buildWatcherConfig, emitActivityLog, formatZodError } from '../ipc'
+import { appEventBus } from '../../shared/events'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -113,7 +114,10 @@ export class VaultService {
    * Register a vault session in the registry and start its file watcher.
    * Shared by open / open-in-new-window / create flows.
    */
-  private registerAndWatch(vaultPath: string, vaultMeta: { files: import('../../shared/types').FileEntry[] }): void {
+  private registerAndWatch(
+    vaultPath: string,
+    vaultMeta: { files: import('../../shared/types').FileEntry[] }
+  ): void {
     vaultRegistry.register(
       vaultPath, // vaultId is the vault path
       vaultPath,
@@ -127,6 +131,14 @@ export class VaultService {
     this.watcher.start(
       buildWatcherConfig(this.stateManager, this.vectorManager, vaultPath, vaultMeta)
     )
+
+    // Notify internal subscribers (services only) that a vault session opened.
+    // Renderer notification still happens via IPC; this is decoupled background signaling.
+    appEventBus.publish('VaultOpened', {
+      vaultId: vaultPath,
+      path: vaultPath,
+      fileCount: vaultMeta.files.length
+    })
   }
 
   /**
@@ -138,6 +150,14 @@ export class VaultService {
       const indexResult = await (this.stateManager as any).buildIndexes?.()
       if (indexResult) {
         sendToRenderer(IPCChannel.INDEX_BUILD, indexResult)
+
+        // Notify internal subscribers (services only) that the index was rebuilt.
+        const vaultPath = this.stateManager.getCurrentVault()?.path ?? ''
+        appEventBus.publish('IndexUpdated', {
+          vaultId: vaultPath,
+          path: vaultPath,
+          payload: indexResult
+        })
       }
     } catch {
       // buildIndexes not yet available — silently ignore
@@ -253,6 +273,12 @@ export class VaultService {
         // Fall back to stopping the legacy watcher
         this.watcher.stop()
       }
+
+      // Notify internal subscribers (services only) that a vault session closed.
+      appEventBus.publish('VaultClosed', {
+        vaultId: vaultId ?? '',
+        path: vaultId ?? ''
+      })
       return { success: true }
     } catch (err) {
       const msg = `[VaultService] vault:close handler error: ${String(err)}`
@@ -379,11 +405,16 @@ export class VaultService {
    * Open a vault in a second BrowserWindow (Req 22.7).
    * Mirrors the previous `vault:open-in-new-window` IPC handler logic exactly.
    */
-  async openVaultInNewWindow(rawPayload: unknown): Promise<{ success?: boolean; path?: string; error?: string }> {
+  async openVaultInNewWindow(
+    rawPayload: unknown
+  ): Promise<{ success?: boolean; path?: string; error?: string }> {
     const validation = VaultOpenSchema.safeParse(rawPayload ?? {})
     if (!validation.success) {
       const reason = formatZodError(validation.error)
-      emitActivityLog('warn', `[VaultService] vault:open-in-new-window validation failed: ${reason}`)
+      emitActivityLog(
+        'warn',
+        `[VaultService] vault:open-in-new-window validation failed: ${reason}`
+      )
       return { error: reason }
     }
 
@@ -410,11 +441,19 @@ export class VaultService {
       }
 
       // Register vault session in the registry
-      vaultRegistry.register(vaultPath, vaultPath, this.stateManager, this.vectorManager, this.watcher)
+      vaultRegistry.register(
+        vaultPath,
+        vaultPath,
+        this.stateManager,
+        this.vectorManager,
+        this.watcher
+      )
       vaultRegistry.setActive(vaultPath)
 
       // Start the file watcher for this vault
-      this.watcher.start(buildWatcherConfig(this.stateManager, this.vectorManager, vaultPath, vaultMeta))
+      this.watcher.start(
+        buildWatcherConfig(this.stateManager, this.vectorManager, vaultPath, vaultMeta)
+      )
 
       // Create a new BrowserWindow for this vault (Req 22.7)
       const newWindow = new BrowserWindow({
