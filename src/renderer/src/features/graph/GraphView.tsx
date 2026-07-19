@@ -720,9 +720,9 @@ export function GraphView(): React.JSX.Element {
                 ? 'bg-nabu-accent/20 text-nabu-accent'
                 : 'text-nabu-text-muted hover:text-nabu-text bg-nabu-bg-mute'
             }`}
-            title="Blocks view - placeholder for block references"
-          >
-            Blocks
+            title="Blocks view - visualize block references as a graph"
+           >
+             Blocks
           </button>
         </div>
 

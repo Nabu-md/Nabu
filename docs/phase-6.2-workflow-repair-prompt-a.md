@@ -69,7 +69,7 @@ All other features inspected (vault, file tree, notes, PDF, search, settings, di
 | File | Change |
 |------|--------|
 | `src/shared/graph-utils.ts` | Added `BLOCK_REF_LINK_RE`, `BlockGraphNode`, `BlockGraphEdge`, `computeBlockGraph()`, `extractBlockRefLinks()` (pure graph-building utilities for Req 38.6). |
-| `src/renderer/src/features/graph/GraphView.tsx` | Replaced the empty blocks branch with real node/edge construction; added `blockNodes`/`blockEdges`/`blockGraphLoading` state; added an async effect that seeds from `extendedIndex.blockRefs` and scans raw content via `note:get-raw`; added `isBlock` to `D3Node`; render block nodes as squares; updated `handleClick` for blocks mode (opens owning note); replaced `renderBlocksPlaceholder` with loading/empty states; updated header comment. |
+| `src/renderer/src/features/graph/GraphView.tsx` | Replaced the empty blocks branch with real node/edge construction; added `blockNodes`/`blockEdges`/`blockGraphLoading` state; added an async effect that seeds from `extendedIndex.blockRefs` and scans raw content via `note:get-raw`; added `isBlock` to `D3Node`; render block nodes as squares; updated `handleClick` for blocks mode (opens owning note); replaced `renderBlocksPlaceholder` with loading/empty states; updated header comment; updated Blocks button tooltip to reflect implemented status. |
 | `tests/unit/graph-utils.test.ts` | Added `extractBlockRefLinks` and `computeBlockGraph` test suites (10 new tests). |
 | `CHANGELOG.md` | Updated the Phase 12 "Blocks View mode" entry from "placeholder" to a description of the implemented block-reference visualization. |
 

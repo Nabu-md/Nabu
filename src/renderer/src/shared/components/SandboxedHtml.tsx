@@ -173,13 +173,37 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
     }
 
     switch (method) {
-      case 'readNote':
-        respond(null, 'Not yet implemented')
+      case 'readNote': {
+        const notePath = args?.[0] as string | undefined
+        if (!notePath) {
+          respond(null, 'No path provided')
+          return
+        }
+        window.electron.note
+          .getRaw(notePath)
+          .then((result: { content?: string; error?: string }) => {
+            if (result.error) {
+              respond(null, result.error)
+            } else {
+              respond(result.content ?? '')
+            }
+          })
+          .catch((err: Error) => respond(null, err.message))
         break
+      }
 
-      case 'search':
-        respond(null, 'Not yet implemented')
+      case 'search': {
+        const query = args?.[0] as string | undefined
+        if (!query) {
+          respond(null, 'No query provided')
+          return
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.electron.search.query(query).then((result: any) => {
+          respond(result?.results ?? [])
+        }).catch((err: Error) => respond(null, err.message))
         break
+      }
 
       case 'getTheme':
         respond(document.documentElement.getAttribute('data-theme') ?? 'system')

@@ -12,6 +12,7 @@ import { Edge } from '@shared/types'
 import { recordExternalActivity } from './features/widgets/widgetService'
 import { Sidebar, SidebarHandle } from './features/vault/Sidebar'
 import { NoteView } from './features/notes/NoteView'
+import { PaneLayout } from './features/vault/PaneLayout'
 import { GraphView } from './features/graph/GraphView'
 import { PdfViewer } from './features/pdf/PdfViewer'
 import { SettingsPanel } from './features/settings/SettingsPanel'
@@ -24,6 +25,7 @@ import { CommandPalette } from './features/search/CommandPalette'
 import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './shared/components/icons'
 import { seedCommands, registerCommand } from './shared/commands/registry'
 import { ipc } from './shared/ipc'
+import { createNote } from './features/vault/vaultCommands'
 import { AppContext, appReducer, initialState } from './shared/store'
 
 // Re-export store symbols so existing imports from `../../App` continue to
@@ -353,6 +355,17 @@ function App(): React.JSX.Element {
         } catch (err) {
           console.error('[App] Failed to open daily note:', err)
         }
+      },
+      createNote: async () => {
+        const v = state.vault
+        if (!v) return
+        const name = window.prompt('Note name (without .md):', '')
+        if (!name || !name.trim()) return
+        try {
+          await createNote(v.path, name.trim(), null, dispatch)
+        } catch (err) {
+          console.error('[App] Failed to create note:', err)
+        }
       }
     })
 
@@ -449,8 +462,10 @@ function App(): React.JSX.Element {
                 />
               ) : state.graphViewOpen ? (
                 <GraphView />
-              ) : (
+              ) : state.paneLayout === 'single' ? (
                 <NoteView />
+              ) : (
+                <PaneLayout />
               )}
             </ErrorBoundary>
           </main>

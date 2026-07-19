@@ -96,11 +96,10 @@ export function PaneLayout(): React.JSX.Element | null {
               </span>
             </div>
 
-            {/* Note content area - for now, we use the currentFile based NoteView */}
-            <div className="pane-content h-full">
-              {/* Pane placeholder - NoteView will render based on currentFile */}
-              {isActive && <PaneContent tab={tab} />}
-            </div>
+            {/* Note content area - renders per-tab content */}
+             <div className="pane-content h-full">
+               <PaneContent tab={tab} />
+             </div>
           </div>
         )
       })}
@@ -110,23 +109,10 @@ export function PaneLayout(): React.JSX.Element | null {
 
 /**
  * PaneContent - renders the note for a specific tab.
- * Currently uses the existing NoteView but scoped to this pane.
+ * Uses NoteViewForTab to render per-tab content.
  */
 function PaneContent({ tab }: { tab: Tab }): React.JSX.Element {
-  // For now, we render a placeholder since NoteView uses global currentFile.
-  // In a future iteration, this will be updated to render per-tab content.
-  const { state } = useAppContext()
-
-  // Only render if this is the active tab (NoteView already handles this)
-  if (state.currentFile !== tab.path) {
-    return (
-      <div className="flex items-center justify-center h-full text-nabu-text-faint text-sm">
-        Tab inactive
-      </div>
-    )
-  }
-
-  // Import and render NoteView - it will render the active tab content
-  const { NoteView } = require('./NoteView')
-  return <NoteView key={tab.id} />
+  // Import and render NoteViewForTab - it renders the tab's content
+  const { NoteViewForTab } = require('./notes/NoteView')
+  return <NoteViewForTab key={tab.id} tab={tab} />
 }

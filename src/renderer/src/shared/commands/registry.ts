@@ -75,6 +75,8 @@ export function seedCommands(
     openQuickSwitcher?: () => void
     /** Called when "Create daily note" is invoked. */
     createDailyNote?: () => void
+    /** Called when "Create new note" is invoked. */
+    createNote?: () => void
     /** Called when "Open random note" is invoked. */
     openRandomNote?: () => void
     /** Called to trigger a full vector reindex. */
@@ -142,10 +144,9 @@ export function seedCommands(
     label: 'Create new note',
     keywords: ['new', 'create', 'note'],
     run: () => {
-      // Dispatch a no-op placeholder — the actual file-creation flow
-      // requires user input (name, template). The file-tree context
-      // menu handles the interactive flow.
-      dispatch({ type: 'SETUP_TOGGLE' })
+      if (o.createNote) {
+        o.createNote()
+      }
     }
   })
 

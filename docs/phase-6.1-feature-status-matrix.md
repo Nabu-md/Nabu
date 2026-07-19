@@ -66,13 +66,13 @@
 | Feature Toggles | `src/shared/feature-toggles.ts` | Working | Medium | Runtime feature enable/disable system. |
 | Outline Panel | `src/renderer/src/shared/components/OutlinePanel.tsx` | Working | Medium | Heading outline for current note. |
 | Icons | `src/renderer/src/shared/components/icons.tsx` | Working | Low | Shared icon components. |
-| Sandboxed HTML | `src/renderer/src/shared/components/SandboxedHtml.tsx` | Working | Low | Secure HTML rendering component. |
+| Sandboxed HTML | `src/renderer/src/shared/components/SandboxedHtml.tsx` | Incomplete | Low | Secure HTML rendering component. **Note:** `readNote` and `search` API methods return "Not yet implemented" (lines 177, 181). |
 | Favorite Toggle | `src/renderer/src/shared/components/FavoriteToggle.tsx` | Working | Low | Star/unstar note component. |
 | Format Converter | `src/renderer/src/shared/commands/feature-registrations.ts` | Working | Medium | Import from Notion/Roam/Evernote. |
 | File Recovery | `src/main/snapshots.ts` + `src/main/services/state.ts` | Working | Medium | Automatic snapshots for file recovery. |
 | Word Count | `src/renderer/src/features/notes/NoteView.tsx` | Working | Low | Word/character count display. |
 | Inline Tag Chip | `src/renderer/src/features/notes/blocks/InlineTagChip.tsx` | Working | Low | Tag display component in Properties. |
-| Pane Layout | `src/renderer/src/features/vault/PaneLayout.tsx` | Working | Medium | Split-pane layout management. |
+| Pane Layout | `src/renderer/src/features/vault/PaneLayout.tsx` | Incomplete | Medium | Split-pane layout management. **Note:** Per-tab content rendering is incomplete; non-active tabs show placeholder (lines 116-117). |
 | Setup Wizard | `src/renderer/src/features/vault/SetupWizard.tsx` | Working | Critical | First-run vault setup wizard. |
 | Vault Commands | `src/renderer/src/features/vault/vaultCommands.ts` | Working | Medium | Vault-related command handlers. |
 | PDF Commands | `src/renderer/src/features/pdf/pdfCommands.ts` | Working | Medium | PDF-related command handlers. |
@@ -95,6 +95,7 @@
 | Unique Note Service | `src/main/services/unique-note.ts` | Working | Low | Unique note path generation. |
 | Dictation Widget | `src/renderer/src/features/widgets/DictationWidget.tsx` | Working | Medium | Dictation recording UI. |
 | Widget Service | `src/renderer/src/shared/commands/widgetService.ts` | Working | Low | Widget command service. |
+| note.create command | `src/renderer/src/shared/commands/registry.ts` | Incomplete | Medium | Command Palette "Create new note" opens setup wizard instead of interactive flow (lines 144-148). |
 
 ## Repository Coverage Report
 
@@ -185,6 +186,7 @@ All features listed in the matrix have corresponding implementation files:
 - **Random Note Service**: `src/main/services/random-note.ts`
 - **Dictation Widget**: `src/renderer/src/features/widgets/DictationWidget.tsx`
 - **Widget Service**: `src/renderer/src/shared/commands/widgetService.ts`
+- **note.create command**: `src/renderer/src/shared/commands/registry.ts`
 - **IPC Index**: `src/shared/ipc/index.ts`
 - **Event Index**: `src/shared/events/index.ts`
 - **Plugin Index**: `src/shared/plugins/index.ts`
@@ -225,17 +227,17 @@ The application architecture has been stabilized through Phases 1-5. The codebas
    - Shared: Types, schemas, contracts, utilities
 
 3. **Status Distribution**:
-    - **Working**: 83 features (fully implemented and functional)
-    - **Broken**: 0 features
-    - **Incomplete**: 0 features
-    - **Placeholder**: 0 features
-    - **Deprecated**: 0 features
+     - **Working**: 80 features (fully implemented and functional)
+     - **Broken**: 0 features
+     - **Incomplete**: 3 features (Sandboxed HTML `readNote`/`search`, PaneLayout per-tab, `note.create` command)
+     - **Placeholder**: 0 features
+     - **Deprecated**: 0 features
 
 4. **User Impact Distribution**:
-    - **Critical**: 10 features (Vault, File Tree, Notes, File Watcher, State Manager, Shared IPC, Setup Wizard, IPC Types, Event Bus, Contracts)
-    - **High**: 14 features (Graph, PDF, Search, Settings, Backlinks, Tags, Properties, Embeds, Vector, Tab Management, Notes IPC, PDF IPC, Search IPC, Settings IPC, Search Query, Indexing)
-    - **Medium**: 27 features (Dictation, Widgets, Kanban, Favorites, Toggle, Callouts, Context, Workspace, Theme, Templates, Daily Notes, Activity Timeline, Slash Commands, Find/Replace, Block References, Context IPC, Widget IPC, Dictation IPC, Feature Toggles, Outline Panel, Format Converter, File Recovery, Pane Layout, Dictation Widget, Graph Utils, Protocol Handler, Base Services, IPC Index, Event Index)
-    - **Low**: 32 features (Bookmarks, Random, OCR, Page Preview, DOCX Import, Unique Note, Composer, Scheduler, Snapshots, Web Viewer, Audio Recorder, Clipboard History, OCR Manager, View State, Icons, Sandboxed HTML, Favorite Toggle, Word Count, Inline Tag Chip, Markdown Pipeline, Fuzzy Search, Models, Schemas, Validation, Importer Base, PDF Importer, Random Note Service, Widget Service, Types, Markdown Types, Path Utils, Remark Footnotes, Remark Embeds, Remark Task Blocks, Remark Toggle Blocks, Remark Wiki Links, Plugin Index, Schema Index)
+     - **Critical**: 10 features (Vault, File Tree, Notes, File Watcher, State Manager, Shared IPC, Setup Wizard, IPC Types, Event Bus, Contracts)
+     - **High**: 14 features (Graph, PDF, Search, Settings, Backlinks, Tags, Properties, Embeds, Vector, Tab Management, Notes IPC, PDF IPC, Search IPC, Settings IPC, Search Query, Indexing)
+     - **Medium**: 24 features (Dictation, Widgets, Kanban, Favorites, Toggle, Callouts, Context, Workspace, Theme, Templates, Daily Notes, Activity Timeline, Slash Commands, Find/Replace, Block References, Context IPC, Widget IPC, Dictation IPC, Feature Toggles, Outline Panel, Format Converter, File Recovery, Dictation Widget, Graph Utils, Protocol Handler, Base Services, IPC Index, Event Index)
+     - **Low**: 32 features (Bookmarks, Random, OCR, Page Preview, DOCX Import, Unique Note, Composer, Scheduler, Snapshots, Web Viewer, Audio Recorder, Clipboard History, OCR Manager, View State, Icons, Favorite Toggle, Word Count, Inline Tag Chip, Markdown Pipeline, Fuzzy Search, Models, Schemas, Validation, Importer Base, PDF Importer, Random Note Service, Widget Service, Types, Markdown Types, Path Utils, Remark Footnotes, Remark Embeds, Remark Task Blocks, Remark Toggle Blocks, Remark Wiki Links, Plugin Index, Schema Index)
 
 5. **Platform Considerations**:
    - Dictation and fn-key widget monitoring are macOS-only features
@@ -244,4 +246,10 @@ The application architecture has been stabilized through Phases 1-5. The codebas
 
 ### Recommendations
 
-No critical issues identified. The application is ready for Phase 6.2 (Feature Repair) if any runtime issues are discovered during testing. The architecture is clean and well-organized for ongoing development.
+The application is ready for Phase 6.2 (Feature Repair). Three incomplete features have been identified and prioritized in the Repair Priority Report (`docs/phase-6.1-repair-priority-report.md`):
+
+1. **Sandboxed HTML `readNote`/`search` methods** (Low impact, Low complexity) - Security-critical API methods for sandboxed content
+2. **`note.create` command** (Medium impact, Low complexity) - Command Palette workflow incompleteness
+3. **PaneLayout per-tab rendering** (Medium impact, Medium complexity) - Split-view feature limitation
+
+All incomplete features have existing infrastructure to support their implementation. No architectural changes are required.

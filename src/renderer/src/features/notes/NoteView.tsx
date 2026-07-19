@@ -27,7 +27,7 @@ import {
   WikiLink as WikiLinkNode,
   Callout
 } from '@shared/types'
-import { useAppContext } from '../../shared/store'
+import { useAppContext, type Tab } from '../../shared/store'
 import { ToggleBlock } from './blocks/ToggleBlock'
 import { TaskList } from './blocks/TaskList'
 import { WikiLink } from './blocks/WikiLink'
@@ -877,6 +877,96 @@ function BacklinksPanel(): React.JSX.Element | null {
         </ul>
       )}
     </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// NoteViewForTab - renders note content for a specific tab (for split-pane views)
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for NoteViewForTab - used by PaneLayout to render per-tab content.
+ * This is a simplified version that only renders in view mode.
+ */
+export interface NoteViewForTabProps {
+  tab: Tab
+}
+
+/**
+ * NoteViewForTab - renders the content of a specific tab.
+ * Used by PaneLayout for non-active tabs in split views.
+ * Only supports view mode; edit/live-preview modes are handled by the active tab.
+ */
+export function NoteViewForTab({ tab }: NoteViewForTabProps): React.JSX.Element | null {
+  const { state, dispatch } = useAppContext()
+  const { vault } = state
+
+  // If the tab has no AST, show a loading state
+  if (tab.ast === null) {
+    return (
+      <div className="note-view flex-1 overflow-y-auto h-full" aria-label="Note view">
+        <NoteSkeleton />
+      </div>
+    )
+  }
+
+  // Build render context for this tab
+  const renderCtx: RenderContext = {
+    filePath: tab.path,
+    optimisticToggles: {},
+    onToggle: () => {
+      // No-op for non-active tabs - task toggles only work on active tab
+    },
+    onNavigate: (filePath: string, blockRef?: string, pageRef?: number) => {
+      // Navigate to the clicked note (activates the tab)
+      cmdNavigateToNote(filePath, dispatch, { blockRef, pageRef }).catch(console.error)
+    },
+    vaultFiles: vault?.files ?? [],
+    embedDepth: 0,
+    aliasIndex: state.extendedIndex?.aliasIndex,
+    headingFoldStates: {},
+    onHeadingToggle: () => {
+      // No-op for non-active tabs
+    }
+  }
+
+  // Render the note content
+  return (
+    <div className="note-view flex-1 overflow-y-auto h-full" aria-label="Note view">
+      <article
+        className="note-content max-w-2xl mx-auto px-8 py-6"
+        aria-label="Note content"
+      >
+        {/* YAML frontmatter → PropertiesView */}
+        {(() => {
+          const yamlNode = tab.ast!.children.find(
+            (c) => c.type === 'yaml' || (c as unknown as { type: string }).type === 'toml'
+          ) as { value?: string } | undefined
+          const yamlValue = yamlNode?.value ?? null
+          return (
+            <PropertiesView
+              key="properties"
+              yamlValue={yamlValue}
+              onSave={async () => {
+                // No-op for non-active tabs
+              }}
+              onPropertySearch={(propertyName, propertyValue) => {
+                dispatch({
+                  type: 'SEARCH_PANEL_OPEN_WITH_QUERY',
+                  payload: `property:${propertyName}:${propertyValue}`
+                })
+              }}
+            />
+          )
+        })()}
+        {tab.ast!.children
+          .filter(
+            (child) =>
+              child.type !== 'yaml' && (child as unknown as { type: string }).type !== 'toml'
+          )
+          .map((child, i) => renderNode(child, renderCtx, i))}
+      </article>
+    </div>
   )
 }
 
