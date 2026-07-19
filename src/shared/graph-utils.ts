@@ -199,3 +199,145 @@ function countTagCooccurrence(
   }
   return count
 }
+
+// ---------------------------------------------------------------------------
+// Block reference graph (Req 38.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Regex for extracting block-reference links of the form `[[Note Name#^blockId]]`
+ * (and the embed variant `![[Note Name#^blockId]]`). Captures the target note
+ * name (group 1) and the block id (group 2).
+ */
+export const BLOCK_REF_LINK_RE = /!?\[\[([^\]]+?)#\^([\w-]+)\]\]/g
+
+/** A node in the block reference graph. */
+export interface BlockGraphNode {
+  /** Stable id: for notes it is the file path; for blocks it is `path#^blockId`. */
+  id: string
+  /** Display label (note name, or the block id for block nodes). */
+  label: string
+  /** `true` for block nodes, `false` for note nodes. */
+  isBlock: boolean
+  /** Owning note path (equal to `id` when this is a note node). */
+  ownerPath: string
+  /** Block id (only for block nodes). */
+  blockId?: string
+  /** Line number where the block is defined (1-based, only for block nodes). */
+  line?: number
+}
+
+/** An edge in the block reference graph. */
+export interface BlockGraphEdge {
+  source: string
+  target: string
+}
+
+/**
+ * Compute the block reference graph from the extended index.
+ *
+ * The extended index records block *definitions* (`blockRefs`:
+ * `filePath → blockId → "L{line}"`). This function turns those definitions
+ * into block nodes and connects each block to its owning note.
+ *
+ * Cross-note *references* (notes that link to `[[note#^id]]`) are supplied by
+ * the caller via `blockRefLinks` (source note path → list of target
+ * `{ note, blockId }` pairs) which the renderer derives by scanning raw note
+ * content through the existing `note:get-raw` IPC. This keeps the computation
+ * pure and free of I/O while reusing the already-available index data.
+ *
+ * Requirements: 38.6
+ */
+export function computeBlockGraph(
+  blockRefs: Record<string, Record<string, string>>,
+  blockRefLinks: Array<{ source: string; targetNote: string; blockId: string }>
+): { nodes: BlockGraphNode[]; edges: BlockGraphEdge[] } {
+  const nodeMap = new Map<string, BlockGraphNode>()
+  const edges: BlockGraphEdge[] = []
+  const edgeSet = new Set<string>()
+
+  const ensureNoteNode = (filePath: string): BlockGraphNode => {
+    let node = nodeMap.get(filePath)
+    if (!node) {
+      node = {
+        id: filePath,
+        label: filePath.split('/').pop() ?? filePath,
+        isBlock: false,
+        ownerPath: filePath
+      }
+      nodeMap.set(filePath, node)
+    }
+    return node
+  }
+
+  // 1. Block definition nodes + note→block hierarchy edges
+  for (const [filePath, refs] of Object.entries(blockRefs)) {
+    const noteNode = ensureNoteNode(filePath)
+    for (const [blockId, nodeKey] of Object.entries(refs)) {
+      const line = parseLineFromNodeKey(nodeKey)
+      const blockNodeId = `${filePath}#^${blockId}`
+      nodeMap.set(blockNodeId, {
+        id: blockNodeId,
+        label: blockId,
+        isBlock: true,
+        ownerPath: filePath,
+        blockId,
+        line
+      })
+      const key = `${noteNode.id}|${blockNodeId}`
+      if (!edgeSet.has(key)) {
+        edgeSet.add(key)
+        edges.push({ source: noteNode.id, target: blockNodeId })
+      }
+    }
+  }
+
+  // 2. Cross-note block reference edges
+  for (const link of blockRefLinks) {
+    const sourceNote = ensureNoteNode(link.source)
+    const targetBlockId = `${link.targetNote}#^${link.blockId}`
+    // Only draw a reference edge if the target block is actually defined somewhere
+    if (!nodeMap.has(targetBlockId)) continue
+    const key = `${sourceNote.id}|${targetBlockId}`
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key)
+      edges.push({ source: sourceNote.id, target: targetBlockId })
+    }
+  }
+
+  return { nodes: Array.from(nodeMap.values()), edges }
+}
+
+/**
+ * Parse the 1-based line number out of a node position key of the form `L{line}`.
+ * Returns `undefined` when the key is not in the expected format.
+ */
+function parseLineFromNodeKey(nodeKey: string): number | undefined {
+  const match = nodeKey.match(/^L(\d+)$/)
+  return match ? Number(match[1]) : undefined
+}
+
+/**
+ * Extract block-reference links (`[[Note#^id]]`) from raw markdown content.
+ *
+ * Returns a list of `{ targetNote, blockId }` pairs found in `content`. The
+ * caller is responsible for associating these with the source note path.
+ *
+ * Requirements: 38.6
+ */
+export function extractBlockRefLinks(content: string): Array<{
+  targetNote: string
+  blockId: string
+}> {
+  const links: Array<{ targetNote: string; blockId: string }> = []
+  const seen = new Set<string>()
+  for (const match of content.matchAll(BLOCK_REF_LINK_RE)) {
+    const targetNote = match[1].trim()
+    const blockId = match[2]
+    const key = `${targetNote}#^${blockId}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    links.push({ targetNote, blockId })
+  }
+  return links
+}

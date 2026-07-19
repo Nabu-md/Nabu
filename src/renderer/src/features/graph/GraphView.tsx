@@ -4,7 +4,7 @@
  * Displays the vault's graph of note relationships. Supports three modes:
  * - Files mode: traditional node-per-file with wikilink edges
  * - Tags mode: node-per-tag with co-occurrence edges (Req 38.2)
- * - Blocks mode: placeholder for block references (Req 38.6)
+ * - Blocks mode: block reference visualization (Req 38.6)
  *
  * Requirements: 38.1, 38.2, 38.3, 38.4, 38.5, 38.6
  */
@@ -17,7 +17,11 @@ import {
   computeTagGraph,
   getTagNodeColor,
   getTagDisplayLabel,
-  getTagRecentNotes
+  getTagRecentNotes,
+  computeBlockGraph,
+  extractBlockRefLinks,
+  type BlockGraphNode,
+  type BlockGraphEdge
 } from '@shared/graph-utils'
 
 // ---------------------------------------------------------------------------
@@ -39,6 +43,8 @@ interface D3Node {
   count?: number
   radius?: number
   color?: string
+  // For block nodes (blocks graph mode)
+  isBlock?: boolean
   // d3 internal index
   index?: number
 }
@@ -84,6 +90,13 @@ export function GraphView(): React.JSX.Element {
     y: number
     recentNotes: FileEntry[]
   } | null>(null)
+
+  // Block reference graph state (Req 38.6) — populated asynchronously from
+  // the extended index (block definitions) plus a raw-content scan for
+  // cross-note block references via the existing `note:get-raw` IPC.
+  const [blockNodes, setBlockNodes] = useState<BlockGraphNode[]>([])
+  const [blockEdges, setBlockEdges] = useState<BlockGraphEdge[]>([])
+  const [blockGraphLoading, setBlockGraphLoading] = useState(false)
 
   // ---------------------------------------------------------------------------
   // Resize observer
@@ -134,17 +147,19 @@ export function GraphView(): React.JSX.Element {
         links = []
       }
     } else if (graphMode === 'blocks') {
-      // Blocks mode: placeholder - show message if no block refs
-      const hasBlockRefs = state.extendedIndex && state.extendedIndex.blockRefs.size > 0
-      if (!hasBlockRefs) {
-        // No nodes in blocks mode when empty
-        nodes = []
-        links = []
-      } else {
-        // TODO: Implement block node rendering when block refs are populated
-        nodes = []
-        links = []
-      }
+      // Blocks mode (Req 38.6): visualise block references.
+      // Block *definitions* come from the extended index; cross-note
+      // *references* are fetched asynchronously (see the blocks effect below)
+      // and merged into `blockNodes`/`blockEdges`.
+      nodes = blockNodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        x: canvasW / 2 + (Math.random() - 0.5) * 100,
+        y: canvasH / 2 + (Math.random() - 0.5) * 100,
+        // Block nodes are drawn as squares; note nodes as circles.
+        isBlock: n.isBlock
+      })) as D3Node[]
+      links = blockEdges.map((e) => ({ source: e.source, target: e.target }))
     } else {
       // Files mode (default): existing behavior
       const edges: Edge[] = state.graphEdges
@@ -295,7 +310,19 @@ export function GraphView(): React.JSX.Element {
       for (const node of visibleNodes) {
         const { x, y } = node
 
-        if (graphMode === 'tags' && node.radius !== undefined) {
+        if (graphMode === 'blocks' && node.isBlock) {
+          // Draw block nodes as small squares (Req 38.6)
+          const size = 7
+          ctx.fillStyle = accentColor
+          ctx.beginPath()
+          ctx.rect(x - size / 2, y - size / 2, size, size)
+          ctx.fill()
+          ctx.font = '9px sans-serif'
+          ctx.fillStyle = textColor
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(node.label, x + size / 2 + 3, y)
+        } else if (graphMode === 'tags' && node.radius !== undefined) {
           // Draw tag nodes as rounded pills
           const radius = node.radius
           const color = node.color ? tagColors[node.color as keyof typeof tagColors] : accentColor
@@ -343,6 +370,76 @@ export function GraphView(): React.JSX.Element {
   useEffect(() => {
     simRef.current?._updateTransform?.(transform)
   }, [transform])
+
+  // ---------------------------------------------------------------------------
+  // Blocks mode: build the block reference graph (Req 38.6)
+  //
+  // Block *definitions* are already in `state.extendedIndex.blockRefs`.
+  // Cross-note *references* (`[[Note#^id]]`) are derived by scanning each
+  // note's raw content through the existing `note:get-raw` IPC. A module
+  // level cache avoids re-fetching unchanged files across mode switches.
+  // ---------------------------------------------------------------------------
+  const rawCache = useRef<Map<string, string>>(new Map())
+
+  useEffect(() => {
+    if (state.graphMode !== 'blocks' || !state.extendedIndex) return
+
+    const blockRefs = state.extendedIndex.blockRefs as unknown as Record<
+      string,
+      Record<string, string>
+    >
+    const files = state.vault?.files ?? []
+
+    // Build a basename → full-path resolver (mirrors wiki-link resolution).
+    const nameToPath = new Map<string, string>()
+    for (const f of files) {
+      nameToPath.set(f.name.toLowerCase(), f.path)
+    }
+
+    // Seed the graph with block definitions immediately (synchronous).
+    const seedLinks: Array<{ source: string; targetNote: string; blockId: string }> = []
+    setBlockNodes(computeBlockGraph(blockRefs, seedLinks).nodes)
+    setBlockEdges(computeBlockGraph(blockRefs, seedLinks).edges)
+
+    let cancelled = false
+    setBlockGraphLoading(true)
+
+    const buildFromRefs = async (): Promise<void> => {
+      const refs: Array<{ source: string; targetNote: string; blockId: string }> = []
+      for (const file of files) {
+        if (cancelled) return
+        // Skip files that cannot define block references of interest.
+        if (file.path.toLowerCase().endsWith('.pdf')) continue
+        let raw = rawCache.current.get(file.path)
+        if (raw === undefined) {
+          try {
+            const result = await window.electron.note.getRaw(file.path)
+            raw = result.content ?? ''
+            rawCache.current.set(file.path, raw)
+          } catch {
+            continue
+          }
+        }
+        for (const link of extractBlockRefLinks(raw)) {
+          // Resolve the target note name to a full path (wiki-link style).
+          const targetPath = nameToPath.get(link.targetNote.toLowerCase()) ?? link.targetNote
+          refs.push({ source: file.path, targetNote: targetPath, blockId: link.blockId })
+        }
+      }
+      if (cancelled) return
+      const graph = computeBlockGraph(blockRefs, refs)
+      setBlockNodes(graph.nodes)
+      setBlockEdges(graph.edges)
+      setBlockGraphLoading(false)
+    }
+
+    void buildFromRefs()
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.graphMode, state.extendedIndex, state.vault?.files])
 
   // Hit-test: find the node closest to given canvas coords (within 20 px)
   const findNode = useCallback(
@@ -465,6 +562,22 @@ export function GraphView(): React.JSX.Element {
           // Tags mode: dispatch to filter file tree (Req 38.5)
           dispatch({ type: 'TAG_FILTER_TOGGLE', payload: node.label })
           setHoveredTag(null)
+        } else if (state.graphMode === 'blocks') {
+          // Blocks mode: open the owning note (Req 38.6). Block nodes carry
+          // their owner path in `node.id` for note nodes, or `path#^blockId`
+          // for block nodes — resolve the owning note path either way.
+          const ownerPath = node.isBlock ? (node.id.split('#')[0] ?? node.id) : node.id
+          if (ownerPath.toLowerCase().endsWith('.pdf')) {
+            dispatch({ type: 'PDF_OPENED', payload: { path: ownerPath } })
+            return
+          }
+          window.electron.file
+            .get(ownerPath)
+            .then((fileAST) => {
+              dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
+              dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
+            })
+            .catch(console.error)
         } else {
           // Files mode: open the note (or PDF viewer pane)
           if (node.id.toLowerCase().endsWith('.pdf')) {
@@ -524,15 +637,32 @@ export function GraphView(): React.JSX.Element {
     )
   }
 
-  // Render blocks mode placeholder
+  // Render blocks mode empty / loading state (Req 38.6)
   const renderBlocksPlaceholder = (): React.JSX.Element => {
-    const hasBlockRefs = state.extendedIndex && state.extendedIndex.blockRefs.size > 0
+    const hasBlockDefs =
+      state.extendedIndex && Object.keys(state.extendedIndex.blockRefs).length > 0
+    if (blockGraphLoading) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
+          <p className="text-center max-w-md">Scanning notes for block references…</p>
+        </div>
+      )
+    }
+    if (!hasBlockDefs) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
+          <p className="text-center max-w-md">
+            Define blocks with a <code>^block-id</code> marker at the end of a line, then link
+            to them with <code>[[Note#^block-id]]</code> to populate this view.
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="absolute inset-0 flex items-center justify-center text-nabu-text-faint text-sm">
         <p className="text-center max-w-md">
-          {!hasBlockRefs
-            ? 'Use block references (`^id`) to populate this view'
-            : 'Block references are being processed...'}
+          No block references found yet. Link to a block with{' '}
+          <code>[[Note#^block-id]]</code> to connect notes.
         </p>
       </div>
     )
@@ -652,7 +782,7 @@ export function GraphView(): React.JSX.Element {
             No notes in vault
           </div>
         )}
-        {state.graphMode === 'blocks' && renderBlocksPlaceholder()}
+        {state.graphMode === 'blocks' && blockNodes.length === 0 && renderBlocksPlaceholder()}
       </div>
     </div>
   )
