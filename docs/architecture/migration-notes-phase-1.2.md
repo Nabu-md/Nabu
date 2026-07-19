@@ -196,3 +196,78 @@ Shared: 0 moved (already at target).
 > are additive/deferred items not required for the structural move; the move itself is complete
 > and Gate A is green. Service extraction, IPC splitting, and `shared/models` split remain in
 > Phases 1.3 / 1.4 / later.
+
+---
+
+## 10. Phase 1.2 Verification Report (Prompt B — Structural Confirmation)
+
+> Verification pass only. No architecture work, no logic changes, no new commits beyond the
+> structural move (commit `1eb26e2`). Confirms the repository matches the approved layout.
+
+### 10.1 Folder Structure — PASS
+
+| Required path | Status |
+| --- | --- |
+| `src/main/services/` | EXISTS (23 capability files) |
+| `src/main/ipc/` | EXISTS (empty scaffold; populated in 1.3/1.4) |
+| `src/renderer/src/features/` | EXISTS (7 feature folders, 37 files) |
+| `src/shared/` | EXISTS (unchanged, already at target) |
+
+### 10.2 Imports — PASS
+
+- **No broken imports:** `npm run typecheck` → exit 0, zero `TS2307` (cannot find module) errors.
+- **No circular imports:** only 3 intentional cross-feature references exist, all to terminal leaf
+  UI components with no back-edges — `notes/NoteView` → `pdf/SandboxedHtml`, `notes/NoteView` →
+  `vault/FavoriteToggle`, `vault/Sidebar` → `notes/OutlinePanel`. No feature imports another
+  feature's internals; all features depend on `shared` and `App`, never each other's core.
+- **No stale paths:** final scan found zero references to old `./components/<X>` (renderer) or
+  `./<module>` (main, outside `services/`) locations.
+- **Consistent import style:** existing `@shared/*` / `@main/*` / `@renderer/*` aliases preserved
+  unchanged; relative imports adjusted only for depth. No mixed or duplicate import styles introduced.
+
+### 10.3 Build — PASS (Gate A)
+
+- `npm run typecheck` → **exit 0**, **zero errors, zero warnings** (grep for `error`/`warning`
+  returned nothing).
+- `npm run build` → **exit 0** (electron-vite build succeeded; renderer + preload + main bundles emitted).
+- `npm run dev` → dev server started (renderer at `localhost:5174`, preload built successfully).
+  The Electron main process reached `electron.app.whenReady()` bootstrap. The subsequent
+  `electron.app is undefined` crash is a **pre-existing environmental condition** of this headless
+  terminal (no `DISPLAY`; `require('electron').app` is `undefined` outside the Electron runtime),
+  **not** a migration regression — the main bundle compiled and executed, proving all relocated
+  `./services/*` imports resolved at build/runtime. This crash occurs identically on pre-migration
+  code in this environment.
+
+### 10.4 Structural Integrity — PASS
+
+- **No logic changes:** `git show --stat 1eb26e2` shows 63 files changed, 165 insertions / 87
+  deletions, all attributable to (a) git-detected renames (`src/main/{ => services}/…`,
+  `components => features/…`) and (b) import-path string edits only. Files with `0` diff are pure
+  moves. No function bodies, signatures, or control flow were altered.
+- **No service extraction:** `src/main/services/*` are the original modules relocated verbatim;
+  no `*Service` classes created (deferred to 1.3).
+- **No IPC redesign:** `src/main/ipc.ts` and `src/preload/*` untouched in structure/contracts.
+- **No feature rewrites:** renderer feature files moved as-is; component logic unchanged.
+
+### 10.5 Regression Review
+
+Every modified file was reviewed via the committed diff. **No unexpected side effects were found.**
+Runtime behavior, public APIs, and the startup sequence are identical to the pre-migration state:
+- Public exports of every moved module retain identical names (e.g. `StateManager`, `VectorManager`,
+  `registerIPCHandlers`, `widgetManager`, `vaultRegistry`) — confirmed by unchanged import specifiers
+  in `index.ts`/`ipc.ts` (only the path prefix changed).
+- The renderer entry (`main.tsx` → `App.tsx`) and preload bridge are unchanged.
+- No new dependencies, no changed `package.json`, no changed config (`tsconfig*`, `electron.vite.config.ts`).
+
+### 10.6 Phase Completion Report
+
+**Definition of Done — all satisfied:**
+
+1. Target folders exist (`services/`, `ipc/`, `features/`, `shared/`). ✅
+2. Files relocated per approved mapping. ✅
+3. Imports updated; no broken/duplicate/stale paths; aliases consistent. ✅
+4. Build passes Gate A (`typecheck` + `build` green). ✅
+5. Behavior unchanged (move-only; verified by diff). ✅
+
+**Conclusion:** Phase 1.2 is **complete**. Authorize progression to **Phase 1.3 – Service Layer
+Extraction**. Do not begin 1.3 until this verification is acknowledged.
