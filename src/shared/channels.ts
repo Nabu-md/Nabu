@@ -1,5 +1,6 @@
 export enum IPCChannel {
   VAULT_OPEN = 'vault:open',
+  VAULT_OPENED = 'vault:opened',
   VAULT_OPEN_IN_NEW_WINDOW = 'vault:open-in-new-window',
   VAULT_SCAN = 'vault:scan',
   VAULT_CLOSE = 'vault:close',

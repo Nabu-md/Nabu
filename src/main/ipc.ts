@@ -55,12 +55,16 @@ import {
   AssetReadSchema,
   SearchQuerySchema,
   SearchResponseSchema,
+  PropertiesReadSchema,
+  PropertiesReadResultSchema,
   PropertiesWriteSchema,
   PropertiesWriteResultSchema,
   NoteDailySchema,
   NoteDailyResultSchema,
   NoteRandomSchema,
   NoteRandomResultSchema,
+  ViewStateGetFoldSchema,
+  ViewStateSetFoldSchema,
   FavoritesGetSchema,
   FavoritesToggleSchema,
   FavoritesRemoveSchema,
@@ -86,7 +90,13 @@ import {
   DictationStatusSchema,
   DictationStatusResultSchema,
   DictationDownloadModelSchema,
-  DictationDownloadModelResultSchema
+  DictationDownloadModelResultSchema,
+  // Additional schemas
+  VaultSwitchSchema,
+  NoteComposeSchema,
+  NoteComposeResultSchema,
+  NoteUniqueSchema,
+  NoteUniqueResultSchema
 } from '../shared/schemas'
 
 import { search } from '../shared/search-query'
@@ -97,6 +107,10 @@ import { readFavorites, toggleFavorite, removeFavorite } from './favorites'
 import { vaultRegistry } from './vault-registry'
 import { enqueueOCR, createOCRCompanionNote } from './ocr-manager'
 import { getPDFInfo, renderPDFPage } from './pdf-viewer'
+import { setFoldState, loadViewState } from './view-state'
+import { readBookmarks, addBookmark, removeBookmark } from './bookmarks'
+import { mergeNotes } from './composer'
+import { generateUniqueNoteName } from './unique-note'
 
 import type { StateManager } from './state'
 import type { VectorManager } from './vector'
@@ -591,6 +605,15 @@ export function registerIPCHandlers(
     IPCChannel.SEARCH_QUERY,
     IPCChannel.PROPERTIES_READ,
     IPCChannel.PROPERTIES_WRITE,
+    IPCChannel.VAULT_SWITCH,
+    IPCChannel.VAULT_GET_RECENTS,
+    IPCChannel.VIEW_STATE_GET_FOLD,
+    IPCChannel.VIEW_STATE_SET_FOLD,
+    IPCChannel.BOOKMARKS_GET,
+    IPCChannel.BOOKMARKS_ADD,
+    IPCChannel.BOOKMARKS_REMOVE,
+    IPCChannel.NOTE_COMPOSE,
+    IPCChannel.NOTE_UNIQUE,
     'vault:get-current' as IPCChannel
   ]
   for (const ch of channels) {
@@ -2229,6 +2252,271 @@ export function registerIPCHandlers(
       console.error(msg)
       emitActivityLog('error', msg)
       return DictationDownloadModelResultSchema.parse({ success: false, error: String(err) })
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // vault:switch — switch to a different vault
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.VAULT_SWITCH, async (_event, rawPayload) => {
+    const validation = VaultSwitchSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] vault:switch validation failed: ${reason}`)
+      return { success: false, error: reason }
+    }
+
+    const { vaultId } = validation.data
+
+    try {
+      // Check if the vault is already open in the registry
+      const session = vaultRegistry.get(vaultId)
+      if (session) {
+        vaultRegistry.setActive(vaultId)
+        return { success: true }
+      }
+
+      // If not in registry, check if it's the current vault
+      const currentVault = stateManager.getCurrentVault()
+      if (currentVault && currentVault.path === vaultId) {
+        return { success: true }
+      }
+
+      return { success: false, error: 'Vault not found in registry' }
+    } catch (err) {
+      const msg = `[IPC] vault:switch handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { success: false, error: String(err) }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // vault:get-recents — get list of recently opened vaults
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.VAULT_GET_RECENTS, async (_event, _rawPayload) => {
+    try {
+      const settings = await loadSettings()
+      // recentVaults is already an array of { path, name, lastOpened }
+      const recents = settings.recentVaults ?? []
+      return { recents }
+    } catch (err) {
+      const msg = `[IPC] vault:get-recents handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { recents: [] }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // view-state:get-fold — get fold state for a heading
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.VIEW_STATE_GET_FOLD, async (_event, rawPayload) => {
+    const validation = ViewStateGetFoldSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] view-state:get-fold validation failed: ${reason}`)
+      return true // Default to open
+    }
+
+    const { vaultPath, notePath, headingId } = validation.data
+
+    try {
+      // Load view state for the note
+      const state = await loadViewState(vaultPath, notePath)
+      return state.foldStates[headingId] ?? true
+    } catch (err) {
+      const msg = `[IPC] view-state:get-fold handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return true // Default to open on error
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // view-state:set-fold — set fold state for a heading
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.VIEW_STATE_SET_FOLD, async (_event, rawPayload) => {
+    const validation = ViewStateSetFoldSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] view-state:set-fold validation failed: ${reason}`)
+      return
+    }
+
+    const { vaultPath, notePath, headingId, isOpen } = validation.data
+
+    try {
+      await setFoldState(vaultPath, notePath, headingId, isOpen)
+    } catch (err) {
+      const msg = `[IPC] view-state:set-fold handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // properties:read — read YAML frontmatter properties from a file
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.PROPERTIES_READ, async (_event, rawPayload) => {
+    const validation = PropertiesReadSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] properties:read validation failed: ${reason}`)
+      return { path: '', properties: {}, yaml: '' }
+    }
+
+    const { path: filePath } = validation.data
+
+    try {
+      const content = await fs.readFile(filePath, 'utf-8')
+      const { yaml, parsed } = extractFrontmatter(content)
+      return PropertiesReadResultSchema.parse({
+        path: filePath,
+        properties: parsed,
+        yaml
+      })
+    } catch (err) {
+      const msg = `[IPC] properties:read handler error for "${filePath}": ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { path: filePath, properties: {}, yaml: '' }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // bookmarks:get — get bookmarks for a vault
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.BOOKMARKS_GET, async (_event, rawPayload) => {
+    // Simple schema validation
+    const vaultPath = typeof rawPayload === 'object' && rawPayload !== null ? (rawPayload as any).vaultPath : ''
+    if (!vaultPath) {
+      return { bookmarks: {} }
+    }
+
+    try {
+      const bookmarks = await readBookmarks(vaultPath)
+      return { bookmarks }
+    } catch (err) {
+      const msg = `[IPC] bookmarks:get handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { bookmarks: {} }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // bookmarks:add — add a bookmark to a list
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.BOOKMARKS_ADD, async (_event, rawPayload) => {
+    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as { vaultPath?: string; listName?: string; filePath?: string }
+    if (!vaultPath || !listName || !filePath) {
+      return { bookmarks: {} }
+    }
+
+    try {
+      const bookmarks = await addBookmark(vaultPath, listName, filePath)
+      return { bookmarks }
+    } catch (err) {
+      const msg = `[IPC] bookmarks:add handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { bookmarks: {} }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // bookmarks:remove — remove a bookmark from a list
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.BOOKMARKS_REMOVE, async (_event, rawPayload) => {
+    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as { vaultPath?: string; listName?: string; filePath?: string }
+    if (!vaultPath || !listName || !filePath) {
+      return { bookmarks: {} }
+    }
+
+    try {
+      const bookmarks = await removeBookmark(vaultPath, listName, filePath)
+      return { bookmarks }
+    } catch (err) {
+      const msg = `[IPC] bookmarks:remove handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { bookmarks: {} }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // note:compose — merge multiple notes into one
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.NOTE_COMPOSE, async (_event, rawPayload) => {
+    const validation = NoteComposeSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] note:compose validation failed: ${reason}`)
+      return { previewMarkdown: '', warning: reason }
+    }
+
+    const { vaultPath, sourcePaths } = validation.data
+
+    try {
+      const vault = stateManager.getCurrentVault()
+      if (!vault || vault.path !== vaultPath) {
+        return { previewMarkdown: '', warning: 'Vault not open' }
+      }
+
+      const result = await mergeNotes(sourcePaths, vaultPath, vault.files)
+      return NoteComposeResultSchema.parse(result)
+    } catch (err) {
+      const msg = `[IPC] note:compose handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { previewMarkdown: '', warning: String(err) }
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // note:unique — create a note with a unique timestamp name
+  // -------------------------------------------------------------------------
+  ipcMain.handle(IPCChannel.NOTE_UNIQUE, async (_event, rawPayload) => {
+    const validation = NoteUniqueSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      const reason = formatZodError(validation.error)
+      emitActivityLog('warn', `[IPC] note:unique validation failed: ${reason}`)
+      return { path: '', error: reason }
+    }
+
+    const { vaultPath } = validation.data
+
+    try {
+      const now = new Date()
+      const uniqueName = generateUniqueNoteName('YYYYMMDDHHmmss', now)
+      const filePath = path.join(vaultPath, `${uniqueName}.md`)
+
+      // Check if file already exists
+      try {
+        await fs.access(filePath)
+        return { path: '', error: 'Note with that name already exists' }
+      } catch {
+        // File doesn't exist, proceed
+      }
+
+      // Create the note
+      const content = `# ${uniqueName}\n\n`
+      stateManager.setPendingWrite(filePath)
+      try {
+        await fs.writeFile(filePath, content, 'utf-8')
+      } finally {
+        stateManager.clearPendingWrite(filePath)
+      }
+
+      // Get AST for the new file
+      const ast = await stateManager.getAST(filePath)
+      return NoteUniqueResultSchema.parse({ path: filePath, ast })
+    } catch (err) {
+      const msg = `[IPC] note:unique handler error: ${String(err)}`
+      console.error(msg)
+      emitActivityLog('error', msg)
+      return { path: '', error: String(err) }
     }
   })
 }

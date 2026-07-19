@@ -174,8 +174,8 @@ const electronAPI = {
     },
     vaultOpened: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)
-      ipcRenderer.on('vault:opened-test', listener)
-      return () => ipcRenderer.removeListener('vault:opened-test', listener)
+      ipcRenderer.on(IPCChannel.VAULT_OPENED, listener)
+      return () => ipcRenderer.removeListener(IPCChannel.VAULT_OPENED, listener)
     },
     notesLoaded: (callback: (data: unknown) => void): (() => void) => {
       const listener = (_event: IpcRendererEvent, data: unknown): void => callback(data)

@@ -12,7 +12,7 @@
  * Requirements: 41.4, 42.2, 42.3, 43.1, 43.2, 43.4
  */
 
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { fnMonitor } from './fn-monitor'
 import {
@@ -129,7 +129,6 @@ class WidgetManager {
     this.state.visible = true
 
     // Center the widget on the screen
-    const { screen } = require('electron')
     const cursor = screen.getCursorScreenPoint()
     const display = screen.getDisplayNearestPoint(cursor)
     const { x, y, width } = display.workArea

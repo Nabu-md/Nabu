@@ -8,27 +8,41 @@
  * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
  */
 
-import {
-  GlobalWorkerOptions,
-  getDocument,
-  type PDFDocumentProxy,
-  type PDFPageProxy
-} from 'pdfjs-dist'
-import { createCanvas } from 'canvas'
-import fs from 'fs/promises'
-import { PDFAnnotationType } from '../shared/schemas'
+// canvas is dynamically imported to avoid native module loading at startup
+// The native dependencies may not be properly linked in development
+let createCanvas: any
+let canvasLoaded = false
 
-// Configure PDF.js worker for Node.js environment (same pattern as pdf-importer)
-// Wrap in try-catch to handle test environment where the worker file may not exist
-try {
-  GlobalWorkerOptions.workerSrc =
-    require('pdfjs-dist/build/pdf.worker.js').fileToPath?.(
-      'node_modules/pdfjs-dist/build/pdf.worker.min.js'
-    ) ?? require.resolve('pdfjs-dist/build/pdf.worker.min.js')
-} catch {
-  // In test environment, worker may not be available - that's OK
-  GlobalWorkerOptions.workerSrc = ''
+async function initCanvas() {
+  if (!canvasLoaded) {
+    const canvasModule = await import('canvas')
+    createCanvas = canvasModule.createCanvas
+    canvasLoaded = true
+  }
 }
+
+import fs from 'fs/promises'
+import path from 'path'
+import { PDFAnnotationType } from '../shared/schemas'
+import { vaultRegistry } from './vault-registry'
+
+// PDF.js is dynamically imported to avoid DOMMatrix error at module load time
+// pdfjs-dist 6.x requires DOMMatrix which is not available in Node.js
+// The module is loaded on-demand when PDF functionality is actually used
+let GlobalWorkerOptions: { workerSrc: string } | undefined
+let getDocument: any
+
+async function initPDFJS() {
+  if (!GlobalWorkerOptions) {
+    const pdfjs = await import('pdfjs-dist')
+    GlobalWorkerOptions = (pdfjs as any).GlobalWorkerOptions
+    getDocument = (pdfjs as any).getDocument
+  }
+}
+
+// Type alias for PDF document proxy
+type PDFDocumentProxy = any
+type PDFPageProxy = any
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +78,7 @@ export interface PDFRenderPageResult {
  * Load a PDF document from a file path and return metadata.
  */
 export async function getPDFInfo(filePath: string): Promise<PDFOpenResult> {
+  await initPDFJS()
   const arrayBuffer = await fs.readFile(filePath)
 
   let pdf: PDFDocumentProxy
@@ -90,6 +105,7 @@ export async function getPDFInfo(filePath: string): Promise<PDFOpenResult> {
  * Extract text from a PDF document.
  */
 export async function extractPDFText(filePath: string): Promise<PDFTextResult> {
+  await initPDFJS()
   const arrayBuffer = await fs.readFile(filePath)
 
   const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise
@@ -127,6 +143,8 @@ export async function renderPDFPage(
   pageNumber: number,
   scale: number = 1.0
 ): Promise<PDFRenderPageResult> {
+  await initPDFJS()
+  await initCanvas()
   const arrayBuffer = await fs.readFile(filePath)
 
   const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise
@@ -188,8 +206,6 @@ export function clearPDFCache(_filePath: string): void {
  * Annotations are stored in .nabu/pdf-annotations/<pdf-name>.json
  */
 function getAnnotationsPath(filePath: string): string {
-  const path = require('path')
-  const { vaultRegistry } = require('./vault-registry')
   const session = vaultRegistry.getActive()
   if (!session) {
     throw new Error(`No vault is currently open`)
@@ -227,7 +243,6 @@ export async function savePDFAnnotations(
   filePath: string,
   annotations: PDFAnnotationType[]
 ): Promise<void> {
-  const path = require('path')
   const annotationsPath = getAnnotationsPath(filePath)
   const dir = path.dirname(annotationsPath)
 

@@ -26,7 +26,7 @@ export const VaultSwitchSchema = z.object({
   vaultId: z.string()
 })
 
-const VaultSwitchResultSchema = z.object({
+export const VaultSwitchResultSchema = z.object({
   success: z.boolean(),
   error: z.string().optional()
 })
@@ -37,7 +37,7 @@ export type VaultSwitchResult = z.infer<typeof VaultSwitchResultSchema>
 // vault:get-recents (Renderer → Main) — get recent vaults list
 export const VaultGetRecentsSchema = z.object({})
 
-const VaultGetRecentsResultSchema = z.object({
+export const VaultGetRecentsResultSchema = z.object({
   recents: z.array(
     z.object({
       path: z.string(),
