@@ -49,13 +49,6 @@ export interface ParserResult {
   error?: { line: number; column: number; message: string }
 }
 
-/** Stored alongside the AST in the AST store (used by state.ts) */
-export interface ASTStoreEntry {
-  ast: Root
-  lastParsed: number
-  encoding: EncodingLabel
-}
-
 // ---------------------------------------------------------------------------
 // AST metadata helpers
 // ---------------------------------------------------------------------------

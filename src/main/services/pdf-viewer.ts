@@ -58,11 +58,6 @@ export interface PDFOpenResult {
   }
 }
 
-export interface PDFTextResult {
-  text: string
-  pageTexts: string[]
-}
-
 export interface PDFRenderPageResult {
   pageNumber: number
   dataUri: string
@@ -98,30 +93,6 @@ export async function getPDFInfo(filePath: string): Promise<PDFOpenResult> {
       subject: (metadata as { info?: { Subject?: string } })?.info?.Subject,
       keywords: (metadata as { info?: { Keywords?: string } })?.info?.Keywords
     }
-  }
-}
-
-/**
- * Extract text from a PDF document.
- */
-export async function extractPDFText(filePath: string): Promise<PDFTextResult> {
-  await initPDFJS()
-  const arrayBuffer = await fs.readFile(filePath)
-
-  const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise
-
-  const pageTexts: string[] = []
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const textContent = await page.getTextContent()
-    const pageText = textContent.items.map((item) => (item as { str?: string }).str ?? '').join(' ')
-    pageTexts.push(pageText)
-  }
-
-  return {
-    text: pageTexts.join('\n\n'),
-    pageTexts
   }
 }
 
@@ -187,17 +158,6 @@ export async function renderPDFPage(
 }
 
 // ---------------------------------------------------------------------------
-// Cleanup
-// ---------------------------------------------------------------------------
-
-/**
- * Clear PDF cache for a specific file (e.g., when file changes).
- */
-export function clearPDFCache(_filePath: string): void {
-  // PDF document cleanup is handled by pdfjs internally
-}
-
-// ---------------------------------------------------------------------------
 // PDF Annotations (Req 40.4, 40.5)
 // ---------------------------------------------------------------------------
 
@@ -251,15 +211,4 @@ export async function savePDFAnnotations(
 
   // Write annotations to file
   await fs.writeFile(annotationsPath, JSON.stringify(annotations, null, 2), 'utf-8')
-}
-
-// ---------------------------------------------------------------------------
-// Cleanup
-// ---------------------------------------------------------------------------
-
-/**
- * Clear PDF cache for a specific file (e.g., when file changes).
- */
-export function clearAllPDFCache(): void {
-  // PDF document cleanup is handled by pdfjs internally
 }

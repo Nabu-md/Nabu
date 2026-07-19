@@ -362,8 +362,7 @@ export class VaultWatcher {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton export
+// Singleton export removed - unused
 // ---------------------------------------------------------------------------
 
-/** Singleton VaultWatcher instance used by the main process. */
-export const vaultWatcher = new VaultWatcher()
+// Note: vaultWatcher singleton was never imported; new instances are created in index.ts

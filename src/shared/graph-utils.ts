@@ -9,9 +9,6 @@
 import type { ExtendedSearchIndex } from './extended-indexing'
 import type { FileEntry } from './types'
 
-/** All supported graph modes */
-export type GraphMode = 'files' | 'tags' | 'blocks'
-
 /** Node in the tag co-occurrence graph */
 export interface TagGraphNode {
   id: string

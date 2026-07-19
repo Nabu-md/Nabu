@@ -136,24 +136,6 @@ export async function setFoldState(
 }
 
 /**
- * Get fold state for a specific heading.
- * Returns true (open) if not found in state.
- */
-export function getFoldState(vaultPath: string, notePath: string, headingId: string): boolean {
-  const cacheKey = `${vaultPath}:${notePath}`
-  const state = viewStateCache.get(cacheKey)
-  if (!state) return true // Default to open
-  return state.foldStates[headingId] ?? true
-}
-
-/**
- * Clear view state cache (used when switching vaults).
- */
-export function clearViewStateCache(): void {
-  viewStateCache.clear()
-}
-
-/**
  * Remove view state for a specific file (used when a note is deleted or renamed).
  * Clears both the in-memory cache and the persisted file.
  */
@@ -167,17 +149,4 @@ export async function clearViewStateForFile(vaultPath: string, notePath: string)
   } catch {
     // File may not exist — ignore
   }
-}
-
-/**
- * Generate a unique ID for a heading based on its position and text.
- * This ID is used to track fold state per heading.
- */
-export function generateHeadingId(heading: { depth: number; text: string }, lineIndex: number): string {
-  // Use a slugified version of the heading text + line index for uniqueness
-  const slug = heading.text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return `${heading.depth}-${slug || 'heading'}-${lineIndex}`
 }
