@@ -21,7 +21,7 @@ import {
 } from '@shared/schemas'
 
 import type { IPCContext } from './context'
-import { emitActivityLog, formatZodError } from './shared'
+import { emitActivityLog, formatZodError, normalizeError, errorToString } from './shared'
 
 /**
  * Register all search-feature IPC handlers.
@@ -59,17 +59,22 @@ export function registerSearchIPC(ctx: IPCContext): void {
         }
       }
     } catch (err) {
-      emitActivityLog('warn', `[IPC] context:query status check failed: ${String(err)}`)
+      const normalized = normalizeError(err)
+      emitActivityLog(
+        'warn',
+        `[IPC] context:query status check failed: ${errorToString(normalized)}`
+      )
     }
 
     try {
       const rawResults = await vectorManager.search(text, 5, excludePath)
       return ContextSearchResultSchema.parse({ results: rawResults })
     } catch (err) {
-      const msg = `[IPC] context:query handler error: ${String(err)}`
+      const normalized = normalizeError(err, { text, excludePath })
+      const msg = `[IPC] context:query handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { results: [], error: String(err) }
+      return { results: [], error: errorToString(normalized) }
     }
   })
 
@@ -101,10 +106,11 @@ export function registerSearchIPC(ctx: IPCContext): void {
       const processed = await vectorManager.reindexAll(vault.files)
       return ContextReindexResultSchema.parse({ processed })
     } catch (err) {
-      const msg = `[IPC] context:reindex handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] context:reindex handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { error: String(err) }
+      return { error: errorToString(normalized) }
     }
   })
 
@@ -123,10 +129,11 @@ export function registerSearchIPC(ctx: IPCContext): void {
       const status = await vectorManager.getStatus()
       return VectorStatusResultSchema.parse(status)
     } catch (err) {
-      const msg = `[IPC] vector:status handler error: ${String(err)}`
+      const normalized = normalizeError(err)
+      const msg = `[IPC] vector:status handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { disabled: true, reason: String(err), items: 0 }
+      return { disabled: true, reason: errorToString(normalized), items: 0 }
     }
   })
 

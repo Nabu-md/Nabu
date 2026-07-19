@@ -25,7 +25,13 @@ import { readFavorites, toggleFavorite, removeFavorite } from '../favorites'
 import { VaultService } from '../services/vault-service'
 
 import type { IPCContext } from './context'
-import { emitActivityLog, formatZodError, getSessionForVault } from './shared'
+import {
+  emitActivityLog,
+  formatZodError,
+  getSessionForVault,
+  normalizeError,
+  errorToString
+} from './shared'
 
 /**
  * Register all vault-feature IPC handlers.
@@ -117,7 +123,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const response = FileGetResultSchema.parse({ path: filePath, ast })
       return response
     } catch (err) {
-      const msg = `[IPC] file:get handler error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: filePath })
+      const msg = `[IPC] file:get handler error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return {
@@ -126,7 +133,7 @@ export function registerVaultIPC(ctx: IPCContext): void {
         error: {
           line: 0,
           column: 0,
-          message: String(err)
+          message: errorToString(normalized)
         }
       }
     }
@@ -165,10 +172,11 @@ export function registerVaultIPC(ctx: IPCContext): void {
       await fs.mkdir(folderPath, { recursive: true })
       return { success: true }
     } catch (err) {
-      const msg = `[IPC] folder:create handler error for "${folderPath}": ${String(err)}`
+      const normalized = normalizeError(err, { path: folderPath })
+      const msg = `[IPC] folder:create handler error for "${folderPath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -187,7 +195,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const favorites = await readFavorites(vaultPath)
       return { favorites }
     } catch (err) {
-      const msg = `[IPC] favorites:get error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] favorites:get error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { favorites: [] }
@@ -209,7 +218,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const favorites = await toggleFavorite(vaultPath, filePath)
       return { favorites }
     } catch (err) {
-      const msg = `[IPC] favorites:toggle error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, filePath })
+      const msg = `[IPC] favorites:toggle error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { favorites: [] }
@@ -231,7 +241,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const favorites = await removeFavorite(vaultPath, filePath)
       return { favorites }
     } catch (err) {
-      const msg = `[IPC] favorites:remove error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, filePath })
+      const msg = `[IPC] favorites:remove error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { favorites: [] }
@@ -242,7 +253,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
   // bookmarks:get — get bookmarks for a vault
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.BOOKMARKS_GET, async (_event, rawPayload) => {
-    const vaultPath = typeof rawPayload === 'object' && rawPayload !== null ? (rawPayload as any).vaultPath : ''
+    const vaultPath =
+      typeof rawPayload === 'object' && rawPayload !== null ? (rawPayload as any).vaultPath : ''
     if (!vaultPath) {
       return { bookmarks: {} }
     }
@@ -252,7 +264,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const bookmarks = await readBookmarks(vaultPath)
       return { bookmarks }
     } catch (err) {
-      const msg = `[IPC] bookmarks:get handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath })
+      const msg = `[IPC] bookmarks:get handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { bookmarks: {} }
@@ -263,7 +276,11 @@ export function registerVaultIPC(ctx: IPCContext): void {
   // bookmarks:add — add a bookmark to a list
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.BOOKMARKS_ADD, async (_event, rawPayload) => {
-    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as { vaultPath?: string; listName?: string; filePath?: string }
+    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as {
+      vaultPath?: string
+      listName?: string
+      filePath?: string
+    }
     if (!vaultPath || !listName || !filePath) {
       return { bookmarks: {} }
     }
@@ -273,7 +290,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const bookmarks = await addBookmark(vaultPath, listName, filePath)
       return { bookmarks }
     } catch (err) {
-      const msg = `[IPC] bookmarks:add handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, listName, filePath })
+      const msg = `[IPC] bookmarks:add handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { bookmarks: {} }
@@ -284,7 +302,11 @@ export function registerVaultIPC(ctx: IPCContext): void {
   // bookmarks:remove — remove a bookmark from a list
   // -------------------------------------------------------------------------
   ipcMain.handle(IPCChannel.BOOKMARKS_REMOVE, async (_event, rawPayload) => {
-    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as { vaultPath?: string; listName?: string; filePath?: string }
+    const { vaultPath, listName, filePath } = (rawPayload ?? {}) as {
+      vaultPath?: string
+      listName?: string
+      filePath?: string
+    }
     if (!vaultPath || !listName || !filePath) {
       return { bookmarks: {} }
     }
@@ -294,7 +316,8 @@ export function registerVaultIPC(ctx: IPCContext): void {
       const bookmarks = await removeBookmark(vaultPath, listName, filePath)
       return { bookmarks }
     } catch (err) {
-      const msg = `[IPC] bookmarks:remove handler error: ${String(err)}`
+      const normalized = normalizeError(err, { vaultPath, listName, filePath })
+      const msg = `[IPC] bookmarks:remove handler error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { bookmarks: {} }

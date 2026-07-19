@@ -32,7 +32,14 @@ import { ClipboardHistory } from '../services/clipboard-history'
 import { loadSettings } from '../services/settings'
 
 import type { IPCContext } from './context'
-import { emitActivityLog, formatZodError, extractFrontmatter, replaceFrontmatterRaw } from './shared'
+import {
+  emitActivityLog,
+  formatZodError,
+  extractFrontmatter,
+  replaceFrontmatterRaw,
+  normalizeError,
+  errorToString
+} from './shared'
 
 /**
  * Register all widgets-feature IPC handlers.
@@ -55,7 +62,13 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
       const mdFiles = dirents.filter((d) => d.isFile() && d.name.endsWith('.md'))
 
       const statusSet = new Set<string>(['Backlog', 'In Progress', 'Done'])
-      const cards: Array<{ filePath: string; title: string; content: string; tags: string[]; status: string }> = []
+      const cards: Array<{
+        filePath: string
+        title: string
+        content: string
+        tags: string[]
+        status: string
+      }> = []
 
       for (const dirent of mdFiles) {
         const filePath = path.join(folderPath, dirent.name)
@@ -69,8 +82,12 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
             const titleMatch = content.match(/^#\s+(.+)$/m)
             const title = titleMatch?.[1] ?? path.basename(dirent.name, '.md')
 
-            const contentLines = content.replace(/^---\n[\s\S]*?\n---(?:\n|$)/, '').trim().split('\n')
-            const snippet = contentLines.find((l) => l.trim() && !l.startsWith('#'))?.slice(0, 120) ?? ''
+            const contentLines = content
+              .replace(/^---\n[\s\S]*?\n---(?:\n|$)/, '')
+              .trim()
+              .split('\n')
+            const snippet =
+              contentLines.find((l) => l.trim() && !l.startsWith('#'))?.slice(0, 120) ?? ''
 
             const tags = Array.isArray(parsed.tags)
               ? parsed.tags.map(String)
@@ -90,7 +107,8 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
         cards
       })
     } catch (err) {
-      const msg = `[IPC] kanban:get-data error: ${String(err)}`
+      const normalized = normalizeError(err, { folderPath })
+      const msg = `[IPC] kanban:get-data error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return KanbanGetDataResultSchema.parse({ statuses: [], cards: [] })
@@ -127,10 +145,11 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
 
       return KanbanSetStatusResultSchema.parse({ success: true })
     } catch (err) {
-      const msg = `[IPC] kanban:set-status error for "${filePath}": ${String(err)}`
+      const normalized = normalizeError(err, { filePath, status })
+      const msg = `[IPC] kanban:set-status error for "${filePath}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return KanbanSetStatusResultSchema.parse({ success: false, error: String(err) })
+      return KanbanSetStatusResultSchema.parse({ success: false, error: errorToString(normalized) })
     }
   })
 
@@ -154,7 +173,8 @@ export function registerWidgetsIPC(_ctx: IPCContext): void {
       clipboardHistory.copyToClipboard(text)
       return { success: true }
     } catch (err) {
-      return { success: false, error: String(err) }
+      const normalized = normalizeError(err)
+      return { success: false, error: errorToString(normalized) }
     }
   })
 

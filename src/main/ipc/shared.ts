@@ -150,6 +150,91 @@ export function formatZodError(err: ZodError): string {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 2.4 — Canonical exception → structured error mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Canonical structured IPC error shape.
+ *
+ * Every IPC failure is normalized into this shape before being serialized into
+ * the channel's existing contract `error` field. The fields mirror the shared
+ * error contract intent established in Phase 2.1:
+ *   - `code`      machine-readable error code (e.g. "EACCES", "ENOENT", or a
+ *                 semantic code such as "HANDLER_ERROR")
+ *   - `message`   human-readable description
+ *   - `category`  coarse failure class ("validation" | "io" | "runtime" |
+ *                 "unknown") used for consistent cross-channel grouping
+ *   - `details`   optional diagnostic payload (original error name, stack
+ *                 snippet, or contextual fields) — never internal secrets
+ */
+export interface NormalizedError {
+  code: string
+  message: string
+  category: 'validation' | 'io' | 'runtime' | 'unknown'
+  details?: Record<string, unknown>
+}
+
+/**
+ * Map an arbitrary thrown value into the canonical {@link NormalizedError}.
+ *
+ * This is the single normalization point for exception handling across all IPC
+ * handlers. It preserves diagnostic information (error name, message, and a
+ * truncated stack) without leaking raw internal implementation details, and
+ * classifies the failure into a consistent `category` so equivalent failures
+ * produce equivalent structured responses across every channel.
+ *
+ * Pure and side-effect free.
+ */
+export function normalizeError(err: unknown, context?: Record<string, unknown>): NormalizedError {
+  if (err instanceof ZodError) {
+    return {
+      code: 'VALIDATION_ERROR',
+      message: formatZodError(err),
+      category: 'validation',
+      details: { issues: err.issues }
+    }
+  }
+
+  if (err instanceof Error) {
+    // Classify common Node.js system errors by their `code` when present.
+    const category: NormalizedError['category'] =
+      typeof (err as NodeJS.ErrnoException).code === 'string' ? 'io' : 'runtime'
+
+    return {
+      code: (err as NodeJS.ErrnoException).code ?? 'HANDLER_ERROR',
+      message: err.message,
+      category,
+      details: {
+        name: err.name,
+        ...(err.stack ? { stack: err.stack.split('\n').slice(0, 3).join('\n') } : {}),
+        ...(context ?? {})
+      }
+    }
+  }
+
+  // Non-Error thrown values (strings, objects, etc.) — coerce safely.
+  const fallback = typeof err === 'string' ? err : JSON.stringify(err)
+  return {
+    code: 'HANDLER_ERROR',
+    message: fallback,
+    category: 'unknown',
+    details: context
+  }
+}
+
+/**
+ * Serialize a {@link NormalizedError} into the string form expected by the
+ * many channels whose contract `error` field is `z.string()`.
+ *
+ * Keeps the human-readable message first, then appends the machine code so
+ * consumers can still branch on it, while preserving the exact string-typed
+ * contract shape the renderer already relies on.
+ */
+export function errorToString(err: NormalizedError): string {
+  return err.code === 'HANDLER_ERROR' ? err.message : `[${err.code}] ${err.message}`
+}
+
+// ---------------------------------------------------------------------------
 // Frontmatter helpers
 // ---------------------------------------------------------------------------
 

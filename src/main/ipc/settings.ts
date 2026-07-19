@@ -24,7 +24,13 @@ import {
 import { loadSettings, saveSettings } from '../services/settings'
 
 import type { IPCContext } from './context'
-import { emitActivityLog, formatZodError, getWidgetToggleCallback } from './shared'
+import {
+  emitActivityLog,
+  formatZodError,
+  getWidgetToggleCallback,
+  normalizeError,
+  errorToString
+} from './shared'
 
 /**
  * Register all settings-feature IPC handlers.
@@ -64,10 +70,11 @@ export function registerSettingsIPC(_ctx: IPCContext): void {
       const value = (settings as unknown as Record<string, unknown>)[key]
       return { value }
     } catch (err) {
-      const msg = `[IPC] settings:get handler error for key "${key}": ${String(err)}`
+      const normalized = normalizeError(err, { key })
+      const msg = `[IPC] settings:get handler error for key "${key}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('warn', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -90,10 +97,11 @@ export function registerSettingsIPC(_ctx: IPCContext): void {
       await saveSettings(updated)
       return { success: true }
     } catch (err) {
-      const msg = `[IPC] settings:set handler error for key "${key}": ${String(err)}`
+      const normalized = normalizeError(err, { key })
+      const msg = `[IPC] settings:set handler error for key "${key}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('warn', msg)
-      return { success: false, error: String(err) }
+      return { success: false, error: errorToString(normalized) }
     }
   })
 
@@ -110,7 +118,8 @@ export function registerSettingsIPC(_ctx: IPCContext): void {
       }))
       return FeatureTogglesResultSchema.parse({ toggles: result })
     } catch (err) {
-      const msg = `[IPC] settings:getFeatureToggles error: ${String(err)}`
+      const normalized = normalizeError(err)
+      const msg = `[IPC] settings:getFeatureToggles error: ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
       return { toggles: [] }
@@ -142,10 +151,14 @@ export function registerSettingsIPC(_ctx: IPCContext): void {
 
       return SetFeatureToggleResultSchema.parse({ success: true })
     } catch (err) {
-      const msg = `[IPC] settings:setFeatureToggle error for "${id}": ${String(err)}`
+      const normalized = normalizeError(err, { id })
+      const msg = `[IPC] settings:setFeatureToggle error for "${id}": ${errorToString(normalized)}`
       console.error(msg)
       emitActivityLog('error', msg)
-      return SetFeatureToggleResultSchema.parse({ success: false, error: String(err) })
+      return SetFeatureToggleResultSchema.parse({
+        success: false,
+        error: errorToString(normalized)
+      })
     }
   })
 }
