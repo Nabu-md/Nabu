@@ -31,6 +31,9 @@ jobs:
       - name: Run Linter (ESLint)
         run: npm run lint
 
+      - name: Validate Architecture
+        run: npm run validate:arch
+
       - name: Run Unit Tests (Vitest)
         run: npm test
 

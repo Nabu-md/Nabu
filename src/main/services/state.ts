@@ -672,5 +672,4 @@ function sortFileEntries(entries: FileEntry[], vaultPath: string): FileEntry[] {
 // Singleton export
 // ---------------------------------------------------------------------------
 
-/** Singleton StateManager instance used by the main process. */
-export const stateManager = new StateManager()
+

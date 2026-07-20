@@ -333,6 +333,7 @@ export function buildWatcherConfig(
     vaultPath,
     ignored: /^\.|\.nabu/,
     awaitWriteFinish: { stabilityThreshold: 50 },
+    stateManager,
 
     onFileChanged: async (filePath: string, isExternal: boolean) => {
       stateManager.invalidateAST(filePath)

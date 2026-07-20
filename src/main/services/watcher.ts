@@ -10,7 +10,7 @@
  */
 
 import { watch as chokidarWatch, FSWatcher } from 'chokidar'
-import { stateManager } from './state'
+import type { StateManager } from './state'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +21,8 @@ export interface WatcherConfig {
   /** Patterns to ignore — default: /^\.|\.nabu/ */
   ignored: RegExp
   awaitWriteFinish: { stabilityThreshold: number }
+  /** StateManager instance for pending write lock checks */
+  stateManager: StateManager
   /** Called when a file is changed by an external editor (isExternal=true) */
   onFileChanged: (filePath: string, isExternal: boolean) => void
   /** Called when a new .md file appears in the vault */
@@ -67,6 +69,7 @@ export class VaultWatcher {
   private restartAttempts: number = 0
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map()
   private config: WatcherConfig | null = null
+  private stateManager: StateManager | null = null
 
   // -------------------------------------------------------------------------
   // Public API
@@ -90,8 +93,9 @@ export class VaultWatcher {
     // events and a black-screen crash).
     this.stop()
 
-    // Store config so restart() can reuse it
+    // Store config and stateManager for use in handlers
     this.config = config
+    this.stateManager = config.stateManager
     this.restartAttempts = 0
     this._startWatcher(config)
   }
@@ -194,9 +198,9 @@ export class VaultWatcher {
    * Requirements: 5.5, 6.7
    */
   private handleChange(filePath: string): void {
-    if (stateManager.hasPendingWrite(filePath)) {
+    if (this.stateManager?.hasPendingWrite(filePath)) {
       // App-initiated write: clear the lock, no re-parse needed
-      stateManager.clearPendingWrite(filePath)
+      this.stateManager.clearPendingWrite(filePath)
       return
     }
 

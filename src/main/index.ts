@@ -8,15 +8,21 @@
  * Requirements: 1.1, 1.6, 1.7, 1.8, 14.1, 14.2, 14.3, 14.4, 14.5
  */
 
-import {
-  app,
-  BrowserWindow,
-  Menu,
-  dialog,
-  shell,
-  MenuItemConstructorOptions
-} from 'electron'
 import * as path from 'path'
+
+// Electron 39+ ESM compatibility: use lazy getters to access electron at runtime
+// This avoids the require() hoisting issue in ESM modules
+// The module is accessed via a getter to ensure it's available when needed
+// eslint-disable-next-line @typescript-eslint/no-require-extensions
+const electron = require('electron')
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const { app, BrowserWindow, Menu, dialog, shell } = electron
+// The types are inferred from the require call
+type BrowserWindow = InstanceType<typeof electron.BrowserWindow>
+type MenuItemConstructorOptions = typeof electron.MenuItemConstructorOptions
+
+// Re-export electron for use in other modules that need it
+export { electron }
 
 import { StateManager } from './services/state'
 import { VectorManager } from './services/vector'
