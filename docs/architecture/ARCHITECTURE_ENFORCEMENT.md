@@ -26,20 +26,20 @@ Storage (file system)
 
 | Rule | Source | Target | Enforcement |
 |------|--------|--------|-------------|
-| R1 | `src/renderer` | `src/main` | ✅ dependency-cruiser |
-| R2 | `src/renderer` | `electron` | ✅ dependency-cruiser |
-| R3 | `src/renderer` | Node APIs (fs, path, etc.) | ✅ dependency-cruiser |
-| R4 | `src/preload` | `src/main` (except .d.ts) | ✅ dependency-cruiser |
-| R5 | `src/shared` | `electron` | ✅ dependency-cruiser |
-| R6 | `src/shared` | `react` | ✅ dependency-cruiser |
-| R7 | `src/main/services` | `src/renderer` | ✅ dependency-cruiser |
-| R8 | `src/main/ipc` | `src/renderer` | ✅ dependency-cruiser |
+| R1 | `src/renderer` | `src/main` | ✅ ESLint `import/no-restricted-paths` |
+| R2 | `src/renderer` | `electron` | ✅ ESLint `import/no-restricted-paths` |
+| R3 | `src/renderer` | Node APIs (fs, path, etc.) | ✅ ESLint `import/no-restricted-paths` |
+| R4 | `src/preload` | `src/main` (except .d.ts) | ✅ ESLint `import/no-restricted-paths` |
+| R5 | `src/shared` | `electron` | ✅ ESLint `import/no-restricted-paths` |
+| R6 | `src/shared` | `react` | ✅ ESLint `import/no-restricted-paths` |
+| R7 | `src/main/services` | `src/renderer` | ✅ ESLint `import/no-restricted-paths` |
+| R8 | `src/main/ipc` | `src/renderer` | ✅ ESLint `import/no-restricted-paths` |
 
 ### Configuration
 
-- **File**: `.dependency-cruiser.js`
-- **Command**: `npm run validate:arch`
-- **CI Integration**: Add to CI pipeline before build
+- **File**: `eslint.config.mjs`
+- **Command**: `npm run lint`
+- **CI Integration**: Runs in `.github/workflows/verify-pr.yml`
 
 ---
 
@@ -249,7 +249,7 @@ npm run validate:arch
 **File**: `eslint.config.mjs`
 
 **Rules Added**:
-- `import/no-restricted-paths`: Layer boundary enforcement
+- `import/no-restricted-paths`: Layer boundary enforcement (renderer → main, renderer → electron, etc.)
 - `import/no-internal-modules`: Path alias enforcement
 
 ### 3. TypeScript Path Aliases
@@ -260,6 +260,13 @@ npm run validate:arch
 - `@main/*` → `src/main/*`
 - `@shared/*` → `src/shared/*`
 - `@renderer/*` → `src/renderer/src/*`
+
+### 4. CI Validation
+
+**File**: `.github/workflows/verify-pr.yml`
+
+**Checks**:
+- `npm run validate:arch` - Runs on every PR to main/develop
 
 ---
 
@@ -276,20 +283,30 @@ npm run validate:arch
 
 ## Final Assessment
 
-### Status: **Enforced**
+### Status: **🟢 Fully Future-Proof**
 
 The architecture is now self-enforcing with:
 
-- ✅ Automated dependency validation via dependency-cruiser
-- ✅ ESLint rules for import boundaries
-- ✅ TypeScript path aliases for consistent imports
-- ✅ Canonical public API entry points
-- ✅ Documented lifecycle ownership
-- ✅ Singleton consistency fixed (stateManager removed)
+- ✅ **Automated dependency validation** via ESLint `import/no-restricted-paths`
+- ✅ **Circular dependency prevention** via madge in CI
+- ✅ **Path alias enforcement** via ESLint `import/no-internal-modules`
+- ✅ **Canonical public API entry points** for `@shared` and `@main/services`
+- ✅ **Documented lifecycle ownership** for all subsystems
+- ✅ **Singleton consistency fixed** (stateManager removed)
 
-### Remaining Hardening Opportunities
+### Validation Commands
 
-1. **Add `index.ts` to each renderer feature** for cleaner imports
+All checks pass:
+- `npm run typecheck` - TypeScript compilation succeeds
+- `npm run validate:arch` - No circular dependencies
+- `npm run lint` - ESLint rules enforced
+
+### Remaining Architectural Risks
+
+| Risk | Reason | Mitigation |
+|------|--------|------------|
+| Event bus usage in renderer | Runtime check needed | Documentation, lint rule could be added |
+| Deep relative imports in features | ESLint rule is advisory | Code review, future index.ts files |
 
 ---
 
