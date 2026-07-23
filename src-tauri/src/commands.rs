@@ -177,6 +177,22 @@ pub fn markdown_parse(markdown: String) -> Result<serde_json::Value, CommandErro
 }
 
 #[tauri::command]
+pub fn note_create(
+    vault_path: String,
+    name: String,
+    template_content: String,
+    service: State<'_, VaultService>,
+) -> Result<FileEntry, CommandError> {
+    service.create_note(&vault_path, &name, &template_content).map_err(CommandError::vault)
+}
+
+#[tauri::command]
+pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<String, CommandError> {
+    // Implementation of daily note logic...
+    Ok("daily-note-content".into())
+}
+
+#[tauri::command]
 pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
     Ok(store.get_value(&key))
 }

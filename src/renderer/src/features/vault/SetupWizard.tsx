@@ -1,3 +1,5 @@
+import { tauriBridge } from '../../shared/tauri-ipc'
+
 import React, { useState } from 'react'
 import { useAppContext } from '../../shared/store'
 
@@ -27,11 +29,13 @@ export function SetupWizard(): React.JSX.Element {
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.electron.vault.open()
-      dispatch({ type: 'VAULT_OPENED', payload: vault })
-      dispatch({ type: 'SETUP_TOGGLE' })
+      const result = await tauriBridge.vault.open()
+      if (result) {
+        dispatch({ type: 'VAULT_OPENED', payload: result })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+    } finally {
       setIsLoading(false)
     }
   }
@@ -48,18 +52,19 @@ export function SetupWizard(): React.JSX.Element {
   }
 
   const handleCreateVault = async (): Promise<void> => {
-    if (!createVaultName.trim()) return
+    if (!createVaultParentPath || !createVaultName) return
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.electron.vault.create(
-        createVaultParentPath ?? '',
-        createVaultName.trim()
-      )
-      dispatch({ type: 'VAULT_OPENED', payload: vault })
-      dispatch({ type: 'SETUP_TOGGLE' })
+      await tauriBridge.vault.create(createVaultParentPath, createVaultName)
+      // Immediately open the newly created vault
+      const result = await tauriBridge.vault.open({ path: join(createVaultParentPath, createVaultName) })
+      if (result) {
+        dispatch({ type: 'VAULT_OPENED', payload: result })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+    } finally {
       setIsLoading(false)
     }
   }
