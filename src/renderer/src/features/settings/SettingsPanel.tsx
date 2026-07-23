@@ -70,8 +70,6 @@ export function SettingsPanel(): React.JSX.Element | null {
   if (!settingsPanelOpen) return null
 
   // ---------------------------------------------------------------------------
-  // Handlers
-  // ---------------------------------------------------------------------------
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     if (e.target === e.currentTarget) {
@@ -111,13 +109,8 @@ export function SettingsPanel(): React.JSX.Element | null {
 
   const handleFeatureToggle = async (id: string, enabled: boolean): Promise<void> => {
     try {
-      const result = await window.ipc.settings.setFeatureToggle(id, enabled)
-      if (result.success) {
-        // Update local state
-        setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
-      } else {
-        setToggleErrors((prev) => ({ ...prev, [id]: result.error ?? 'Unknown error' }))
-      }
+      await window.ipc.settings.setFeatureToggle(id, enabled)
+      setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
     } catch (err) {
       setToggleErrors((prev) => ({
         ...prev,

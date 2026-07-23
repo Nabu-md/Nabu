@@ -23,9 +23,10 @@ export const tauriBridge = {
     readAsset: async (path: string) => await invoke<Uint8Array>('asset_read', { path }),
   },
   pdf: {
-    open: async (path: string) => await invoke('pdf_open', { path }),
-    loadAnnotations: async (path: string) => await invoke('pdf_load_annotations', { path }),
-    renderPage: async (path: string, pageNumber: number, scale: number) => await invoke('pdf_render_page', { path, pageNumber, scale }),
+    open: async (path: string) => await invoke<{ totalPages: number; metadata: { title: string; author: string }; error?: string }>('pdf_open', { path }),
+    loadAnnotations: async (path: string) => await invoke<{ annotations: import('../../../shared/types').PDFAnnotation[] }>('pdf_load_annotations', { path }),
+    saveAnnotations: async (path: string, annotations: import('../../../shared/types').PDFAnnotation[]) => await invoke<void>('pdf_save_annotations', { path, annotations }),
+    renderPage: async (path: string, pageNumber: number, scale: number) => await invoke<{ dataUri: string; error?: string }>('pdf_render_page', { path, pageNumber, scale }),
   },
   search: {
     query: async (query: string) => await invoke('search_query', { query }),
@@ -34,7 +35,7 @@ export const tauriBridge = {
     get: async (key: string) => await invoke('settings_get', { key }),
     set: async (key: string, value: any) => await invoke('settings_set', { key, value }),
     getFeatureToggles: async () => await invoke('settings_get_feature_toggles'),
-    setFeatureToggle: async (id: string, enabled: boolean) => await invoke('settings_set_feature_toggle', { id, enabled }),
+    setFeatureToggle: async (id: string, enabled: boolean) => await invoke<{ success: boolean; error?: string }>('settings_set_feature_toggle', { id, enabled }),
   },
   task: {
     toggle: async (path: string, lineIndex: number) => await invoke('task_toggle', { path, lineIndex }),
@@ -55,6 +56,8 @@ export const tauriBridge = {
   },
   dictation: {
     downloadModel: async (model: string) => await invoke<void>('dictation_download_model', { model }),
+    start: async () => await invoke<void>('dictation_start'),
+    stop: async () => await invoke<void>('dictation_stop'),
   },
   templates: {
     list: async (vaultPath: string) => await invoke<import('../../../shared/types').Template[]>('templates_list', { vaultPath }),
@@ -78,5 +81,10 @@ export const tauriBridge = {
     openSettings: (callback: (payload: any) => void) => listen('openSettings', (event) => callback(event.payload)),
     setupCreate: (callback: (payload: any) => void) => listen('setupCreate', (event) => callback(event.payload)),
     setupOpen: (callback: (payload: any) => void) => listen('setupOpen', (event) => callback(event.payload)),
+    activityLog: (callback: (payload: any) => void) => listen('activityLog', (event) => callback(event.payload)),
+    widgetModeChanged: (callback: (payload: any) => void) => listen('widgetModeChanged', (event) => callback(event.payload)),
+    widgetDictationStarting: (callback: (payload: any) => void) => listen('widgetDictationStarting', (event) => callback(event.payload)),
+    widgetDictationComplete: (callback: (payload: any) => void) => listen('widgetDictationComplete', (event) => callback(event.payload)),
+    widgetDictationError: (callback: (payload: any) => void) => listen('widgetDictationError', (event) => callback(event.payload)),
   }
 };
