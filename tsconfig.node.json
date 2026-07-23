@@ -9,11 +9,10 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
-      "@main/*": ["src/main/*"],
-      "@shared/*": ["src/shared/*"],
-      "@renderer-shared/*": ["src/renderer/src/shared/*"]
+      "@main/*": ["./src/main/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@renderer-shared/*": ["./src/renderer/src/shared/*"]
     }
   }
 }

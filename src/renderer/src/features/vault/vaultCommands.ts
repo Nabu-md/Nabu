@@ -10,17 +10,6 @@
  * multi-step IPC flows (rename → reload, delete, create folder → re-scan), or
  * perform validation — it invokes the functions here and dispatches the
  * resulting state updates.
- *
- * Each function performs exactly the same IPC calls and dispatches the same
- * actions the component previously performed, so runtime behavior is
- * unchanged. The only difference is placement: orchestration lives here,
- * not inside the presentation component.
- *
- * Responsibilities (business logic, not presentation):
- *   - rename a file (path computation + IPC + reload-if-current)
- *   - delete a file (IPC)
- *   - create a folder (validation + IPC + vault re-scan dispatch)
- *   - create a note (validation + IPC + re-scan + enter edit mode)
  */
 
 import { Root } from 'mdast'
@@ -53,12 +42,9 @@ export async function renameFile(
   const parentDir = parts.join('/')
   const newPath = parentDir + '/' + newName.trim()
   try {
-    const result = await ipc.note.rename(oldPath, newPath)
-    if (!result.success) {
-      return { success: false, error: result.error ?? 'Failed to rename.' }
-    }
+    await ipc.note.rename(oldPath, newPath)
     if (currentFile === oldPath) {
-      const fileAST = await ipc.file.get(newPath)
+      const fileAST = (await ipc.file.get(newPath)) as { path: string; ast: Root }
       dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
     }
     return { success: true, error: null }
@@ -77,10 +63,7 @@ export async function renameFile(
 /** Delete a file via IPC. */
 export async function deleteFile(filePath: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    const result = await ipc.note.delete(filePath)
-    if (!result.success) {
-      return { success: false, error: result.error ?? 'Failed to delete.' }
-    }
+    await ipc.note.delete(filePath)
     return { success: true, error: null }
   } catch (err) {
     return {
@@ -110,10 +93,7 @@ export async function createFolder(
   }
   try {
     const fullPath = vaultPath + '/' + trimmed
-    const result = await ipc.folder.create(fullPath)
-    if (!result.success) {
-      return { success: false, error: result.error ?? 'Failed to create folder.' }
-    }
+    await ipc.vault.create(vaultPath, trimmed)
     const updatedVault = await ipc.vault.scan()
     dispatch({ type: 'VAULT_OPENED', payload: updatedVault })
     return { success: true, error: null }
@@ -145,12 +125,16 @@ export async function createNote(
     return { success: false, error: 'Note name cannot be empty.' }
   }
   try {
-    const result = await ipc.note.create(vaultPath, trimmed, selectedTemplate?.content)
+    const fileEntry = await ipc.note.create(vaultPath, trimmed, selectedTemplate?.content ?? '')
     const updatedVault = await ipc.vault.scan()
     dispatch({ type: 'VAULT_OPENED', payload: updatedVault })
-    const rawResult = await ipc.note.getRaw(result.path)
-    dispatch({ type: 'EDIT_MODE_ENTER', payload: rawResult.content ?? '' })
-    dispatch({ type: 'FILE_LOADED', payload: { path: result.path, ast: result.ast } })
+    
+    // Load the newly created note's AST
+    const fileAST = await ipc.file.get(fileEntry.path)
+    
+    const rawResult = await ipc.note.getRaw(fileEntry.path)
+    dispatch({ type: 'EDIT_MODE_ENTER', payload: rawResult ?? '' })
+    dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
     return { success: true, error: null }
   } catch (err) {
     return {
