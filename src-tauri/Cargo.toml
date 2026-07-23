@@ -25,3 +25,4 @@ tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 notify = "8"
 parking_lot = "0.12"
+thiserror = "2.0.19"
