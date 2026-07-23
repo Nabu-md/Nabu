@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * SandboxedHtml.tsx
  *
@@ -180,7 +179,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           respond(null, 'No path provided')
           return
         }
-        ipc.note
+        window.electron.note
           .getRaw(notePath)
           .then((result: { content?: string; error?: string }) => {
             if (result.error) {
@@ -200,7 +199,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ipc.search.query(query).then((result: any) => {
+        window.electron.search.query(query).then((result: any) => {
           respond(result?.results ?? [])
         }).catch((err: Error) => respond(null, err.message))
         break
@@ -217,7 +216,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // Read the file via the Electron IPC bridge and return as a data URI
-        ipc.file
+        window.electron.file
           .readAsset(assetPath)
           .then((result: { dataUri?: string; error?: string }) => {
             if (result.error) {

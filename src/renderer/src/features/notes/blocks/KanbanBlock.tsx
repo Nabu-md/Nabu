@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * KanbanBlock.tsx
  *
@@ -143,12 +142,12 @@ export function KanbanBlock({ folderPath, vaultPath: _vaultPath }: KanbanBlockPr
 
   // Fetch kanban data from vault
   useEffect(() => {
-    if (!folderPath || typeof ipc.kanban === 'undefined') return
+    if (!folderPath || typeof window.electron.kanban === 'undefined') return
 
     setLoading(true)
     setError(null)
 
-    ipc.kanban
+    window.electron.kanban
       .getData(folderPath, folderPath)
       .then((result) => {
         setData(result as { statuses: string[]; cards: KanbanCardData[] })
@@ -196,7 +195,7 @@ export function KanbanBlock({ folderPath, vaultPath: _vaultPath }: KanbanBlockPr
 
       // Write to file via IPC
       try {
-        const result = await ipc.kanban.setStatus(folderPath, filePath, newStatus)
+        const result = await window.electron.kanban.setStatus(folderPath, filePath, newStatus)
         if (!result.success) {
           throw new Error(result.error ?? 'Unknown error')
         }

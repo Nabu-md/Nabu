@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * PagePreview.tsx
  *
@@ -35,7 +34,7 @@ export function PagePreview({
     const timer = window.setTimeout(() => {
       if (!filePath) return
       setLoading(true)
-      ipc.file
+      window.electron.file
         .get(filePath)
         .then(() => {
           // For now, just store that we loaded - real implementation would

@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * EmbedBlock.tsx
  *
@@ -118,7 +117,7 @@ export function EmbedBlock({
         // ── Image embed ──────────────────────────────────────────────────
         if (isImageTarget(target)) {
           const resolvedPath = vaultPath ? vaultPath + '/' + target : target
-          const result = await ipc.file
+          const result = await window.electron.file
             .readAsset(resolvedPath)
             .then((r: unknown) => r as { dataUri?: string; error?: string })
 
@@ -156,7 +155,7 @@ export function EmbedBlock({
         }
 
         const fileResult = await withTimeout(
-          ipc.file
+          window.electron.file
             .get(resolvedPath)
             .then((r: unknown) => r as { path: string; ast: Parent }),
           IPC_TIMEOUT_MS

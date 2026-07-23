@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * FavoriteToggle.tsx
  *
@@ -25,7 +24,7 @@ export function FavoriteToggle({ filePath, size = 'sm' }: FavoriteToggleProps): 
     const check = async (): Promise<void> => {
       if (!state.vault) return
       try {
-        const result = await ipc.favorites.get(state.vault.path)
+        const result = await window.electron.favorites.get(state.vault.path)
         const favs = (result as { favorites: string[] }).favorites ?? []
         setIsFavorite(favs.includes(filePath))
       } catch {
@@ -39,7 +38,7 @@ export function FavoriteToggle({ filePath, size = 'sm' }: FavoriteToggleProps): 
     e.stopPropagation()
     if (!state.vault) return
     try {
-      const result = await ipc.favorites.toggle(state.vault.path, filePath)
+      const result = await window.electron.favorites.toggle(state.vault.path, filePath)
       const favs = (result as { favorites: string[] }).favorites ?? []
       setIsFavorite(favs.includes(filePath))
     } catch (err) {

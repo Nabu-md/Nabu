@@ -22,7 +22,7 @@
  *
  * The widget UI components depend ONLY on this service and its contracts. They
  * no longer reach into the global app context (`useAppContext`) or the raw
- * Electron preload bridge (`ipc`). Rendering never becomes the
+ * Electron preload bridge (`window.electron`). Rendering never becomes the
  * owner of widget state — it only reads from this service.
  *
  * Behavior is unchanged: the same IPC channels are consumed, the same
@@ -30,7 +30,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { ipc } from "@renderer-shared/ipc"
+import { ipc } from '../../shared/ipc'
 import type { ActivityEntry } from '@shared/models'
 
 export type { ActivityEntry }
