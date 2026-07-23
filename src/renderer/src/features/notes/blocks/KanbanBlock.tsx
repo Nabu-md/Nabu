@@ -192,13 +192,9 @@ export function KanbanBlock({ folderPath, vaultPath: _vaultPath }: KanbanBlockPr
           )
         }
       })
-
       // Write to file via IPC
       try {
-        const result = await window.ipc.kanban.setStatus(folderPath, filePath, newStatus)
-        if (!result.success) {
-          throw new Error(result.error ?? 'Unknown error')
-        }
+        await window.ipc.kanban.setStatus(folderPath, filePath, newStatus)
       } catch (err) {
         console.error('[KanbanBlock] Failed to update status:', err)
         // Rollback on failure
