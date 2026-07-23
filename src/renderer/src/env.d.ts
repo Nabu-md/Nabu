@@ -1,4 +1,4 @@
-import { ipc as bridge } from "@renderer-shared/ipc"'
+import { ipc as bridge } from "@renderer-shared/ipc"
 
 declare global {
   interface Window {

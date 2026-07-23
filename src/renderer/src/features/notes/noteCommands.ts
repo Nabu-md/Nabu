@@ -28,7 +28,7 @@
  */
 
 import { Root } from 'mdast'
-import { ipc } from "@renderer-shared/ipc""'
+import { ipc } from "@renderer-shared/ipc"
 import type { AppAction } from '../../shared/store'
 
 // ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ export async function loadNoteFile(
   filePath: string,
   dispatch: Dispatch
 ): Promise<{ path: string; ast: Root }> {
-  const fileAST = await withTimeout(ipc.file.get(filePath), IPC_TIMEOUT_MS)
+  const fileAST = (await withTimeout(ipc.file.get(filePath), IPC_TIMEOUT_MS)) as { path: string; ast: Root }
   dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
   return fileAST
 }
@@ -109,7 +109,7 @@ export async function enterEditMode(filePath: string, dispatch: Dispatch): Promi
 
 /** Exit edit mode: reload AST, then dispatch `EDIT_MODE_EXIT`. */
 export async function exitEditMode(filePath: string, dispatch: Dispatch): Promise<void> {
-  const fileAST = await ipc.file.get(filePath)
+  const fileAST = (await ipc.file.get(filePath)) as { path: string; ast: Root }
   dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
   dispatch({ type: 'EDIT_MODE_EXIT' })
 }
@@ -148,7 +148,7 @@ export async function navigateToNote(
     dispatch({ type: 'PDF_OPENED', payload: { path: filePath, page: options?.pageRef } })
     return
   }
-  const fileAST = await ipc.file.get(filePath)
+  const fileAST = (await ipc.file.get(filePath)) as { path: string; ast: Root }
   dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
 }
 

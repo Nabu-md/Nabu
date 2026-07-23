@@ -8,19 +8,18 @@ type ContextQueryResponse = {
 }
 
 export const ipc = {
-  vault: {
-    ...bridge.vault,
-    getCurrent: bridge.vault.getCurrent
-  },
+  vault: bridge.vault,
   file: bridge.file,
   pdf: bridge.pdf,
   dictation: bridge.dictation,
-  folder: bridge.folder,
   note: bridge.note,
   favorites: bridge.favorites,
-  templates: bridge.templates,
   settings: bridge.settings,
   task: bridge.task,
+  kanban: bridge.kanban,
+  widget: bridge.widget,
+  properties: bridge.properties,
+  viewState: bridge.viewState,
   context: {
     reindex: async () => {}, // TODO
     status: async () => {}, // TODO
