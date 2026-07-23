@@ -1,5 +1,3 @@
-import { tauriBridge } from '../../shared/tauri-ipc'
-
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppContext } from '../../shared/store'
 
@@ -35,7 +33,8 @@ export function SettingsPanel(): React.JSX.Element | null {
   // Fetch feature toggles on mount and when panel opens
   useEffect(() => {
     if (settingsPanelOpen) {
-      tauriBridge.settings.getFeatureToggles()
+      window.electron.settings
+        .getFeatureToggles()
         .then(({ toggles }) => {
           setFeatureToggles(
             toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>
@@ -89,7 +88,7 @@ export function SettingsPanel(): React.JSX.Element | null {
     setIsReindexing(true)
     setReindexError(null)
     try {
-      await tauriBridge.vault.scan()
+      await window.electron.vault.scan()
     } catch (err) {
       setReindexError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -100,7 +99,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   const handleThemeChange = async (newTheme: 'dark' | 'light' | 'system'): Promise<void> => {
     dispatch({ type: 'THEME_CHANGED', payload: newTheme })
     try {
-      await tauriBridge.settings.set('theme', newTheme)
+      await window.electron.settings.set('theme', newTheme)
     } catch (err) {
       console.error('[SettingsPanel] Failed to persist theme:', err)
     }
@@ -112,7 +111,7 @@ export function SettingsPanel(): React.JSX.Element | null {
 
   const handleFeatureToggle = async (id: string, enabled: boolean): Promise<void> => {
     try {
-      const result = await tauriBridge.settings.setFeatureToggle(id, enabled)
+      const result = await window.electron.settings.setFeatureToggle(id, enabled)
       if (result.success) {
         // Update local state
         setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
