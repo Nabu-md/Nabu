@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 
 export const tauriBridge = {
   vault: {
-    open: async (payload: { path: string }) => await invoke<any>('vault_open', { payload }),
+    open: async (payload: { path: string }) => await invoke<{ vault: import('../../../shared/types').VaultMetadata; settings: any }>('vault_open', { payload }),
     close: async () => await invoke<any>('vault_close'),
     scan: async () => await invoke<any>('vault_scan'),
     create: async (parentPath: string, name: string) => await invoke<void>('folder_create', { payload: { path: parentPath }, name }),
@@ -20,7 +20,7 @@ export const tauriBridge = {
   },
   file: {
     get: async (path: string, vaultId?: string) => await invoke<import('../../../shared/types').FileAST>('file_get', { path, vaultId }),
-    readAsset: async (path: string) => await invoke<Uint8Array>('asset_read', { path }),
+    readAsset: async (path: string) => await invoke<{ dataUri: string }>('asset_read', { path }),
   },
   pdf: {
     open: async (path: string) => await invoke<{ totalPages: number; metadata: { title: string; author: string }; error?: string }>('pdf_open', { path }),
@@ -32,10 +32,11 @@ export const tauriBridge = {
     query: async (query: string) => await invoke('search_query', { query }),
   },
   settings: {
-    get: async (key: string) => await invoke('settings_get', { key }),
+    get: async (key: string) => await invoke<{ value: string }>('settings_get', { key }),
     set: async (key: string, value: any) => await invoke('settings_set', { key, value }),
-    getFeatureToggles: async () => await invoke('settings_get_feature_toggles'),
+    getFeatureToggles: async () => await invoke<Array<{ id: string; label: string; description: string; enabled: boolean }>>('settings_get_feature_toggles'),
     setFeatureToggle: async (id: string, enabled: boolean) => await invoke<{ success: boolean; error?: string }>('settings_set_feature_toggle', { id, enabled }),
+    getStatus: async () => await invoke<{ installed: boolean; downloading: boolean; downloadProgress: number }>('settings_get_dictation_model_status'),
   },
   task: {
     toggle: async (path: string, lineIndex: number) => await invoke('task_toggle', { path, lineIndex }),
@@ -63,10 +64,10 @@ export const tauriBridge = {
     list: async (vaultPath: string) => await invoke<import('../../../shared/types').Template[]>('templates_list', { vaultPath }),
   },
   properties: {
-    write: async (path: string, yaml: string) => await invoke('properties_write', { path, yaml }),
+    write: async (path: string, yaml: string) => await invoke<{ success: boolean; error: string | null }>('properties_write', { path, yaml }),
   },
   viewState: {
-    setFold: async (vaultPath: string, filePath: string, headingId: string, isOpen: boolean) => await invoke('view_state_set_fold', { vaultPath, filePath, headingId, isOpen }),
+    setFold: async (vaultPath: string, filePath: string, headingId: string, isOpen: boolean) => await invoke<void>('view_state_set_fold', { vaultPath, filePath, headingId, isOpen }),
   },
   on: {
     noteLoaded: (callback: (payload: any) => void) => listen('noteLoaded', (event) => callback(event.payload)),

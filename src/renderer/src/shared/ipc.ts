@@ -17,6 +17,7 @@ export const ipc = {
   settings: bridge.settings,
   task: bridge.task,
   kanban: bridge.kanban,
+  templates: bridge.templates,
   widget: bridge.widget,
   properties: bridge.properties,
   viewState: bridge.viewState,

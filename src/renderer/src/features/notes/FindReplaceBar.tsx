@@ -7,7 +7,7 @@
  * Requirements: Phase 0b
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 
 interface FindReplaceBarProps {
   value: string
@@ -19,34 +19,28 @@ interface FindReplaceBarProps {
 export function FindReplaceBar({ value, onReplace, onClose, onHighlightMatches }: FindReplaceBarProps): React.JSX.Element {
   const [findText, setFindText] = useState('')
   const [replaceText, setReplaceText] = useState('')
-  const [matchCount, setMatchCount] = useState(0)
   const [currentIndex, setCurrentIndex] = useState(0)
   const findInputRef = useRef<HTMLInputElement>(null)
 
-  // Count matches and notify parent
-  useEffect(() => {
-    if (findText.trim() === '') {
-      setMatchCount(0)
-      setCurrentIndex(0)
-      onHighlightMatches?.(0, 0)
-      return
-    }
+  const escapeRegExp = (string: string): string => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
 
+  // Compute matches
+  const matchCount = useMemo(() => {
+    if (findText.trim() === '') return 0
     const regex = new RegExp(escapeRegExp(findText), 'gi')
-    const matches = value.match(regex)
-    setMatchCount(matches?.length ?? 0)
-    setCurrentIndex(0)
-    onHighlightMatches?.(matches?.length ?? 0, 0)
-  }, [findText, value, onHighlightMatches])
+    return value.match(regex)?.length ?? 0
+  }, [findText, value])
+
+  useEffect(() => {
+    onHighlightMatches?.(matchCount, currentIndex)
+  }, [matchCount, currentIndex, onHighlightMatches])
 
   // Auto-focus find input on mount
   useEffect(() => {
     findInputRef.current?.focus()
   }, [])
-
-  const escapeRegExp = (string: string): string => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  }
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -80,8 +74,7 @@ export function FindReplaceBar({ value, onReplace, onClose, onHighlightMatches }
   const handleReplaceAll = useCallback(() => {
     if (findText.trim() === '') return
     onReplace(findText, replaceText, true)
-    setMatchCount(0)
-    setCurrentIndex(0)
+    // Removed setMatchCount(0) / setCurrentIndex(0) to avoid unnecessary re-renders
   }, [findText, replaceText, onReplace])
 
   return (

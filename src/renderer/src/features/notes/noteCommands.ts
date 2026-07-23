@@ -30,6 +30,7 @@
 import { Root } from 'mdast'
 import { ipc } from "@renderer-shared/ipc"
 import type { AppAction } from '../../shared/store'
+import { FileEntry } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Timeout helper (shared renderer IPC timeout)
@@ -84,7 +85,7 @@ export async function loadNoteFile(
 /** Persist note content via IPC. Returns success/error for UI status. */
 export async function saveNote(filePath: string, content: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    const result = await ipc.note.save(filePath, content)
+    const result = (await ipc.note.save(filePath, content)) as { success: boolean; error: string | null }
     if (result.success) {
       return { success: true, error: null }
     }
@@ -103,8 +104,8 @@ export async function saveNote(filePath: string, content: string): Promise<{ suc
 
 /** Enter edit mode: fetch raw content, then dispatch `EDIT_MODE_ENTER`. */
 export async function enterEditMode(filePath: string, dispatch: Dispatch): Promise<void> {
-  const result = await ipc.note.getRaw(filePath)
-  dispatch({ type: 'EDIT_MODE_ENTER', payload: result.content ?? '' })
+  const content = (await ipc.note.getRaw(filePath)) as string
+  dispatch({ type: 'EDIT_MODE_ENTER', payload: content ?? '' })
 }
 
 /** Exit edit mode: reload AST, then dispatch `EDIT_MODE_EXIT`. */
@@ -121,7 +122,7 @@ export async function exitLivePreviewMode(
   dispatch: Dispatch
 ): Promise<void> {
   try {
-    const result = await ipc.note.save(filePath, content)
+    const result = (await ipc.note.save(filePath, content)) as { success: boolean; error: string | null }
     if (!result.success) {
       console.error('[noteCommands] Live Preview save error:', result.error)
     }
@@ -217,7 +218,7 @@ blockquote { border-left: 3px solid ${getVar('--nabu-border') || '#2a2a2a'}; pad
 <body>${noteHtml}</body>
 </html>`
   try {
-    const result = await ipc.note.exportHtml(filePath, html)
+    const result = (await ipc.note.exportHtml(filePath, html)) as { success: boolean; error: string | null }
     if (!result.success && result.error) {
       console.error('[noteCommands] HTML export failed:', result.error)
     }

@@ -1013,8 +1013,6 @@ export function NoteView(): React.JSX.Element {
       setPendingBlockRef(null)
       return
     }
-
-    // If the AST is already loaded for this file, skip the IPC fetch
     if (currentAST !== null) {
       setIsLoading(false)
       setError(null)
@@ -1029,31 +1027,29 @@ export function NoteView(): React.JSX.Element {
 
     cmdLoadNoteFile(currentFile, dispatch)
       .then(() => {
-        if (cancelled) return
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       })
       .catch((err: unknown) => {
-        if (cancelled) return
-        const message = err instanceof Error ? err.message : 'An unknown error occurred'
-        setError(message)
-        setIsLoading(false)
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'An unknown error occurred'
+          setError(message)
+          setIsLoading(false)
+        }
       })
 
     return () => {
       cancelled = true
     }
-  }, [currentFile, dispatch]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ---- Listen for external note:updated IPC messages ----
+  }, [currentFile, dispatch])
   useEffect(() => {
-    const cleanup = window.ipc.on.noteUpdated(({ path, ast, isExternal }) => {
+    let unlisten: (() => void) | null = null
+    window.ipc.on.noteUpdated(({ path, ast, isExternal }) => {
       if (isExternal && path === currentFileRef.current) {
-        // Clear optimistic state when an external edit arrives for the current file
         setOptimisticToggles({})
         dispatch({ type: 'AST_UPDATED', payload: { path, ast, isExternal } })
       }
-    })
-    return cleanup
+    }).then(u => unlisten = u)
+    return () => { unlisten?.() }
   }, [dispatch])
 
   // ---- Scroll to block reference after AST render ----

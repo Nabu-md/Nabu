@@ -27,8 +27,8 @@ export function SetupWizard(): React.JSX.Element {
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.ipc.vault.open()
-      dispatch({ type: 'VAULT_OPENED', payload: vault })
+      const result = await window.ipc.vault.open({ path: createVaultParentPath ?? '' })
+      dispatch({ type: 'VAULT_OPENED', payload: result.vault })
       dispatch({ type: 'SETUP_TOGGLE' })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -39,9 +39,8 @@ export function SetupWizard(): React.JSX.Element {
   const handleChooseParentFolder = async (): Promise<void> => {
     setError(null)
     try {
-      // vault.open() doubles as a directory picker — the result gives us the path
-      const result = await window.ipc.vault.open()
-      setCreateVaultParentPath(result.path)
+      const result = await window.ipc.vault.open({ path: '' })
+      setCreateVaultParentPath(result.vault.path)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -52,10 +51,7 @@ export function SetupWizard(): React.JSX.Element {
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.ipc.vault.create(
-        createVaultParentPath ?? '',
-        createVaultName.trim()
-      )
+      const vault = await window.ipc.vault.scan()
       dispatch({ type: 'VAULT_OPENED', payload: vault })
       dispatch({ type: 'SETUP_TOGGLE' })
     } catch (err) {

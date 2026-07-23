@@ -101,21 +101,6 @@ export function SearchPanel({
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
-
-  // If a query was pre-set (e.g. from property search), trigger search immediately
-  useEffect(() => {
-    if (query.trim()) {
-      performSearch(query)
-    }
-    // Only run on mount — query changes via input are handled by the debounce
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Scroll the selected result into view
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [selectedIndex])
-
   // --- Debounced search ---
   const performSearch = useCallback(
     async (q: string) => {
@@ -137,6 +122,29 @@ export function SearchPanel({
       }
     },
     [onResultsChange]
+  )
+
+  // If a query was pre-set (e.g. from property search), trigger search immediately
+  useEffect(() => {
+    if (query.trim()) {
+      performSearch(query)
+    }
+    // Only run on mount — query changes via input are handled by the debounce
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      onQueryChange(value)
+      setSelectedIndex(0)
+
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        performSearch(value)
+      }, 300)
+    },
+    [onQueryChange, performSearch]
   )
 
   const handleInputChange = useCallback(

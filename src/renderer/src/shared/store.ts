@@ -115,11 +115,9 @@ export interface AppState {
   livePreviewMode: boolean // derived: openTabs[activeTabId]?.mode === 'live-preview'
   currentRaw: string | null // derived: openTabs[activeTabId]?.raw
   graphEdges: Edge[]
-  fullTextIndex: Map<string, Set<string>>
   tagIndex: Map<string, Set<string>>
   selectedTags: Set<string>
   settingsPanelOpen: boolean
-  graphViewOpen: boolean
   pdfViewOpen: boolean
   pdfPath: string | null
   theme: 'dark' | 'light' | 'system'
@@ -129,6 +127,8 @@ export interface AppState {
   searchPanelOpen: boolean
   searchQuery: string
   searchResults: SearchQueryResult[]
+  fullTextIndex: FullTextIndex | null
+  graphViewOpen: boolean
   quickSwitcherOpen: boolean
   commandPaletteOpen: boolean
   recentNotes: string[]
@@ -136,6 +136,10 @@ export interface AppState {
   graphMode: 'files' | 'tags' | 'blocks'
   /** Page to navigate to when opening a PDF (for annotation links) - Req 40.8 */
   pdfPage: number | null
+}
+
+export interface FullTextIndex {
+  search(query: string): Map<string, number>
 }
 
 /** Type helper for graph mode */
@@ -176,7 +180,7 @@ export type AppAction =
   | { type: 'LIVE_PREVIEW_MODE_ENTER'; payload: string }
   | { type: 'LIVE_PREVIEW_MODE_EXIT' }
   | { type: 'GRAPH_UPDATED'; payload: Edge[] }
-  | { type: 'FULL_TEXT_INDEX_BUILT'; payload: Map<string, Set<string>> }
+  | { type: 'FULL_TEXT_INDEX_BUILT'; payload: FullTextIndex }
   | { type: 'TAG_INDEX_BUILT'; payload: Map<string, Set<string>> }
   | { type: 'TAG_FILTER_TOGGLE'; payload: string }
   | { type: 'SETTINGS_PANEL_TOGGLE' }
@@ -204,9 +208,6 @@ export type AppAction =
   | { type: 'WORKSPACES_LOADED'; payload: Workspace[] }
 
 // ---------------------------------------------------------------------------
-// Reducer
-// ---------------------------------------------------------------------------
-
 export const initialState: AppState = {
   openVaults: [],
   activeVaultId: null,
@@ -218,23 +219,20 @@ export const initialState: AppState = {
   tabGroups: [],
   currentFile: null,
   currentAST: null,
-  toggleStates: new Map(),
+  toggleStates: new Map<string, Map<string, boolean>>(),
   contextPaneOpen: false,
   contextResults: [],
-  // vault restore (existing `pollForVault`) dispatches `VAULT_OPENED` which sets `showSetup: false`, so the wizard only shows when no vault is auto-restored
   showSetup: true,
   livePreviewMode: false,
   editMode: false,
   currentRaw: null,
   graphEdges: [],
-  fullTextIndex: new Map(),
+  fullTextIndex: { search: (_q: string) => new Map() },
   tagIndex: new Map(),
   selectedTags: new Set(),
   settingsPanelOpen: false,
-  graphViewOpen: false,
   pdfViewOpen: false,
   pdfPath: null,
-  pdfPage: null,
   theme: 'dark',
   vectorDisabled: false,
   vectorDisabledReason: null,
@@ -242,10 +240,12 @@ export const initialState: AppState = {
   searchPanelOpen: false,
   searchQuery: '',
   searchResults: [],
-  quickSwitcherOpen: false,
-  commandPaletteOpen: false,
   recentNotes: [],
-  graphMode: 'files'
+  commandPaletteOpen: false,
+  graphViewOpen: false,
+  quickSwitcherOpen: false,
+  graphMode: 'files',
+  pdfPage: null
 }
 
 // Generate a unique tab ID

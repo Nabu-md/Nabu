@@ -16,6 +16,7 @@ import {
   createNote as cmdCreateNote,
   openTreeFile as cmdOpenTreeFile
 } from './vaultCommands'
+import { ipc } from "@renderer-shared/ipc"
 
 // ---------------------------------------------------------------------------
 // TreeNode
@@ -510,7 +511,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
 
   // Listen for external edits to trigger pulse animation
   useEffect(() => {
-    const off = window.ipc.on.noteUpdated(({ path, isExternal }) => {
+    let unlisten: (() => void) | null = null
+    ipc.on.noteUpdated(({ path, isExternal }) => {
       if (!isExternal) return
       setPulsingPaths((prev) => new Set(prev).add(path))
       setTimeout(() => {
@@ -520,8 +522,8 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
           return next
         })
       }, 600)
-    })
-    return off
+    }).then(u => unlisten = u)
+    return () => { unlisten?.() }
   }, [])
 
   const handleToggle = useCallback((folderPath: string) => {
@@ -545,20 +547,25 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
   )
 
   // Filtered view: full-text search when index is available, else name-based filter
+  // Register event listeners
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+    ipc.on.noteUpdated((p: any) => {
+      if (p.path === state.currentFile) {
+         // ...
+      }
+    }).then(u => unlisten = u)
+
+    return () => { unlisten?.() }
+  }, [state.currentFile])
+
+  // Filtered view: full-text search when index is available, else name-based filter
   const filteredNodes = React.useMemo(() => {
     if (!query.trim()) return null
-
-    // Full-text search when index is available
-    if (state.fullTextIndex.size > 0) {
-      const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+    if (state.fullTextIndex) {
       const matchCounts = new Map<string, number>()
-      for (const word of words) {
-        const paths = state.fullTextIndex.get(word)
-        if (paths) {
-          for (const p of paths) {
-            matchCounts.set(p, (matchCounts.get(p) ?? 0) + 1)
-          }
-        }
+      for (const [p, score] of state.fullTextIndex.search(query)) {
+        matchCounts.set(p, score)
       }
       // Sort by match count descending, then return matching TreeNodes
       const allFiles = flattenTree(tree).filter((n) => n.type === 'file')
@@ -572,7 +579,6 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
     const q = query.toLowerCase()
     return flattenTree(tree).filter((n) => n.type === 'file' && n.name.toLowerCase().includes(q))
   }, [tree, query, state.fullTextIndex])
-
   return (
     <div className="file-tree flex flex-col h-full" aria-label="File tree">
       {/* Create buttons */}
@@ -602,7 +608,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             if (!state.vault) return
             setNoteLoading(true)
             try {
-              const { templates: tpls } = await window.ipc.templates.list(state.vault.path)
+              const tpls = await window.ipc.templates.list(state.vault.path)
               setTemplates(tpls)
             } catch {
               setTemplates([])

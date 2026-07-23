@@ -179,14 +179,9 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           respond(null, 'No path provided')
           return
         }
-        window.ipc.note
-          .getRaw(notePath)
-          .then((result: { content?: string; error?: string }) => {
-            if (result.error) {
-              respond(null, result.error)
-            } else {
-              respond(result.content ?? '')
-            }
+        (window.ipc.note.getRaw(notePath) as Promise<string>)
+          .then((content: string) => {
+            respond(content ?? '')
           })
           .catch((err: Error) => respond(null, err.message))
         break
@@ -218,12 +213,8 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
         // Read the file via the Electron IPC bridge and return as a data URI
         window.ipc.file
           .readAsset(assetPath)
-          .then((result: { dataUri?: string; error?: string }) => {
-            if (result.error) {
-              respond(null, result.error)
-            } else {
-              respond(result.dataUri)
-            }
+          .then((result: { dataUri: string }) => {
+            respond(result.dataUri)
           })
           .catch((err: Error) => respond(null, err.message))
         break

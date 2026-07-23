@@ -10,7 +10,6 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../../shared/store'
 import type { Edge, FileEntry } from '@shared/types'
 import {
@@ -76,6 +75,7 @@ export function GraphView(): React.JSX.Element {
   const rafRef = useRef<number | null>(null)
   const dragNodeRef = useRef<D3Node | null>(null)
   const panStartRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
+  const rawCache = useRef<Map<string, string>>(new Map())
 
   const [searchQuery, setSearchQuery] = useState('')
   const [mode, setMode] = useState<'global' | 'local'>('global')
@@ -118,328 +118,84 @@ export function GraphView(): React.JSX.Element {
   // ---------------------------------------------------------------------------
   // Build nodes and links based on graphMode
   // ---------------------------------------------------------------------------
+  // Main graph synchronization effect
   useEffect(() => {
     const files = state.vault?.files ?? []
     const graphMode = state.graphMode
+    let cancelled = false
 
-    let nodes: D3Node[]
-    let links: D3Link[]
+    const updateGraph = async () => {
+      let nodes: D3Node[] = []
+      let links: D3Link[] = []
 
-    if (graphMode === 'tags') {
-      // Tags mode: use computeTagGraph from graph-utils
-      if (state.extendedIndex) {
-        const tagGraph = computeTagGraph(state.extendedIndex, files)
-        nodes = tagGraph.nodes.map((n) => ({
+      if (graphMode === 'tags') {
+        if (state.extendedIndex) {
+          const tagGraph = computeTagGraph(state.extendedIndex, files)
+          nodes = tagGraph.nodes.map((n) => ({
+            id: n.id,
+            label: n.label,
+            x: canvasW / 2 + (Math.random() - 0.5) * 100,
+            y: canvasH / 2 + (Math.random() - 0.5) * 100,
+            count: n.count,
+            radius: n.radius,
+            color: getTagNodeColor(n.label)
+          }))
+          links = tagGraph.edges.map((e) => ({ source: e.source, target: e.target }))
+        }
+      } else if (graphMode === 'blocks') {
+        const blockRefs = state.extendedIndex?.blockRefs as unknown as Record<string, Record<string, string>> ?? {}
+        const nameToPath = new Map<string, string>()
+        for (const f of files) nameToPath.set(f.name.toLowerCase(), f.path)
+        const refs: Array<{ source: string; targetNote: string; blockId: string }> = []
+        
+        for (const file of files) {
+          if (cancelled) return
+          if (file.path.toLowerCase().endsWith('.pdf')) continue
+          let raw = rawCache.current.get(file.path)
+          if (raw === undefined) {
+            try {
+              const content = await window.ipc.note.getRaw(file.path)
+              raw = content ?? ''
+              rawCache.current.set(file.path, raw)
+            } catch { continue }
+          }
+          for (const link of extractBlockRefLinks(raw)) {
+            const targetPath = nameToPath.get(link.targetNote.toLowerCase()) ?? link.targetNote
+            refs.push({ source: file.path, targetNote: targetPath, blockId: link.blockId })
+          }
+        }
+        if (cancelled) return
+        const graph = computeBlockGraph(blockRefs, refs)
+        nodes = graph.nodes.map((n) => ({
           id: n.id,
           label: n.label,
           x: canvasW / 2 + (Math.random() - 0.5) * 100,
           y: canvasH / 2 + (Math.random() - 0.5) * 100,
-          count: n.count,
-          radius: n.radius,
-          color: getTagNodeColor(n.label)
-        }))
-        links = tagGraph.edges.map((e) => ({
-          source: e.source,
-          target: e.target
-        }))
+          isBlock: n.isBlock
+        })) as D3Node[]
+        links = graph.edges.map((e) => ({ source: e.source, target: e.target }))
+        setBlockGraphLoading(false)
       } else {
-        nodes = []
-        links = []
-      }
-    } else if (graphMode === 'blocks') {
-      // Blocks mode (Req 38.6): visualise block references.
-      // Block *definitions* come from the extended index; cross-note
-      // *references* are fetched asynchronously (see the blocks effect below)
-      // and merged into `blockNodes`/`blockEdges`.
-      nodes = blockNodes.map((n) => ({
-        id: n.id,
-        label: n.label,
-        x: canvasW / 2 + (Math.random() - 0.5) * 100,
-        y: canvasH / 2 + (Math.random() - 0.5) * 100,
-        // Block nodes are drawn as squares; note nodes as circles.
-        isBlock: n.isBlock
-      })) as D3Node[]
-      links = blockEdges.map((e) => ({ source: e.source, target: e.target }))
-    } else {
-      // Files mode (default): existing behavior
-      const edges: Edge[] = state.graphEdges
-
-      // Build nodes
-      nodes = files.map((f) => ({
-        id: f.path,
-        label: f.name,
-        x: canvasW / 2 + (Math.random() - 0.5) * 100,
-        y: canvasH / 2 + (Math.random() - 0.5) * 100
-      }))
-      // Build links (source/target start as string ids; d3 replaces with object refs)
-      const nodeIds = new Set(nodes.map((n) => n.id))
-      links = edges
-        .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
-        .map((e) => ({ source: e.source, target: e.target }))
-    }
-
-    nodesRef.current = nodes
-    linksRef.current = links
-
-    // Stop previous simulation / animation frame
-    if (simRef.current) simRef.current.stop()
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-
-    // Mutable snapshot of transform for the draw closure (avoids stale captures)
-    let currentTransform = { x: 0, y: 0, scale: 1 }
-
-    // Create simulation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sim: D3Sim = (forceSimulation as any)(nodes)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .force('charge', (forceManyBody as any)().strength(-150))
-      .force(
-        'link',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (forceLink as any)(links)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .id((d: any) => d.id)
-          .distance(100)
-      )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .force('center', (forceCenter as any)(canvasW / 2, canvasH / 2))
-      .alpha(0.3)
-      .alphaDecay(0.02)
-
-    // Attach helper so the transform-sync effect can push updates into the closure
-    sim._updateTransform = (t) => {
-      currentTransform = t
-    }
-
-    simRef.current = sim
-
-    // Render loop
-    const draw = (): void => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.save()
-      ctx.translate(currentTransform.x, currentTransform.y)
-      ctx.scale(currentTransform.scale, currentTransform.scale)
-
-      const allNodes = nodesRef.current
-      const allLinks = linksRef.current
-
-      // Filter for local mode — only the current file and its direct neighbours
-      let visibleNodeIds: Set<string> | null = null
-      if (mode === 'local' && state.currentFile) {
-        visibleNodeIds = new Set<string>([state.currentFile])
-        for (const link of allLinks) {
-          const s =
-            typeof link.source === 'object' ? (link.source as D3Node).id : (link.source as string)
-          const t =
-            typeof link.target === 'object' ? (link.target as D3Node).id : (link.target as string)
-          if (s === state.currentFile) visibleNodeIds.add(t)
-          if (t === state.currentFile) visibleNodeIds.add(s)
-        }
+        const edges: Edge[] = state.graphEdges
+        nodes = files.map((f) => ({
+          id: f.path,
+          label: f.name,
+          x: canvasW / 2 + (Math.random() - 0.5) * 100,
+          y: canvasH / 2 + (Math.random() - 0.5) * 100
+        }))
+        const nodeIds = new Set(nodes.map((n) => n.id))
+        links = edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
+          .map((e) => ({ source: e.source, target: e.target }))
       }
 
-      // Apply search filter
-      const searchLower = searchQuery.toLowerCase()
-      const isVisible = (node: D3Node): boolean => {
-        if (visibleNodeIds && !visibleNodeIds.has(node.id)) return false
-        if (searchLower && !node.label.toLowerCase().includes(searchLower)) return false
-        return true
-      }
-
-      const visibleNodes = allNodes.filter(isVisible)
-      const visibleIds = new Set(visibleNodes.map((n) => n.id))
-
-      // Draw edges
-      ctx.strokeStyle =
-        getComputedStyle(document.documentElement).getPropertyValue('--nabu-border') || '#2a2a2a'
-      ctx.lineWidth = 1
-      for (const link of allLinks) {
-        const s =
-          typeof link.source === 'object'
-            ? (link.source as D3Node)
-            : allNodes.find((n) => n.id === (link.source as string))
-        const t =
-          typeof link.target === 'object'
-            ? (link.target as D3Node)
-            : allNodes.find((n) => n.id === (link.target as string))
-        if (!s || !t || !visibleIds.has(s.id) || !visibleIds.has(t.id)) continue
-        ctx.beginPath()
-        ctx.moveTo(s.x, s.y)
-        ctx.lineTo(t.x, t.y)
-        ctx.stroke()
-      }
-
-      // Draw nodes
-      const accentColor =
-        getComputedStyle(document.documentElement).getPropertyValue('--nabu-accent') || '#60a5fa'
-      const textColor =
-        getComputedStyle(document.documentElement).getPropertyValue('--nabu-text') || '#e5e5e5'
-
-      // Tag node colors using CSS variables (same palette as tab groups)
-      const tagColors = {
-        blue:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-blue') ||
-          '#3b82f6',
-        red:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-red') ||
-          '#ef4444',
-        green:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-green') ||
-          '#10b981',
-        yellow:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-yellow') ||
-          '#f59e0b',
-        purple:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-purple') ||
-          '#8b5cf6',
-        orange:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-orange') ||
-          '#f97316',
-        cyan:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-cyan') ||
-          '#06b6d4',
-        pink:
-          getComputedStyle(document.documentElement).getPropertyValue('--nabu-tag-pink') ||
-          '#ec4899'
-      }
-
-      for (const node of visibleNodes) {
-        const { x, y } = node
-
-        if (graphMode === 'blocks' && node.isBlock) {
-          // Draw block nodes as small squares (Req 38.6)
-          const size = 7
-          ctx.fillStyle = accentColor
-          ctx.beginPath()
-          ctx.rect(x - size / 2, y - size / 2, size, size)
-          ctx.fill()
-          ctx.font = '9px sans-serif'
-          ctx.fillStyle = textColor
-          ctx.textAlign = 'left'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(node.label, x + size / 2 + 3, y)
-        } else if (graphMode === 'tags' && node.radius !== undefined) {
-          // Draw tag nodes as rounded pills
-          const radius = node.radius
-          const color = node.color ? tagColors[node.color as keyof typeof tagColors] : accentColor
-
-          ctx.fillStyle = color
-          ctx.beginPath()
-          // Draw rounded rectangle (pill shape)
-          const labelWidth = Math.max(radius * 2, node.label.length * 6)
-          const height = radius * 1.6
-          ctx.roundRect(x - labelWidth / 2, y - height / 2, labelWidth, height, height / 2)
-          ctx.fill()
-
-          // Draw label inside pill
-          ctx.font = '10px sans-serif'
-          ctx.fillStyle = '#fff'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(getTagDisplayLabel(node.label), x, y)
-        } else {
-          // Draw file nodes as circles (existing behavior)
-          ctx.beginPath()
-          ctx.arc(x, y, 6, 0, Math.PI * 2)
-          ctx.fillStyle = accentColor
-          ctx.fill()
-          ctx.font = '10px sans-serif'
-          ctx.fillStyle = textColor
-          ctx.fillText(node.label, x + 9, y + 4)
-        }
-      }
-
-      ctx.restore()
-      rafRef.current = requestAnimationFrame(draw)
-    }
-
-    rafRef.current = requestAnimationFrame(draw)
-
-    return () => {
-      sim.stop()
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.vault, state.graphEdges, state.extendedIndex, state.graphMode, canvasW, canvasH])
-
-  // Sync transform into the draw closure whenever it changes
-  useEffect(() => {
-    simRef.current?._updateTransform?.(transform)
-  }, [transform])
-
-  // ---------------------------------------------------------------------------
-  // Blocks mode: build the block reference graph (Req 38.6)
-  //
-  // Block *definitions* are already in `state.extendedIndex.blockRefs`.
-  // Cross-note *references* (`[[Note#^id]]`) are derived by scanning each
-  // note's raw content through the existing `note:get-raw` IPC. A module
-  // level cache avoids re-fetching unchanged files across mode switches.
-  // ---------------------------------------------------------------------------
-  const rawCache = useRef<Map<string, string>>(new Map())
-
-  useEffect(() => {
-    if (state.graphMode !== 'blocks' || !state.extendedIndex) return
-
-    const blockRefs = state.extendedIndex.blockRefs as unknown as Record<
-      string,
-      Record<string, string>
-    >
-    const files = state.vault?.files ?? []
-
-    // Build a basename → full-path resolver (mirrors wiki-link resolution).
-    const nameToPath = new Map<string, string>()
-    for (const f of files) {
-      nameToPath.set(f.name.toLowerCase(), f.path)
-    }
-
-    // Seed the graph with block definitions immediately (synchronous).
-    const seedLinks: Array<{ source: string; targetNote: string; blockId: string }> = []
-    setBlockNodes(computeBlockGraph(blockRefs, seedLinks).nodes)
-    setBlockEdges(computeBlockGraph(blockRefs, seedLinks).edges)
-
-    let cancelled = false
-    setBlockGraphLoading(true)
-
-    const buildFromRefs = async (): Promise<void> => {
-      const refs: Array<{ source: string; targetNote: string; blockId: string }> = []
-      for (const file of files) {
-        if (cancelled) return
-        // Skip files that cannot define block references of interest.
-        if (file.path.toLowerCase().endsWith('.pdf')) continue
-        let raw = rawCache.current.get(file.path)
-        if (raw === undefined) {
-          try {
-            const result = await window.ipc.note.getRaw(file.path)
-            raw = result.content ?? ''
-            rawCache.current.set(file.path, raw)
-          } catch {
-            continue
-          }
-        }
-        for (const link of extractBlockRefLinks(raw)) {
-          // Resolve the target note name to a full path (wiki-link style).
-          const targetPath = nameToPath.get(link.targetNote.toLowerCase()) ?? link.targetNote
-          refs.push({ source: file.path, targetNote: targetPath, blockId: link.blockId })
-        }
-      }
       if (cancelled) return
-      const graph = computeBlockGraph(blockRefs, refs)
-      setBlockNodes(graph.nodes)
-      setBlockEdges(graph.edges)
-      setBlockGraphLoading(false)
+      nodesRef.current = nodes
+      linksRef.current = links
     }
 
-    void buildFromRefs()
-
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.graphMode, state.extendedIndex, state.vault?.files])
+    void updateGraph()
+    return () => { cancelled = true }
+  }, [state.graphMode, state.extendedIndex, state.vault?.files, state.graphEdges, canvasW, canvasH])
 
   // Hit-test: find the node closest to given canvas coords (within 20 px)
   const findNode = useCallback(
