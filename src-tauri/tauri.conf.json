@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Nabu",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "version": "1.0.0",
+  "identifier": "com.nabu.app",
   "build": {
     "frontendDist": "../renderer/dist",
     "devUrl": "http://localhost:5173",
@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; connect-src 'self' http://localhost:5173; style-src 'self' 'unsafe-inline';"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost;"
     }
   },
   "bundle": {
@@ -33,8 +33,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "android": {
-      "debugApplicationIdSuffix": ".debug"
-    }
+    "publisher": "Nabu Labs",
+    "copyright": "Copyright © 2024 Nabu Labs. All rights reserved.",
+    "category": "Productivity"
   }
 }
