@@ -17,23 +17,13 @@ pub fn extract_wikilinks(input: &str) -> Vec<Wikilink> {
             if let Some(pipe_idx) = content.find('|') {
                 let destination = content[..pipe_idx].to_string();
                 let alias = Some(content[pipe_idx + 1..].to_string());
-                let display_text = alias.clone().unwrap();
-                links.push(Wikilink {
-                    destination,
-                    alias,
-                    display_text,
-                    source_span: (abs_start, span_end),
-                });
+                let display_text = alias.as_ref().unwrap().clone();
+                links.push(Wikilink { destination, alias, display_text, source_span: (abs_start, span_end) });
             } else {
                 let destination = content.to_string();
                 let alias = None;
                 let display_text = destination.clone();
-                links.push(Wikilink {
-                    destination,
-                    alias,
-                    display_text,
-                    source_span: (abs_start, span_end),
-                });
+                links.push(Wikilink { destination, alias, display_text, source_span: (abs_start, span_end) });
             }
             start = span_end;
         } else {
@@ -41,4 +31,20 @@ pub fn extract_wikilinks(input: &str) -> Vec<Wikilink> {
         }
     }
     links
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wikilink_scanner_matches_pairs() {
+        let input = "See [[Page]] and [[Folder/Page|Alias]]";
+        let links = extract_wikilinks(input);
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0].destination, "Page");
+        assert_eq!(links[0].alias, None);
+        assert_eq!(links[1].destination, "Folder/Page");
+        assert_eq!(links[1].alias, Some("Alias".to_string()));
+    }
 }

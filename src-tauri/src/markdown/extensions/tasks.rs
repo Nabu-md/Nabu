@@ -46,3 +46,22 @@ pub fn extract_tasks(input: &str) -> Vec<Task> {
     }
     visitor.tasks
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn task_marked_complete() {
+        let found = extract_tasks("- [x] done");
+        assert_eq!(found.len(), 1);
+        assert!(found[0].completed);
+    }
+
+    #[test]
+    fn task_marked_incomplete() {
+        let found = extract_tasks("- [ ] todo");
+        assert_eq!(found.len(), 1);
+        assert!(!found[0].completed);
+    }
+}
