@@ -10,6 +10,8 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { tauriBridge } from '../../shared/tauri-ipc'
+
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../../shared/store'
 import type { Edge, FileEntry } from '@shared/types'

@@ -7,6 +7,8 @@
  * Requirements: 18.1, 18.2, 18.3, 18.5, 18.6
  */
 
+import { tauriBridge } from '../../shared/tauri-ipc'
+
 import React, { useEffect, useState, useCallback } from 'react'
 import { useAppContext } from '../../shared/store'
 
@@ -24,7 +26,7 @@ export function FavoritesPanel(): React.JSX.Element {
         return
       }
       try {
-        const result = await window.electron.favorites.get(state.vault.path)
+        const result = await tauriBridge.favorites.get(state.vault.path)
         setFavorites((result as { favorites: string[] }).favorites ?? [])
       } catch (err) {
         console.error('[FavoritesPanel] Failed to load favorites:', err)
@@ -39,7 +41,7 @@ export function FavoritesPanel(): React.JSX.Element {
   const handleClick = useCallback(
     async (filePath: string) => {
       try {
-        const result = await window.electron.file.get(filePath)
+        const result = await tauriBridge.file.get(filePath)
         const { path, ast } = result as { path: string; ast: import('mdast').Root }
         dispatch({ type: 'FILE_LOADED', payload: { path, ast } })
       } catch (err) {
