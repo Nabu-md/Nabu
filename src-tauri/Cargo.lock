@@ -68,6 +68,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "log",
  "notify",
  "parking_lot",
@@ -77,6 +78,8 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-log",
  "thiserror 2.0.19",
+ "uuid",
+ "walkdir",
 ]
 
 [[package]]
