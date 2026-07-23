@@ -1,3 +1,11 @@
+/**
+ * preload/index.ts — migration bridge
+ *
+ * Expose a minimal `window.electron` surface typed from the shared IPC
+ * contracts so the existing renderer can keep typechecking while the actual
+ * command layer moves to Tauri `invoke`.
+ */
+
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { z } from 'zod'
 import { IPCChannel } from '@shared/channels'
