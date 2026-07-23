@@ -27,7 +27,7 @@ async function checkOCRCompanion(
   const companionPath = path.join(dir, `${baseName}.ocr.md`)
 
   try {
-    const result = await window.electron.file.get(companionPath)
+    const result = await window.ipc.file.get(companionPath)
     if (result.ast) {
       // Extract text content from the AST (blockquote with ocr text)
       let ocrText = ''

@@ -27,7 +27,7 @@ export function SetupWizard(): React.JSX.Element {
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.electron.vault.open()
+      const vault = await window.ipc.vault.open()
       dispatch({ type: 'VAULT_OPENED', payload: vault })
       dispatch({ type: 'SETUP_TOGGLE' })
     } catch (err) {
@@ -40,7 +40,7 @@ export function SetupWizard(): React.JSX.Element {
     setError(null)
     try {
       // vault.open() doubles as a directory picker — the result gives us the path
-      const result = await window.electron.vault.open()
+      const result = await window.ipc.vault.open()
       setCreateVaultParentPath(result.path)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -52,7 +52,7 @@ export function SetupWizard(): React.JSX.Element {
     setIsLoading(true)
     setError(null)
     try {
-      const vault = await window.electron.vault.create(
+      const vault = await window.ipc.vault.create(
         createVaultParentPath ?? '',
         createVaultName.trim()
       )

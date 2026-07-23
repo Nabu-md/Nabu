@@ -163,7 +163,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
   // --- Open a note ---
   const openNote = useCallback(
     (filePath: string) => {
-      window.electron.file
+      window.ipc.file
         .get(filePath)
         .then((fileAST) => {
           dispatch({

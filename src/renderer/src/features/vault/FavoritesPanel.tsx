@@ -24,7 +24,7 @@ export function FavoritesPanel(): React.JSX.Element {
         return
       }
       try {
-        const result = await window.electron.favorites.get(state.vault.path)
+        const result = await window.ipc.favorites.get(state.vault.path)
         setFavorites((result as { favorites: string[] }).favorites ?? [])
       } catch (err) {
         console.error('[FavoritesPanel] Failed to load favorites:', err)
@@ -39,7 +39,7 @@ export function FavoritesPanel(): React.JSX.Element {
   const handleClick = useCallback(
     async (filePath: string) => {
       try {
-        const result = await window.electron.file.get(filePath)
+        const result = await window.ipc.file.get(filePath)
         const { path, ast } = result as { path: string; ast: import('mdast').Root }
         dispatch({ type: 'FILE_LOADED', payload: { path, ast } })
       } catch (err) {
