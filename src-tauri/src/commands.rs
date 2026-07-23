@@ -176,6 +176,27 @@ pub fn markdown_parse(markdown: String) -> Result<serde_json::Value, CommandErro
     Ok(crate::markdown::model::normalize(doc.ast))
 }
 
+#[tauri::command]
+pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
+    Ok(store.get_value(&key))
+}
+
+#[tauri::command]
+pub fn settings_set(key: String, value: serde_json::Value, store: State<'_, SettingsStore>) -> Result<(), CommandError> {
+    store.set_value(&key, value);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn settings_get_feature_toggles(store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
+    Ok(store.get_feature_toggles())
+}
+
+#[tauri::command]
+pub fn settings_set_feature_toggle(id: String, enabled: bool, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
+    Ok(store.set_feature_toggle(id, enabled))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -12,8 +12,7 @@ import { Edge } from '@shared/types'
 import { recordExternalActivity } from './features/widgets/widgetService'
 import { Sidebar, SidebarHandle } from './features/vault/Sidebar'
 import { NoteView } from './features/notes/NoteView'
-import { tauriBridge as electron } from './shared/tauri-ipc'
-import { listen } from '@tauri-apps/api/event'
+import { PaneLayout } from './features/vault/PaneLayout'
 import { GraphView } from './features/graph/GraphView'
 import { PdfViewer } from './features/pdf/PdfViewer'
 import { SettingsPanel } from './features/settings/SettingsPanel'
@@ -128,7 +127,7 @@ function App(): React.JSX.Element {
 
   // Wire IPC listeners
   const wireListeners = useCallback(() => {
-    // const { electron } = window // No longer needed
+    const { electron } = window
 
     const offNoteLoaded = electron.on.noteLoaded(({ path, ast }) => {
       dispatch({ type: 'FILE_LOADED', payload: { path, ast } })

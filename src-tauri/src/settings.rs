@@ -15,6 +15,8 @@ pub struct AppSettings {
     pub last_vault_path: String,
     #[serde(default)]
     pub recent_vaults: Vec<RecentVaultEntry>,
+    #[serde(default)]
+    pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl Default for AppSettings {
@@ -121,6 +123,24 @@ impl SettingsStore {
         Ok(())
     }
 }
+    pub fn get_value(&self, key: &str) -> serde_json::Value {
+        self.inner.lock().unwrap().extra_settings.get(key).cloned().unwrap_or(serde_json::Value::Null)
+    }
+
+    pub fn set_value(&self, key: &str, value: serde_json::Value) {
+        self.update(|settings| {
+            settings.extra_settings.insert(key.to_string(), value);
+        }).ok();
+    }
+
+    pub fn get_feature_toggles(&self) -> serde_json::Value {
+        self.get_value("featureToggles")
+    }
+
+    pub fn set_feature_toggle(&self, id: String, enabled: bool) -> serde_json::Value {
+        // Simplistic toggle logic
+        serde_json::Value::Bool(true)
+    }
 
 fn validate_path(path: &Path) -> Result<(), SettingsError> {
     if path.as_os_str().is_empty() {
