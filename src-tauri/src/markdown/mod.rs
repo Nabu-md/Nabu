@@ -1,4 +1,6 @@
 mod parser;
+pub mod model;
+
 mod document;
 mod errors;
 pub mod extensions;

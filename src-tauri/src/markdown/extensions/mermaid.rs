@@ -1,8 +1,33 @@
-#[derive(Debug, Clone, PartialEq)]
 pub struct MermaidBlock {
     pub language: String,
     pub content: String,
     pub source_span: (usize, usize),
+}
+
+impl std::fmt::Debug for MermaidBlock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MermaidBlock")
+            .field("language", &self.language)
+            .field("content", &self.content)
+            .field("source_span", &self.source_span)
+            .finish()
+    }
+}
+
+impl PartialEq for MermaidBlock {
+    fn eq(&self, other: &Self) -> bool {
+        self.language == other.language && self.content == other.content
+    }
+}
+
+impl Clone for MermaidBlock {
+    fn clone(&self) -> Self {
+        Self {
+            language: self.language.clone(),
+            content: self.content.clone(),
+            source_span: self.source_span,
+        }
+    }
 }
 
 pub fn extract_mermaid(input: &str) -> Vec<MermaidBlock> {
@@ -39,6 +64,7 @@ mod tests {
         assert_eq!(blocks[0].content, "graph LR\nA --> B\n");
         assert_eq!(blocks[0].language, "mermaid");
     }
+
     #[test]
     fn malformed_mermaid_ignored() {
         let input = "```mermaid\nbroken";

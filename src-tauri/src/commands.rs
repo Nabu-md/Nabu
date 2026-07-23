@@ -15,6 +15,8 @@ pub enum CommandError {
     Vault(String),
     #[error("settings error: {0}")]
     Settings(String),
+    #[error("markdown error: {0}")]
+    Markdown(String),
 }
 
 impl CommandError {
@@ -35,6 +37,7 @@ impl From<VaultError> for CommandError {
     fn from(err: VaultError) -> Self {
         CommandError::vault(err)
     }
+    CommandError::Vault(e) => CommandError::Vault(e),
 }
 
 impl From<SettingsError> for CommandError {
@@ -166,6 +169,11 @@ fn ensure_path(path: &str) -> Result<(), CommandError> {
         return Err(CommandError::payload("path is empty"));
     }
     Ok(())
+}
+#[tauri::command]
+pub fn markdown_parse(markdown: String) -> Result<serde_json::Value, CommandError> {
+    let doc = crate::markdown::parse(&markdown).map_err(|e| CommandError::Markdown(e.to_string()))?;
+    Ok(crate::markdown::model::normalize(doc.ast))
 }
 
 #[cfg(test)]
