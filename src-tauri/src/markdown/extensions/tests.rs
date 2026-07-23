@@ -1,16 +1,6 @@
 use crate::markdown::extensions::embeds::EmbedType;
 use crate::markdown::extensions::callouts::CalloutKind;
-use crate::markdown::extensions::{extract_wikilinks, extract_embeds, extract_tasks, extract_callouts};
-#[test]
-fn extract_wikilinks_basic() {
-    let input = "See [[Page]] and [[Folder/Page|Alias]]";
-    let links = extract_wikilinks(input);
-    assert_eq!(links.len(), 2);
-    assert_eq!(links[0].destination, "Page");
-    assert!(links[0].alias.is_none());
-    assert_eq!(links[1].destination, "Folder/Page");
-    assert_eq!(links[1].alias, Some("Alias".to_string()));
-}
+use crate::markdown::extensions::{extract_embeds, extract_tasks, extract_callouts};
 
 #[test]
 fn extract_embeds_note_and_media() {

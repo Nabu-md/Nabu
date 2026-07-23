@@ -8,11 +8,29 @@ pub enum EmbedType {
     Unknown,
 }
 
+impl EmbedType {
+    pub fn note() -> Self { Self::Note }
+    pub fn image() -> Self { Self::Image }
+    pub fn pdf() -> Self { Self::Pdf }
+    pub fn is_note(&self) -> bool { matches!(self, Self::Note) }
+    pub fn is_image(&self) -> bool { matches!(self, Self::Image) }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Embed {
     pub embed_type: EmbedType,
     pub destination: String,
     pub source_span: (usize, usize),
+}
+
+impl Embed {
+    pub fn new(destination: impl Into<String>, embed_type: EmbedType, source_span: (usize, usize)) -> Self {
+        Self { destination: destination.into(), embed_type, source_span }
+    }
+
+    pub fn is_image(&self) -> bool {
+        self.embed_type.is_image()
+    }
 }
 
 pub fn extract_embeds(input: &str) -> Vec<Embed> {
@@ -42,4 +60,24 @@ pub fn extract_embeds(input: &str) -> Vec<Embed> {
         }
     }
     embeds
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn embed_new_sets_fields() {
+        let embed = Embed::new("Note", EmbedType::note(), (0, 9));
+        assert_eq!(embed.destination, "Note");
+        assert!(embed.embed_type.is_note());
+        assert!(!embed.is_image());
+        assert_eq!(embed.source_span, (0, 9));
+    }
+
+    #[test]
+    fn image_embed_classification() {
+        let embed = Embed::new("Image.png", EmbedType::image(), (0, 13));
+        assert!(embed.is_image());
+    }
 }
