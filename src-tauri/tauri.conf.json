@@ -35,6 +35,15 @@
     ],
     "publisher": "Nabu Labs",
     "copyright": "Copyright © 2024 Nabu Labs. All rights reserved.",
-    "category": "Productivity"
+    "category": "Productivity",
+    "macOS": {
+      "signingIdentity": null,
+      "entitlements": null
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   }
 }
