@@ -24,7 +24,7 @@ import { QuickSwitcher } from './features/search/QuickSwitcher'
 import { CommandPalette } from './features/search/CommandPalette'
 import { NoteIcon, GraphIcon, EyeIcon, EditIcon } from './shared/components/icons'
 import { seedCommands, registerCommand } from './shared/commands/registry'
-import { ipc } from './shared/ipc'
+import { ipc } from "../../shared/ipc"'
 import { createNote } from './features/vault/vaultCommands'
 import { AppContext, appReducer, initialState } from './shared/store'
 
@@ -146,7 +146,7 @@ function App(): React.JSX.Element {
     })
 
     const offNoteOpenRequested = electron.on.noteOpenRequested(({ path }) => {
-      window.electron.file
+      window.ipc.file
         .get(path)
         .then((fileAST) => {
           dispatch({
@@ -267,7 +267,7 @@ function App(): React.JSX.Element {
 
   // Initialise theme from persisted settings on mount
   useEffect(() => {
-    window.electron.settings
+    window.ipc.settings
       .get('theme')
       .then(({ value }) => {
         if (value === 'dark' || value === 'light' || value === 'system') {
@@ -334,7 +334,7 @@ function App(): React.JSX.Element {
 
     // Query vector index status on mount so the renderer can surface a
     // non-blocking notice when the bge-micro model failed to load (Req 1.4)
-    window.electron.context
+    window.ipc.context
       .status()
       .then((status) => {
         dispatch({ type: 'VECTOR_STATUS_UPDATED', payload: status })
@@ -347,7 +347,7 @@ function App(): React.JSX.Element {
         const v = state.vault
         if (!v) return
         try {
-          const result = await window.electron.note.daily(v.path)
+          const result = await window.ipc.note.daily(v.path)
           if (result && (result as { path: string }).path) {
             const { path, ast } = result as { path: string; ast: Root }
             dispatch({ type: 'FILE_LOADED', payload: { path, ast } })

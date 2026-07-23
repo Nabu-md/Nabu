@@ -117,7 +117,7 @@ export function EmbedBlock({
         // ── Image embed ──────────────────────────────────────────────────
         if (isImageTarget(target)) {
           const resolvedPath = vaultPath ? vaultPath + '/' + target : target
-          const result = await window.electron.file
+          const result = await window.ipc.file
             .readAsset(resolvedPath)
             .then((r: unknown) => r as { dataUri?: string; error?: string })
 
@@ -155,7 +155,7 @@ export function EmbedBlock({
         }
 
         const fileResult = await withTimeout(
-          window.electron.file
+          window.ipc.file
             .get(resolvedPath)
             .then((r: unknown) => r as { path: string; ast: Parent }),
           IPC_TIMEOUT_MS

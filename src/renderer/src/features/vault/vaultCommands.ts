@@ -25,7 +25,7 @@
 
 import { Root } from 'mdast'
 import { Template } from '@shared/types'
-import { ipc } from '../../shared/ipc'
+import { ipc } from "../../shared/ipc"'
 import type { AppAction } from '../../shared/store'
 
 type Dispatch = (action: AppAction) => void

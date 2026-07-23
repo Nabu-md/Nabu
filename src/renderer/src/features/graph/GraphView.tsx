@@ -413,7 +413,7 @@ export function GraphView(): React.JSX.Element {
         let raw = rawCache.current.get(file.path)
         if (raw === undefined) {
           try {
-            const result = await window.electron.note.getRaw(file.path)
+            const result = await window.ipc.note.getRaw(file.path)
             raw = result.content ?? ''
             rawCache.current.set(file.path, raw)
           } catch {
@@ -571,7 +571,7 @@ export function GraphView(): React.JSX.Element {
             dispatch({ type: 'PDF_OPENED', payload: { path: ownerPath } })
             return
           }
-          window.electron.file
+          window.ipc.file
             .get(ownerPath)
             .then((fileAST) => {
               dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
@@ -584,7 +584,7 @@ export function GraphView(): React.JSX.Element {
             dispatch({ type: 'PDF_OPENED', payload: { path: node.id } })
             return
           }
-          window.electron.file
+          window.ipc.file
             .get(node.id)
             .then((fileAST) => {
               dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })

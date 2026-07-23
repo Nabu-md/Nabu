@@ -28,7 +28,7 @@
  */
 
 import { Root } from 'mdast'
-import { ipc } from '../../shared/ipc'
+import { ipc } from "../../shared/ipc"'
 import type { AppAction } from '../../shared/store'
 
 // ---------------------------------------------------------------------------

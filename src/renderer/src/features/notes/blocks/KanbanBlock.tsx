@@ -142,12 +142,12 @@ export function KanbanBlock({ folderPath, vaultPath: _vaultPath }: KanbanBlockPr
 
   // Fetch kanban data from vault
   useEffect(() => {
-    if (!folderPath || typeof window.electron.kanban === 'undefined') return
+    if (!folderPath || typeof window.ipc.kanban === 'undefined') return
 
     setLoading(true)
     setError(null)
 
-    window.electron.kanban
+    window.ipc.kanban
       .getData(folderPath, folderPath)
       .then((result) => {
         setData(result as { statuses: string[]; cards: KanbanCardData[] })
@@ -195,7 +195,7 @@ export function KanbanBlock({ folderPath, vaultPath: _vaultPath }: KanbanBlockPr
 
       // Write to file via IPC
       try {
-        const result = await window.electron.kanban.setStatus(folderPath, filePath, newStatus)
+        const result = await window.ipc.kanban.setStatus(folderPath, filePath, newStatus)
         if (!result.success) {
           throw new Error(result.error ?? 'Unknown error')
         }

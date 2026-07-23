@@ -23,7 +23,7 @@
  */
 
 import { PDFAnnotation } from '@shared/types'
-import { ipc } from '../../shared/ipc'
+import { ipc } from "../../shared/ipc"'
 
 /**
  * Create a backlinked note from a PDF annotation.

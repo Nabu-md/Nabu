@@ -127,7 +127,7 @@ export function SearchPanel({
 
       setLoading(true)
       try {
-        const response = (await window.electron.search.query(q)) as { results: SearchQueryResult[] }
+        const response = (await window.ipc.search.query(q)) as { results: SearchQueryResult[] }
         onResultsChange(response.results ?? [])
       } catch (err) {
         console.error('[SearchPanel] search query failed:', err)
@@ -162,7 +162,7 @@ export function SearchPanel({
         onClose()
         return
       }
-      window.electron.file
+      window.ipc.file
         .get(filePath)
         .then((fileAST) => {
           dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })

@@ -179,7 +179,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           respond(null, 'No path provided')
           return
         }
-        window.electron.note
+        window.ipc.note
           .getRaw(notePath)
           .then((result: { content?: string; error?: string }) => {
             if (result.error) {
@@ -199,7 +199,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.electron.search.query(query).then((result: any) => {
+        window.ipc.search.query(query).then((result: any) => {
           respond(result?.results ?? [])
         }).catch((err: Error) => respond(null, err.message))
         break
@@ -216,7 +216,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // Read the file via the Electron IPC bridge and return as a data URI
-        window.electron.file
+        window.ipc.file
           .readAsset(assetPath)
           .then((result: { dataUri?: string; error?: string }) => {
             if (result.error) {
