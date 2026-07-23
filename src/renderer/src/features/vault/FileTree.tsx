@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 import React, {
   forwardRef,
   useCallback,
@@ -511,7 +510,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
 
   // Listen for external edits to trigger pulse animation
   useEffect(() => {
-    const off = ipc.on.noteUpdated(({ path, isExternal }) => {
+    const off = window.electron.on.noteUpdated(({ path, isExternal }) => {
       if (!isExternal) return
       setPulsingPaths((prev) => new Set(prev).add(path))
       setTimeout(() => {
@@ -603,7 +602,7 @@ export const FileTree = forwardRef<FileTreeHandle, FileTreeProps>(function FileT
             if (!state.vault) return
             setNoteLoading(true)
             try {
-              const { templates: tpls } = await ipc.templates.list(state.vault.path)
+              const { templates: tpls } = await window.electron.templates.list(state.vault.path)
               setTemplates(tpls)
             } catch {
               setTemplates([])

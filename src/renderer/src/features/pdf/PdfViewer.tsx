@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * PdfViewer.tsx
  *
@@ -68,7 +67,7 @@ export function PdfViewer({
         setPageImages({})
         setError(null)
 
-        const result = await ipc.pdf.open(filePath)
+        const result = await window.electron.pdf.open(filePath)
         if (cancelled) return
 
         if (result.error) {
@@ -109,7 +108,7 @@ export function PdfViewer({
 
     async function loadAnnotations(): Promise<void> {
       try {
-        const result = await ipc.pdf.loadAnnotations(filePath)
+        const result = await window.electron.pdf.loadAnnotations(filePath)
         if (!cancelled) {
           setAnnotations(result.annotations ?? [])
         }
@@ -132,7 +131,7 @@ export function PdfViewer({
     if (totalPages === 0) return
 
     const saveTimeout = setTimeout(() => {
-      void ipc.pdf
+      void window.electron.pdf
         .saveAnnotations(filePath, annotations)
         .catch((err) => console.warn('Failed to save PDF annotations:', err))
     }, 500) // Debounce saves
@@ -149,7 +148,7 @@ export function PdfViewer({
       if (pageImages[pageNumber]) return
 
       try {
-        const result = await ipc.pdf.renderPage(filePath, pageNumber, scale)
+        const result = await window.electron.pdf.renderPage(filePath, pageNumber, scale)
         if (result.error) {
           console.error(`Failed to render page ${pageNumber}:`, result.error)
           return

@@ -2,7 +2,7 @@
  * ipc.ts — Renderer-side typed IPC wrapper.
  *
  * This module is the SINGLE boundary between the renderer and the preload bridge.
- * It consumes `ipc` (whose surface is derived from the shared IPC
+ * It consumes `window.electron` (whose surface is derived from the shared IPC
  * contracts in `src/shared/contracts`) and re-exposes a fully-typed API.
  *
  * The preload layer is a thin bridge that derives every method's parameter and
@@ -31,7 +31,7 @@ type ContextQueryResponse = {
 }
 
 /** The preload bridge, already typed from the shared IPC contracts. */
-const bridge = ipc
+const bridge = window.electron
 
 export const ipc = {
   vault: {

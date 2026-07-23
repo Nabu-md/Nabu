@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Root,
@@ -1047,7 +1046,7 @@ export function NoteView(): React.JSX.Element {
 
   // ---- Listen for external note:updated IPC messages ----
   useEffect(() => {
-    const cleanup = ipc.on.noteUpdated(({ path, ast, isExternal }) => {
+    const cleanup = window.electron.on.noteUpdated(({ path, ast, isExternal }) => {
       if (isExternal && path === currentFileRef.current) {
         // Clear optimistic state when an external edit arrives for the current file
         setOptimisticToggles({})
@@ -1158,7 +1157,7 @@ export function NoteView(): React.JSX.Element {
       }))
 
       // 2. Send IPC message
-      ipc.task.toggle(currentFile, lineIndex).catch(() => {
+      window.electron.task.toggle(currentFile, lineIndex).catch(() => {
         // 3. Revert on failure
         setOptimisticToggles((prev) => ({
           ...prev,

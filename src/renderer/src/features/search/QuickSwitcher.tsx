@@ -1,4 +1,3 @@
-import { ipc } from "../../../shared/ipc"
 /**
  * QuickSwitcher.tsx
  *
@@ -164,7 +163,7 @@ export function QuickSwitcher(): React.JSX.Element | null {
   // --- Open a note ---
   const openNote = useCallback(
     (filePath: string) => {
-      ipc.file
+      window.electron.file
         .get(filePath)
         .then((fileAST) => {
           dispatch({

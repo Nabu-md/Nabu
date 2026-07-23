@@ -9,8 +9,6 @@
  * Requirements: 38.1, 38.2, 38.3, 38.4, 38.5, 38.6
  */
 
-import { ipc } from "@renderer-shared/ipc"
-
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { forceSimulation, forceManyBody, forceLink, forceCenter } from 'd3-force'
 import { useAppContext } from '../../shared/store'
@@ -415,7 +413,7 @@ export function GraphView(): React.JSX.Element {
         let raw = rawCache.current.get(file.path)
         if (raw === undefined) {
           try {
-            const result = await ipc.note.getRaw(file.path)
+            const result = await window.electron.note.getRaw(file.path)
             raw = result.content ?? ''
             rawCache.current.set(file.path, raw)
           } catch {
@@ -573,7 +571,8 @@ export function GraphView(): React.JSX.Element {
             dispatch({ type: 'PDF_OPENED', payload: { path: ownerPath } })
             return
           }
-          ipc.file.get(ownerPath)
+          window.electron.file
+            .get(ownerPath)
             .then((fileAST) => {
               dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
               dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
@@ -585,7 +584,8 @@ export function GraphView(): React.JSX.Element {
             dispatch({ type: 'PDF_OPENED', payload: { path: node.id } })
             return
           }
-          ipc.file.get(node.id)
+          window.electron.file
+            .get(node.id)
             .then((fileAST) => {
               dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
               dispatch({ type: 'GRAPH_VIEW_TOGGLE' })
