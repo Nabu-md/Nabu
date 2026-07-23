@@ -10,6 +10,8 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react'
+import { tauriBridge } from '../../shared/tauri-ipc'
+
 import type { SearchQueryResult, SearchQueryMatch } from '@shared/search-query'
 import { useAppContext } from '../../shared/store'
 
@@ -127,7 +129,7 @@ export function SearchPanel({
 
       setLoading(true)
       try {
-        const response = (await window.electron.search.query(q)) as { results: SearchQueryResult[] }
+        const response = (await tauriBridge.search.query(q)) as { results: SearchQueryResult[] }
         onResultsChange(response.results ?? [])
       } catch (err) {
         console.error('[SearchPanel] search query failed:', err)
@@ -162,8 +164,7 @@ export function SearchPanel({
         onClose()
         return
       }
-      window.electron.file
-        .get(filePath)
+      tauriBridge.file.get(filePath)
         .then((fileAST) => {
           dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
         })
