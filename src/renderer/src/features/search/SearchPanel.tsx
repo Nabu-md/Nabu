@@ -9,9 +9,9 @@
  * Requirements: 3.1, 3.7, 3.9, 3.10
  */
 
-import React, { useEffect, useRef, useCallback } from 'react'
-import { tauriBridge } from '../../shared/tauri-ipc'
+import { ipc } from "@renderer-shared/ipc"
 
+import React, { useEffect, useRef, useCallback } from 'react'
 import type { SearchQueryResult, SearchQueryMatch } from '@shared/search-query'
 import { useAppContext } from '../../shared/store'
 
@@ -129,7 +129,7 @@ export function SearchPanel({
 
       setLoading(true)
       try {
-        const response = (await tauriBridge.search.query(q)) as { results: SearchQueryResult[] }
+        const response = (await ipc.search.query(q)) as { results: SearchQueryResult[] }
         onResultsChange(response.results ?? [])
       } catch (err) {
         console.error('[SearchPanel] search query failed:', err)
@@ -164,7 +164,8 @@ export function SearchPanel({
         onClose()
         return
       }
-      tauriBridge.file.get(filePath)
+      ipc.file
+        .get(filePath)
         .then((fileAST) => {
           dispatch({ type: 'FILE_LOADED', payload: { path: fileAST.path, ast: fileAST.ast } })
         })

@@ -1,5 +1,4 @@
-import { tauriBridge } from '../../shared/tauri-ipc'
-
+import { ipc } from "../../../shared/ipc"
 import React, { useEffect, useRef, useState } from 'react'
 import { useAppContext } from '../../shared/store'
 
@@ -35,7 +34,8 @@ export function SettingsPanel(): React.JSX.Element | null {
   // Fetch feature toggles on mount and when panel opens
   useEffect(() => {
     if (settingsPanelOpen) {
-      tauriBridge.settings.getFeatureToggles()
+      ipc.settings
+        .getFeatureToggles()
         .then(({ toggles }) => {
           setFeatureToggles(
             toggles as Array<{ id: string; label: string; description: string; enabled: boolean }>
@@ -89,7 +89,7 @@ export function SettingsPanel(): React.JSX.Element | null {
     setIsReindexing(true)
     setReindexError(null)
     try {
-      await tauriBridge.vault.scan()
+      await ipc.vault.scan()
     } catch (err) {
       setReindexError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -100,7 +100,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   const handleThemeChange = async (newTheme: 'dark' | 'light' | 'system'): Promise<void> => {
     dispatch({ type: 'THEME_CHANGED', payload: newTheme })
     try {
-      await tauriBridge.settings.set('theme', newTheme)
+      await ipc.settings.set('theme', newTheme)
     } catch (err) {
       console.error('[SettingsPanel] Failed to persist theme:', err)
     }
@@ -112,7 +112,7 @@ export function SettingsPanel(): React.JSX.Element | null {
 
   const handleFeatureToggle = async (id: string, enabled: boolean): Promise<void> => {
     try {
-      const result = await tauriBridge.settings.setFeatureToggle(id, enabled)
+      const result = await ipc.settings.setFeatureToggle(id, enabled)
       if (result.success) {
         // Update local state
         setFeatureToggles((prev) => prev.map((t) => (t.id === id ? { ...t, enabled } : t)))
@@ -137,7 +137,7 @@ export function SettingsPanel(): React.JSX.Element | null {
   // Load current shortcut on mount
   useEffect(() => {
     if (settingsPanelOpen) {
-      window.electron.settings
+      ipc.settings
         .get('clipboardShortcut')
         .then((result) => {
           setWidgetShortcut((result.value as string) ?? 'CmdOrCtrl+§')
@@ -179,18 +179,18 @@ export function SettingsPanel(): React.JSX.Element | null {
       setIsCapturingShortcut(false)
 
       // Persist and apply
-      window.electron.settings
+      ipc.settings
         .set('clipboardShortcut', combo)
         .catch(console.error)
-      window.electron.widget.setShortcut(combo).catch(console.error)
+      ipc.widget.setShortcut(combo).catch(console.error)
     }
   }
 
   const handleResetShortcut = (): void => {
     const defaultShortcut = 'CmdOrCtrl+§'
     setWidgetShortcut(defaultShortcut)
-    window.electron.settings.set('clipboardShortcut', defaultShortcut).catch(console.error)
-    window.electron.widget.setShortcut(defaultShortcut).catch(console.error)
+    ipc.settings.set('clipboardShortcut', defaultShortcut).catch(console.error)
+    ipc.widget.setShortcut(defaultShortcut).catch(console.error)
   }
 
   // ---------------------------------------------------------------------------
@@ -375,7 +375,7 @@ export function SettingsPanel(): React.JSX.Element | null {
                   onChange={(e) => {
                     const model = e.target.value as 'base' | 'large-v3-turbo-q5'
                     setDictationModel(model)
-                    window.electron.dictation
+                    ipc.dictation
                       .status()
                       .then((status) => {
                         const s = status as {
@@ -433,7 +433,7 @@ export function SettingsPanel(): React.JSX.Element | null {
                     setDictationError(null)
                     try {
                       // Listen for download progress
-                      const removeListener = window.electron.on.dictationDownloadProgress(
+                      const removeListener = ipc.on.dictationDownloadProgress(
                         (data: { model: string; progress: number }) => {
                           if (data.model === 'large-v3-turbo-q5') {
                             setDictationModelStatus((prev) => ({
@@ -444,7 +444,7 @@ export function SettingsPanel(): React.JSX.Element | null {
                         }
                       )
                       const result =
-                        await window.electron.dictation.downloadModel('large-v3-turbo-q5')
+                        await ipc.dictation.downloadModel('large-v3-turbo-q5')
                       removeListener()
                       if (result.success) {
                         setDictationModelStatus((prev) => ({

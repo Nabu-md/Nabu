@@ -1,3 +1,4 @@
+import { ipc } from "../../../shared/ipc"
 /**
  * OCRTextPanel.tsx
  *
@@ -5,8 +6,6 @@
  *
  * Requirements: 39.7
  */
-
-import { tauriBridge } from '../../../shared/tauri-ipc'
 
 import React, { useEffect, useState } from 'react'
 import path from 'path'
@@ -29,7 +28,7 @@ async function checkOCRCompanion(
   const companionPath = path.join(dir, `${baseName}.ocr.md`)
 
   try {
-    const result = await tauriBridge.file.get(companionPath)
+    const result = await ipc.file.get(companionPath)
     if (result.ast) {
       // Extract text content from the AST (blockquote with ocr text)
       let ocrText = ''
