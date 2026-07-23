@@ -9,6 +9,8 @@
  * Requirements: 11.1 – 11.7
  */
 
+import { tauriBridge } from '../../../shared/tauri-ipc'
+
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Node, Parent } from 'mdast'
 import { FileEntry } from '@shared/types'
@@ -117,9 +119,7 @@ export function EmbedBlock({
         // ── Image embed ──────────────────────────────────────────────────
         if (isImageTarget(target)) {
           const resolvedPath = vaultPath ? vaultPath + '/' + target : target
-          const result = await window.electron.file
-            .readAsset(resolvedPath)
-            .then((r: unknown) => r as { dataUri?: string; error?: string })
+          const result = await tauriBridge.file.readAsset(resolvedPath) as { dataUri?: string; error?: string }
 
           if (cancelledRef.current) return
 

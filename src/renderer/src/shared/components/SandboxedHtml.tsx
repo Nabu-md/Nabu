@@ -25,6 +25,8 @@
  */
 
 import { useRef, useMemo, useEffect, useCallback, useState } from 'react'
+import { tauriBridge } from '../../shared/tauri-ipc'
+
 
 export interface SandboxedHtmlProps {
   /** Raw HTML content to render */
@@ -179,9 +181,9 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           respond(null, 'No path provided')
           return
         }
-        window.electron.note
+        tauriBridge.note
           .getRaw(notePath)
-          .then((result: { content?: string; error?: string }) => {
+          .then((result) => {
             if (result.error) {
               respond(null, result.error)
             } else {
@@ -199,7 +201,7 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.electron.search.query(query).then((result: any) => {
+        tauriBridge.search.query(query).then((result: any) => {
           respond(result?.results ?? [])
         }).catch((err: Error) => respond(null, err.message))
         break
@@ -216,9 +218,9 @@ export function SandboxedHtml({ html, maxHeight = 400, className = '' }: Sandbox
           return
         }
         // Read the file via the Electron IPC bridge and return as a data URI
-        window.electron.file
+        tauriBridge.file
           .readAsset(assetPath)
-          .then((result: { dataUri?: string; error?: string }) => {
+          .then((result) => {
             if (result.error) {
               respond(null, result.error)
             } else {

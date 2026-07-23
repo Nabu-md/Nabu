@@ -25,6 +25,7 @@ export const tauriBridge = {
     open: async (path: string) => await invoke('pdf_open', { path }),
     loadAnnotations: async (path: string) => await invoke('pdf_load_annotations', { path }),
     renderPage: async (path: string, pageNumber: number, scale: number) => await invoke('pdf_render_page', { path, pageNumber, scale }),
+    saveAnnotations: async (path: string, annotations: any) => await invoke('pdf_save_annotations', { path, annotations }),
   },
   search: {
     query: async (query: string) => await invoke('search_query', { query }),
