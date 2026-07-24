@@ -282,7 +282,7 @@ describe('Microphone permission caching', () => {
   })
 
   it('should allow retry after permission granted', () => {
-    let permissionCached = true
+    const permissionCached = true
     let permissionGranted = false
 
     // User grants permission in System Settings

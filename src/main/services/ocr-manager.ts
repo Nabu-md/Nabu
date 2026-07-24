@@ -46,7 +46,7 @@ interface OCRQueueItem {
   reject: (error: Error) => void
 }
 
-let ocrQueue: OCRQueueItem[] = []
+const ocrQueue: OCRQueueItem[] = []
 let isProcessing = false
 
 /**

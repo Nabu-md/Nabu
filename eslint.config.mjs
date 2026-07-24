@@ -4,7 +4,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginReact from "eslint-plugin-react";
 import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import eslintPluginReactRefresh from "eslint-plugin-react-refresh";
-import eslintPluginImport from "eslint-plugin-import";
+import eslintPluginImportX from "eslint-plugin-import-x";
 
 export default [
   { ignores: ["**/node_modules", "**/dist", "**/out", "src-backup", "extensions"] },
@@ -24,7 +24,7 @@ export default [
     plugins: {
       "react-hooks": eslintPluginReactHooks,
       "react-refresh": eslintPluginReactRefresh,
-      import: eslintPluginImport,
+      import: eslintPluginImportX,
     },
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
