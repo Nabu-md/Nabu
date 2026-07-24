@@ -24,23 +24,72 @@ pub struct AppSettings {
     #[serde(default)]
     pub enable_daily_notes: bool,
     #[serde(default)]
+    pub launch_at_startup: bool,
+    #[serde(default)]
+    pub editor_mode: String,
+    #[serde(default)]
+    pub auto_pair_brackets: bool,
+    #[serde(default)]
+    pub show_line_numbers: bool,
+    #[serde(default)]
+    pub convert_pasted_html_to_markdown: bool,
+    #[serde(default)]
+    pub enable_notion_slash_menu: bool,
+    #[serde(default)]
+    pub voice_hotkey: String,
+    #[serde(default)]
+    pub auto_format_filler_words: bool,
+    #[serde(default)]
+    pub pill_hover_boost_opacity: bool,
+    #[serde(default)]
+    pub default_new_note_path: String,
+    #[serde(default)]
+    pub trash_retention_policy: String,
+    #[serde(default)]
+    pub force_sandbox_for_web_snippets: bool,
+    #[serde(default)]
+    pub include_folders_in_graph: bool,
+    #[serde(default)]
+    pub folder_click_behavior: String,
+    #[serde(default)]
+    pub graph_node_physics_gravity: f32,
+    #[serde(default)]
+    pub graph_node_physics_spacing: f32,
+    #[serde(default)]
     pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            theme: "dark".to_string(),
+            theme: "system".to_string(),
             last_vault_path: "".to_string(),
             recent_vaults: Vec::new(),
             main_window_opacity: 1.0,
             floating_pill_opacity: 0.8,
-            whisper_model: "ggml-tiny.en.bin".to_string(),
-            enable_daily_notes: false,
+            whisper_model: "ggml-base.en.bin".to_string(),
+            enable_daily_notes: true,
+            launch_at_startup: false,
+            editor_mode: "Live Preview".to_string(),
+            auto_pair_brackets: true,
+            show_line_numbers: true,
+            convert_pasted_html_to_markdown: true,
+            enable_notion_slash_menu: true,
+            voice_hotkey: "Cmd+Shift+D".to_string(),
+            auto_format_filler_words: true,
+            pill_hover_boost_opacity: true,
+            default_new_note_path: "Vault Root".to_string(),
+            trash_retention_policy: "Move to System Trash".to_string(),
+            force_sandbox_for_web_snippets: true,
+            include_folders_in_graph: true,
+            folder_click_behavior: "Open Folder Table View".to_string(),
+            graph_node_physics_gravity: 0.5,
+            graph_node_physics_spacing: 1.0,
             extra_settings: std::collections::HashMap::new(),
         }
     }
 }
+
 
 
 #[derive(Debug, thiserror::Error)]
