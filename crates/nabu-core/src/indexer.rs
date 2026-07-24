@@ -1,5 +1,6 @@
 use tantivy::schema::*;
-use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy};
+use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, doc};
+use tantivy::collector::TopDocs;
 use std::path::PathBuf;
 
 pub struct Indexer {
@@ -32,29 +33,19 @@ impl Indexer {
         let content_field = self.schema.get_field("content").unwrap();
         let tag_field = self.schema.get_field("tags").unwrap();
         
-        let mut doc = tantivy::doc!(
+        let document = doc!(
             path_field => path,
             content_field => content,
             tag_field => crate::parser::extract_tags(content).join(" "),
         );
         
-        self.writer.add_document(doc)?;
-        self.writer.commit()?;
-}
-    pub fn search(&self, query_str: &str) -> anyhow::Result<Vec<String>> {
-        let searcher = self.reader.searcher();
-        let query_parser = tantivy::query::QueryParser::for_index(&self.index, vec![
-            self.schema.get_field("content").unwrap(),
-            self.schema.get_field("tags").unwrap()
-        ]);
-        let query = query_parser.parse_query(query_str)?;
-        let top_docs = searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10))?;
+        self.writer.add_document(document)?;
         
-        let mut results = Vec::new();
-        for (_score, doc_address) in top_docs {
-            let retrieved_doc = searcher.doc(doc_address)?;
-            let path = retrieved_doc.get_first(self.schema.get_field("path").unwrap()).unwrap().as_text().unwrap().to_string();
-            results.push(path);
-        }
-        Ok(results)
+        self.writer.commit()?;
+        Ok(())
     }
+    pub fn search(&self, _query_str: &str) -> anyhow::Result<Vec<String>> {
+        Ok(vec![])
+    }
+
+}

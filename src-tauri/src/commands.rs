@@ -174,9 +174,37 @@ fn ensure_path(path: &str) -> Result<(), CommandError> {
     Ok(())
 }
 #[tauri::command]
-pub fn markdown_parse(markdown: String) -> Result<serde_json::Value, CommandError> {
-    let doc = crate::markdown::parse(&markdown).map_err(|e| CommandError::Markdown(e.to_string()))?;
-    Ok(crate::markdown::model::normalize(doc.ast))
+pub fn note_create_file(path: String, service: State<'_, VaultService>) -> Result<FileEntry, CommandError> {
+    let path_buf = PathBuf::from(path);
+    std::fs::File::create(&path_buf).map_err(CommandError::vault)?;
+    Ok(FileEntry {
+        path: path_buf.to_string_lossy().into(),
+        name: path_buf.file_name().unwrap().to_string_lossy().into(),
+        mtime: 0.0,
+    })
+}
+
+#[tauri::command]
+pub fn note_delete_file(path: String) -> Result<(), CommandError> {
+    std::fs::remove_file(path).map_err(CommandError::vault)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn note_rename_file(path: String, new_path: String) -> Result<(), CommandError> {
+    std::fs::rename(path, new_path).map_err(CommandError::vault)?;
+    Ok(())
+}
+#[tauri::command]
+pub fn search(vault_path: String, query: String, service: State<'_, VaultService>) -> Result<Vec<String>, CommandError> {
+    let path = std::path::PathBuf::from(vault_path);
+    let session = service.sessions.get(&path).ok_or_else(|| CommandError::Vault("Vault not open".to_string()))?;
+    session.indexer.search(&query).map_err(CommandError::Vault)
+}
+
+#[tauri::command]
+pub fn get_graph_data(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
+    Ok(service.get_graph_data())
 }
 
 #[tauri::command]

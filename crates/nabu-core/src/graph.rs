@@ -1,3 +1,4 @@
+use petgraph::visit::EdgeRef;
 use petgraph::graph::{Graph, NodeIndex};
 use std::collections::HashMap;
 use regex::Regex;
