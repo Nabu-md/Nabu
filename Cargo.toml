@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/nabu-ui",
+    "crates/nabu-core",
+    "src-tauri",
+]
+resolver = "2"
