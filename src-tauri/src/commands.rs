@@ -193,6 +193,16 @@ pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<Stri
 }
 
 #[tauri::command]
+pub fn search(query: String, service: State<'_, VaultService>) -> Result<Vec<String>, CommandError> {
+    // Placeholder: call service.search(&query)
+    Ok(vec![])
+}
+#[tauri::command]
+pub fn graph_get(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
+    // Placeholder: call service.get_graph()
+    Ok(serde_json::json!({}))
+}
+#[tauri::command]
 pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
     Ok(store.get_value(&key))
 }
