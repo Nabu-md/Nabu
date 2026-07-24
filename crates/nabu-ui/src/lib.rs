@@ -10,7 +10,17 @@ pub struct ThemeContext {
 }
 
 pub fn provide_theme(initial_theme: String) {
-    provide_context(ThemeContext { theme: RwSignal::new(initial_theme) });
+    let theme = RwSignal::new(initial_theme);
+    provide_context(ThemeContext { theme });
+
+    // Reactively update backend when theme changes
+    create_effect(move |_| {
+        let current_theme = theme.get();
+        spawn_local(async move {
+            let args = serde_wasm_bindgen::to_value(&serde_json::json!({"key": "theme", "value": current_theme})).unwrap();
+            let _ = crate::ipc::tauri_invoke("settings_set", args).await;
+        });
+    });
 }
 
 pub fn use_theme() -> ThemeContext {
