@@ -33,9 +33,3 @@ tantivy = "0.26.1"
 pulldown-cmark = "0.13.4"
 chrono = "0.4"
 
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
