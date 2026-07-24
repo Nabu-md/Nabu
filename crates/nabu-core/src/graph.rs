@@ -45,8 +45,13 @@ impl VaultGraph {
             .collect()
     }
     pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
-        // In a real impl, look up notes containing this tag
-        // and return the subgraph of these notes
-        vec![]
+        self.graph.node_indices()
+            .filter(|&idx| {
+                let path = self.graph[idx].clone();
+                let content = std::fs::read_to_string(&path).unwrap_or_default();
+                crate::parser::extract_tags(&content).contains(&tag.to_string())
+            })
+            .map(|idx| self.graph[idx].clone())
+            .collect()
     }
 }
