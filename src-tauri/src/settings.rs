@@ -16,18 +16,29 @@ pub struct AppSettings {
     #[serde(default)]
     pub recent_vaults: Vec<RecentVaultEntry>,
     #[serde(default)]
+    pub main_window_opacity: f32,
+    #[serde(default)]
+    pub floating_pill_opacity: f32,
+    #[serde(default)]
+    pub whisper_model: String,
+    #[serde(default)]
     pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            theme: String::new(),
-            last_vault_path: String::new(),
+            theme: "dark".to_string(),
+            last_vault_path: "".to_string(),
             recent_vaults: Vec::new(),
+            main_window_opacity: 1.0,
+            floating_pill_opacity: 0.8,
+            whisper_model: "ggml-tiny.en.bin".to_string(),
+            extra_settings: std::collections::HashMap::new(),
         }
     }
 }
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum SettingsError {
@@ -75,6 +86,9 @@ impl SettingsStore {
     }
 
     pub fn path(&self) -> &Path {
+    pub fn get_settings(&self) -> AppSettings {
+        self.inner.lock().unwrap().clone()
+    }
         &self.path
     }
 
