@@ -13,7 +13,12 @@ pub use markdown::{parse, Document, ParseError};
 pub fn run() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
-      crate::commands::open_settings
+      crate::commands::complete_setup,
+      crate::commands::open_settings,
+      crate::commands::note_create_file,
+      crate::commands::note_daily,
+      crate::commands::get_settings,
+      crate::commands::settings_set_all
     ])
     .setup(|app| {
       let _ = tauri::WebviewWindowBuilder::new(app, "dictation-pill", tauri::WebviewUrl::App("dictation-pill.html".into())).build()?;
