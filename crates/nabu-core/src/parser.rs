@@ -23,6 +23,12 @@ pub fn extract_tags(content: &str) -> Vec<String> {
     tags
 }
 
+pub fn extract_block_refs(content: &str) -> Vec<String> {
+    // Regex for block id like ^id
+    let re = regex::Regex::new(r"\^([a-zA-Z0-9_-]+)").unwrap();
+    re.captures_iter(content).map(|cap| cap[1].to_string()).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

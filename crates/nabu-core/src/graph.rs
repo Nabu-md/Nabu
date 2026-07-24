@@ -43,4 +43,9 @@ impl VaultGraph {
             .map(|edge| self.graph[edge.source()].clone())
             .collect()
     }
+    pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
+        // In a real impl, look up notes containing this tag
+        // and return the subgraph of these notes
+        vec![]
+    }
 }

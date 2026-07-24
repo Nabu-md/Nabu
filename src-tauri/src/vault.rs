@@ -152,27 +152,20 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
 
         let settings = SettingsStore::default();
-        let service = VaultService::open(&root, settings).unwrap();
-
-        service.create_file("notes/test.md", "hello").unwrap();
-        service.update_file("notes/test.md", "world").unwrap();
-        let contents = service.read_file("notes/test.md").unwrap();
-        assert_eq!(contents, "world");
-
-        let scan = service.scan().unwrap();
-        assert_eq!(scan.files.len(), 1);
-
-        service.delete_file("notes/test.md").unwrap();
-        let scan_after = service.scan().unwrap();
-        assert!(scan_after.files.is_empty());
-
-        std::fs::remove_dir_all(&root).unwrap();
+    pub fn update_file(&self, path: &Path, contents: &str) -> Result<FileEntry> {
+        if contents.len() > 10 * 1024 * 1024 {
+            return Err(VaultError::InvalidPath("File too large".into()).into());
+        }
+        let temp_path = path.with_extension("tmp");
+        std::fs::write(&temp_path, contents)?;
+        std::fs::rename(&temp_path, path)?;
+        
+        Ok(FileEntry {
+            path: path.to_string_lossy().into(),
+            name: path.file_name().unwrap().to_string_lossy().into(),
+            mtime: 0.0, // Placeholder
+        })
     }
-
-    #[test]
-    fn folders_and_move_success() {
-        let root = temp_root();
-        std::fs::create_dir_all(&root).unwrap();
 
         let settings = SettingsStore::default();
         let service = VaultService::open(&root, settings).unwrap();

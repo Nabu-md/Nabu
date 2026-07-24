@@ -1,3 +1,11 @@
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct Annotation {
+    pub page: u32,
+    pub content: String,
+}
+
 pub struct PdfAnnotator;
 
 impl PdfAnnotator {
@@ -5,8 +13,10 @@ impl PdfAnnotator {
         Self
     }
 
-    pub fn annotate(&self, _path: &str, _text: &str) -> anyhow::Result<()> {
-        // Implementation for PDF annotations
+    pub fn annotate(&self, path: &str, page: u32, content: &str) -> anyhow::Result<()> {
+        let ann = Annotation { page, content: content.into() };
+        let json = serde_json::to_string(&ann)?;
+        // Save annotation
         Ok(())
     }
 }
