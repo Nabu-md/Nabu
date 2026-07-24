@@ -1,4 +1,5 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 #[wasm_bindgen]
 extern "C" {
@@ -61,6 +62,9 @@ pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl Into
                                 set_name_input.set("".to_string());
                             }
                         }
+                    />
+                }.into_any()
+            } else {
                 view! {}.into_any()
             }}
 
