@@ -1,13 +1,13 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  
   "productName": "Nabu",
   "version": "1.0.0",
   "identifier": "com.nabu.app",
   "build": {
-    "frontendDist": "../renderer/dist",
+    "frontendDist": "../crates/nabu-ui/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "cargo run -p nabu-ui -- dev",
+    "beforeBuildCommand": "cargo build -p nabu-ui --release"
   },
   "app": {
     "windows": [
