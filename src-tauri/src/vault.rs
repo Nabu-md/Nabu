@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -38,7 +38,7 @@ pub struct VaultService {
 }
 
 impl VaultService {
-    pub fn open(&mut self, path: PathBuf, _settings: crate::settings::SettingsStore) -> Result<()> {
+    pub fn open(&mut self, _path: PathBuf, _settings: crate::settings::SettingsStore) -> Result<()> {
         Ok(())
     }
 

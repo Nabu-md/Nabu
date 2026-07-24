@@ -3,9 +3,9 @@ use crate::markdown::errors::ParseError;
 use pulldown_cmark::Parser;
 
 pub fn parse(markdown: &str) -> Result<Document, ParseError> {
-    let parser = Parser::new(markdown);
+    let _parser = Parser::new(markdown);
     let mut root_children = Vec::new();
-    let mut stack: Vec<Vec<AstNode>> = Vec::new(); 
+    let _stack: Vec<Vec<AstNode>> = Vec::new(); 
     
     // Simplistic tree builder for demonstration
     // We'll traverse events and build AstNode hierarchy

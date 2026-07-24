@@ -1,4 +1,3 @@
-use crate::markdown::extensions::wikilinks::Wikilink;
 use crate::markdown::extensions::visitor::Visitor;
 use pulldown_cmark::Event;
 
@@ -25,7 +24,7 @@ impl EmbedVisitor {
 }
 
 impl Visitor for EmbedVisitor {
-    fn visit(&mut self, event: &Event<'_>) {
+    fn visit(&mut self, _event: &Event<'_>) {
         // Implement logic to extract embeds
     }
 }
