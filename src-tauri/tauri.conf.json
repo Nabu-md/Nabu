@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "md.nabu.app",
   "build": {
-    "beforeDevCommand": "trunk serve",
-    "beforeBuildCommand": "trunk build",
+    "beforeDevCommand": "trunk serve --port 8080",
+    "beforeBuildCommand": "trunk build --release",
     "devUrl": "http://localhost:8080",
     "frontendDist": "../dist"
   },
