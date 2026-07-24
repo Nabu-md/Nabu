@@ -5,7 +5,7 @@ use leptos::prelude::*;
 
 #[derive(Clone, Copy)]
 pub struct ThemeContext {
-    pub theme: RwSignal<String>,
+    pub theme: leptos::prelude::RwSignal<String>,
 }
 
 pub fn provide_theme(initial_theme: String) {
