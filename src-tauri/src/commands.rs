@@ -136,6 +136,13 @@ pub fn filter_graph_by_tag(tag: String, service: State<'_, VaultService>) -> Res
 }
 
 #[tauri::command]
+pub fn annotate_pdf(pdf_path: String, page: u32, content: String, service: State<'_, VaultService>) -> Result<(), CommandError> {
+    let root = std::path::PathBuf::from(&pdf_path).parent().unwrap_or_else(|| std::path::Path::new(".")).to_path_buf();
+    let annotator = crate::native::pdf::PdfAnnotator::new(&root);
+    annotator.annotate(&pdf_path, page, &content).map_err(CommandError::vault)
+}
+
+#[tauri::command]
 pub fn run_ocr(path: String) -> Result<String, CommandError> {
     let engine = crate::native::ocr::OcrEngine::new();
     engine.extract_text(&path).map_err(CommandError::vault)

@@ -24,9 +24,16 @@ pub fn GraphView(mode: GraphMode) -> impl IntoView {
                 context.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
                 
                 if let Some(nodes) = data["nodes"].as_array() {
-                    for _node in nodes {
+                    for node in nodes {
                         context.begin_path();
-                        context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+                        match mode {
+                            GraphMode::BlocksView => {
+                                context.rect(100.0, 100.0, 20.0, 20.0);
+                            }
+                            _ => {
+                                context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+                            }
+                        }
                         context.fill();
                     }
                 }

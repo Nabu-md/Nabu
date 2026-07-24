@@ -53,7 +53,7 @@ impl Indexer {
         ]);
         let query = query_parser.parse_query(query_str)?;
         
-        let collector = TopDocs::with_limit(10).order_by_score();
+        let collector = tantivy::collector::TopDocs::with_limit(10).order_by_score();
         let top_docs = searcher.search(&query, &collector)?;
         
         let mut results = Vec::new();
