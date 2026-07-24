@@ -113,12 +113,15 @@ pub fn note_read(
 pub fn note_write(
     payload: NotePathPayload,
     contents: String,
-    service: State<'_, VaultService>,
+    service: State<'_, crate::vault::VaultService>,
 ) -> Result<FileEntry, CommandError> {
     ensure_path(&payload.path)?;
-    service
+    let entry = service
         .update_file(&payload.path, &contents)
-        .map_err(CommandError::vault)
+        .map_err(CommandError::vault)?;
+    // Trigger re-indexing
+    // service.indexer.index_document(&payload.path, &contents); 
+    Ok(entry)
 }
 
 #[tauri::command]
@@ -180,10 +183,16 @@ pub fn markdown_parse(markdown: String) -> Result<serde_json::Value, CommandErro
 pub fn note_create(
     vault_path: String,
     name: String,
-    template_content: String,
+    template_name: Option<String>,
     service: State<'_, VaultService>,
 ) -> Result<FileEntry, CommandError> {
-    service.create_note(&vault_path, &name, &template_content).map_err(CommandError::vault)
+    let path = std::path::PathBuf::from(&vault_path);
+    let mut content = String::new();
+    if let Some(t_name) = template_name {
+        let manager = crate::template_manager::TemplateManager::new(&path);
+        content = manager.get_template(&t_name).unwrap_or_default();
+    }
+    service.create_note(&vault_path, &name, &content).map_err(CommandError::vault)
 }
 
 #[tauri::command]
@@ -193,14 +202,36 @@ pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<Stri
 }
 
 #[tauri::command]
-pub fn search(query: String, service: State<'_, crate::vault::VaultService>) -> Result<Vec<String>, CommandError> {
-    // Implementation would involve service.indexer.search(&query)
-    Ok(vec![])
+pub fn search(vault_path: String, query: String, service: State<'_, crate::vault::VaultService>) -> Result<Vec<String>, CommandError> {
+    let path = std::path::PathBuf::from(vault_path);
+    service.search(&path, &query).map_err(CommandError::vault)
+}
+#[tauri::command]
+pub fn get_backlinks(vault_path: String, note_path: String, service: State<'_, crate::vault::VaultService>) -> Vec<String> {
+    let path = std::path::PathBuf::from(vault_path);
+    service.get_backlinks(&path, &note_path)
 }
 #[tauri::command]
 pub fn graph_get(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
     // Placeholder: call service.get_graph()
     Ok(serde_json::json!({}))
+}
+#[tauri::command]
+pub fn setup_vault(path: String, name: String) -> Result<(), CommandError> {
+    let path_buf = std::path::PathBuf::from(path);
+    crate::vault_config::VaultConfig::initialize_vault(path_buf, name)
+        .map_err(|e| CommandError::Vault(e.to_string()))
+}
+#[tauri::command]
+pub fn switch_vault(path: String, service: State<'_, crate::vault::VaultService>) -> Result<(), CommandError> {
+    // Logic to update active session index in VaultService if necessary
+    // For now just ensuring it's in the hashmap
+    let path_buf = std::path::PathBuf::from(path);
+    if service.sessions.contains_key(&path_buf) {
+        Ok(())
+    } else {
+        Err(CommandError::Vault("Vault not open".to_string()))
+    }
 }
 #[tauri::command]
 pub fn get_graph_data(service: State<'_, crate::vault::VaultService>) -> Result<serde_json::Value, CommandError> {

@@ -39,3 +39,17 @@ impl Indexer {
         Ok(())
     }
 }
+    pub fn search(&self, query_str: &str) -> anyhow::Result<Vec<String>> {
+        let searcher = self.reader.searcher();
+        let query_parser = tantivy::query::QueryParser::for_index(&self.index, vec![self.schema.get_field("content").unwrap()]);
+        let query = query_parser.parse_query(query_str)?;
+        let top_docs = searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10))?;
+        
+        let mut results = Vec::new();
+        for (_score, doc_address) in top_docs {
+            let retrieved_doc = searcher.doc(doc_address)?;
+            let path = retrieved_doc.get_first(self.schema.get_field("path").unwrap()).unwrap().as_text().unwrap().to_string();
+            results.push(path);
+        }
+        Ok(results)
+    }

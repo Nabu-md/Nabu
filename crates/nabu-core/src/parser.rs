@@ -1,3 +1,4 @@
+use regex::Regex;
 use pulldown_cmark::{Parser, Options, html};
 
 pub fn parse_markdown_to_html(markdown: &str) -> String {
@@ -10,6 +11,16 @@ pub fn parse_markdown_to_html(markdown: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
     html_output
+}
+
+pub fn extract_tags(content: &str) -> Vec<String> {
+    let mut tags = Vec::new();
+    // Inline #tags
+    let re = regex::Regex::new(r"#([a-zA-Z0-9_-]+)").unwrap();
+    for cap in re.captures_iter(content) {
+        tags.push(cap[1].to_string());
+    }
+    tags
 }
 
 #[cfg(test)]

@@ -32,4 +32,15 @@ impl VaultGraph {
             self.graph.add_edge(node_index, target_node_index, "links_to".to_string());
         }
     }
+    pub fn get_backlinks(&self, note_path: &str) -> Vec<String> {
+        let node_index = match self.node_map.get(note_path) {
+            Some(idx) => *idx,
+            None => return vec![],
+        };
+
+        self.graph
+            .edges_directed(node_index, petgraph::Direction::Incoming)
+            .map(|edge| self.graph[edge.source()].clone())
+            .collect()
+    }
 }

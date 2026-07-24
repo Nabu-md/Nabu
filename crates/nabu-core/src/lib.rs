@@ -4,4 +4,6 @@ pub mod vault;
 pub mod parser;
 pub mod graph;
 pub mod watcher;
+pub mod vault_config;
 pub mod indexer;
+pub mod template_manager;
