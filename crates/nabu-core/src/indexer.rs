@@ -53,12 +53,13 @@ impl Indexer {
         ]);
         let query = query_parser.parse_query(query_str)?;
         
-        let collector = tantivy::collector::TopDocs::with_limit(10).order_by_score();
-        let top_docs = searcher.search(&query, &collector)?;
-        
         let mut results = Vec::new();
+        let collector = TopDocs::with_limit(10).order_by_score();
+
+        let top_docs = searcher.search(&query, &collector)?;
+
         for (_score, doc_address) in top_docs {
-            let retrieved_doc = searcher.doc(doc_address)?;
+            let retrieved_doc: TantivyDocument = searcher.doc(doc_address)?;
             let path = retrieved_doc.get_first(self.schema.get_field("path").unwrap())
                 .context("Missing path")?
                 .as_str()

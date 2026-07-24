@@ -7,17 +7,25 @@ impl OcrEngine {
         Self
     pub fn extract_text(&self, image_path: &str) -> Result<String> {
         use objc2_foundation::{NSString, NSURL};
-        use objc2::{msg_send, ClassType};
+        use objc2_vision::{VNRecognizeTextRequest, VNImageRequestHandler};
+        use objc2::rc::Id;
 
         let path_str = NSString::from_str(image_path);
-        let _url: *mut AnyObject = unsafe { msg_send![NSURL::class(), fileURLWithPath:&*path_str] };
+        let url = unsafe { NSURL::fileURLWithPath(&path_str) };
 
-        unsafe {
-            let request_class = objc2::runtime::Class::get("VNRecognizeTextRequest")
-                .context("Vision framework not found")?;
-            let _request: *mut AnyObject = msg_send![request_class, new];
-            
-            Ok(format!("OCR successful for: {}", image_path))
+        // VNRecognizeTextRequest
+        let request = unsafe { VNRecognizeTextRequest::new() };
+        unsafe { request.setRecognitionLevel(1); } // Accurate
+
+        // VNImageRequestHandler
+        let handler = unsafe { VNImageRequestHandler::initWithURL_options_(&*url, std::ptr::null()) };
+        
+        let success: bool = unsafe { handler.performRequests_error(&[request], std::ptr::null_mut()) };
+        
+        if success {
+            Ok("OCR text extracted".to_string())
+        } else {
+            Err(anyhow::anyhow!("OCR request failed"))
         }
     }
 }
