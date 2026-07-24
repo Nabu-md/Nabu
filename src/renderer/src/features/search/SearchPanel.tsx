@@ -147,19 +147,6 @@ export function SearchPanel({
     [onQueryChange, performSearch]
   )
 
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      onQueryChange(value)
-      setSelectedIndex(0)
-
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        performSearch(value)
-      }, 200)
-    },
-    [onQueryChange, performSearch]
-  )
 
   // --- Open a result ---
   const openResult = useCallback(
