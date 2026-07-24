@@ -10,6 +10,16 @@ pub fn run() {
           .level(log::LevelFilter::Info)
           .build(),
       )?;
+      tauri::WebviewWindowBuilder::new(
+        app,
+        "dictation-pill",
+        tauri::WebviewUrl::App("dictation-pill.html".into()),
+      )
+      .title("Dictation")
+      .transparent(true)
+      .decorations(false)
+      .always_on_top(true)
+      .build()?;
       Ok(())
     } else {
       Ok(())

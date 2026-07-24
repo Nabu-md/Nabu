@@ -1,3 +1,5 @@
+use wasm_bindgen_futures::spawn_local;
+
 pub mod tree;
 pub mod ipc;
 pub mod components;
