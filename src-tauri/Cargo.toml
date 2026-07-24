@@ -30,7 +30,7 @@ anyhow = "1.0.96"
 walkdir = "2.5.0"
 uuid = "1.13.0"
 tantivy = "0.26.1"
-pulldown-cmark = "0.18.0"
+pulldown-cmark = "0.13.4"
 
 [profile.release]
 opt-level = 3

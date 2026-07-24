@@ -8,3 +8,7 @@ playwright-report/
 .kiro/
 .zcode/
 *.tsbuildinfo
+target/
+dist/
+*.rs.bk
+.DS_Store
