@@ -138,10 +138,11 @@ impl SettingsStore {
     }
 
     pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     pub fn get_settings(&self) -> AppSettings {
         self.inner.lock().unwrap().clone()
-    }
-        &self.path
     }
 
     pub fn get(&self) -> AppSettings {
@@ -183,20 +184,16 @@ impl SettingsStore {
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent).map_err(SettingsError::write)?;
         }
-
-        let payload = serde_json::to_vec_pretty(settings).map_err(SettingsError::Malformed)?;
+        let payload = serde_json::to_vec_pretty(settings).map_err(|e| SettingsError::Malformed(e.to_string()))?;
         std::fs::write(&self.path, payload).map_err(SettingsError::write)?;
         Ok(())
     }
-}
     pub fn get_value(&self, key: &str) -> serde_json::Value {
         self.inner.lock().unwrap().extra_settings.get(key).cloned().unwrap_or(serde_json::Value::Null)
     }
 
     pub fn set_value(&self, key: &str, value: serde_json::Value) {
-        self.update(|settings| {
-            settings.extra_settings.insert(key.to_string(), value);
-        }).ok();
+        self.inner.lock().unwrap().extra_settings.insert(key.to_string(), value);
     }
 
     pub fn get_feature_toggles(&self) -> serde_json::Value {
@@ -204,9 +201,12 @@ impl SettingsStore {
     }
 
     pub fn set_feature_toggle(&self, id: String, enabled: bool) -> serde_json::Value {
-        // Simplistic toggle logic
-        serde_json::Value::Bool(true)
+        let mut settings = self.inner.lock().unwrap();
+        let toggles = settings.extra_settings.entry("featureToggles".to_string()).or_insert(serde_json::json!({}));
+        toggles[id] = serde_json::json!(enabled);
+        toggles.clone()
     }
+}
 
 fn validate_path(path: &Path) -> Result<(), SettingsError> {
     if path.as_os_str().is_empty() {

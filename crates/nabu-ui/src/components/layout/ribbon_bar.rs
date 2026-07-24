@@ -7,7 +7,7 @@ pub fn RibbonBar() -> impl IntoView {
     
     spawn_local(async move {
         let args = serde_wasm_bindgen::to_value(&serde_json::json!({"key": "enable_daily_notes"})).unwrap();
-        let result = crate::ipc::tauri_invoke("settings_get", args).await;
+                    let result = crate::ipc::tauri_invoke("get_settings", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await;
         if let Ok(val) = serde_wasm_bindgen::from_value::<bool>(result) {
             set_enabled.set(val);
         }
