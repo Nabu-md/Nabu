@@ -4,6 +4,8 @@ use thiserror::Error;
 use crate::models::{FileEntry, VaultScanResult};
 use crate::settings::{SettingsError, SettingsStore};
 use crate::vault::{VaultService, VaultError};
+use tauri::Manager;
+…
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -15,13 +17,16 @@ pub enum CommandError {
     Settings(String),
     #[error("markdown error: {0}")]
     Markdown(String),
+    #[error("command error: {0}")]
+    Internal(String),
 }
-
 impl CommandError {
     fn payload<E: std::fmt::Display>(err: E) -> Self { CommandError::Payload(err.to_string()) }
     fn vault<E: std::fmt::Display>(err: E) -> Self { CommandError::Vault(err.to_string()) }
     fn settings<E: std::fmt::Display>(err: E) -> Self { CommandError::Settings(err.to_string()) }
+    fn internal<E: std::fmt::Display>(err: E) -> Self { CommandError::Internal(err.to_string()) }
 }
+…
 
 impl From<VaultError> for CommandError {
     fn from(err: VaultError) -> Self { CommandError::vault(err) }
@@ -115,7 +120,21 @@ pub fn stage_files(paths: Vec<String>) -> Result<(), CommandError> {
 pub fn search(vault_path: String, query: String, service: State<'_, VaultService>) -> Result<Vec<String>, CommandError> {
     service.search(&PathBuf::from(vault_path), &query).map_err(CommandError::vault)
 }
+#[tauri::command]
+pub fn complete_setup(app: tauri::AppHandle) -> Result<(), CommandError> {
+    let main_window = app.get_webview_window("main").ok_or(CommandError::internal("Main window not found"))?;
+    main_window.show().map_err(|e| CommandError::internal(e.to_string()))?;
+    let wizard_window = app.get_webview_window("wizard").ok_or(CommandError::internal("Wizard window not found"))?;
+    wizard_window.close().map_err(|e| CommandError::internal(e.to_string()))?;
+    Ok(())
+}
 
+#[tauri::command]
+pub fn open_settings(app: tauri::AppHandle) -> Result<(), CommandError> {
+    let settings_window = app.get_webview_window("settings").ok_or(CommandError::internal("Settings window not found"))?;
+    settings_window.show().map_err(|e| CommandError::internal(e.to_string()))?;
+    Ok(())
+}
 #[tauri::command]
 pub fn get_graph_data(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
     Ok(service.get_graph_data())

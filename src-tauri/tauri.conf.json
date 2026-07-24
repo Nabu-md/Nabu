@@ -14,10 +14,20 @@
       {
         "label": "main",
         "title": "Nabu",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "visible": false
+      },
+      {
+        "label": "wizard",
+        "title": "Nabu Setup",
+        "width": 440,
+        "height": 620,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": true
       },
       {
         "label": "dictation-pill",
@@ -27,6 +37,15 @@
         "alwaysOnTop": true,
         "width": 200,
         "height": 50
+      }
+      ,
+      {
+        "label": "settings",
+        "title": "Settings",
+        "width": 750,
+        "height": 520,
+        "resizable": false,
+        "visible": false
       }
     ],
     "security": {
