@@ -2,11 +2,12 @@ use leptos::prelude::*;
 use web_sys::CanvasRenderingContext2d;
 use wasm_bindgen::JsCast;
 
-#[component]
 #[derive(Clone, Copy, PartialEq)]
 pub enum GraphMode { Default, TagView, BlocksView }
 
+#[component]
 pub fn GraphView(mode: GraphMode) -> impl IntoView {
+
     let graph_data = Resource::new(|| (), |_| async move {
         // In a real implementation, this would call Tauri IPC
         // invoke("get_graph_data", ...).await

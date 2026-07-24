@@ -1,6 +1,7 @@
 pub mod tree;
 pub mod components;
 
+use leptos::prelude::*;
 
 #[derive(Clone, Copy)]
 pub struct ThemeContext {
