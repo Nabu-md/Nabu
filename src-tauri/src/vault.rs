@@ -10,7 +10,7 @@ pub struct AppSettings {
     pub theme: String,
     pub last_vault_path: String,
     #[serde(default)]
-    pub recent_vaults: Vec<crate::models::RecentVaultEntry>,
+    pub recent_vaults: Vec<crate::settings::RecentVaultEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,8 +26,15 @@ pub struct VaultScanResult {
     pub files: Vec<FileEntry>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VaultSession {
+    pub id: String,
+    pub path: PathBuf,
+}
+
+
 pub struct VaultService {
-    pub sessions: HashMap<PathBuf, crate::vault::VaultSession>,
+    pub sessions: HashMap<PathBuf, VaultSession>,
 }
 
 impl VaultService {
