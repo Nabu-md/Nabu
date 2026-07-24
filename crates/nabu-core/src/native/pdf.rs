@@ -19,11 +19,11 @@ impl PdfAnnotator {
             anyhow::bail!("Page {} out of range", page);
         }
         let ann = Annotation { page, content: content.into() };
-        let pdf_name = std::path::Path::new(pdf_path).file_name()
-            .context("Invalid PDF path")?
-            .to_string_lossy();
-        let ann_path = self.annotations_dir.join(format!("{}_page_{}.json", pdf_name, page));
-        std::fs::write(ann_path, serde_json::to_string_pretty(&ann)?)?;
+        let ann_id = uuid::Uuid::new_v4();
+        let ann_path = self.annotations_dir.join(format!("{}_{}.json", ann_id, page));
+        
+        let file = std::fs::File::create(&ann_path).context("Failed to create annotation file")?;
+        serde_json::to_writer_pretty(file, &ann).context("Failed to serialize annotation")?;
         Ok(())
     }
 }
