@@ -12,3 +12,6 @@ target/
 dist/
 *.rs.bk
 .DS_Store
+# Mise local overrides
+.mise.local.toml
+.mise/*.env

@@ -1,0 +1,18 @@
+[tools]
+rust = "1.80"
+node = "20"
+"cargo:cargo-binstall" = "latest"
+"cargo:cargo-nextest" = "latest"
+"cargo:cargo-deny" = "latest"
+"cargo:trunk" = "latest"
+
+[env]
+RUST_LOG = "debug"
+NABU_DEV_MODE = "true"
+
+[tasks]
+dev = { run = "cargo tauri dev", description = "Run Nabu in desktop development mode" }
+check = { run = "cargo check --workspace", description = "Fast workspace type and syntax validation" }
+test = { run = "cargo nextest run --workspace", description = "Run parallel tests across all crates" }
+audit = { run = "cargo deny check", description = "Check dependencies for advisories, licenses, and duplicates" }
+clean = { run = "cargo clean", description = "Clean build artifacts" }
