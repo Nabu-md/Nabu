@@ -1,0 +1,11 @@
+[package]
+name = "nabu-core"
+version = "0.1.0"
+edition = "2024"
+
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
+tokio = { version = "1.43.0", features = ["full"] }
+anyhow = "1.0.96"
+pulldown-cmark = "0.18.0"
+petgraph = "0.7.0"
