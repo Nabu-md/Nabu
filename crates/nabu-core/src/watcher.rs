@@ -1,8 +1,8 @@
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher as NotifyWatcher};
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
+#[derive(Debug)]
 pub enum WatchEvent {
     Changed(PathBuf),
     Removed(PathBuf),

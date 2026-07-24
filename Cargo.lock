@@ -2564,6 +2564,7 @@ dependencies = [
  "notify",
  "petgraph",
  "pulldown-cmark",
+ "regex",
  "serde",
  "serde_json",
  "tantivy",
@@ -2579,6 +2580,7 @@ dependencies = [
  "leptos",
  "nabu-core",
  "serde",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]

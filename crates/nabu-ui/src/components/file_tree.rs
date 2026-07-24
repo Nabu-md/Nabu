@@ -22,7 +22,6 @@ pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl Into
     let expanded_folders = RwSignal::new(HashSet::new());
     provide_context(FileTreeContext { active_file, expanded_folders });
 
-    // State for creating new files/folders
     let (new_file_input, set_new_file_input) = signal(false);
     let (new_folder_input, set_new_folder_input) = signal(false);
     let (name_input, set_name_input) = signal("".to_string());

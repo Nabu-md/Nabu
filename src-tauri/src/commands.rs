@@ -193,14 +193,19 @@ pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<Stri
 }
 
 #[tauri::command]
-pub fn search(query: String, service: State<'_, VaultService>) -> Result<Vec<String>, CommandError> {
-    // Placeholder: call service.search(&query)
+pub fn search(query: String, service: State<'_, crate::vault::VaultService>) -> Result<Vec<String>, CommandError> {
+    // Implementation would involve service.indexer.search(&query)
     Ok(vec![])
 }
 #[tauri::command]
 pub fn graph_get(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
     // Placeholder: call service.get_graph()
     Ok(serde_json::json!({}))
+}
+#[tauri::command]
+pub fn get_graph_data(service: State<'_, crate::vault::VaultService>) -> Result<serde_json::Value, CommandError> {
+    // This would invoke graph engine to serialize the petgraph
+    Ok(serde_json::json!({"nodes": [], "edges": []}))
 }
 #[tauri::command]
 pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {

@@ -4,10 +4,17 @@ use wasm_bindgen::JsCast;
 
 #[component]
 pub fn GraphView() -> impl IntoView {
+    let graph_data = Resource::new(|| (), |_| async move {
+        // In a real implementation, this would call Tauri IPC
+        // invoke("get_graph_data", ...).await
+        serde_json::json!({"nodes": [], "edges": []})
+    });
+
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
     Effect::new(move |_| {
         if let Some(canvas) = canvas_ref.get() {
+            let _data = graph_data.get();
             let context = canvas
                 .get_context("2d")
                 .unwrap()
@@ -16,9 +23,6 @@ pub fn GraphView() -> impl IntoView {
                 .unwrap();
             
             context.clear_rect(0.0, 0.0, 400.0, 400.0);
-            context.begin_path();
-            context.arc(200.0, 200.0, 50.0, 0.0, 2.0 * std::f64::consts::PI).unwrap();
-            context.stroke();
         }
     });
 

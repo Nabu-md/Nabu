@@ -11,6 +11,20 @@ pub struct VaultSession {
 }
 
 impl VaultSession {
+    pub fn handle_event(&mut self, event: crate::watcher::WatchEvent) -> anyhow::Result<()> {
+        match event {
+            crate::watcher::WatchEvent::Created(path) | crate::watcher::WatchEvent::Changed(path) => {
+                let content = std::fs::read_to_string(&path)?;
+                self.indexer.index_document(&path.to_string_lossy(), &content)?;
+            }
+            crate::watcher::WatchEvent::Removed(_) => {
+                // Handle removal (if needed)
+            }
+        }
+        Ok(())
+    }
+}
+impl VaultSession {
     pub fn new(vault_id: String, vault_path: PathBuf) -> Self {
         let view_state_manager = ViewStateManager::new(vault_path.clone());
         let indexer = Indexer::new(vault_path.join(".nabu/index")).expect("Failed to initialize indexer");

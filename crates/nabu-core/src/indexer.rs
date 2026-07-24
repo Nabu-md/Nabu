@@ -16,10 +16,10 @@ impl Indexer {
         schema_builder.add_text_field("content", TEXT | STORED);
         let schema = schema_builder.build();
 
-        let index = Index::create_or_open(path, schema.clone())?;
+        let index = Index::open_or_create(tantivy::directory::MmapDirectory::open(&path)?, schema.clone())?;
         let reader = index
             .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommit)
+            .reload_policy(tantivy::ReloadPolicy::Manual)
             .try_into()?;
         let writer = index.writer(50_000_000)?;
 
@@ -30,7 +30,7 @@ impl Indexer {
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();
         
-        let mut doc = tantivy::Document::default();
+        let mut doc = tantivy::doc!();
         doc.add_text(path_field, path);
         doc.add_text(content_field, content);
         
