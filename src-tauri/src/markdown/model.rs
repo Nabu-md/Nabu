@@ -75,4 +75,8 @@ impl Document {
     pub fn new(source: String, ast: AstNode) -> Self {
         Self { source, ast }
     }
+    pub fn to_json(&self) -> serde_json::Value {
+        normalize(self.ast.clone())
+    }
 }
+

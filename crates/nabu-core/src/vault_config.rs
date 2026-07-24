@@ -11,11 +11,11 @@ pub struct VaultConfig {
 impl VaultConfig {
     pub fn initialize_vault(path: PathBuf, name: String) -> Result<()> {
         if !path.is_dir() {
-            return anyhow::bail!("Path is not a directory: {:?}", path);
+            anyhow::bail!("Path is not a directory: {:?}", path);
         }
         let nabu_dir = path.join(".nabu");
         if nabu_dir.exists() {
-            return anyhow::bail!("Vault already initialized at: {:?}", path);
+            anyhow::bail!("Vault already initialized at: {:?}", path);
         }
         std::fs::create_dir_all(nabu_dir.join("index"))?;
         

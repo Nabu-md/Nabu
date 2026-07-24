@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #[cfg(test)]
 mod debug_tests {
     #[test]

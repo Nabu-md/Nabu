@@ -5,6 +5,10 @@ pub struct Frontmatter {
     pub properties: HashMap<String, String>,
 }
 
+
+pub fn extract_frontmatter(input: &str) -> Option<Frontmatter> {
+    Frontmatter::parse(input)
+}
 impl Frontmatter {
     pub fn parse(input: &str) -> Option<Self> {
         let trimmed = input.trim().strip_prefix("---")?.trim();

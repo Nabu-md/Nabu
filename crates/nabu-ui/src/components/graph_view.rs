@@ -1,4 +1,3 @@
-use wasm_bindgen::JsValue;
 use leptos::prelude::*;
 use web_sys::CanvasRenderingContext2d;
 use wasm_bindgen::JsCast;
@@ -29,10 +28,10 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                         let is_folder = node["is_folder"].as_bool().unwrap_or(false);
                         context.begin_path();
                         if is_folder {
-                            context.set_fill_style(&JsValue::from_str("blue"));
+                            context.set_fill_style_str("blue");
                             context.rect(100.0, 100.0, 20.0, 20.0);
                         } else {
-                            context.set_fill_style(&JsValue::from_str("black"));
+                            context.set_fill_style_str("black");
                             context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
                         }
                         context.fill();
