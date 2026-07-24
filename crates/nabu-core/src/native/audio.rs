@@ -8,7 +8,7 @@ pub struct AudioEngine {
 impl AudioEngine {
     pub fn new(model_path: &str) -> Result<Self> {
         let context = WhisperContext::init_from_file(model_path)
-            .context("Failed to load whisper model")?;
+            .map_err(|_| anyhow::anyhow!("Failed to load whisper model: {}", model_path))?;
         Ok(Self { context })
     }
 

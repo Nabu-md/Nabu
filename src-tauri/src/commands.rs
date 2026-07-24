@@ -69,6 +69,11 @@ pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<Stri
     Ok("daily-note-content".into())
 }
 
+
+#[tauri::command]
+pub fn start_dictation() -> Result<String, CommandError> {
+    Ok("Dictation started".to_string())
+}
 #[tauri::command]
 pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
     Ok(store.get_value(&key))
@@ -107,6 +112,23 @@ pub fn note_daily(vault_path: String, service: State<'_, VaultService>) -> Resul
     let content = crate::template_manager::TemplateManager::new(&path)
         .get_template("Daily Note").unwrap_or_default();
     service.create_note(&vault_path, &format!("{}.md", date_name), &content).map_err(CommandError::vault)
+}
+
+#[tauri::command]
+pub fn export_note(
+    vault_path: String,
+    note_path: String,
+    output_path: String,
+    template_name: String,
+    _service: State<'_, VaultService>
+) -> Result<(), CommandError> {
+    let root = std::path::PathBuf::from(vault_path);
+    let engine = crate::export_engine::ExportEngine::new(root);
+    engine.export_to_html(
+        &std::path::PathBuf::from(note_path),
+        &std::path::PathBuf::from(output_path),
+        &template_name
+    ).map_err(CommandError::vault)
 }
 
 #[cfg(test)]
