@@ -8,3 +8,4 @@ pub mod pdf_viewer;
 pub mod sandboxed_html;
 pub mod layout;
 pub mod editor;
+pub mod settings;

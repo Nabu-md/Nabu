@@ -25,6 +25,38 @@ pub struct AppSettings {
     pub enable_daily_notes: bool,
     #[serde(default)]
     pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub launch_at_startup: bool,
+    #[serde(default)]
+    pub live_preview_mode: bool,
+    #[serde(default)]
+    pub auto_pair_brackets: bool,
+    #[serde(default)]
+    pub show_line_numbers: bool,
+    #[serde(default)]
+    pub convert_html_to_md: bool,
+    #[serde(default)]
+    pub slash_menu_enabled: bool,
+    #[serde(default)]
+    pub voice_hotkey: String,
+    #[serde(default)]
+    pub auto_format_transcription: bool,
+    #[serde(default)]
+    pub pill_hover_focus: bool,
+    #[serde(default)]
+    pub new_note_path_strategy: String,
+    #[serde(default)]
+    pub trash_strategy: String,
+    #[serde(default)]
+    pub force_sandbox: bool,
+    #[serde(default)]
+    pub graph_include_folders: bool,
+    #[serde(default)]
+    pub graph_folder_click_behavior: String,
+    #[serde(default)]
+    pub graph_gravity: f32,
+    #[serde(default)]
+    pub graph_node_density: f32,
 }
 
 impl Default for AppSettings {
@@ -37,6 +69,22 @@ impl Default for AppSettings {
             floating_pill_opacity: 0.8,
             whisper_model: "ggml-tiny.en.bin".to_string(),
             enable_daily_notes: false,
+            launch_at_startup: false,
+            live_preview_mode: true,
+            auto_pair_brackets: true,
+            show_line_numbers: true,
+            convert_html_to_md: true,
+            slash_menu_enabled: true,
+            voice_hotkey: "Cmd+Shift+D".to_string(),
+            auto_format_transcription: true,
+            pill_hover_focus: true,
+            new_note_path_strategy: "vault_root".to_string(),
+            trash_strategy: "system_trash".to_string(),
+            force_sandbox: true,
+            graph_include_folders: true,
+            graph_folder_click_behavior: "table_view".to_string(),
+            graph_gravity: 0.5,
+            graph_node_density: 0.5,
             extra_settings: std::collections::HashMap::new(),
         }
     }
@@ -139,15 +187,12 @@ impl SettingsStore {
         std::fs::write(&self.path, payload).map_err(SettingsError::write)?;
         Ok(())
     }
-}
     pub fn get_value(&self, key: &str) -> serde_json::Value {
         self.inner.lock().unwrap().extra_settings.get(key).cloned().unwrap_or(serde_json::Value::Null)
     }
 
     pub fn set_value(&self, key: &str, value: serde_json::Value) {
-        self.update(|settings| {
-            settings.extra_settings.insert(key.to_string(), value);
-        }).ok();
+        self.inner.lock().unwrap().extra_settings.insert(key.to_string(), value);
     }
 
     pub fn get_feature_toggles(&self) -> serde_json::Value {
@@ -155,9 +200,12 @@ impl SettingsStore {
     }
 
     pub fn set_feature_toggle(&self, id: String, enabled: bool) -> serde_json::Value {
-        // Simplistic toggle logic
-        serde_json::Value::Bool(true)
+        let mut settings = self.inner.lock().unwrap();
+        let toggles = settings.extra_settings.entry("featureToggles".to_string()).or_insert(serde_json::json!({}));
+        toggles[id] = serde_json::json!(enabled);
+        toggles.clone()
     }
+}
 
 fn validate_path(path: &Path) -> Result<(), SettingsError> {
     if path.as_os_str().is_empty() {
