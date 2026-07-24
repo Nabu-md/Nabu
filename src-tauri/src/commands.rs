@@ -94,7 +94,23 @@ pub fn settings_get_feature_toggles(store: State<'_, SettingsStore>) -> Result<s
 pub fn settings_set_feature_toggle(id: String, enabled: bool, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
     Ok(store.set_feature_toggle(id, enabled))
 }
+#[tauri::command]
+pub fn settings_get_all(store: State<'_, SettingsStore>) -> Result<crate::settings::AppSettings, CommandError> {
+    Ok(store.get())
+}
 
+#[tauri::command]
+pub fn settings_set_all(settings: crate::settings::AppSettings, store: State<'_, SettingsStore>) -> Result<(), CommandError> {
+    store.save(&settings).map_err(CommandError::settings)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn stage_files(paths: Vec<String>) -> Result<(), CommandError> {
+    // Placeholder for file staging logic
+    println!("Staged files: {:?}", paths);
+    Ok(())
+}
 #[tauri::command]
 pub fn search(vault_path: String, query: String, service: State<'_, VaultService>) -> Result<Vec<String>, CommandError> {
     service.search(&PathBuf::from(vault_path), &query).map_err(CommandError::vault)
@@ -149,8 +165,10 @@ pub fn run_ocr(path: String) -> Result<String, CommandError> {
 }
 
 #[tauri::command]
-pub fn run_dictation(audio_data: Vec<f32>) -> Result<String, CommandError> {
-    let engine = crate::native::audio::AudioEngine::new("model.bin").map_err(CommandError::vault)?;
+pub fn run_dictation(audio_data: Vec<f32>, settings: State<'_, SettingsStore>) -> Result<String, CommandError> {
+    let model_name = settings.get().whisper_model;
+    let model_path = format!("resources/whisper-models/{}", model_name);
+    let engine = crate::native::audio::AudioEngine::new(&model_path).map_err(CommandError::vault)?;
     engine.transcribe(&audio_data).map_err(CommandError::vault)
 }
 
