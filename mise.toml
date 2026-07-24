@@ -1,5 +1,5 @@
 [tools]
-rust = "1.80"
+rust = "1.97.1"
 node = "20"
 "cargo:cargo-binstall" = "latest"
 "cargo:cargo-nextest" = "latest"
