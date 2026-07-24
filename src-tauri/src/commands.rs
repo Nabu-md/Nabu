@@ -230,43 +230,6 @@ pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<Stri
 }
 
 #[tauri::command]
-pub fn search(vault_path: String, query: String, service: State<'_, crate::vault::VaultService>) -> Result<Vec<String>, CommandError> {
-    let path = std::path::PathBuf::from(vault_path);
-    service.search(&path, &query).map_err(CommandError::vault)
-}
-#[tauri::command]
-pub fn get_backlinks(vault_path: String, note_path: String, service: State<'_, crate::vault::VaultService>) -> Vec<String> {
-    let path = std::path::PathBuf::from(vault_path);
-    service.get_backlinks(&path, &note_path)
-}
-#[tauri::command]
-pub fn graph_get(service: State<'_, VaultService>) -> Result<serde_json::Value, CommandError> {
-    // Placeholder: call service.get_graph()
-    Ok(serde_json::json!({}))
-}
-#[tauri::command]
-pub fn setup_vault(path: String, name: String) -> Result<(), CommandError> {
-    let path_buf = std::path::PathBuf::from(path);
-    crate::vault_config::VaultConfig::initialize_vault(path_buf, name)
-        .map_err(|e| CommandError::Vault(e.to_string()))
-}
-#[tauri::command]
-pub fn switch_vault(path: String, service: State<'_, crate::vault::VaultService>) -> Result<(), CommandError> {
-    // Logic to update active session index in VaultService if necessary
-    // For now just ensuring it's in the hashmap
-    let path_buf = std::path::PathBuf::from(path);
-    if service.sessions.contains_key(&path_buf) {
-        Ok(())
-    } else {
-        Err(CommandError::Vault("Vault not open".to_string()))
-    }
-}
-#[tauri::command]
-pub fn get_graph_data(service: State<'_, crate::vault::VaultService>) -> Result<serde_json::Value, CommandError> {
-    // This would invoke graph engine to serialize the petgraph
-    Ok(serde_json::json!({"nodes": [], "edges": []}))
-}
-#[tauri::command]
 pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, CommandError> {
     Ok(store.get_value(&key))
 }

@@ -1,20 +1,21 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use anyhow::Result;
+use anyhow::{Result, Context};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VaultConfig {
     pub name: String,
     pub path: PathBuf,
 }
+
 impl VaultConfig {
     pub fn initialize_vault(path: PathBuf, name: String) -> Result<()> {
         if !path.is_dir() {
-            return Err(anyhow::anyhow!("Path is not a directory"));
+            return anyhow::bail!("Path is not a directory: {:?}", path);
         }
         let nabu_dir = path.join(".nabu");
         if nabu_dir.exists() {
-            return Err(anyhow::anyhow!("Vault already initialized"));
+            return anyhow::bail!("Vault already initialized at: {:?}", path);
         }
         std::fs::create_dir_all(nabu_dir.join("index"))?;
         
