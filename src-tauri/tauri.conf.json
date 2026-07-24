@@ -49,8 +49,8 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost;"
     }
   },
-  "bundle": {
     "identifier": "md.nabu.app",
+  "bundle": {
     "active": true,
     "targets": ["dmg", "app"],
     "icon": [

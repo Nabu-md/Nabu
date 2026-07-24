@@ -25,14 +25,14 @@ pub fn GraphView(mode: GraphMode) -> impl IntoView {
                 
                 if let Some(nodes) = data["nodes"].as_array() {
                     for node in nodes {
+                        let is_folder = node["is_folder"].as_bool().unwrap_or(false);
                         context.begin_path();
-                        match mode {
-                            GraphMode::BlocksView => {
-                                context.rect(100.0, 100.0, 20.0, 20.0);
-                            }
-                            _ => {
-                                context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
-                            }
+                        if is_folder {
+                            context.set_fill_style(&"blue".into());
+                            context.rect(100.0, 100.0, 20.0, 20.0);
+                        } else {
+                            context.set_fill_style(&"black".into());
+                            context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
                         }
                         context.fill();
                     }
@@ -42,6 +42,10 @@ pub fn GraphView(mode: GraphMode) -> impl IntoView {
     });
 
     view! {
-        <canvas node_ref=canvas_ref width=800 height=600 class="graph-canvas" />
+        <canvas node_ref=canvas_ref width=800 height=600 class="graph-canvas" on:click=move |ev| {
+            // Placeholder: Implement click detection for node
+            // In real app, calculate distance to node centers
+            println!("Node clicked at: {}, {}", ev.offset_x(), ev.offset_y());
+        }/>
     }
 }

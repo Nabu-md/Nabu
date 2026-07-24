@@ -93,21 +93,6 @@ impl VaultService {
         })
     }
 }
-}
-pub struct SettingsStore {
-    pub theme: String,
-    pub last_vault_path: String,
-impl VaultService {
-    pub fn open(&mut self, path: PathBuf, _settings: AppSettings) -> Result<()> {
-        let session = crate::vault::VaultSession::new("temp-id".into(), path.clone());
-        self.sessions.insert(path, session);
-        Ok(())
-    }
-    // ... other methods updated similarly
-}
-        })
-    }
-}
 
 fn ensure_open(root: &Path) -> Result<()> {
     if root.as_os_str().is_empty() || !root.exists() {

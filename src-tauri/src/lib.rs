@@ -1,4 +1,11 @@
 mod commands;
+pub mod models;
+pub mod settings;
+pub mod vault;
+pub mod template_manager;
+pub mod export_engine;
+pub mod native;
+
 
 mod markdown;
 pub use markdown::{parse, Document, ParseError};
