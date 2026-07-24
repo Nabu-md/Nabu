@@ -1,3 +1,15 @@
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
+    async fn invoke(cmd: &str, args: JsValue) -> JsValue;
+}
+
+async fn tauri_invoke(cmd: &str, args: JsValue) -> JsValue {
+    invoke(cmd, args).await
+}
+
 use leptos::prelude::*;
 use std::path::PathBuf;
 use std::collections::HashSet;
@@ -40,14 +52,15 @@ pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl Into
                         on:input=move |ev| set_name_input.set(event_target_value(&ev))
                         on:keydown=move |ev| {
                             if ev.key() == "Enter" {
+                                let name = name_input.get();
+                                spawn_local(async move {
+                                    let _ = tauri_invoke("note_create_file", serde_wasm_bindgen::to_value(&serde_json::json!({"path": name})).unwrap()).await;
+                                });
                                 set_new_file_input.set(false);
                                 set_new_folder_input.set(false);
                                 set_name_input.set("".to_string());
                             }
                         }
-                    />
-                }.into_any()
-            } else {
                 view! {}.into_any()
             }}
 

@@ -47,6 +47,7 @@ pub enum VaultError {
 
 pub struct VaultService {
     pub sessions: std::collections::HashMap<PathBuf, crate::vault::VaultSession>,
+    pub graph: crate::graph::GraphEngine,
 }
     pub fn start_watching(&mut self, path: PathBuf) -> Result<()> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -75,17 +76,29 @@ pub struct VaultService {
         self.sessions.get(vault_path)
             .map(|s| s.graph.get_backlinks(note_path))
             .unwrap_or_default()
-    }
 impl Default for VaultService {
     fn default() -> Self {
-        Self { sessions: std::collections::HashMap::new() }
+        Self {
+            sessions: std::collections::HashMap::new(),
+            graph: crate::graph::GraphEngine::default(),
+        }
     }
+}
+
+impl VaultService {
+    pub fn get_graph_data(&self) -> serde_json::Value {
+        serde_json::json!({
+            "nodes": self.graph.nodes(),
+            "edges": self.graph.edges()
+        })
+    }
+}
 }
 pub struct SettingsStore {
     pub theme: String,
     pub last_vault_path: String,
 impl VaultService {
-    pub fn open(&mut self, path: PathBuf) -> Result<()> {
+    pub fn open(&mut self, path: PathBuf, _settings: AppSettings) -> Result<()> {
         let session = crate::vault::VaultSession::new("temp-id".into(), path.clone());
         self.sessions.insert(path, session);
         Ok(())
