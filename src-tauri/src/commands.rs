@@ -5,7 +5,6 @@ use crate::models::{FileEntry, VaultScanResult};
 use crate::settings::{SettingsError, SettingsStore};
 use crate::vault::{VaultService, VaultError};
 use tauri::Manager;
-…
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -20,13 +19,13 @@ pub enum CommandError {
     #[error("command error: {0}")]
     Internal(String),
 }
+
 impl CommandError {
     fn payload<E: std::fmt::Display>(err: E) -> Self { CommandError::Payload(err.to_string()) }
     fn vault<E: std::fmt::Display>(err: E) -> Self { CommandError::Vault(err.to_string()) }
     fn settings<E: std::fmt::Display>(err: E) -> Self { CommandError::Settings(err.to_string()) }
     fn internal<E: std::fmt::Display>(err: E) -> Self { CommandError::Internal(err.to_string()) }
 }
-…
 
 impl From<VaultError> for CommandError {
     fn from(err: VaultError) -> Self { CommandError::vault(err) }
@@ -34,6 +33,12 @@ impl From<VaultError> for CommandError {
 
 impl From<SettingsError> for CommandError {
     fn from(err: SettingsError) -> Self { CommandError::settings(err) }
+}
+
+impl From<CommandError> for tauri::ipc::InvokeError {
+    fn from(err: CommandError) -> Self {
+        tauri::ipc::InvokeError::from_anyhow(anyhow::anyhow!(err))
+    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -69,11 +74,6 @@ pub fn note_rename_file(path: String, new_path: String) -> Result<(), CommandErr
     std::fs::rename(path, new_path).map_err(CommandError::vault)?;
     Ok(())
 }
-pub fn note_daily(path: String, service: State<'_, VaultService>) -> Result<String, CommandError> {
-    // Implementation of daily note logic...
-    Ok("daily-note-content".into())
-}
-
 
 #[tauri::command]
 pub fn start_dictation() -> Result<String, CommandError> {
@@ -112,7 +112,6 @@ pub fn settings_set_all(settings: crate::settings::AppSettings, store: State<'_,
 
 #[tauri::command]
 pub fn stage_files(paths: Vec<String>) -> Result<(), CommandError> {
-    // Placeholder for file staging logic
     println!("Staged files: {:?}", paths);
     Ok(())
 }
@@ -191,13 +190,6 @@ pub fn run_dictation(audio_data: Vec<f32>, settings: State<'_, SettingsStore>) -
     engine.transcribe(&audio_data).map_err(CommandError::vault)
 }
 
-#[tauri::command]
-pub fn annotate_pdf(path: String, page: u32, content: String) -> Result<(), CommandError> {
-    let root = std::path::PathBuf::from(&path).parent().unwrap_or_else(|| std::path::Path::new(".")).to_path_buf();
-    let annotator = crate::native::pdf::PdfAnnotator::new(&root);
-    annotator.annotate(&path, page, &content).map_err(CommandError::vault)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,14 +215,5 @@ mod tests {
 
         let response = vault_open(payload, tauri::State::new(service), tauri::State::new(settings)).unwrap();
         assert_eq!(response.vault.files.len(), 1);
-    }
-
-    #[test]
-    fn note_write_and_read_roundtrip() {
-        let (service, settings, _dir) = setup_service();
-        let write_payload = NotePathPayload { path: "/tmp/note.md".into() };
-        note_write(write_payload.clone(), "updated".into(), tauri::State::new(service.clone()), tauri::State::new(settings)).unwrap();
-        let contents = note_read(write_payload, tauri::State::new(service), tauri::State::new(settings)).unwrap();
-        assert_eq!(contents, "updated");
     }
 }

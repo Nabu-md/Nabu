@@ -22,6 +22,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub whisper_model: String,
     #[serde(default)]
+    pub enable_daily_notes: bool,
+    #[serde(default)]
     pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
 }
 
@@ -34,6 +36,7 @@ impl Default for AppSettings {
             main_window_opacity: 1.0,
             floating_pill_opacity: 0.8,
             whisper_model: "ggml-tiny.en.bin".to_string(),
+            enable_daily_notes: false,
             extra_settings: std::collections::HashMap::new(),
         }
     }
