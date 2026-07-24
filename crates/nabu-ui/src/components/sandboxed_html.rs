@@ -1,5 +1,4 @@
 use leptos::prelude::*;
-use leptos::*;
 
 #[component]
 pub fn SandboxedHtml(html: String) -> impl IntoView {

@@ -1,4 +1,3 @@
-use regex::Regex;
 use pulldown_cmark::{Parser, Options, html};
 
 pub fn parse_markdown_to_html(markdown: &str) -> String {

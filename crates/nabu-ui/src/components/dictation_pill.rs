@@ -6,7 +6,7 @@ use web_sys::DragEvent;
 pub fn DictationPill() -> impl IntoView {
     let (scratchpad, set_scratchpad) = signal(String::new());
     let (mode, set_mode) = signal("dictation".to_string());
-    let (opacity, set_opacity) = signal(0.8_f32);
+    let (_opacity, set_opacity) = signal(0.8_f32);
 
     // Load settings for opacity
     spawn_local(async move {

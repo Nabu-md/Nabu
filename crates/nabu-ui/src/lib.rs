@@ -16,7 +16,7 @@ pub fn provide_theme(initial_theme: String) {
     provide_context(ThemeContext { theme });
 
     // Reactively update backend when theme changes
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let current_theme = theme.get();
         spawn_local(async move {
             let args = serde_wasm_bindgen::to_value(&serde_json::json!({"key": "theme", "value": current_theme})).unwrap();

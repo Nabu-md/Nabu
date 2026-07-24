@@ -1,7 +1,6 @@
 use anyhow::Context;
 use tantivy::schema::*;
-use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, doc, TantivyDocument};
-use tantivy::collector::TopDocs;
+use tantivy::{Index, IndexReader, IndexWriter, doc, TantivyDocument};
 use std::path::PathBuf;
 
 pub struct Indexer {

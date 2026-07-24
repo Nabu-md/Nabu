@@ -16,7 +16,7 @@ pub fn NoteEditor(initial_content: String) -> impl IntoView {
                 class="editor-textarea"
             />
             {move || if show_menu.get() {
-                view! { <SlashMenu on_select=Callback::new(move |item| { set_show_menu.set(false); /* Insert item logic */ }) /> }.into_any()
+                view! { <SlashMenu on_select=Callback::new(move |_item| { set_show_menu.set(false); /* Insert item logic */ }) /> }.into_any()
             } else {
                 view! {}.into_any()
             }}

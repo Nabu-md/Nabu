@@ -1,3 +1,4 @@
+use wasm_bindgen::JsValue;
 use leptos::prelude::*;
 use web_sys::CanvasRenderingContext2d;
 use wasm_bindgen::JsCast;
@@ -6,7 +7,7 @@ use wasm_bindgen::JsCast;
 pub enum GraphMode { Default, TagView, BlocksView }
 
 #[component]
-pub fn GraphView(mode: GraphMode) -> impl IntoView {
+pub fn GraphView(_mode: GraphMode) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
     let graph_data = LocalResource::new(move || async move {
@@ -28,10 +29,10 @@ pub fn GraphView(mode: GraphMode) -> impl IntoView {
                         let is_folder = node["is_folder"].as_bool().unwrap_or(false);
                         context.begin_path();
                         if is_folder {
-                            context.set_fill_style(&"blue".into());
+                            context.set_fill_style(&JsValue::from_str("blue"));
                             context.rect(100.0, 100.0, 20.0, 20.0);
                         } else {
-                            context.set_fill_style(&"black".into());
+                            context.set_fill_style(&JsValue::from_str("black"));
                             context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
                         }
                         context.fill();
