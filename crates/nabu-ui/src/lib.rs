@@ -1,4 +1,5 @@
 pub mod tree;
+pub mod ipc;
 pub mod components;
 
 use leptos::prelude::*;
