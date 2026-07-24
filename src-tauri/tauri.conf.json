@@ -33,27 +33,23 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost;"
     }
   },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "publisher": "Nabu Labs",
-    "copyright": "Copyright © 2024 Nabu Labs. All rights reserved.",
-    "category": "Productivity",
-    "macOS": {
-      "signingIdentity": null,
-      "entitlements": null
-    },
-    "windows": {
-      "nsis": {
-        "installMode": "currentUser"
+    "bundle": {
+      "active": true,
+      "targets": ["dmg", "app"],
+      "identifier": "md.nabu.app",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "macOS": {
+        "frameworks": [],
+        "minimumSystemVersion": "10.15",
+        "dmg": {
+          "windowSize": { "width": 660, "height": 400 }
+        }
       }
     }
-  }
 }
