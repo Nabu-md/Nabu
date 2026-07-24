@@ -1,12 +1,12 @@
-use leptos::*;
-use web_sys::{HtmlCanvasElement, CanvasRenderingContext2d};
+use leptos::prelude::*;
+use web_sys::CanvasRenderingContext2d;
 use wasm_bindgen::JsCast;
 
 #[component]
 pub fn GraphView() -> impl IntoView {
-    let canvas_ref = create_node_ref::<html::Canvas>();
+    let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(canvas) = canvas_ref.get() {
             let context = canvas
                 .get_context("2d")
@@ -15,14 +15,14 @@ pub fn GraphView() -> impl IntoView {
                 .dyn_into::<CanvasRenderingContext2d>()
                 .unwrap();
             
-            // Placeholder: Basic rendering
+            context.clear_rect(0.0, 0.0, 400.0, 400.0);
             context.begin_path();
-            context.arc(50.0, 50.0, 20.0, 0.0, 2.0 * std::f64::consts::PI).unwrap();
+            context.arc(200.0, 200.0, 50.0, 0.0, 2.0 * std::f64::consts::PI).unwrap();
             context.stroke();
         }
     });
 
     view! {
-        <canvas node_ref=canvas_ref width=400 height=400 />
+        <canvas node_ref=canvas_ref width=400 height=400 class="graph-canvas" />
     }
 }

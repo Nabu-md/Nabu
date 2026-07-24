@@ -1,4 +1,4 @@
-use leptos::prelude::*;
+use leptos::prelude::{component, view, ClassAttribute, ElementChild, CollectView, signal, View, IntoView, IntoAny, Get, OnAttribute, Update};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -16,14 +16,14 @@ pub fn FileTree(nodes: Vec<TreeNode>) -> impl IntoView {
             <ul>
                 {nodes.into_iter().map(|node| {
                     view! { <TreeNodeView node=node /> }
-                }).collect::<Vec<_>>()}
+                }).collect_view()}
             </ul>
         </div>
     }
 }
 
 #[component]
-pub fn TreeNodeView(node: TreeNode) -> impl IntoView {
+fn TreeNodeView(node: TreeNode) -> impl IntoView {
     let (expanded, set_expanded) = signal(false);
     
     view! {
@@ -37,7 +37,7 @@ pub fn TreeNodeView(node: TreeNode) -> impl IntoView {
                     <ul class="pl-4">
                         {node.children.clone().into_iter().map(|child| {
                             view! { <TreeNodeView node=child /> }
-                        }).collect::<Vec<_>>()}
+                        }).collect_view()}
                     </ul>
                 }.into_any()
             } else {
