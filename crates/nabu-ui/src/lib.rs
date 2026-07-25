@@ -1,10 +1,17 @@
+use wasm_bindgen::prelude::*;
+use crate::components::app::App;
+use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub mod tree;
 pub mod ipc;
 pub mod components;
 
-use leptos::prelude::*;
+#[wasm_bindgen(start)]
+pub fn start() {
+    console_error_panic_hook::set_once();
+    mount_to_body(|| view! { <App /> });
+}
 
 #[derive(Clone, Copy)]
 pub struct ThemeContext {

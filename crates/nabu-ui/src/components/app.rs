@@ -1,0 +1,126 @@
+use leptos::prelude::*;
+use crate::components::layout::ribbon_bar::RibbonBar;
+use crate::components::layout::left_sidebar::LeftSidebar;
+use crate::components::layout::right_inspector::RightInspector;
+use crate::components::layout::tab_bar::TabBar;
+use crate::components::note_editor::NoteEditor;
+use crate::components::graph_view::{GraphView, GraphMode};
+use crate::components::settings::settings_panel::SettingsPanel;
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum ViewMode {
+    Editor,
+    Graph,
+    Settings,
+}
+
+#[component]
+pub fn App() -> impl IntoView {
+    crate::provide_theme("dark".to_string());
+
+    let (view_mode, set_view_mode) = signal(ViewMode::Editor);
+    let (show_left_sidebar, set_show_left_sidebar) = signal(true);
+    let (show_right_inspector, set_show_right_inspector) = signal(true);
+    let (initial_content, _set_initial_content) = signal(
+        "# Welcome to Nabu\n\nA powerful markdown note-taking app with graph visualization and AI dictation.\n\n- [[Graph View]]\n- [[Settings]]\n- Task: - [ ] Explore features".to_string()
+    );
+
+    view! {
+        <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
+            // Left Ribbon Bar
+            <div class="flex-none">
+                <RibbonBar />
+            </div>
+
+            // Left Sidebar (Vault File Explorer)
+            {move || if show_left_sidebar.get() {
+                view! {
+                    <div class="flex-none">
+                        <LeftSidebar />
+                    </div>
+                }.into_any()
+            } else {
+                view! {}.into_any()
+            }}
+
+            // Main Content Area
+            <div class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-900">
+                // Top Tab Bar
+                <div class="flex-none">
+                    <TabBar />
+                </div>
+
+                // View Mode Switcher / Navigation Controls
+                <div class="flex items-center px-4 py-1.5 bg-gray-800/60 border-b border-gray-700/50 text-xs space-x-2">
+                    <button 
+                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Editor { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                        on:click=move |_| set_view_mode.set(ViewMode::Editor)
+                    >
+                        "📝 Editor"
+                    </button>
+                    <button 
+                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Graph { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                        on:click=move |_| set_view_mode.set(ViewMode::Graph)
+                    >
+                        "🕸️ Graph"
+                    </button>
+                    <button 
+                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Settings { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                        on:click=move |_| set_view_mode.set(ViewMode::Settings)
+                    >
+                        "⚙️ Settings"
+                    </button>
+
+                    <div class="flex-1"></div>
+
+                    <button 
+                        class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
+                        on:click=move |_| set_show_left_sidebar.update(|v| *v = !*v)
+                        title="Toggle Left Sidebar"
+                    >
+                        "📁"
+                    </button>
+                    <button 
+                        class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
+                        on:click=move |_| set_show_right_inspector.update(|v| *v = !*v)
+                        title="Toggle Right Inspector"
+                    >
+                        "📋"
+                    </button>
+                </div>
+
+                // Main View Container
+                <div class="flex-1 overflow-auto p-4">
+                    {move || match view_mode.get() {
+                        ViewMode::Editor => view! {
+                            <div class="max-w-4xl mx-auto h-full">
+                                <NoteEditor initial_content=initial_content.get() />
+                            </div>
+                        }.into_any(),
+                        ViewMode::Graph => view! {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <GraphView _mode=GraphMode::Default />
+                            </div>
+                        }.into_any(),
+                        ViewMode::Settings => view! {
+                            <div class="max-w-4xl mx-auto h-full">
+                                <SettingsPanel />
+                            </div>
+                        }.into_any(),
+                    }}
+                </div>
+            </div>
+
+            // Right Inspector Sidebar
+            {move || if show_right_inspector.get() {
+                view! {
+                    <div class="flex-none">
+                        <RightInspector />
+                    </div>
+                }.into_any()
+            } else {
+                view! {}.into_any()
+            }}
+        </div>
+    }
+}

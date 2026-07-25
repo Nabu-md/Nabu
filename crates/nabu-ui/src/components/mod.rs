@@ -9,3 +9,4 @@ pub mod sandboxed_html;
 pub mod layout;
 pub mod editor;
 pub mod settings;
+pub mod app;
