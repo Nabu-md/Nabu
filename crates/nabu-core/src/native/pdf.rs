@@ -1,3 +1,4 @@
+use anyhow::{Result, Context};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -13,9 +14,11 @@ pub struct PdfAnnotator {
 impl PdfAnnotator {
     pub fn new(vault_root: &std::path::Path) -> Self {
         let dir = vault_root.join(".nabu/annotations");
-    pub fn annotate(&self, pdf_path: &str, page: u32, content: &str) -> Result<()> {
-        let doc = Document::load(pdf_path).context("Failed to load PDF")?;
-        if page == 0 || page as usize > doc.get_pages().len() {
+        Self { annotations_dir: dir }
+    }
+
+    pub fn annotate(&self, _pdf_path: &str, page: u32, content: &str) -> Result<()> {
+        if page == 0 {
             anyhow::bail!("Page {} out of range", page);
         }
         let ann = Annotation { page, content: content.into() };

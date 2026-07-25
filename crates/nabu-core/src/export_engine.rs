@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,7 +21,7 @@ impl ExportEngine {
         let content = std::fs::read_to_string(note_path)?;
         let html_content = crate::parser::parse_markdown_to_html(&content);
         
-        let mut tera = tera::Tera::new(&format!("{}/.nabu/templates/**/*", self.vault_root.display()))?;
+        let tera = tera::Tera::new(&format!("{}/.nabu/templates/**/*", self.vault_root.display()))?;
         let mut context = tera::Context::new();
         context.insert("content", &html_content);
         context.insert("title", note_path.file_name().unwrap().to_str().unwrap());

@@ -1,5 +1,5 @@
 use anyhow::{Result, Context};
-use whisper_rs::{WhisperContext, FullParams, SamplingStrategy};
+use whisper_rs::{WhisperContext, WhisperContextParameters, FullParams, SamplingStrategy};
 
 pub struct AudioEngine {
     context: WhisperContext,
@@ -7,8 +7,8 @@ pub struct AudioEngine {
 
 impl AudioEngine {
     pub fn new(model_path: &str) -> Result<Self> {
-        let context = WhisperContext::init_from_file(model_path)
-            .map_err(|_| anyhow::anyhow!("Failed to load whisper model: {}", model_path))?;
+        let context = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
+            .map_err(|e| anyhow::anyhow!("Failed to load whisper model {}: {:?}", model_path, e))?;
         Ok(Self { context })
     }
 

@@ -3,12 +3,17 @@ name = "nabu-ui"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
-leptos = { version = "0.7.7", features = ["csr"] }
+leptos = { version = "0.7.8", features = ["csr"] }
 serde = { version = "1.0.218", features = ["derive"] }
-nabu-core = { path = "../nabu-core" }
+nabu-core = { path = "../nabu-core", default-features = false }
 web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "HtmlCanvasElement", "Window"] }
 wasm-bindgen = "0.2.100"
 serde_json = "1.0.139"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen-futures = "0.4.50"
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = "0.1.7"
