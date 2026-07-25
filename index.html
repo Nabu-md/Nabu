@@ -4,7 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nabu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6',
+            }
+          }
+        }
+      }
+    </script>
+    <link data-trunk rel="css" href="style.css" />
     <link data-trunk rel="rust" href="crates/nabu-ui/Cargo.toml" data-wasm-opt="z" />
   </head>
-  <body></body>
+  <body class="bg-gray-950 text-gray-100 m-0 p-0 overflow-hidden"></body>
 </html>
