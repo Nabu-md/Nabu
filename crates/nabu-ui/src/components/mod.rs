@@ -6,6 +6,7 @@ pub mod dictation_pill;
 pub mod graph_view;
 pub mod pdf_viewer;
 pub mod sandboxed_html;
+pub mod vault_setup_wizard;
 pub mod layout;
 pub mod editor;
 pub mod settings;

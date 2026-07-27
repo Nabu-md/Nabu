@@ -32,4 +32,5 @@ uuid = "1.13.0"
 tantivy = "0.26.1"
 pulldown-cmark = "0.13.4"
 chrono = "0.4"
+rfd = "0.15"
 
