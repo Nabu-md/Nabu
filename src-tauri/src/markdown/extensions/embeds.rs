@@ -30,7 +30,9 @@ pub struct EmbedVisitor {
 }
 
 impl EmbedVisitor {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl Visitor for EmbedVisitor {
@@ -64,10 +66,10 @@ pub fn extract_embeds(input: &str) -> Vec<Embed> {
             break;
         }
     }
-    
+
     let mut visitor = EmbedVisitor::new();
     visitor.visit_str(input);
     embeds.extend(visitor.embeds);
-    
+
     embeds
 }

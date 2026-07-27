@@ -1,5 +1,5 @@
+use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use anyhow::{Result, Context};
 
 pub struct TemplateManager {
     root: PathBuf,
@@ -7,7 +7,9 @@ pub struct TemplateManager {
 
 impl TemplateManager {
     pub fn new(vault_root: &Path) -> Self {
-        Self { root: vault_root.join(".nabu/templates") }
+        Self {
+            root: vault_root.join(".nabu/templates"),
+        }
     }
 
     pub fn get_template(&self, name: &str) -> Result<String> {

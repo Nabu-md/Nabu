@@ -1,6 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeSettings {
@@ -13,11 +13,15 @@ pub struct ThemeManager {
 
 impl ThemeManager {
     pub fn new(vault_root: PathBuf) -> Self {
-        Self { config_path: vault_root.join(".nabu/theme.json") }
+        Self {
+            config_path: vault_root.join(".nabu/theme.json"),
+        }
     }
 
     pub fn set_theme(&self, theme: &str) -> Result<()> {
-        let settings = ThemeSettings { theme_name: theme.into() };
+        let settings = ThemeSettings {
+            theme_name: theme.into(),
+        };
         std::fs::write(&self.config_path, serde_json::to_string(&settings)?)?;
         Ok(())
     }

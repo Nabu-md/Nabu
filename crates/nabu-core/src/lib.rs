@@ -1,10 +1,10 @@
-pub mod parser;
-pub mod graph;
-pub mod vault_config;
-pub mod template_manager;
 pub mod export_engine;
-pub mod theme_manager;
+pub mod graph;
 pub mod models;
+pub mod parser;
+pub mod template_manager;
+pub mod theme_manager;
+pub mod vault_config;
 
 #[cfg(feature = "native")]
 pub mod registry;

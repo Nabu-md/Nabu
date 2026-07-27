@@ -1,11 +1,11 @@
-use wasm_bindgen::prelude::*;
 use crate::components::app::App;
 use leptos::prelude::*;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
-pub mod tree;
-pub mod ipc;
 pub mod components;
+pub mod ipc;
+pub mod tree;
 
 #[wasm_bindgen(start)]
 pub fn start() {
@@ -26,7 +26,10 @@ pub fn provide_theme(initial_theme: String) {
     Effect::new(move |_| {
         let current_theme = theme.get();
         spawn_local(async move {
-            let args = serde_wasm_bindgen::to_value(&serde_json::json!({"key": "theme", "value": current_theme})).unwrap();
+            let args = serde_wasm_bindgen::to_value(
+                &serde_json::json!({"key": "theme", "value": current_theme}),
+            )
+            .unwrap();
             let _ = crate::ipc::tauri_invoke("settings_set", args).await;
         });
     });

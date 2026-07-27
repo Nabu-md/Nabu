@@ -13,13 +13,18 @@ pub struct HtmlVisitor {
 }
 
 impl HtmlVisitor {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl Visitor for HtmlVisitor {
     fn visit(&mut self, event: &Event<'_>) {
         if let Event::Html(text) = event {
-            self.blocks.push(HtmlBlock { html: text.to_string(), source_span: (0, 0) });
+            self.blocks.push(HtmlBlock {
+                html: text.to_string(),
+                source_span: (0, 0),
+            });
         }
     }
 }

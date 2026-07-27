@@ -1,9 +1,9 @@
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppSettings {
@@ -32,23 +32,31 @@ pub struct VaultSession {
     pub path: PathBuf,
 }
 
-
 pub struct VaultService {
     pub sessions: HashMap<PathBuf, VaultSession>,
 }
 
 impl VaultService {
-    pub fn open(&mut self, _path: PathBuf, _settings: crate::settings::SettingsStore) -> Result<()> {
+    pub fn open(
+        &mut self,
+        _path: PathBuf,
+        _settings: crate::settings::SettingsStore,
+    ) -> Result<()> {
         Ok(())
     }
 
     pub fn scan(&self, vault_path: &Path) -> Result<VaultScanResult> {
-        Ok(VaultScanResult { path: vault_path.display().to_string(), files: vec![] })
+        Ok(VaultScanResult {
+            path: vault_path.display().to_string(),
+            files: vec![],
+        })
     }
 }
 
 impl Default for VaultService {
     fn default() -> Self {
-        Self { sessions: HashMap::new() }
+        Self {
+            sessions: HashMap::new(),
+        }
     }
 }

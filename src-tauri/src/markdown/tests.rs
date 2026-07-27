@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use super::super::{parse, model::{AstNode, normalize}};
+    use super::super::{
+        model::{AstNode, normalize},
+        parse,
+    };
 
     #[test]
     fn test_parser() {
@@ -10,7 +13,11 @@ mod tests {
 
     #[test]
     fn test_normalize() {
-        let node = AstNode::Root { children: vec![AstNode::Text { value: "hello".into() }] };
+        let node = AstNode::Root {
+            children: vec![AstNode::Text {
+                value: "hello".into(),
+            }],
+        };
         let json = normalize(node);
         assert!(json.get("type").is_some());
     }

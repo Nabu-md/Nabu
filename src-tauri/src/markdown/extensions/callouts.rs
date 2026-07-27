@@ -1,5 +1,5 @@
-use pulldown_cmark::{Event, Tag};
 use super::Visitor;
+use pulldown_cmark::{Event, Tag};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Callout {
@@ -29,7 +29,9 @@ impl Default for CalloutVisitor {
 
 impl CalloutVisitor {
     pub fn new() -> Self {
-        Self { callouts: Vec::new() }
+        Self {
+            callouts: Vec::new(),
+        }
     }
 }
 

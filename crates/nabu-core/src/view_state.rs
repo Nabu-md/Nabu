@@ -26,7 +26,8 @@ impl ViewStateManager {
         // In TS: join(viewStateDir, encodeURIComponent(notePath) + '.json')
         // For Rust, let's just use a simple hash or sanitize.
         let safe_name = note_path.replace("/", "_").replace("\\", "_");
-        self.get_view_state_dir().join(format!("{}.json", safe_name))
+        self.get_view_state_dir()
+            .join(format!("{}.json", safe_name))
     }
 
     pub async fn load_view_state(&self, note_path: &str) -> ViewState {

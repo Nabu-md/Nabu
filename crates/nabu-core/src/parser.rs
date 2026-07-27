@@ -1,11 +1,11 @@
-use pulldown_cmark::{Parser, Options, html};
+use pulldown_cmark::{Options, Parser, html};
 
 pub fn parse_markdown_to_html(markdown: &str) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TASKLISTS);
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
-    
+
     let parser = Parser::new_ext(markdown, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
@@ -25,7 +25,9 @@ pub fn extract_tags(content: &str) -> Vec<String> {
 pub fn extract_block_refs(content: &str) -> Vec<String> {
     // Regex for block id like ^id
     let re = regex::Regex::new(r"\^([a-zA-Z0-9_-]+)").unwrap();
-    re.captures_iter(content).map(|cap| cap[1].to_string()).collect()
+    re.captures_iter(content)
+        .map(|cap| cap[1].to_string())
+        .collect()
 }
 
 #[cfg(test)]

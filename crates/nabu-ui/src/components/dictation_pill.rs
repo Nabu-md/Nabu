@@ -1,5 +1,5 @@
-use wasm_bindgen_futures::spawn_local;
 use leptos::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::DragEvent;
 
 #[component]
@@ -10,7 +10,9 @@ pub fn DictationPill() -> impl IntoView {
 
     // Load settings for opacity
     spawn_local(async move {
-        let args = serde_wasm_bindgen::to_value(&serde_json::json!({"key": "floating_pill_opacity"})).unwrap();
+        let args =
+            serde_wasm_bindgen::to_value(&serde_json::json!({"key": "floating_pill_opacity"}))
+                .unwrap();
         let result = crate::ipc::tauri_invoke("settings_get", args).await;
         if let Ok(op) = serde_wasm_bindgen::from_value::<f32>(result) {
             set_opacity.set(op);
@@ -45,7 +47,7 @@ pub fn DictationPill() -> impl IntoView {
                 <button on:click=move |_| set_mode.set("scratchpad".to_string())>"Scratchpad"</button>
                 <button on:click=move |_| set_mode.set("drop".to_string())>"Drop Zone"</button>
             </div>
-            
+
             <button on:click=move |_| {
             }>"📋"</button>
             <button on:click=move |_| {
@@ -65,7 +67,7 @@ pub fn DictationPill() -> impl IntoView {
                     </button>
                 }.into_any(),
                 "scratchpad" => view! {
-                    <textarea 
+                    <textarea
                         prop:value=scratchpad
                         on:input=move |ev| set_scratchpad.set(event_target_value(&ev))
                         placeholder="Scratchpad..."

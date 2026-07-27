@@ -1,13 +1,13 @@
-use leptos::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use crate::components::layout::ribbon_bar::RibbonBar;
+use crate::components::graph_view::{GraphMode, GraphView};
 use crate::components::layout::left_sidebar::LeftSidebar;
+use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
 use crate::components::note_editor::NoteEditor;
-use crate::components::graph_view::{GraphView, GraphMode};
 use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::vault_setup_wizard::VaultSetupWizard;
+use leptos::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum AppScreen {

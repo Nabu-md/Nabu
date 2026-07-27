@@ -1,5 +1,5 @@
-use wasm_bindgen_futures::spawn_local;
 use leptos::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum RibbonAction {
@@ -12,8 +12,12 @@ pub enum RibbonAction {
 
 #[component]
 pub fn RibbonBar(
-    #[prop(optional)] set_view_mode: Option<std::sync::Arc<dyn Fn(crate::components::app::ViewMode) + Send + Sync + 'static>>,
-    #[prop(optional)] set_show_sidebar: Option<std::sync::Arc<dyn Fn(bool) + Send + Sync + 'static>>,
+    #[prop(optional)] set_view_mode: Option<
+        std::sync::Arc<dyn Fn(crate::components::app::ViewMode) + Send + Sync + 'static>,
+    >,
+    #[prop(optional)] set_show_sidebar: Option<
+        std::sync::Arc<dyn Fn(bool) + Send + Sync + 'static>,
+    >,
 ) -> impl IntoView {
     let (enabled, _set_enabled) = signal(false);
 

@@ -25,7 +25,7 @@ pub fn FileTree(nodes: Vec<TreeNode>) -> impl IntoView {
 #[component]
 pub fn TreeNodeView(node: TreeNode) -> impl IntoView {
     let (expanded, set_expanded) = signal(false);
-    
+
     view! {
         <li class="tree-node">
             <div on:click=move |_| set_expanded.update(|e| *e = !*e)>

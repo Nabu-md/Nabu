@@ -20,15 +20,25 @@ pub struct MathVisitor {
 }
 
 impl MathVisitor {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl Visitor for MathVisitor {
     fn visit(&mut self, event: &Event<'_>) {
         if let Event::InlineMath(text) = event {
-            self.items.push(Math { kind: MathKind::Inline, expression: text.to_string(), source_span: (0, 0) });
+            self.items.push(Math {
+                kind: MathKind::Inline,
+                expression: text.to_string(),
+                source_span: (0, 0),
+            });
         } else if let Event::DisplayMath(text) = event {
-            self.items.push(Math { kind: MathKind::Block, expression: text.to_string(), source_span: (0, 0) });
+            self.items.push(Math {
+                kind: MathKind::Block,
+                expression: text.to_string(),
+                source_span: (0, 0),
+            });
         }
     }
 }

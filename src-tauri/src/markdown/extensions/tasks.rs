@@ -1,5 +1,5 @@
-use pulldown_cmark::{Event, Options};
 use super::Visitor;
+use pulldown_cmark::{Event, Options};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Task {
