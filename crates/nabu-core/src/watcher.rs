@@ -16,7 +16,7 @@ pub struct Watcher {
 impl Watcher {
     pub fn new(path: PathBuf, tx: mpsc::Sender<WatchEvent>) -> anyhow::Result<Self> {
         let watcher_tx = tx.clone();
-        
+
         let mut watcher = RecommendedWatcher::new(
             move |res: notify::Result<notify::Event>| {
                 if let Ok(event) = res {
@@ -27,7 +27,7 @@ impl Watcher {
                             notify::EventKind::Remove(_) => Some(WatchEvent::Removed(path)),
                             _ => None,
                         };
-                        
+
                         if let Some(e) = watch_event {
                             let _ = watcher_tx.try_send(e);
                         }

@@ -31,11 +31,15 @@ pub fn extract_footnotes(input: &str) -> FootnoteVisitor {
         if let Some(rest) = line.strip_prefix("[^") {
             if let Some(end) = rest.find(']') {
                 let label = rest[..end].to_string();
-                visitor.references.push(FootnoteReference { label: label.clone() });
+                visitor.references.push(FootnoteReference {
+                    label: label.clone(),
+                });
                 let rest = &rest[end + 1..];
                 if rest.starts_with(":") {
                     let text = rest[1..].trim().trim_start().to_string();
-                    visitor.labels.insert(label.clone(), visitor.definitions.len());
+                    visitor
+                        .labels
+                        .insert(label.clone(), visitor.definitions.len());
                     visitor.definitions.push(FootnoteDefinition { label, text });
                 }
             }

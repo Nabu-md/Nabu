@@ -1,9 +1,13 @@
 use leptos::prelude::*;
-use web_sys::CanvasRenderingContext2d;
 use wasm_bindgen::{JsCast, JsValue};
+use web_sys::CanvasRenderingContext2d;
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum GraphMode { Default, TagView, BlocksView }
+pub enum GraphMode {
+    Default,
+    TagView,
+    BlocksView,
+}
 
 #[component]
 pub fn GraphView(_mode: GraphMode) -> impl IntoView {
@@ -18,11 +22,15 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
     Effect::new(move |_| {
         if let Some(canvas) = canvas_ref.get() {
             if let Some(data) = graph_data.get() {
-                let context = canvas.get_context("2d").unwrap().unwrap()
-                    .dyn_into::<CanvasRenderingContext2d>().unwrap();
-                
+                let context = canvas
+                    .get_context("2d")
+                    .unwrap()
+                    .unwrap()
+                    .dyn_into::<CanvasRenderingContext2d>()
+                    .unwrap();
+
                 context.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
-                
+
                 if let Some(nodes) = data["nodes"].as_array() {
                     for node in nodes {
                         let is_folder = node["is_folder"].as_bool().unwrap_or(false);
@@ -34,7 +42,9 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                             context.rect(100.0, 100.0, 20.0, 20.0);
                         } else {
                             context.set_fill_style(&black_style);
-                            context.arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+                            context
+                                .arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0)
+                                .unwrap();
                         }
                         context.fill();
                     }

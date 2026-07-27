@@ -1,9 +1,8 @@
 use wasm_bindgen_futures::spawn_local;
 
-
 use leptos::prelude::*;
-use std::path::PathBuf;
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TreeNode {
@@ -23,7 +22,10 @@ pub struct FileTreeContext {
 pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl IntoView {
     let active_file = RwSignal::new(None);
     let expanded_folders = RwSignal::new(HashSet::new());
-    provide_context(FileTreeContext { active_file, expanded_folders });
+    provide_context(FileTreeContext {
+        active_file,
+        expanded_folders,
+    });
 
     let (new_file_input, set_new_file_input) = signal(false);
     let (new_folder_input, set_new_folder_input) = signal(false);
@@ -35,10 +37,10 @@ pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl Into
                 <button on:click=move |_| set_new_file_input.set(true)>"+ New File"</button>
                 <button on:click=move |_| set_new_folder_input.set(true)>"+ New Folder"</button>
             </div>
-            
+
             {move || if new_file_input.get() || new_folder_input.get() {
                 view! {
-                    <input type="text" 
+                    <input type="text"
                         prop:value=name_input
                         on:input=move |ev| set_name_input.set(event_target_value(&ev))
                         on:keydown=move |ev| {
@@ -76,7 +78,7 @@ fn TreeNodeView(node: TreeNode, on_select: Callback<PathBuf>) -> impl IntoView {
     let children = node.children.clone();
 
     let (_expanded, set_expanded) = signal(false);
-    
+
     view! {
         <li class="tree-node">
             <div on:click={
@@ -98,7 +100,7 @@ fn TreeNodeView(node: TreeNode, on_select: Callback<PathBuf>) -> impl IntoView {
                 }
             }>
                 {let path = path.clone();
-                 move || if is_folder { 
+                 move || if is_folder {
                     if context.expanded_folders.get().contains(&path) { "▼ " } else { "▶ " }
                 } else { "  " }}
                 {name.clone()}

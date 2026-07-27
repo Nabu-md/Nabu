@@ -5,7 +5,6 @@ pub struct Frontmatter {
     pub properties: HashMap<String, String>,
 }
 
-
 pub fn extract_frontmatter(input: &str) -> Option<Frontmatter> {
     Frontmatter::parse(input)
 }
@@ -17,7 +16,9 @@ impl Frontmatter {
             let mut properties = HashMap::new();
             for line in raw.lines() {
                 let line = line.trim();
-                if line.is_empty() { continue; }
+                if line.is_empty() {
+                    continue;
+                }
                 if let Some(sep) = line.find(':') {
                     let key = line[..sep].trim().to_string();
                     let value = line[sep + 1..].trim().to_string();

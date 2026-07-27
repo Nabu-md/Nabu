@@ -90,8 +90,6 @@ impl Default for AppSettings {
     }
 }
 
-
-
 #[derive(Debug, thiserror::Error)]
 pub enum SettingsError {
     #[error("settings path is not absolute")]
@@ -184,16 +182,27 @@ impl SettingsStore {
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent).map_err(SettingsError::write)?;
         }
-        let payload = serde_json::to_vec_pretty(settings).map_err(|e| SettingsError::Malformed(e.to_string()))?;
+        let payload = serde_json::to_vec_pretty(settings)
+            .map_err(|e| SettingsError::Malformed(e.to_string()))?;
         std::fs::write(&self.path, payload).map_err(SettingsError::write)?;
         Ok(())
     }
     pub fn get_value(&self, key: &str) -> serde_json::Value {
-        self.inner.lock().unwrap().extra_settings.get(key).cloned().unwrap_or(serde_json::Value::Null)
+        self.inner
+            .lock()
+            .unwrap()
+            .extra_settings
+            .get(key)
+            .cloned()
+            .unwrap_or(serde_json::Value::Null)
     }
 
     pub fn set_value(&self, key: &str, value: serde_json::Value) {
-        self.inner.lock().unwrap().extra_settings.insert(key.to_string(), value);
+        self.inner
+            .lock()
+            .unwrap()
+            .extra_settings
+            .insert(key.to_string(), value);
     }
 
     pub fn get_feature_toggles(&self) -> serde_json::Value {
@@ -202,7 +211,10 @@ impl SettingsStore {
 
     pub fn set_feature_toggle(&self, id: String, enabled: bool) -> serde_json::Value {
         let mut settings = self.inner.lock().unwrap();
-        let toggles = settings.extra_settings.entry("featureToggles".to_string()).or_insert(serde_json::json!({}));
+        let toggles = settings
+            .extra_settings
+            .entry("featureToggles".to_string())
+            .or_insert(serde_json::json!({}));
         toggles[id] = serde_json::json!(enabled);
         toggles.clone()
     }
@@ -285,14 +297,18 @@ mod tests {
         );
 
         assert_eq!(updated, 1);
-        let saved = store.lock().unwrap().save(&AppSettings {
-            theme: String::from("dark"),
-            last_vault_path: String::new(),
-            recent_vaults: vec![RecentVaultEntry {
-                path: "/vaults/alpha".into(),
-                name: "Alpha".into(),
-            }],
-        }).unwrap();
+        let saved = store
+            .lock()
+            .unwrap()
+            .save(&AppSettings {
+                theme: String::from("dark"),
+                last_vault_path: String::new(),
+                recent_vaults: vec![RecentVaultEntry {
+                    path: "/vaults/alpha".into(),
+                    name: "Alpha".into(),
+                }],
+            })
+            .unwrap();
         assert_eq!(saved.theme, "dark");
 
         let reloaded = SettingsStore::load(&path).unwrap();

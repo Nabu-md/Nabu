@@ -1,6 +1,6 @@
+use crate::settings::{AppSettings, SettingsStore};
 use std::path::Path;
 use tauri::{AppHandle, Manager, State};
-use crate::settings::{AppSettings, SettingsStore};
 
 #[tauri::command]
 pub fn check_vault_exists(store: State<'_, SettingsStore>) -> Result<Option<String>, String> {
@@ -26,11 +26,17 @@ pub fn select_vault_dialog(store: State<'_, SettingsStore>) -> Result<Option<Str
 
     if let Some(path) = folder {
         let path_str = path.display().to_string();
-        let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        store.update(|s| {
-            s.last_vault_path = path_str.clone();
-            crate::settings::update_recent_vaults(s, path_str.clone(), name);
-        }).map_err(|e| e.to_string())?;
+        let name = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        store
+            .update(|s| {
+                s.last_vault_path = path_str.clone();
+                crate::settings::update_recent_vaults(s, path_str.clone(), name);
+            })
+            .map_err(|e| e.to_string())?;
         Ok(Some(path_str))
     } else {
         Ok(None)
@@ -46,11 +52,17 @@ pub fn create_vault_dialog(store: State<'_, SettingsStore>) -> Result<Option<Str
     if let Some(path) = folder {
         std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
         let path_str = path.display().to_string();
-        let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        store.update(|s| {
-            s.last_vault_path = path_str.clone();
-            crate::settings::update_recent_vaults(s, path_str.clone(), name);
-        }).map_err(|e| e.to_string())?;
+        let name = path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        store
+            .update(|s| {
+                s.last_vault_path = path_str.clone();
+                crate::settings::update_recent_vaults(s, path_str.clone(), name);
+            })
+            .map_err(|e| e.to_string())?;
         Ok(Some(path_str))
     } else {
         Ok(None)
@@ -156,20 +168,32 @@ pub fn get_settings(store: State<'_, SettingsStore>) -> Result<AppSettings, Stri
 }
 
 #[tauri::command]
-pub fn settings_set(key: String, value: serde_json::Value, store: State<'_, SettingsStore>) -> Result<(), String> {
-    store.update(|s| {
-        s.extra_settings.insert(key, value);
-    }).map_err(|e| e.to_string())?;
+pub fn settings_set(
+    key: String,
+    value: serde_json::Value,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    store
+        .update(|s| {
+            s.extra_settings.insert(key, value);
+        })
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn settings_get(key: String, store: State<'_, SettingsStore>) -> Result<serde_json::Value, String> {
+pub fn settings_get(
+    key: String,
+    store: State<'_, SettingsStore>,
+) -> Result<serde_json::Value, String> {
     Ok(store.get_value(&key))
 }
 
 #[tauri::command]
-pub fn settings_set_all(settings: AppSettings, store: State<'_, SettingsStore>) -> Result<(), String> {
+pub fn settings_set_all(
+    settings: AppSettings,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
     store.save(&settings).map_err(|e| e.to_string())?;
     Ok(())
 }

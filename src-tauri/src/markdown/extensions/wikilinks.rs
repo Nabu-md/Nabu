@@ -18,12 +18,22 @@ pub fn extract_wikilinks(input: &str) -> Vec<Wikilink> {
                 let destination = content[..pipe_idx].to_string();
                 let alias = Some(content[pipe_idx + 1..].to_string());
                 let display_text = alias.as_ref().unwrap().clone();
-                links.push(Wikilink { destination, alias, display_text, source_span: (abs_start, span_end) });
+                links.push(Wikilink {
+                    destination,
+                    alias,
+                    display_text,
+                    source_span: (abs_start, span_end),
+                });
             } else {
                 let destination = content.to_string();
                 let alias = None;
                 let display_text = destination.clone();
-                links.push(Wikilink { destination, alias, display_text, source_span: (abs_start, span_end) });
+                links.push(Wikilink {
+                    destination,
+                    alias,
+                    display_text,
+                    source_span: (abs_start, span_end),
+                });
             }
             start = span_end;
         } else {

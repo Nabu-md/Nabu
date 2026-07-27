@@ -1,6 +1,6 @@
-use wasm_bindgen_futures::spawn_local;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct AppSettings {
@@ -57,7 +57,11 @@ pub fn SettingsPanel() -> impl IntoView {
     let settings = RwSignal::new(AppSettings::default());
 
     spawn_local(async move {
-        let result = crate::ipc::tauri_invoke("settings_get_all", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await;
+        let result = crate::ipc::tauri_invoke(
+            "settings_get_all",
+            serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+        )
+        .await;
         if let Ok(loaded_settings) = serde_wasm_bindgen::from_value::<AppSettings>(result) {
             settings.set(loaded_settings);
         }
@@ -113,7 +117,10 @@ pub fn SettingsPanel() -> impl IntoView {
 }
 
 #[component]
-fn GeneralSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>) -> impl IntoView {
+fn GeneralSettings(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+) -> impl IntoView {
     view! {
         <h2 class="text-xl font-bold mb-4">"General & Modules"</h2>
         <div class="space-y-4">
@@ -136,7 +143,10 @@ fn GeneralSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, 
 }
 
 #[component]
-fn EditorSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>) -> impl IntoView {
+fn EditorSettings(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+) -> impl IntoView {
     view! {
         <h2 class="text-xl font-bold mb-4">"Editor & Notion Block Menu"</h2>
         <div class="space-y-4">
@@ -180,7 +190,10 @@ fn EditorSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, (
 }
 
 #[component]
-fn WhisprSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>) -> impl IntoView {
+fn WhisprSettings(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+) -> impl IntoView {
     view! {
         <h2 class="text-xl font-bold mb-4">"Whispr AI & Voice Dictation"</h2>
         <div class="space-y-4">
@@ -215,7 +228,10 @@ fn WhisprSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, (
 }
 
 #[component]
-fn AppearanceSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>) -> impl IntoView {
+fn AppearanceSettings(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+) -> impl IntoView {
     view! {
         <h2 class="text-xl font-bold mb-4">"Appearance & Opacity Controls"</h2>
         <div class="space-y-4">
@@ -297,7 +313,10 @@ fn FileSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>
 }
 
 #[component]
-fn GraphSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>) -> impl IntoView {
+fn GraphSettings(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+) -> impl IntoView {
     view! {
         <h2 class="text-xl font-bold mb-4">"Folder Graph & Canvas"</h2>
         <div class="space-y-4">

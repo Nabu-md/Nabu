@@ -13,7 +13,7 @@ pub fn RightInspector() -> impl IntoView {
                     let tab_for_class = tab.clone();
                     let tab_for_click = tab.clone();
                     view! {
-                        <button 
+                        <button
                             class=move || format!("flex-1 p-2 text-center {}", if active_tab.get() == tab_for_class { "bg-gray-800" } else { "" })
                             on:click=move |_| set_active_tab.set(tab_for_click.clone())
                         >

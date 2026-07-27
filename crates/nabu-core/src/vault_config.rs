@@ -1,6 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VaultConfig {
@@ -18,11 +18,14 @@ impl VaultConfig {
             anyhow::bail!("Vault already initialized at: {:?}", path);
         }
         std::fs::create_dir_all(nabu_dir.join("index"))?;
-        
-        let config = VaultConfig { name, path: path.clone() };
+
+        let config = VaultConfig {
+            name,
+            path: path.clone(),
+        };
         let config_path = nabu_dir.join("config.json");
         std::fs::write(config_path, serde_json::to_string_pretty(&config)?)?;
-        
+
         Ok(())
     }
 }

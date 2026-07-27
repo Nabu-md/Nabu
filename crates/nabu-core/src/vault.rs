@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-use crate::view_state::ViewStateManager;
 use crate::indexer::Indexer;
+use crate::view_state::ViewStateManager;
+use std::path::PathBuf;
 
 pub struct VaultSession {
     pub vault_id: String,
@@ -13,7 +13,8 @@ pub struct VaultSession {
 impl VaultSession {
     pub fn new(vault_id: String, vault_path: PathBuf) -> Self {
         let view_state_manager = ViewStateManager::new(vault_path.clone());
-        let indexer = Indexer::new(vault_path.join(".nabu/index")).expect("Failed to initialize indexer");
+        let indexer =
+            Indexer::new(vault_path.join(".nabu/index")).expect("Failed to initialize indexer");
         Self {
             vault_id,
             vault_path,
