@@ -1,3 +1,4 @@
+pub mod capture;
 pub mod export_engine;
 pub mod graph;
 pub mod models;
