@@ -67,6 +67,7 @@ impl CaptureEngine {
                 request.source_type
             )),
             message: "Capture failed: no suitable handler".to_string(),
+            payload: None,
         }
     }
 }
@@ -123,6 +124,7 @@ mod tests {
                 knowledge_object_id: Some(Uuid::new_v4()),
                 error: None,
                 message: "Captured".to_string(),
+                payload: None,
             },
         });
         engine.register(handler);
@@ -159,6 +161,7 @@ mod tests {
                 knowledge_object_id: Some(Uuid::new_v4()),
                 error: None,
                 message: "Captured".to_string(),
+                payload: None,
             },
         });
         engine.register(handler);
@@ -183,6 +186,7 @@ mod tests {
                 knowledge_object_id: Some(Uuid::new_v4()),
                 error: None,
                 message: "Should not reach".to_string(),
+                payload: None,
             },
         });
         engine.register(handler);

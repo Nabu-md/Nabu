@@ -26,4 +26,32 @@ pub struct CaptureResult {
     pub error: Option<String>,
     /// Human-readable status message.
     pub message: String,
+    /// Normalized payload produced by the handler, if any.
+    pub payload: Option<serde_json::Value>,
 }
+
+/// Typed errors returned by capture handlers and the normaliser.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum CaptureError {
+    /// The provided file path is invalid or inaccessible.
+    InvalidFile(String),
+    /// MIME type detection failed for the provided file.
+    MimeDetectionFailed(String),
+    /// Reading the file content failed.
+    ReadFailed(String),
+    /// Normalization of raw input failed.
+    NormalizationFailed(String),
+}
+
+impl std::fmt::Display for CaptureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CaptureError::InvalidFile(msg) => write!(f, "Invalid file: {}", msg),
+            CaptureError::MimeDetectionFailed(msg) => write!(f, "MIME detection failed: {}", msg),
+            CaptureError::ReadFailed(msg) => write!(f, "Read failed: {}", msg),
+            CaptureError::NormalizationFailed(msg) => write!(f, "Normalization failed: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for CaptureError {}
