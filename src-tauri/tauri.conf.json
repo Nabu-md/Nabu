@@ -18,28 +18,12 @@
   "app": {
     "windows": [
       {
-        "title": "Nabu Setup",
-        "label": "wizard",
-        "width": 440,
-        "height": 620,
-        "resizable": false,
-        "visible": true
-      },
-      {
         "title": "Nabu",
         "label": "main",
         "width": 1280,
         "height": 800,
         "resizable": true,
-        "visible": false
-      },
-      {
-        "title": "Nabu Settings",
-        "label": "settings",
-        "width": 750,
-        "height": 520,
-        "resizable": false,
-        "visible": false
+        "visible": true
       }
     ]
   },

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::left_sidebar::LeftSidebar;
 use crate::components::layout::right_inspector::RightInspector;
@@ -6,6 +7,14 @@ use crate::components::layout::tab_bar::TabBar;
 use crate::components::note_editor::NoteEditor;
 use crate::components::graph_view::{GraphView, GraphMode};
 use crate::components::settings::settings_panel::SettingsPanel;
+use crate::components::vault_setup_wizard::VaultSetupWizard;
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum AppScreen {
+    Loading,
+    VaultSetup,
+    MainDashboard,
+}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ViewMode {
@@ -18,6 +27,8 @@ pub enum ViewMode {
 pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
 
+    let (screen, set_screen) = signal(AppScreen::Loading);
+    let (vault_path, set_vault_path) = signal(String::new());
     let (view_mode, set_view_mode) = signal(ViewMode::Editor);
     let (show_left_sidebar, set_show_left_sidebar) = signal(true);
     let (show_right_inspector, set_show_right_inspector) = signal(true);
@@ -25,102 +36,153 @@ pub fn App() -> impl IntoView {
         "# Welcome to Nabu\n\nA powerful markdown note-taking app with graph visualization and AI dictation.\n\n- [[Graph View]]\n- [[Settings]]\n- Task: - [ ] Explore features".to_string()
     );
 
+    // On mount, check if a vault already exists via Tauri IPC
+    spawn_local(async move {
+        let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+        let result = crate::ipc::tauri_invoke("check_vault_exists", empty_args).await;
+        if let Ok(path_val) = serde_wasm_bindgen::from_value::<Option<String>>(result) {
+            if let Some(path) = path_val {
+                if !path.trim().is_empty() {
+                    set_vault_path.set(path);
+                    set_screen.set(AppScreen::MainDashboard);
+                    return;
+                }
+            }
+        }
+        set_screen.set(AppScreen::VaultSetup);
+    });
+
+    let handle_vault_selected = move |path: String| {
+        set_vault_path.set(path);
+        set_screen.set(AppScreen::MainDashboard);
+    };
+
     view! {
-        <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
-            // Left Ribbon Bar
-            <div class="flex-none">
-                <RibbonBar />
-            </div>
-
-            // Left Sidebar (Vault File Explorer)
-            {move || if show_left_sidebar.get() {
-                view! {
-                    <div class="flex-none">
-                        <LeftSidebar />
+        // Loading screen
+        {move || if screen.get() == AppScreen::Loading {
+            (view! {
+                <div class="flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100">
+                    <div class="flex items-center space-x-2 text-blue-400">
+                        <div class="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-sm">"Loading..."</span>
                     </div>
-                }.into_any()
-            } else {
-                view! {}.into_any()
-            }}
-
-            // Main Content Area
-            <div class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-900">
-                // Top Tab Bar
-                <div class="flex-none">
-                    <TabBar />
                 </div>
+            }).into_any()
+        } else {
+            view! {}.into_any()
+        }}
 
-                // View Mode Switcher / Navigation Controls
-                <div class="flex items-center px-4 py-1.5 bg-gray-800/60 border-b border-gray-700/50 text-xs space-x-2">
-                    <button 
-                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Editor { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                        on:click=move |_| set_view_mode.set(ViewMode::Editor)
-                    >
-                        "📝 Editor"
-                    </button>
-                    <button 
-                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Graph { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                        on:click=move |_| set_view_mode.set(ViewMode::Graph)
-                    >
-                        "🕸️ Graph"
-                    </button>
-                    <button 
-                        class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Settings { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                        on:click=move |_| set_view_mode.set(ViewMode::Settings)
-                    >
-                        "⚙️ Settings"
-                    </button>
+        // Vault Setup Wizard (only shown when no vault exists)
+        {move || if screen.get() == AppScreen::VaultSetup {
+            (view! {
+                <VaultSetupWizard on_vault_selected=handle_vault_selected />
+            }).into_any()
+        } else {
+            view! {}.into_any()
+        }}
 
-                    <div class="flex-1"></div>
+        // Main Dashboard (only shown when vault is configured)
+        {move || if screen.get() == AppScreen::MainDashboard {
+            (view! {
+                <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
+                    // Left Ribbon Bar
+                    <div class="flex-none">
+                        <RibbonBar set_view_mode=set_view_mode set_show_sidebar=set_show_left_sidebar />
+                    </div>
 
-                    <button 
-                        class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
-                        on:click=move |_| set_show_left_sidebar.update(|v| *v = !*v)
-                        title="Toggle Left Sidebar"
-                    >
-                        "📁"
-                    </button>
-                    <button 
-                        class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
-                        on:click=move |_| set_show_right_inspector.update(|v| *v = !*v)
-                        title="Toggle Right Inspector"
-                    >
-                        "📋"
-                    </button>
-                </div>
-
-                // Main View Container
-                <div class="flex-1 overflow-auto p-4">
-                    {move || match view_mode.get() {
-                        ViewMode::Editor => view! {
-                            <div class="max-w-4xl mx-auto h-full">
-                                <NoteEditor initial_content=initial_content.get() />
+                    // Left Sidebar (Vault File Explorer)
+                    {move || if show_left_sidebar.get() {
+                        view! {
+                            <div class="flex-none">
+                                <LeftSidebar vault_path=vault_path.get() />
                             </div>
-                        }.into_any(),
-                        ViewMode::Graph => view! {
-                            <div class="w-full h-full flex items-center justify-center">
-                                <GraphView _mode=GraphMode::Default />
+                        }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }}
+
+                    // Main Content Area
+                    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-900">
+                        // Top Tab Bar
+                        <div class="flex-none">
+                            <TabBar />
+                        </div>
+
+                        // View Mode Switcher / Navigation Controls
+                        <div class="flex items-center px-4 py-1.5 bg-gray-800/60 border-b border-gray-700/50 text-xs space-x-2">
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Editor { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Editor)
+                            >
+                                "📝 Editor"
+                            </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Graph { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Graph)
+                            >
+                                "🕸️ Graph"
+                            </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Settings { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Settings)
+                            >
+                                "⚙️ Settings"
+                            </button>
+
+                            <div class="flex-1"></div>
+
+                            <button
+                                class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
+                                on:click=move |_| set_show_left_sidebar.update(|v| *v = !*v)
+                                title="Toggle Left Sidebar"
+                            >
+                                "📁"
+                            </button>
+                            <button
+                                class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
+                                on:click=move |_| set_show_right_inspector.update(|v| *v = !*v)
+                                title="Toggle Right Inspector"
+                            >
+                                "📋"
+                            </button>
+                        </div>
+
+                        // Main View Container
+                        <div class="flex-1 overflow-auto p-4">
+                            {move || match view_mode.get() {
+                                ViewMode::Editor => view! {
+                                    <div class="max-w-4xl mx-auto h-full">
+                                        <NoteEditor initial_content=initial_content.get() />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Graph => view! {
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <GraphView _mode=GraphMode::Default />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Settings => view! {
+                                    <div class="max-w-4xl mx-auto h-full">
+                                        <SettingsPanel />
+                                    </div>
+                                }.into_any(),
+                            }}
+                        </div>
+                    </div>
+
+                    // Right Inspector Sidebar
+                    {move || if show_right_inspector.get() {
+                        view! {
+                            <div class="flex-none">
+                                <RightInspector />
                             </div>
-                        }.into_any(),
-                        ViewMode::Settings => view! {
-                            <div class="max-w-4xl mx-auto h-full">
-                                <SettingsPanel />
-                            </div>
-                        }.into_any(),
+                        }.into_any()
+                    } else {
+                        view! {}.into_any()
                     }}
                 </div>
-            </div>
-
-            // Right Inspector Sidebar
-            {move || if show_right_inspector.get() {
-                view! {
-                    <div class="flex-none">
-                        <RightInspector />
-                    </div>
-                }.into_any()
-            } else {
-                view! {}.into_any()
-            }}
-        </div>
+            }).into_any()
+        } else {
+            view! {}.into_any()
+        }}
     }
 }
