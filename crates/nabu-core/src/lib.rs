@@ -4,6 +4,7 @@ pub mod vault_config;
 pub mod template_manager;
 pub mod export_engine;
 pub mod theme_manager;
+pub mod models;
 
 #[cfg(feature = "native")]
 pub mod registry;

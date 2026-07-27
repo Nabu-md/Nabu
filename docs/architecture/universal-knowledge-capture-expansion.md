@@ -83,7 +83,34 @@ Nabu will NOT become:
 
 ---
 
-### 1.5 Knowledge Inbox
+### 1.5 Competitive Positioning
+
+Nabu does not seek feature parity with individual applications. Instead, Nabu seeks **workflow consolidation**.
+
+The goal is to replace fragmented knowledge workflows by providing one coherent platform that combines:
+
+- Markdown knowledge management
+- Knowledge graph
+- Universal capture
+- Intelligent document management
+- Browser capture
+- Native PDF tooling
+- AI-assisted organisation
+- Voice capture
+- Universal search
+- Local-first architecture
+
+The measure of success is not "does Nabu have this feature?"
+
+The measure is:
+
+> "Can an advanced Obsidian user uninstall three, five, or even ten companion tools because Nabu provides a unified experience?"
+
+Nabu wins not by being the best at any single task, but by being the only tool a user needs for their entire knowledge workflow.
+
+---
+
+### 1.6 Knowledge Inbox
 
 The **Knowledge Inbox** is the primary review surface for newly ingested knowledge. It is a first-class product capability built on top of the Universal Capture Pipeline, serving as the user-facing orchestration layer between raw capture and permanent storage.
 
@@ -180,11 +207,11 @@ Every ingestion produces a confidence score that drives the Inbox UI, automation
 
 ---
 
-### 1.6 Programme Scope
+### 1.7 Programme Scope
 
 This programme defines the boundaries of Nabu's evolution into The Personal Knowledge Vault.
 
-#### 1.6.1 In Scope
+#### 1.7.1 In Scope
 
 | Area | Description |
 |------|-------------|
@@ -199,7 +226,7 @@ This programme defines the boundaries of Nabu's evolution into The Personal Know
 | **Platform** | Cross-platform desktop (macOS, Linux, Windows), mobile capture |
 | **Extensibility** | Plugin architecture, custom object types, custom processors |
 
-#### 1.6.2 Out of Scope
+#### 1.7.2 Out of Scope
 
 | Area | Description |
 |------|-------------|
@@ -212,7 +239,7 @@ This programme defines the boundaries of Nabu's evolution into The Personal Know
 | **Social features** | Sharing, following, or social graph are out of scope |
 | **Enterprise features** | SSO, team management, admin consoles are out of scope |
 
-#### 1.6.3 Programme Boundaries
+#### 1.7.3 Programme Boundaries
 
 The programme is bounded by:
 
@@ -1614,139 +1641,473 @@ impl CaptureEngine {
 
 ### Phase 1: Foundation (Months 1-3)
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 1 |
-| **Phase Name** | Foundation |
-| **Purpose** | Establish the architectural foundation for the Universal Knowledge Capture Expansion: knowledge object model, capture pipeline skeleton, storage layer, and event architecture |
-| **Expected Outcome** | A working knowledge object model in `nabu-core`, a skeleton `CaptureEngine` with one handler (file drop), a `StorageManager` with SQLite metadata store, and the event bus wired to all new services |
-| **Major Deliverables** | 1. `KnowledgeObject` model in `nabu-core` 2. `CaptureEngine` with `FileDropHandler` 3. `StorageManager` with SQLite metadata store 4. `ProcessingPipeline` skeleton with pass-through processor 5. Event bus integration for new services 6. Updated domain models in `shared/models/` 7. ADR for capture architecture |
-| **Dependencies** | Phase 1.6 (architecture gate) complete; existing Tantivy search index; existing `petgraph` graph engine |
-| **Complexity** | High — new Rust crate modules, new TypeScript services, cross-layer integration |
-| **Estimated Prompt Count** | 8-12 |
-| **Exit Criteria** | 1. `KnowledgeObject` model compiles and serialises correctly 2. `CaptureEngine` accepts file drops and produces `IngestionResult` 3. `StorageManager` persists and retrieves `KnowledgeObject` instances 4. Event bus publishes `ItemCaptured` and `ItemProcessed` events 5. All existing tests pass 6. New integration tests pass |
-| **Suggested Architecture Reviews** | Review `KnowledgeObject` model against domain model principles; review capture pipeline design against DDD bounded contexts |
-| **Potential Risks** | 1. `KnowledgeObject` model may be too large for initial implementation 2. SQLite schema migration may conflict with existing data 3. Event bus integration may introduce circular dependencies |
-| **Potential Future Extensions** | 1. Additional `CaptureHandler` implementations (share sheet, browser clip) 2. `Processor` implementations (OCR, metadata extraction) 3. `KnowledgeGraph` integration with typed entities |
+**Purpose:** Establish the architectural foundation for the Universal Knowledge Capture Expansion: knowledge object model, capture pipeline skeleton, storage layer, and event architecture.
+
+**Dependencies:** Phase 1.6 (architecture gate) complete; existing Tantivy search index; existing `petgraph` graph engine.
+
+**Complexity:** High — new Rust crate modules, new TypeScript services, cross-layer integration.
+
+#### Phase 1.1: Knowledge Object Model
+- **Purpose:** Define the `KnowledgeObject` struct, `ObjectType` enum, `ObjectContent` enum, and `ObjectMetadata` in `nabu-core`
+- **Outcome:** Universal knowledge object model compiles, serialises, and deserialises correctly
+- **Dependencies:** None (first subphase)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Unblocks all downstream work — every subsystem depends on the object model
+- **Operational Impact:** Low — pure data model, no runtime behaviour
+
+#### Phase 1.2: Capture Engine Skeleton
+- **Purpose:** Implement `CaptureEngine` with `FileDropHandler`, `Normaliser`, and `IngestionPipeline`; register handler and produce `IngestionResult`
+- **Outcome:** File drops are captured, normalised, and produce `IngestionResult` with `KnowledgeObject`
+- **Dependencies:** Phase 1.1 (Knowledge Object Model)
+- **Complexity:** High
+- **Estimated Prompts:** 4
+- **ROI:** Validates the capture architecture end-to-end
+- **Operational Impact:** Medium — new capture path changes how users add knowledge
+
+#### Phase 1.3: Storage Manager
+- **Purpose:** Implement `StorageManager` with SQLite metadata store; persist and retrieve `KnowledgeObject` instances
+- **Outcome:** Captured objects are persisted to `.nabu/db/metadata.db` and can be retrieved by ID
+- **Dependencies:** Phase 1.1 (Knowledge Object Model)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables persistence — captured knowledge survives application restarts
+- **Operational Impact:** Medium — new storage layer replaces ad-hoc file management
+
+#### Phase 1.4: Event Bus Integration
+- **Purpose:** Wire new services (`CaptureEngine`, `ProcessingPipeline`, `StorageManager`) to `appEventBus`; publish `ItemCaptured`, `ItemProcessed`, `ItemStored` events
+- **Outcome:** All new services communicate via typed events; no direct service-to-service imports
+- **Dependencies:** Phase 1.2 (Capture Engine), Phase 1.3 (Storage Manager)
+- **Complexity:** Medium
+- **Estimated Prompts:** 2
+- **ROI:** Enables decoupled architecture — services can evolve independently
+- **Operational Impact:** Low — internal refactor, no user-facing changes
+
+**Phase 1 Exit Criteria:**
+1. `KnowledgeObject` model compiles and serialises correctly
+2. `CaptureEngine` accepts file drops and produces `IngestionResult`
+3. `StorageManager` persists and retrieves `KnowledgeObject` instances
+4. Event bus publishes `ItemCaptured` and `ItemProcessed` events
+5. All existing tests pass
+6. New integration tests pass
+
+---
 
 ### Phase 2: Processing Pipeline (Months 3-6)
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 2 |
-| **Phase Name** | Processing Pipeline |
-| **Purpose** | Implement the full processing pipeline with OCR, metadata extraction, entity extraction, semantic tagging, AI summarisation, embedding generation, duplicate detection, relationship discovery, timeline extraction, language detection, and classification |
-| **Expected Outcome** | A fully functional `ProcessingPipeline` with all 11 processors, each configurable per vault, producing enriched `KnowledgeObject` instances |
-| **Major Deliverables** | 1. OCR Processor (tesseract-rs or platform-native) 2. Metadata Extractor (EXIF, PDF metadata, document properties) 3. Entity Extractor (NER model) 4. Semantic Tagger (AI-powered tag generation) 5. AI Summariser (local LLM) 6. Embedding Generator (BGE-micro or equivalent) 7. Duplicate Detector (content hash + semantic similarity) 8. Relationship Discoverer (entity-level relationship extraction) 9. Timeline Extractor (date extraction from documents) 10. Language Detector (langdetect-rs) 11. Classifier (topic classification) 12. Processor configuration UI 13. Processing history tracking |
-| **Dependencies** | Phase 1 complete; AI model infrastructure; embedding model weights |
-| **Complexity** | Very High — 11 processors, each with its own model dependencies and failure modes |
-| **Estimated Prompt Count** | 15-20 |
-| **Exit Criteria** | 1. All 11 processors compile and run independently 2. Each processor produces correct output on test fixtures 3. Processor chain is configurable per vault 4. Processing history is tracked in metadata envelope 5. Failed processors are isolated and don't block the pipeline 6. Performance benchmarks meet targets |
-| **Suggested Architecture Reviews** | Review processor chain design against pipeline pattern; review AI model integration against local-first principle |
-| **Potential Risks** | 1. AI model size may exceed mobile/embedded constraints 2. Processor chain may become a bottleneck for large batches 3. NER model accuracy may be insufficient for domain-specific entities |
-| **Potential Future Extensions** | 1. Custom processor plugins 2. Processor chain optimisation (parallel execution) 3. Processor result caching |
+**Purpose:** Implement the full processing pipeline with OCR, metadata extraction, entity extraction, semantic tagging, AI summarisation, embedding generation, duplicate detection, relationship discovery, timeline extraction, language detection, and classification.
+
+**Dependencies:** Phase 1 complete; AI model infrastructure; embedding model weights.
+
+**Complexity:** Very High — 11 processors, each with its own model dependencies and failure modes.
+
+#### Phase 2.1: Core Processors
+- **Purpose:** Implement OCR Processor, Metadata Extractor, and Entity Extractor
+- **Outcome:** Scanned documents are OCR'd, metadata is extracted, and entities (Person, Organisation, etc.) are identified
+- **Dependencies:** Phase 1 complete
+- **Complexity:** High
+- **Estimated Prompts:** 4
+- **ROI:** Unlocks document understanding — the foundation for all AI enrichment
+- **Operational Impact:** High — users can now ingest PDFs, images, and documents with automatic extraction
+
+#### Phase 2.2: AI Processors
+- **Purpose:** Implement Semantic Tagger, AI Summariser, and Embedding Generator
+- **Outcome:** Objects are auto-tagged, summarised, and embedded for semantic search
+- **Dependencies:** Phase 2.1 (Core Processors); local LLM and embedding models available
+- **Complexity:** Very High
+- **Estimated Prompts:** 4
+- **ROI:** Enables semantic search and AI-powered organisation
+- **Operational Impact:** High — AI features become available; users get automatic tagging and search
+
+#### Phase 2.3: Detection Processors
+- **Purpose:** Implement Duplicate Detector and Relationship Discoverer
+- **Outcome:** Duplicate objects are flagged; semantic relationships are discovered and added to the graph
+- **Dependencies:** Phase 2.2 (AI Processors)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Prevents knowledge duplication; connects related objects automatically
+- **Operational Impact:** Medium — users see duplicate warnings and relationship suggestions
+
+#### Phase 2.4: Analysis Processors
+- **Purpose:** Implement Timeline Extractor, Language Detector, and Classifier
+- **Outcome:** Dates are extracted, language is detected, and topics are classified
+- **Dependencies:** Phase 2.1 (Core Processors)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables timeline views, language-specific search, and topic-based organisation
+- **Operational Impact:** Medium — users get timeline views and language-filtered search
+
+#### Phase 2.5: Processor Configuration UI
+- **Purpose:** Build UI for enabling/disabling processors per vault, viewing processing history, and configuring processor options
+- **Outcome:** Users can control which processors run and view processing results
+- **Dependencies:** Phase 2.1-2.4 (all processors)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Gives users control over processing — critical for performance and privacy
+- **Operational Impact:** Medium — new settings UI for processor configuration
+
+**Phase 2 Exit Criteria:**
+1. All processors compile and run independently
+2. Each processor produces correct output on test fixtures
+3. Processor chain is configurable per vault
+4. Processing history is tracked in metadata envelope
+5. Failed processors are isolated and don't block the pipeline
+6. Performance benchmarks meet targets
+
+---
 
 ### Phase 3: Knowledge Graph Expansion (Months 6-9)
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 3 |
-| **Phase Name** | Knowledge Graph Expansion |
-| **Purpose** | Extend the existing file-level graph to a typed entity graph with 12+ entity types, semantic relationships, entity resolution, and graph query capabilities |
-| **Expected Outcome** | A `KnowledgeGraph` that supports typed nodes (Person, Organisation, Project, Book, etc.), typed edges (mentions, cites, collaborates_with, etc.), entity resolution (merging duplicates), and Cypher-like pattern queries |
-| **Major Deliverables** | 1. Typed `GraphEntity` and `EntityType` model 2. Typed `GraphEdge` and `RelationType` model 3. Entity resolution engine (merge duplicates) 4. Graph query API (pattern matching, traversal) 5. Incremental graph updates 6. Graph visualisation enhancements (typed nodes, coloured edges) 7. Graph migration from file-level to entity-level 8. ADR for graph architecture |
-| **Dependencies** | Phase 2 complete; entity extraction processors operational |
-| **Complexity** | High — graph migration is irreversible; entity resolution requires careful design |
-| **Estimated Prompt Count** | 10-14 |
-| **Exit Criteria** | 1. Typed graph model compiles and serialises correctly 2. Entity resolution correctly merges duplicate entities 3. Graph query API supports pattern matching 4. Incremental updates work correctly 5. Graph visualisation shows typed nodes and coloured edges 6. Migration from file-level graph preserves all existing data |
-| **Suggested Architecture Reviews** | Review entity resolution strategy against data integrity requirements; review graph query API against performance requirements |
-| **Potential Risks** | 1. Graph migration may corrupt existing data 2. Entity resolution may incorrectly merge distinct entities 3. Graph query performance may degrade with large datasets |
-| **Potential Future Extensions** | 1. Graph-based recommendation engine 2. Temporal graph analysis (timeline of relationships) 3. Graph export (GraphML, GEXF) |
+**Purpose:** Extend the existing file-level graph to a typed entity graph with 12+ entity types, semantic relationships, entity resolution, and graph query capabilities.
+
+**Dependencies:** Phase 2 complete; entity extraction processors operational.
+
+**Complexity:** High — graph migration is irreversible; entity resolution requires careful design.
+
+#### Phase 3.1: Typed Graph Model
+- **Purpose:** Implement `GraphEntity`, `EntityType`, `GraphEdge`, and `RelationType` models; extend `KnowledgeGraph` to support typed nodes and edges
+- **Outcome:** Graph supports typed entities (Person, Organisation, Project, etc.) and semantic edges (Mentions, Cites, BelongsTo, etc.)
+- **Dependencies:** Phase 2 complete
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Foundation for entity-centric knowledge — the graph becomes the primary data model
+- **Operational Impact:** Low — internal model change, no user-facing changes yet
+
+#### Phase 3.2: Entity Resolution Engine
+- **Purpose:** Implement entity resolution (merge duplicate entities), confidence scoring, and user review queue
+- **Outcome:** Duplicate entities are merged automatically or flagged for user review
+- **Dependencies:** Phase 3.1 (Typed Graph Model)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Prevents graph pollution from duplicate entities
+- **Operational Impact:** Medium — users see entity merge suggestions and can accept/reject
+
+#### Phase 3.3: Graph Query API
+- **Purpose:** Implement graph query API with pattern matching, traversal, and Cypher-like syntax
+- **Outcome:** Users and automation can query the graph for patterns (e.g., "all notes mentioning Person X")
+- **Dependencies:** Phase 3.1 (Typed Graph Model)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables powerful graph-based search and automation
+- **Operational Impact:** Medium — new graph query capabilities for power users and automation
+
+#### Phase 3.4: Graph Migration & Visualisation
+- **Purpose:** Migrate existing file-level graph to entity-level graph; enhance graph visualisation with typed nodes and coloured edges
+- **Outcome:** Existing graph data is preserved; visualisation shows typed entities and semantic edges
+- **Dependencies:** Phase 3.1-3.3 (Typed Graph Model, Entity Resolution, Graph Query API)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Preserves existing user data while enabling new graph features
+- **Operational Impact:** High — graph visualisation becomes more informative and useful
+
+**Phase 3 Exit Criteria:**
+1. Typed graph model compiles and serialises correctly
+2. Entity resolution correctly merges duplicate entities
+3. Graph query API supports pattern matching
+4. Incremental updates work correctly
+5. Graph visualisation shows typed nodes and coloured edges
+6. Migration from file-level graph preserves all existing data
+
+---
 
 ### Phase 4: Universal Search (Months 9-12)
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 4 |
-| **Phase Name** | Universal Search |
-| **Purpose** | Implement universal hybrid search across all knowledge types with full-text, vector, and graph-signal ranking, faceted filtering, and mixed-type results |
-| **Expected Outcome** | A `UniversalSearchEngine` that indexes all knowledge object types, supports hybrid ranking (TF-IDF + semantic + graph signals), faceted filtering, and returns mixed-type results ranked by relevance |
-| **Major Deliverables** | 1. Universal search index (all object types) 2. Hybrid ranker (TF-IDF + vector + graph signals) 3. Faceted search UI 4. Search result ranking with explanation 5. Search suggestions and auto-complete 6. Search history and saved searches 7. Search API (typed IPC) 8. ADR for search architecture |
-| **Dependencies** | Phase 3 complete; embedding generation operational; all object types indexed |
-| **Complexity** | High — hybrid ranking requires careful weight tuning; faceted search requires UI investment |
-| **Estimated Prompt Count** | 10-14 |
-| **Exit Criteria** | 1. Search index contains all object types 2. Hybrid ranking produces relevant results across types 3. Faceted filtering works correctly 4. Search suggestions are accurate 5. Search performance meets targets (< 100ms for typical queries) 6. All existing search functionality is preserved |
-| **Suggested Architecture Reviews** | Review hybrid ranking weights against relevance benchmarks; search index schema against performance requirements |
-| **Potential Risks** | 1. Hybrid ranking may produce unexpected results for edge cases 2. Search index size may grow unbounded 3. Faceted search UI may be complex for users |
-| **Potential Future Extensions** | 1. Natural language query parsing 2. Search result clustering 3. Personalised ranking (learn from user behaviour) |
+**Purpose:** Implement universal hybrid search across all knowledge types with full-text, vector, and graph-signal ranking, faceted filtering, and mixed-type results.
 
-### Phase 5: AI Enrichment (Months 12-15)
+**Dependencies:** Phase 3 complete; embedding generation operational; all object types indexed.
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 5 |
-| **Phase Name** | AI Enrichment |
-| **Purpose** | Implement the full AI enrichment pipeline with local embeddings, summarisation, entity extraction, duplicate detection, and relationship suggestion |
-| **Expected Outcome** | An `AIEnrichmentPipeline` that runs entirely on-device, generating embeddings, summarising content, extracting entities, detecting duplicates, and suggesting relationships |
-| **Major Deliverables** | 1. Embedding model integration (BGE-micro or equivalent) 2. Summarisation model integration (local LLM) 3. Entity extraction model (NER) 4. Duplicate detection (semantic similarity) 5. Relationship suggestion (graph-based inference) 6. AI processing configuration UI 7. AI processing history and audit log 8. ADR for AI architecture |
-| **Dependencies** | Phase 2 complete; embedding infrastructure operational; local LLM model available |
-| **Complexity** | Very High — AI models are large and require careful integration; on-device inference has performance constraints |
-| **Estimated Prompt Count** | 12-18 |
-| **Exit Criteria** | 1. Embeddings are generated for all object types 2. Summaries are accurate and useful 3. Entity extraction identifies relevant entities 4. Duplicate detection correctly identifies near-duplicates 5. Relationship suggestions are relevant 6. AI processing is configurable per vault 7. AI processing does not block the main thread 8. All AI processing is local (no cloud dependency) |
-| **Suggested Architecture Reviews** | Review AI model selection against local-first principle; review on-device inference performance against UX requirements |
-| **Potential Risks** | 1. AI models may be too large for some devices 2. On-device inference may be too slow for large documents 3. AI-generated content may be inaccurate or misleading |
-| **Potential Future Extensions** | 1. Custom AI model plugins 2. AI-powered automation rules 3. AI-assisted knowledge graph exploration |
+**Complexity:** High — hybrid ranking requires careful weight tuning; faceted search requires UI investment.
 
-### Phase 6: Integrations & Automation (Months 15-18)
+#### Phase 4.1: Universal Search Index
+- **Purpose:** Extend Tantivy index to all knowledge object types; implement vector index for embeddings
+- **Outcome:** All object types are searchable via full-text and vector search
+- **Dependencies:** Phase 3 complete
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables search across all knowledge types — the core retrieval capability
+- **Operational Impact:** High — users can search PDFs, images, people, projects, etc.
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 6 |
-| **Phase Name** | Integrations & Automation |
-| **Purpose** | Implement external integrations (email, Git, API webhooks, calendar, task manager) and the automation engine for rule-based processing |
-| **Expected Outcome** | An `IntegrationHub` with connectors for email, Git, APIs, and an `AutomationEngine` for rule-based processing workflows |
-| **Major Deliverables** | 1. Email connector (IMAP/POP3, MIME parsing) 2. Git connector (commit history as knowledge) 3. API webhook receiver 4. Calendar connector (ICS import) 5. Task manager connector 6. Automation engine (rules, triggers, actions) 7. Automation UI (rule builder) 8. Integration configuration UI 9. ADR for integration architecture |
-| **Dependencies** | Phase 4 complete; capture pipeline operational; processing pipeline operational |
-| **Complexity** | High — each connector has its own protocol and error handling; automation engine requires careful rule design |
-| **Estimated Prompt Count** | 12-16 |
-| **Exit Criteria** | 1. All connectors authenticate and sync correctly 2. Automation rules evaluate and trigger actions correctly 3. Integration errors are handled gracefully 4. Automation UI is intuitive and complete 5. All integrations are configurable per vault 6. Integration data is stored as KnowledgeObjects |
-| **Suggested Architecture Reviews** | Review connector error handling against resilience requirements; review automation rule engine against security requirements |
-| **Potential Risks** | 1. External service APIs may change without notice 2. Automation rules may have unintended side effects 3. Integration data may contain sensitive information |
-| **Potential Future Extensions** | 1. Marketplace for community connectors 2. Conditional automation (if-then-else chains) 3. Integration with cloud storage providers |
+#### Phase 4.2: Hybrid Ranker
+- **Purpose:** Implement hybrid ranking combining TF-IDF, vector similarity, and graph signals with configurable weights
+- **Outcome:** Search results are ranked by relevance across full-text, semantic, and graph dimensions
+- **Dependencies:** Phase 4.1 (Universal Search Index)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Search quality improves dramatically — users find what they need faster
+- **Operational Impact:** High — search results become more relevant and useful
 
-### Phase 7: Security & Platform Expansion (Months 18-21)
+#### Phase 4.3: Faceted Search UI
+- **Purpose:** Build faceted search UI with filters for object type, date, tags, entities, and collections
+- **Outcome:** Users can filter and refine search results by multiple dimensions
+- **Dependencies:** Phase 4.1 (Universal Search Index)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables powerful search refinement — users narrow results without new queries
+- **Operational Impact:** Medium — new search UI with faceted filtering
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 7 |
-| **Phase Name** | Security & Platform Expansion |
-| **Purpose** | Implement vault-level encryption, cross-platform desktop support (Linux, Windows), and mobile capture (share sheet, camera) |
-| **Expected Outcome** | Encrypted vaults, cross-platform desktop app, and mobile capture capabilities |
-| **Major Deliverables** | 1. Vault-level encryption (AES-256-GCM) 2. Linux support (CI, testing, packaging) 3. Windows support (CI, testing, packaging) 4. macOS share sheet integration 5. iOS share sheet integration 6. Android share sheet integration 7. Camera capture (mobile) 8. Voice memo capture (mobile) 9. Security audit and penetration testing 10. ADR for security architecture |
-| **Dependencies** | Phase 6 complete; all core subsystems operational |
-| **Complexity** | Very High — cross-platform support requires significant testing and packaging work; encryption must be carefully implemented |
-| **Estimated Prompt Count** | 15-20 |
-| **Exit Criteria** | 1. Vault encryption works correctly on all platforms 2. App builds and runs on macOS, Linux, and Windows 3. Mobile share sheet integration works on iOS and Android 4. Security audit passes with no critical findings 5. All platform-specific tests pass |
-| **Suggested Architecture Reviews** | Review encryption implementation against security best practices; review cross-platform testing strategy |
-| **Potential Risks** | 1. Encryption key management may be complex on mobile 2. Cross-platform testing may reveal platform-specific bugs 3. Mobile capture may have performance issues on low-end devices |
-| **Potential Future Extensions** | 1. Biometric unlock 2. Multi-vault encryption with different keys 3. Secure sharing between vaults |
+#### Phase 4.4: Search Suggestions & History
+- **Purpose:** Implement search suggestions, auto-complete, search history, and saved searches
+- **Outcome:** Users get suggestions as they type, can revisit past searches, and save frequent queries
+- **Dependencies:** Phase 4.1 (Universal Search Index)
+- **Complexity:** Medium
+- **Estimated Prompts:** 2
+- **ROI:** Improves search discoverability and efficiency
+- **Operational Impact:** Low — incremental UX improvement to existing search
 
-### Phase 8: Plugin System & Extensibility (Months 21-24)
+**Phase 4 Exit Criteria:**
+1. Search index contains all object types
+2. Hybrid ranking produces relevant results across types
+3. Faceted filtering works correctly
+4. Search suggestions are accurate
+5. Search performance meets targets (< 100ms for typical queries)
+6. All existing search functionality is preserved
 
-| Field | Detail |
-|-------|--------|
-| **Phase Number** | 8 |
-| **Phase Name** | Plugin System & Extensibility |
-| **Purpose** | Implement the plugin architecture allowing new knowledge types, processors, capture handlers, and integrations to be added without modifying core code |
-| **Expected Outcome** | A fully functional plugin system with dynamic library loading, WASM module support, and a plugin marketplace/registry |
-| **Major Deliverables** | 1. Plugin interface definitions (CaptureHandler, Processor, Connector, KnowledgeObjectType) 2. Dynamic library loader (.so/.dylib/.dll) 3. WASM module loader 4. Plugin registry and discovery 5. Plugin sandboxing and security 6. Plugin UI (install, configure, enable/disable) 7. Plugin marketplace/registry 8. Plugin development SDK and documentation 9. ADR for plugin architecture |
-| **Dependencies** | Phase 7 complete; all core subsystems operational and stable |
-| **Complexity** | High — plugin sandboxing requires careful security design; plugin marketplace requires infrastructure |
-| **Estimated Prompt Count** | 10-14 |
-| **Exit Criteria** | 1. Plugins can be loaded dynamically at runtime 2. WASM modules execute in sandboxed environment 3. Plugin security model prevents malicious plugins 4. Plugin UI is intuitive and complete 5. Plugin SDK is documented and usable 6. Sample plugins demonstrate all interface types |
-| **Suggested Architecture Reviews** | Review plugin sandboxing against security requirements; review plugin API stability against versioning strategy |
-| **Potential Risks** | 1. Plugin security vulnerabilities may compromise the vault 2. Plugin API may change between versions 3. Plugin marketplace may become a support burden |
-| **Potential Future Extensions** | 1. Community plugin marketplace 2. Plugin versioning and compatibility matrix 3. Plugin signing and verification |
+---
+
+### Phase 5: Knowledge Modules (Months 12-18)
+
+**Purpose:** Expand Nabu with native first-party knowledge modules that extend the platform's core capabilities. These are built-in features, not plugins. AI enhancements are applied cross-cutting where appropriate but are never required — every module functions completely without AI.
+
+**Dependencies:** Phase 4 complete; all core subsystems operational.
+
+**Complexity:** High — multiple new UI surfaces and native capabilities.
+
+#### Phase 5.1: Knowledge Inbox Expansion
+- **Purpose:** Enhance the Knowledge Inbox with confidence indicators, suggested destinations, metadata preview, thumbnails, bulk approval, retry failed imports, watch-folder activity, and processing history
+- **Outcome:** The Inbox becomes the primary review surface for all captured knowledge with full transparency and control
+- **Dependencies:** Phase 4 complete
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Users gain full control over captured knowledge before it enters their vault
+- **Operational Impact:** High — the Inbox becomes the central hub for knowledge ingestion
+
+#### Phase 5.2: Browser & Clipboard Capture
+- **Purpose:** Implement browser extension for capturing web pages, bookmarks, and research; implement clipboard monitoring with content type detection and automatic capture
+- **Outcome:** Users can capture knowledge from browsers and clipboard with a single action
+- **Dependencies:** Phase 5.1 (Knowledge Inbox Expansion)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Eliminates friction for the most common capture scenarios
+- **Operational Impact:** High — capture becomes effortless for web and clipboard content
+
+#### Phase 5.3: Dictation & Voice Capture
+- **Purpose:** Implement voice memo capture with Whisper transcription; integrate dictation into the note editor
+- **Outcome:** Users can capture knowledge via voice with automatic transcription
+- **Dependencies:** Phase 5.1 (Knowledge Inbox Expansion)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables hands-free capture — critical for mobile and accessibility
+- **Operational Impact:** Medium — new voice capture capabilities
+
+#### Phase 5.4: PDF Toolkit & Document Utilities
+- **Purpose:** Implement PDF annotation, form filling, page extraction, merging, splitting; document conversion, comparison, redaction, watermarking
+- **Outcome:** Users can manipulate PDFs and documents without leaving Nabu
+- **Dependencies:** Phase 5.1 (Knowledge Inbox Expansion)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Eliminates the need for separate PDF tools — Nabu becomes the document hub
+- **Operational Impact:** High — PDF toolkit transforms Nabu into a document management platform
+
+#### Phase 5.5: Import/Export & Automation Foundations
+- **Purpose:** Implement bulk import from other tools (Markdown, JSON, CSV, Evernote, Notion); export to multiple formats (Markdown, PDF, HTML, JSON); implement rule engine foundation for automated processing
+- **Outcome:** Users can migrate existing knowledge into Nabu and export when needed; automation foundation is in place
+- **Dependencies:** Phase 5.1-5.4 (all Knowledge Modules)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables migration and interoperability; automation foundation enables future workflow automation
+- **Operational Impact:** Medium — import/export and automation foundation
+
+**Phase 5 Exit Criteria:**
+1. Knowledge Inbox provides full review and control over captured knowledge
+2. Browser and clipboard capture work reliably
+3. Voice capture produces accurate transcriptions
+4. PDF toolkit supports annotation, extraction, merging, and splitting
+5. Document utilities support conversion, comparison, and redaction
+6. Bulk import from common formats works correctly
+7. Export to multiple formats works correctly
+8. Automation foundation supports rule evaluation
+
+---
+
+### Phase 6: Integrations (Months 18-21)
+
+**Purpose:** Implement platform integrations that enable knowledge to flow into and out of Nabu. The emphasis is on enabling knowledge movement, not on building a proprietary ecosystem.
+
+**Dependencies:** Phase 5 complete; capture pipeline operational; processing pipeline operational.
+
+**Complexity:** High — each connector has its own protocol and error handling.
+
+#### Phase 6.1: Email Ingestion
+- **Purpose:** Implement email connector (IMAP/POP3, MIME parsing); ingest emails and attachments as knowledge objects
+- **Outcome:** Email archives and individual emails are captured as knowledge objects with full metadata
+- **Dependencies:** Phase 5 complete
+- **Complexity:** High
+- **Estimated Prompts:** 4
+- **ROI:** Brings existing communication knowledge into Nabu
+- **Operational Impact:** High — users can import email archives
+
+#### Phase 6.2: Git & Calendar Integration
+- **Purpose:** Implement Git connector (commit history, issues, pull requests as knowledge); implement calendar connector (ICS import, event creation)
+- **Outcome:** Git repositories and calendar events are ingested as knowledge objects
+- **Dependencies:** Phase 6.1 (Email Ingestion)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Brings code and calendar knowledge into Nabu
+- **Operational Impact:** Medium — users can import Git history and calendar events
+
+#### Phase 6.3: External APIs & Webhooks
+- **Purpose:** Implement API webhook receiver for external systems to push data; implement REST API for external systems to pull data
+- **Outcome:** External systems can integrate with Nabu via webhooks and API
+- **Dependencies:** Phase 6.1 (Email Ingestion)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables automated capture from external tools and custom integrations
+- **Operational Impact:** Medium — users can set up automated data ingestion
+
+#### Phase 6.4: Import & Export Connectors
+- **Purpose:** Implement connectors for common knowledge sources (RSS, OPML, Zotero, Readwise); implement export connectors (Markdown, PDF, HTML, JSON, CSV)
+- **Outcome:** Knowledge flows into and out of Nabu via standard formats and popular tools
+- **Dependencies:** Phase 6.1-6.3 (all connectors)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Enables interoperability with the broader knowledge ecosystem
+- **Operational Impact:** Medium — users can sync with external tools
+
+#### Phase 6.5: Integration UI & Configuration
+- **Purpose:** Build integration configuration UI; implement connection management, sync scheduling, and error handling UI
+- **Outcome:** Users can configure and manage integrations without editing config files
+- **Dependencies:** Phase 6.1-6.4 (all connectors)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Makes integrations accessible to non-technical users
+- **Operational Impact:** Medium — new UI for integration management
+
+**Phase 6 Exit Criteria:**
+1. All connectors authenticate and sync correctly
+2. Integration errors are handled gracefully
+3. Integration UI is intuitive and complete
+4. All integrations are configurable per vault
+5. Integration data is stored as KnowledgeObjects
+6. Webhooks and API are functional and documented
+
+---
+
+### Phase 7: Platform Services (Months 21-24)
+
+**Purpose:** Strengthen the platform with privacy, encryption, backup, synchronisation, observability, performance, reliability, and operational readiness. This phase focuses on making Nabu a production-ready platform.
+
+**Dependencies:** Phase 6 complete; all core subsystems operational and stable.
+
+**Complexity:** Very High — cross-platform support and encryption require careful implementation.
+
+#### Phase 7.1: Vault Encryption & Privacy
+- **Purpose:** Implement AES-256-GCM vault encryption for protected content; key derivation from user password; OS keychain integration; recovery key export; privacy controls
+- **Outcome:** Vault data is encrypted at rest; users have full control over privacy settings
+- **Dependencies:** Phase 6 complete
+- **Complexity:** Very High
+- **Estimated Prompts:** 4
+- **ROI:** Protects user data at rest — critical for privacy and security
+- **Operational Impact:** High — encryption changes vault access pattern
+
+#### Phase 7.2: Backup & Synchronisation
+- **Purpose:** Implement vault backup (full, incremental, scheduled); implement optional synchronisation interfaces for user-managed sync
+- **Outcome:** Users can back up their vault and optionally sync across devices using their own infrastructure
+- **Dependencies:** Phase 7.1 (Vault Encryption & Privacy)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Protects against data loss; enables multi-device workflows without cloud dependency
+- **Operational Impact:** Medium — backup and sync capabilities
+
+#### Phase 7.3: Observability & Performance
+- **Purpose:** Implement application metrics, health checks, performance profiling, memory management, and startup optimisation
+- **Outcome:** Nabu is observable and performant; issues are detected before they affect users
+- **Dependencies:** Phase 7.1 (Vault Encryption & Privacy)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables proactive issue detection and performance optimisation
+- **Operational Impact:** Low — internal improvements, no new user-facing features
+
+#### Phase 7.4: Platform Hardening
+- **Purpose:** Implement Linux CI, testing, packaging (AppImage, deb, rpm); implement Windows CI, testing, packaging (MSI, NSIS); platform-specific fixes and optimisations
+- **Outcome:** Nabu builds and runs on macOS, Linux, and Windows with full functionality
+- **Dependencies:** Phase 7.2 (Backup & Synchronisation)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Expands platform coverage to all major desktop operating systems
+- **Operational Impact:** Medium — new platform support
+
+#### Phase 7.5: Operational Readiness
+- **Purpose:** Implement security audit, penetration testing, incident response runbooks, disaster recovery procedures, and operational playbooks
+- **Outcome:** Nabu is production-ready with comprehensive operational documentation and tested recovery procedures
+- **Dependencies:** Phase 7.1-7.4 (all platform services)
+- **Complexity:** Medium
+- **Estimated Prompts:** 2
+- **ROI:** Validates platform readiness — critical for user trust and operational stability
+- **Operational Impact:** Low — audit and documentation, no new features
+
+**Phase 7 Exit Criteria:**
+1. Vault encryption works correctly on all platforms
+2. Backup and restore procedures are tested and documented
+3. App builds and runs on macOS, Linux, and Windows
+4. Observability metrics are collected and actionable
+5. Security audit passes with no critical findings
+6. All platform-specific tests pass
+7. Operational runbooks are complete and tested
+
+---
+
+### Phase 8: Platform Extensibility (Months 24-27)
+
+**Purpose:** Enable future ecosystem growth through extension points. Core Nabu functionality remains built into the platform; extensibility exists for community capabilities outside the project's primary scope. This phase does not implement core features as plugins.
+
+**Dependencies:** Phase 7 complete; all core subsystems operational and stable.
+
+**Complexity:** High — extension SDK and sandboxing require careful security design.
+
+#### Phase 8.1: Extension SDK
+- **Purpose:** Define extension interfaces for custom capture sources, processors, knowledge object types, importers, and exporters; implement extension manifest format and validation
+- **Outcome:** Developers can create extensions that integrate with Nabu's core systems
+- **Dependencies:** Phase 7 complete
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables ecosystem growth — the community can extend Nabu for specialised use cases
+- **Operational Impact:** Medium — new extension development infrastructure
+
+#### Phase 8.2: Custom Capture Sources
+- **Purpose:** Implement extension point for custom capture sources; provide SDK for building capture handlers that integrate with the capture pipeline
+- **Outcome:** Developers can add new capture sources without modifying core code
+- **Dependencies:** Phase 8.1 (Extension SDK)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables specialised capture scenarios — users can add sources relevant to their workflow
+- **Operational Impact:** Medium — new capture source extensibility
+
+#### Phase 8.3: Custom Knowledge Processors & Objects
+- **Purpose:** Implement extension point for custom knowledge processors and custom knowledge object types; provide SDK for building processors and object schemas
+- **Outcome:** Developers can add new processing capabilities and knowledge types without modifying core code
+- **Dependencies:** Phase 8.1 (Extension SDK)
+- **Complexity:** High
+- **Estimated Prompts:** 3
+- **ROI:** Enables specialised knowledge processing — users can extend Nabu for domain-specific needs
+- **Operational Impact:** Medium — new processor and object type extensibility
+
+#### Phase 8.4: Extension UI & Community Registry
+- **Purpose:** Build extension management UI (install, configure, enable/disable); implement community registry for discovering and sharing extensions
+- **Outcome:** Users can discover, install, and manage extensions through a UI
+- **Dependencies:** Phase 8.1-8.3 (all extension points)
+- **Complexity:** Medium
+- **Estimated Prompts:** 3
+- **ROI:** Makes extension ecosystem accessible — users don't need to manually manage extension files
+- **Operational Impact:** Medium — new UI for extension management
+
+**Phase 8 Exit Criteria:**
+1. Extension SDK is documented and usable
+2. Custom capture sources can be added and loaded
+3. Custom processors and object types can be added and loaded
+4. Extension UI is intuitive and complete
+5. Community registry is functional
+6. Sample extensions demonstrate all interface types
+7. Core Nabu functionality is not implemented as extensions
 
 ---
 
