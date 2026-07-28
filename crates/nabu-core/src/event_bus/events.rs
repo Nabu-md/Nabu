@@ -9,6 +9,15 @@ use uuid::Uuid;
 use crate::capture::IngestionRequest;
 use crate::models::knowledge_object::KnowledgeObject;
 
+/// Event type name for [`ItemCaptured`].
+pub const EVENT_ITEM_CAPTURED: &str = "ItemCaptured";
+
+/// Event type name for [`ItemProcessed`].
+pub const EVENT_ITEM_PROCESSED: &str = "ItemProcessed";
+
+/// Event type name for [`ItemStored`].
+pub const EVENT_ITEM_STORED: &str = "ItemStored";
+
 /// Event published when an item is captured by the CaptureEngine.
 ///
 /// This event signals that a capture request has been successfully processed
@@ -93,21 +102,19 @@ impl From<&ItemCaptured> for IngestionRequest {
     }
 }
 
-/// Creates an ItemProcessed event from a KnowledgeObject.
+/// Creates an [`ItemProcessed`] event from a [`KnowledgeObject`].
+///
+/// # Note
+///
+/// This conversion does not preserve pipeline warnings. Use [`ItemProcessed::from_knowledge_object`]
+/// when warnings are available, or construct [`ItemProcessed`] directly.
 impl From<&KnowledgeObject> for ItemProcessed {
     fn from(obj: &KnowledgeObject) -> Self {
-        Self {
-            id: obj.id,
-            vault_id: obj.vault_id.clone(),
-            object_type: format!("{:?}", obj.object_type),
-            timestamp: obj.modified_at.clone(),
-            knowledge_object: obj.clone(),
-            warnings: Vec::new(),
-        }
+        Self::from_knowledge_object(obj, Vec::new())
     }
 }
 
-/// Creates an ItemStored event from a KnowledgeObject.
+/// Creates an [`ItemStored`] event from a [`KnowledgeObject`].
 impl From<&KnowledgeObject> for ItemStored {
     fn from(obj: &KnowledgeObject) -> Self {
         Self {
@@ -115,6 +122,23 @@ impl From<&KnowledgeObject> for ItemStored {
             vault_id: obj.vault_id.clone(),
             object_type: format!("{:?}", obj.object_type),
             timestamp: obj.modified_at.clone(),
+        }
+    }
+}
+
+impl ItemProcessed {
+    /// Creates an [`ItemProcessed`] event from a [`KnowledgeObject`] with warnings.
+    ///
+    /// This is the preferred constructor when warnings from the ingestion
+    /// pipeline are available.
+    pub fn from_knowledge_object(obj: &KnowledgeObject, warnings: Vec<String>) -> Self {
+        Self {
+            id: obj.id,
+            vault_id: obj.vault_id.clone(),
+            object_type: format!("{:?}", obj.object_type),
+            timestamp: obj.modified_at.clone(),
+            knowledge_object: obj.clone(),
+            warnings,
         }
     }
 }

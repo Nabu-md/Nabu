@@ -30,5 +30,8 @@
 mod bus;
 mod events;
 
-pub use bus::EventBus;
-pub use events::{ItemCaptured, ItemProcessed, ItemStored, KnowledgeEvents};
+pub use bus::{EventBus, Subscription};
+pub use events::{
+    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EVENT_ITEM_STORED, ItemCaptured, ItemProcessed,
+    ItemStored, KnowledgeEvents,
+};

@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::capture::{CaptureError, IngestionRequest, IngestionResult, IngestionStatus};
-use crate::event_bus::{EventBus, ItemCaptured, ItemProcessed};
+use crate::event_bus::{
+    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EventBus, ItemCaptured, ItemProcessed,
+};
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
 
 /// Transforms a normalized [`IngestionRequest`] into a [`KnowledgeObject`].
@@ -26,15 +28,14 @@ impl IngestionPipeline {
     /// The pipeline subscribes to [`ItemCaptured`] events and publishes
     /// [`ItemProcessed`] events when processing completes.
     pub fn new(event_bus: Arc<EventBus>) -> Self {
-        let bus = event_bus;
-        let bus_for_closure = bus.clone();
-        bus.subscribe("ItemCaptured", move |event: &ItemCaptured| {
+        let bus = event_bus.clone();
+        event_bus.subscribe(EVENT_ITEM_CAPTURED, move |event: &ItemCaptured| {
             let request: IngestionRequest = event.into();
             let pipeline = IngestionPipeline;
             if let Ok(result) = pipeline.process_with_id(request, event.id) {
                 if let Some(obj) = result.knowledge_object {
-                    let processed = ItemProcessed::from(&obj);
-                    bus_for_closure.publish("ItemProcessed", &processed);
+                    let processed = ItemProcessed::from_knowledge_object(&obj, result.warnings);
+                    bus.publish(EVENT_ITEM_PROCESSED, &processed);
                 }
             }
         });
@@ -157,7 +158,12 @@ impl IngestionPipeline {
 
     fn current_timestamp() -> String {
         let now = std::time::SystemTime::now();
-        let duration = now.duration_since(std::time::UNIX_EPOCH).unwrap();
+        let duration = now
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_else(|_| {
+                // Fallback for systems with clock issues; should never happen in practice.
+                std::time::Duration::from_secs(0)
+            });
         let secs = duration.as_secs();
         let millis = duration.subsec_millis();
         format!("{}.{:03}Z", secs, millis)
