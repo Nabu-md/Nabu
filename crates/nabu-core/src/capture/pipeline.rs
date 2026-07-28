@@ -98,6 +98,12 @@ impl IngestionPipeline {
     fn determine_object_type(&self, mime: &str) -> ObjectType {
         if mime == "application/x-nabu-bookmark" {
             ObjectType::Bookmark
+        } else if mime == "application/x-nabu-article" {
+            ObjectType::Document
+        } else if mime == "application/x-nabu-youtube" {
+            ObjectType::AudioRecording
+        } else if mime == "application/x-nabu-github" {
+            ObjectType::Repository
         } else if mime == "text/plain" || mime.starts_with("text/markdown") {
             ObjectType::Note
         } else if mime.starts_with("text/")

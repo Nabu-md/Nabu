@@ -25,6 +25,7 @@ tera = "1.20.0"
 rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = "0.4"
 sha2 = "0.10"
+scraper = "0.19"
 
 # Optional native dependencies
 tokio = { version = "1.43.0", features = ["full"], optional = true }
