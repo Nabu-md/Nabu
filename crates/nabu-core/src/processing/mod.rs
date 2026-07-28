@@ -47,6 +47,9 @@ mod metadata_extractor;
 mod pdf_text_processor;
 mod pdf_metadata_processor;
 mod pdf_annotation_processor;
+mod content_classifier;
+mod auto_filer;
+mod metadata_enricher;
 
 pub use history::{ProcessingHistoryEntry, PROCESSING_HISTORY_KEY};
 pub use pipeline::ProcessingPipeline;
@@ -58,3 +61,6 @@ pub use metadata_extractor::MetadataExtractor;
 pub use pdf_text_processor::PdfTextProcessor;
 pub use pdf_metadata_processor::PdfMetadataProcessor;
 pub use pdf_annotation_processor::PdfAnnotationProcessor;
+pub use content_classifier::{ClassificationResult, ContentClassifier};
+pub use auto_filer::{AutoFileSuggestions, AutoFiler};
+pub use metadata_enricher::MetadataEnricher;

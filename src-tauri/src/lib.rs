@@ -17,7 +17,7 @@ use nabu_core::capture::{
 };
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
-    DuplicateDetector, MetadataExtractor, OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor, ProcessingPipeline, TimelineExtractor,
+    AutoFiler, ContentClassifier, DuplicateDetector, MetadataEnricher, MetadataExtractor, OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor, ProcessingPipeline, TimelineExtractor,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -69,11 +69,22 @@ pub fn run() {
 
             // Create processing pipeline and register processors in order
             let pipeline = Arc::new(ProcessingPipeline::new(event_bus.clone()));
+            // 1. ContentClassifier - classify documents before other processing
+            pipeline.register(Arc::new(ContentClassifier::new()));
+            // 2. DuplicateDetector - detect duplicates early
             pipeline.register(Arc::new(DuplicateDetector::without_storage()));
+            // 3. TimelineExtractor - extract dates from content
             pipeline.register(Arc::new(TimelineExtractor::new()));
+            // 4. OCR - extract text from images/scans
             #[cfg(all(target_os = "macos", target_os = "ios"))]
             pipeline.register(Arc::new(OcrProcessor::new()));
+            // 5. MetadataExtractor - extract HTML metadata
             pipeline.register(Arc::new(MetadataExtractor::new()));
+            // 6. MetadataEnricher - fill in missing metadata
+            pipeline.register(Arc::new(MetadataEnricher::new()));
+            // 7. AutoFiler - suggest organisation
+            pipeline.register(Arc::new(AutoFiler::new()));
+            // 8. PDF processors
             pipeline.register(Arc::new(PdfTextProcessor::new()));
             pipeline.register(Arc::new(PdfMetadataProcessor::new()));
             pipeline.register(Arc::new(PdfAnnotationProcessor::new()));

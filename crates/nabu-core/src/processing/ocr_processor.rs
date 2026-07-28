@@ -56,38 +56,16 @@ pub struct OcrInfo {
 /// Requires macOS or iOS. On unsupported platforms, the processor records
 /// a warning and continues without modifying the object.
 #[derive(Debug)]
-pub struct OcrProcessor {
-    #[cfg(all(target_os = "macos", target_os = "ios"))]
-    #[allow(dead_code)]
-    recognition_level: VNRequestTextRecognitionLevel,
-}
+pub struct OcrProcessor {}
 
-#[cfg(all(target_os = "macos", target_os = "ios"))]
 impl Default for OcrProcessor {
     fn default() -> Self {
-        Self::new()
+        Self {}
     }
 }
 
 impl OcrProcessor {
-    /// Creates a new OCR processor with high-accuracy settings.
-    #[cfg(all(target_os = "macos", target_os = "ios"))]
-    pub fn new() -> Self {
-        Self {
-            recognition_level: VNRequestTextRecognitionLevel::Accurate,
-        }
-    }
-
-    /// Creates a new OCR processor with the specified recognition level.
-    #[cfg(all(target_os = "macos", target_os = "ios"))]
-    pub fn with_recognition_level(level: VNRequestTextRecognitionLevel) -> Self {
-        Self {
-            recognition_level: level,
-        }
-    }
-
-    /// Creates an OCR processor for unsupported platforms (no-op).
-    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    /// Creates a new OCR processor.
     pub fn new() -> Self {
         Self {}
     }
@@ -117,7 +95,7 @@ impl OcrProcessor {
         let start = std::time::Instant::now();
         let mut info = OcrInfo::default();
 
-        // Placeholder for actual Vision framework integration.
+        // TODO: Implement real Vision framework integration.
         // Full implementation would:
         // 1. Load image via CIImage or CGImage
         // 2. Create VNImageRequestHandler
@@ -139,7 +117,7 @@ impl OcrProcessor {
         let start = std::time::Instant::now();
         let mut info = OcrInfo::default();
 
-        // Placeholder for PDF OCR.
+        // TODO: Implement real PDF OCR using PDFKit + Vision framework.
         // Would use PDFPage + CGImage extraction per page, then OCR each page.
 
         info.warning = Some("PDF OCR not yet fully integrated".to_string());
@@ -168,7 +146,7 @@ impl Processor for OcrProcessor {
         };
         knowledge_object.metadata.custom.insert(
             "ocr_info".to_string(),
-            serde_json::to_value(info).unwrap(),
+            serde_json::to_value(info).unwrap_or_default(),
         );
         ProcessingResult::unchanged(knowledge_object)
     }
@@ -317,16 +295,3 @@ mod tests {
     }
 }
 
-#[cfg(all(target_os = "macos", target_os = "ios"))]
-#[cfg(test)]
-mod vision_tests {
-    use super::*;
-    use objc2_vision::*;
-
-    #[test]
-    fn vision_framework_loads() {
-        // Verify Vision framework constants/types are accessible
-        let level = VNRequestTextRecognitionLevel::Accurate;
-        assert!(matches!(level, VNRequestTextRecognitionLevel::Accurate));
-    }
-}
