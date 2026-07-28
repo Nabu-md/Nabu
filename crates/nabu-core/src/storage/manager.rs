@@ -11,6 +11,7 @@ use std::path::PathBuf;
 
 use super::provider::StorageProvider;
 use super::sqlite::SQLiteStorage;
+use crate::models::knowledge_object::KnowledgeObject;
 
 /// The Storage Manager is the single source of truth for structured object metadata.
 ///
@@ -47,5 +48,27 @@ impl StorageManager {
     /// Get the path to the metadata database.
     pub fn db_path(&self) -> &PathBuf {
         self.sqlite.db_path()
+    }
+
+    /// Save a knowledge object to the database.
+    ///
+    /// Uses INSERT OR REPLACE to handle duplicate IDs safely.
+    /// Serializes the object to JSON for storage.
+    pub fn save_object(&self, object: &KnowledgeObject) -> Result<()> {
+        self.sqlite.save_object(object)
+    }
+
+    /// Retrieve a knowledge object by its UUID.
+    ///
+    /// Returns None if the object does not exist.
+    pub fn get_object(&self, id: &str) -> Result<Option<KnowledgeObject>> {
+        self.sqlite.get_object(id)
+    }
+
+    /// Update an existing knowledge object.
+    ///
+    /// The object identity (id) is preserved.
+    pub fn update_object(&self, object: &KnowledgeObject) -> Result<()> {
+        self.sqlite.update_object(object)
     }
 }

@@ -53,3 +53,23 @@ pub const CURRENT_SCHEMA_VERSION: i64 = 1;
 pub const INSERT_SCHEMA_VERSION: &str = r#"
     INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)
 "#;
+
+/// SQL statement to insert or replace a knowledge object.
+pub const INSERT_KNOWLEDGE_OBJECT: &str = r#"
+    INSERT OR REPLACE INTO knowledge_objects (
+        id, vault_id, object_type, created_at, modified_at,
+        title, author, language, source_url, source_file,
+        mime_type, page_count, word_count, source_created, source_modified,
+        custom_metadata
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+"#;
+
+/// SQL statement to retrieve a knowledge object by ID.
+pub const SELECT_KNOWLEDGE_OBJECT_BY_ID: &str = r#"
+    SELECT 
+        id, vault_id, object_type, created_at, modified_at,
+        title, author, language, source_url, source_file,
+        mime_type, page_count, word_count, source_created, source_modified,
+        custom_metadata
+    FROM knowledge_objects WHERE id = ?
+"#;
