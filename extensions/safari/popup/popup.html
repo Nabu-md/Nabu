@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Nabu Capture</h1>
+      <div id="status" class="status">Ready</div>
+    </header>
+
+    <main>
+      <div class="capture-actions">
+        <button id="capture-page" class="capture-btn">
+          <span class="icon">📄</span>
+          <span class="label">Capture Page</span>
+        </button>
+        
+        <button id="capture-selection" class="capture-btn">
+          <span class="icon">📝</span>
+          <span class="label">Capture Selection</span>
+        </button>
+        
+        <button id="capture-full" class="capture-btn">
+          <span class="icon">📑</span>
+          <span class="label">Capture Full Page</span>
+        </button>
+      </div>
+
+      <div id="result" class="result hidden">
+        <div id="result-content"></div>
+      </div>
+
+      <div id="error" class="error hidden">
+        <div id="error-content"></div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="vault-status">
+        <span class="status-dot"></span>
+        <span id="vault-text">Vault connected</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -96,7 +96,9 @@ impl IngestionPipeline {
     }
 
     fn determine_object_type(&self, mime: &str) -> ObjectType {
-        if mime == "text/plain" || mime.starts_with("text/markdown") {
+        if mime == "application/x-nabu-bookmark" {
+            ObjectType::Bookmark
+        } else if mime == "text/plain" || mime.starts_with("text/markdown") {
             ObjectType::Note
         } else if mime.starts_with("text/")
             || mime == "application/json"
@@ -118,7 +120,13 @@ impl IngestionPipeline {
     }
 
     fn determine_content(&self, mime: &str, raw_bytes: &[u8]) -> ObjectContent {
-        if mime == "text/markdown" {
+        if mime == "application/x-nabu-bookmark" {
+            // Parse bookmark data as structured JSON
+            match serde_json::from_slice(raw_bytes) {
+                Ok(value) => ObjectContent::Structured(value),
+                Err(_) => ObjectContent::PlainText,
+            }
+        } else if mime == "text/markdown" {
             ObjectContent::Markdown
         } else if mime.starts_with("text/") && mime != "text/html" {
             ObjectContent::PlainText
@@ -135,25 +143,42 @@ impl IngestionPipeline {
     }
 
     fn build_metadata(&self, request: &IngestionRequest) -> ObjectMetadata {
-        let title = request
+        let mut title = request
             .source_file
             .as_ref()
             .and_then(|path| std::path::Path::new(path).file_stem())
             .and_then(|stem| stem.to_str())
             .map(|s| s.to_string());
 
+        let mut source_url = None;
+        let mut custom = request.options.custom.clone();
+
+        // Extract metadata from custom options (set by browser handler)
+        if let Some(capture_type) = custom.get("capture_type").and_then(|v| v.as_str()) {
+            if capture_type == "bookmark" || capture_type == "note" || capture_type == "document" {
+                if let Some(url) = custom.get("source_url").and_then(|v| v.as_str()) {
+                    source_url = Some(url.to_string());
+                }
+                if title.is_none() {
+                    if let Some(page_title) = custom.get("page_title").and_then(|v| v.as_str()) {
+                        title = Some(page_title.to_string());
+                    }
+                }
+            }
+        }
+
         ObjectMetadata {
             title,
             author: None,
             language: None,
-            source_url: None,
+            source_url,
             source_file: request.source_file.clone(),
             mime_type: Some(request.mime_type.clone()),
             page_count: None,
             word_count: None,
             created: Some(current_timestamp()),
             modified: Some(current_timestamp()),
-            custom: HashMap::new(),
+            custom,
         }
     }
 }
