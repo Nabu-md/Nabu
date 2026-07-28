@@ -58,6 +58,7 @@ impl CaptureHandler for FileDropHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some("Missing or invalid 'file_path' in payload".to_string()),
                     message: "Capture failed: invalid payload".to_string(),
                     payload: None,
@@ -86,6 +87,7 @@ impl CaptureHandler for FileDropHandler {
                         return CaptureResult {
                             success: false,
                             knowledge_object_id: None,
+                            knowledge_object: None,
                             error: Some(format!("Failed to serialize ingestion request: {}", e)),
                             message: "Capture failed: serialization error".to_string(),
                             payload: None,
@@ -95,6 +97,7 @@ impl CaptureHandler for FileDropHandler {
                 CaptureResult {
                     success: true,
                     knowledge_object_id: None,
+                    knowledge_object: None,
                     error: None,
                     message: format!("File '{}' captured successfully", file_path.display()),
                     payload: Some(payload),
@@ -103,6 +106,7 @@ impl CaptureHandler for FileDropHandler {
             Err(e) => CaptureResult {
                 success: false,
                 knowledge_object_id: None,
+                knowledge_object: None,
                 error: Some(e.to_string()),
                 message: format!("Capture failed: {}", e),
                 payload: None,

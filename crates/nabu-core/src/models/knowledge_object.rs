@@ -1,4 +1,3 @@
-use crate::models::properties::PropertyValue;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -63,17 +62,18 @@ pub struct ObjectMetadata {
     ///
     /// Processors may insert any key-value pairs here without requiring
     /// schema changes. Values should be JSON-compatible.
-    pub custom: HashMap<String, PropertyValue>,
+    pub custom: HashMap<String, serde_json::Value>,
 }
 
 /// The category of a knowledge object.
 ///
 /// New variants may be added in future phases without breaking serialization.
 /// Plugin-defined types should use `Custom(String)`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ObjectType {
+    #[default]
     Note,
     Document,
     Pdf,
@@ -108,11 +108,12 @@ pub enum ObjectType {
 /// The primary content format of a knowledge object.
 ///
 /// New variants may be added in future phases without breaking serialization.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ObjectContent {
     /// Markdown formatted text.
+    #[default]
     Markdown,
     /// Unformatted plain text.
     PlainText,

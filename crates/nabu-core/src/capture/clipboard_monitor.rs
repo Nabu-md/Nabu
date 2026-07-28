@@ -190,9 +190,9 @@ impl ClipboardMonitor {
                     let current_count = Self::pasteboard_change_count();
                     let has_changed = {
                         let mut last_count = last_change_count.lock().unwrap();
-                        let changed = *last_count != current_count;
+                        let changed = *last_count != Some(current_count);
                         if changed {
-                            *last_count = current_count;
+                            *last_count = Some(current_count);
                         }
                         changed
                     };
@@ -228,14 +228,11 @@ impl ClipboardMonitor {
     fn pasteboard_change_count() -> u64 {
         #[cfg(target_os = "macos")]
         {
-            use objc2::ClassType;
+            use objc2::runtime::AnyObject;
 
-            let pasteboard_class = match objc2::ClassType::class("NSPasteboard") {
-                Some(cls) => cls,
-                None => return 0,
-            };
+            let pasteboard_class = objc2::runtime::AnyObject::class("NSPasteboard");
 
-            let pasteboard: objc2::rc::Retained<objc2::ClassType> =
+            let pasteboard: objc2::rc::Retained<objc2::runtime::AnyObject> =
                 unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
 
             let changed_count: u64 = unsafe {

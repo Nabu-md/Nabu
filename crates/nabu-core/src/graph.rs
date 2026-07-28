@@ -3,6 +3,7 @@ use crate::models::knowledge_object::KnowledgeObject;
 use crate::models::graph::RelationType;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GraphNode {
     Object(KnowledgeObject),
     Entity(Uuid),
@@ -21,8 +22,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
+#[derive(Debug, Clone)]
 pub struct VaultGraph {
     pub graph: Graph<GraphNode, GraphEdgeType>,
     node_map: HashMap<String, NodeIndex>,

@@ -243,6 +243,7 @@ impl CaptureHandler for BrowserCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(e),
                     message: "Browser capture failed: invalid payload".to_string(),
                     payload: None,
@@ -258,6 +259,7 @@ impl CaptureHandler for BrowserCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(format!("Unsupported capture type: {}", capture_type)),
                     message: format!("Browser capture failed: unsupported type '{}'", capture_type),
                     payload: None,
@@ -273,6 +275,7 @@ impl CaptureHandler for BrowserCaptureHandler {
                         return CaptureResult {
                             success: false,
                             knowledge_object_id: None,
+                            knowledge_object: None,
                             error: Some(format!("Failed to serialize ingestion request: {}", e)),
                             message: "Browser capture failed: serialization error".to_string(),
                             payload: None,
@@ -283,6 +286,7 @@ impl CaptureHandler for BrowserCaptureHandler {
                 CaptureResult {
                     success: true,
                     knowledge_object_id: None,
+                    knowledge_object: None,
                     error: None,
                     message: format!("Browser {} captured successfully", capture_type),
                     payload: Some(payload),
@@ -291,6 +295,7 @@ impl CaptureHandler for BrowserCaptureHandler {
             Err(e) => CaptureResult {
                 success: false,
                 knowledge_object_id: None,
+                knowledge_object: None,
                 error: Some(e),
                 message: format!("Browser {} capture failed", capture_type),
                 payload: None,

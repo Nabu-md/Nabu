@@ -141,8 +141,8 @@ impl ScreenshotHandler {
                     .ok_or_else(|| "No active window found".to_string())?;
 
                 let bounds = CGRect::new(
-                    core_graphics::geometry::CGPoint::new(0.0, 0.0),
-                    core_graphics::geometry::CGSize::new(f64::MAX, f64::MAX),
+                    &core_graphics::geometry::CGPoint::new(0.0, 0.0),
+                    &core_graphics::geometry::CGSize::new(f64::MAX, f64::MAX),
                 );
 
                 core_graphics::window::create_image(
@@ -191,12 +191,12 @@ impl ScreenshotHandler {
 
                 // Crop the image to the specified region
                 let bounds = CGRect::new(
-                    core_graphics::geometry::CGPoint::new(x, y),
-                    core_graphics::geometry::CGSize::new(width, height),
+                    &core_graphics::geometry::CGPoint::new(x, y),
+                    &core_graphics::geometry::CGSize::new(width, height),
                 );
 
                 let cropped = full_image
-                    .cropped(&bounds)
+                    .cropped(bounds)
                     .ok_or_else(|| "Failed to crop screenshot region".to_string())?;
 
                 self.cgimage_to_png(&cropped)
@@ -294,6 +294,8 @@ impl CaptureHandler for ScreenshotHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some(e.clone()),
                     message: format!("Screenshot capture failed: {}", e),
                 };
@@ -304,6 +306,8 @@ impl CaptureHandler for ScreenshotHandler {
             return CaptureResult {
                 success: false,
                 knowledge_object: None,
+                knowledge_object_id: None,
+                payload: None,
                 error: Some("Empty screenshot data".to_string()),
                 message: "Screenshot capture produced no data".to_string(),
             };
@@ -336,6 +340,8 @@ impl CaptureHandler for ScreenshotHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some(format!(
                         "Failed to serialize ingestion request: {}",
                         e
@@ -348,6 +354,8 @@ impl CaptureHandler for ScreenshotHandler {
         CaptureResult {
             success: true,
             knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
             error: None,
             message: "Screenshot captured successfully".to_string(),
         }

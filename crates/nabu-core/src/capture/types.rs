@@ -59,6 +59,58 @@ impl Default for CaptureResult {
     }
 }
 
+impl CaptureResult {
+    /// Create a successful capture result with a knowledge object.
+    pub fn success(knowledge_object: KnowledgeObject) -> Self {
+        let id = knowledge_object.id;
+        Self {
+            success: true,
+            knowledge_object: Some(knowledge_object),
+            knowledge_object_id: Some(id),
+            payload: None,
+            error: None,
+            message: String::new(),
+        }
+    }
+
+    /// Create a successful capture result with a knowledge object and payload.
+    pub fn success_with_payload(knowledge_object: KnowledgeObject, payload: serde_json::Value) -> Self {
+        let id = knowledge_object.id;
+        Self {
+            success: true,
+            knowledge_object: Some(knowledge_object),
+            knowledge_object_id: Some(id),
+            payload: Some(payload),
+            error: None,
+            message: String::new(),
+        }
+    }
+
+    /// Create a failed capture result with an error message.
+    pub fn failure(message: String) -> Self {
+        Self {
+            success: false,
+            knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
+            error: Some(message.clone()),
+            message,
+        }
+    }
+
+    /// Create a failed capture result with an error message and payload.
+    pub fn failure_with_payload(message: String, payload: serde_json::Value) -> Self {
+        Self {
+            success: false,
+            knowledge_object: None,
+            knowledge_object_id: None,
+            payload: Some(payload),
+            error: Some(message.clone()),
+            message,
+        }
+    }
+}
+
 /// Typed errors returned by capture handlers and the normaliser.
 ///
 /// All errors in the capture pipeline are represented by this enum. No handler

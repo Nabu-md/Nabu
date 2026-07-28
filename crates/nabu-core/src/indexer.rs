@@ -26,7 +26,7 @@ impl Indexer {
         schema_builder.add_text_field("path", STORED | STRING);
         schema_builder.add_text_field("content", TEXT | STORED);
         schema_builder.add_text_field("tags", TEXT | STORED);
-        schema_builder.add_json_field("custom", STORED);
+        schema_builder.add_text_field("custom", STORED);
         schema_builder.add_text_field("title", TEXT | STORED);
         schema_builder.add_text_field("object_type", STRING | STORED);
         schema_builder.add_text_field("modified_at", STRING | STORED);
@@ -107,7 +107,7 @@ impl Indexer {
         doc.add_text(path_field, doc_id.clone());
         doc.add_text(content_field, content);
         doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
-        doc.add_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
+        doc.add_text(custom_field, serde_json::to_string(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());
         doc.add_text(modified_at_field, ko.modified_at.clone());
@@ -189,7 +189,7 @@ impl Indexer {
         doc.add_text(path_field, doc_id);
         doc.add_text(content_field, content);
         doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
-        doc.add_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
+        doc.add_text(custom_field, serde_json::to_string(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());
         doc.add_text(modified_at_field, ko.modified_at.clone());
