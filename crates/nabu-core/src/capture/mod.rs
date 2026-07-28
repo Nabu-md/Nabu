@@ -6,6 +6,7 @@ pub mod ingestion_result;
 pub mod normaliser;
 pub mod pipeline;
 pub mod types;
+pub mod utils;
 pub mod watch_folder;
 pub mod watch_folder_config;
 pub mod watch_folder_service;
