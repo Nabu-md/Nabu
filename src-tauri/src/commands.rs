@@ -6,6 +6,91 @@ use std::sync::Arc;
 use crate::settings::{AppSettings, SettingsStore};
 use std::path::Path;
 use tauri::{AppHandle, Manager, State};
+use serde::{Deserialize, Serialize};
+
+// ── Inbox Types ──────────────────────────────────────────────
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InboxStatus {
+    Pending,
+    Processing,
+    Ready,
+    Approved,
+    Rejected,
+    Failed,
+}
+
+impl Default for InboxStatus {
+    fn default() -> Self { Self::Pending }
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct InboxItem {
+    pub id: String,
+    pub title: String,
+    pub object_type: String,
+    pub source: String,
+    pub status: InboxStatus,
+    pub mime_type: Option<String>,
+    pub source_file: Option<String>,
+    pub metadata: InboxMetadata,
+    pub duplicate_info: Option<DuplicateInfo>,
+    pub timeline_info: Option<TimelineInfo>,
+    pub ocr_info: Option<OcrInfo>,
+    pub processing_history: Vec<ProcessingHistoryEntry>,
+    pub warnings: Vec<String>,
+    pub selected: bool,
+}
+
+#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
+pub struct InboxMetadata {
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub language: Option<String>,
+    pub source_url: Option<String>,
+    pub tags: Vec<String>,
+    pub custom: std::collections::HashMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DuplicateInfo {
+    pub confidence: String,
+    pub candidate_ids: Vec<String>,
+    pub reason: Option<String>,
+    pub duplicate_source: Option<String>,
+    pub content_hash: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
+pub struct TimelineInfo {
+    pub document_date: Option<String>,
+    pub created_date: Option<String>,
+    pub modified_date: Option<String>,
+    pub detected_event_date: Option<String>,
+    pub extraction_confidence: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
+pub struct OcrInfo {
+    pub extracted_text: Option<String>,
+    pub confidence: Option<f64>,
+    pub recognition_language: Option<String>,
+    pub page_count: Option<u32>,
+    pub processing_duration_ms: Option<u64>,
+    pub is_scanned: Option<bool>,
+    pub warning: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct ProcessingHistoryEntry {
+    pub processor_name: String,
+    pub timestamp: String,
+    pub duration_ms: u64,
+    pub success: bool,
+    pub warnings: Vec<String>,
+    pub error: Option<String>,
+}
 
 #[tauri::command]
 pub fn check_vault_exists(store: State<'_, SettingsStore>) -> Result<Option<String>, String> {
@@ -201,6 +286,81 @@ pub fn settings_set_all(
 ) -> Result<(), String> {
     store.save(&settings).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+// ── Inbox Commands ──────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn inbox_subscribe() -> Result<Vec<InboxItem>, String> {
+    Ok(vec![])
+}
+
+#[tauri::command]
+pub fn inbox_get_queue() -> Result<Vec<InboxItem>, String> {
+    Ok(vec![])
+}
+
+#[tauri::command]
+pub fn inbox_approve(id: String) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_reject(id: String, reason: String) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_retry(id: String) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_delete(id: String) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_batch_approve(ids: Vec<String>) -> Result<(), String> {
+    for id in ids { let _ = inbox_approve(id); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_batch_reject(ids: Vec<String>, reason: String) -> Result<(), String> {
+    for id in ids { let _ = inbox_reject(id, reason.clone()); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_batch_delete(ids: Vec<String>) -> Result<(), String> {
+    for id in ids { let _ = inbox_delete(id); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_batch_retry(ids: Vec<String>) -> Result<(), String> {
+    for id in ids { let _ = inbox_retry(id); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_edit_metadata(
+    id: String,
+    title: Option<String>,
+    author: Option<String>,
+    language: Option<String>,
+    tags: Vec<String>,
+    custom: std::collections::HashMap<String, serde_json::Value>,
+) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_move(id: String, destination: String) -> Result<(), String> {
+    Ok(())
+}
+
 #[tauri::command]
 pub fn fetch_objects(store: State<'_, SettingsStore>) -> Result<Vec<KnowledgeObject>, String> {
     let settings = store.get();

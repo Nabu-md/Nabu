@@ -260,8 +260,7 @@ impl CaptureHandler for ClipboardHandler {
                     error: Some("Clipboard monitoring is disabled".to_string()),
                     message: "Clipboard capture skipped: monitoring is disabled".to_string(),
                 };
-            };
-        }
+            }
 
         // Read clipboard content
         let content = match self.read_clipboard_content() {
@@ -319,8 +318,8 @@ impl CaptureHandler for ClipboardHandler {
             message: "Clipboard content captured".to_string(),
         }
     }
-}
 
+}
 #[cfg(test)]
 mod tests {
     use super::*;

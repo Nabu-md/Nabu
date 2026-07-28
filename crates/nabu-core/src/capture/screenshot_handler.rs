@@ -293,10 +293,9 @@ impl CaptureHandler for ScreenshotHandler {
             Err(e) => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(e.clone()),
                     message: format!("Screenshot capture failed: {}", e),
-                    payload: None,
                 };
             }
         };
@@ -304,10 +303,9 @@ impl CaptureHandler for ScreenshotHandler {
         if image_data.is_empty() {
             return CaptureResult {
                 success: false,
-                knowledge_object_id: None,
+                knowledge_object: None,
                 error: Some("Empty screenshot data".to_string()),
                 message: "Screenshot capture produced no data".to_string(),
-                payload: None,
             };
         }
 
@@ -337,24 +335,21 @@ impl CaptureHandler for ScreenshotHandler {
             Err(e) => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(format!(
                         "Failed to serialize ingestion request: {}",
                         e
                     )),
-                    message: "Screenshot capture failed: serialization error"
-                        .to_string(),
-                    payload: None,
+                    message: "Screenshot capture failed: serialization error".to_string(),
                 };
             }
         };
 
         CaptureResult {
             success: true,
-            knowledge_object_id: None,
+            knowledge_object: None,
             error: None,
             message: "Screenshot captured successfully".to_string(),
-            payload: Some(payload),
         }
     }
 }

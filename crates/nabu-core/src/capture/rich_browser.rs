@@ -296,10 +296,9 @@ impl CaptureHandler for ArticleCaptureHandler {
             None => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some("Missing 'html' in payload".to_string()),
                     message: "Article capture failed: missing HTML".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -669,23 +668,21 @@ impl CaptureHandler for YouTubeCaptureHandler {
             Err(e) => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(format!("Serialization error: {}", e)),
                     message: "YouTube capture failed: serialization error".to_string(),
-                    payload: None,
                 };
             }
         };
 
         CaptureResult {
             success: true,
-            knowledge_object_id: None,
+            knowledge_object: None,
             error: None,
             message: format!(
                 "YouTube video captured: {}",
                 metadata.title.unwrap_or_else(|| "Untitled".to_string())
             ),
-            payload: Some(payload),
         }
     }
 }
@@ -991,10 +988,9 @@ impl CaptureHandler for GitHubRepositoryHandler {
             Err(e) => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(format!("Serialization error: {}", e)),
                     message: "GitHub capture failed: serialization error".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -1007,10 +1003,9 @@ impl CaptureHandler for GitHubRepositoryHandler {
 
         CaptureResult {
             success: true,
-            knowledge_object_id: None,
+            knowledge_object: None,
             error: None,
             message: format!("GitHub repository captured: {}", repo_display),
-            payload: Some(payload),
         }
     }
 }

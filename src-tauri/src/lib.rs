@@ -50,7 +50,19 @@ pub fn run() {
             crate::commands::get_settings,
             crate::commands::settings_get,
             crate::commands::settings_set,
-            crate::commands::settings_set_all
+            crate::commands::settings_set_all,
+            crate::commands::inbox_subscribe,
+            crate::commands::inbox_get_queue,
+            crate::commands::inbox_approve,
+            crate::commands::inbox_reject,
+            crate::commands::inbox_retry,
+            crate::commands::inbox_delete,
+            crate::commands::inbox_batch_approve,
+            crate::commands::inbox_batch_reject,
+            crate::commands::inbox_batch_delete,
+            crate::commands::inbox_batch_retry,
+            crate::commands::inbox_edit_metadata,
+            crate::commands::inbox_move,
         ])
         .setup(|app| {
             let event_bus = Arc::new(EventBus::new());
