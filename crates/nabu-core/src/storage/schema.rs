@@ -1,7 +1,7 @@
-/// Database schema definitions for the Storage Manager.
-///
-/// This module contains the SQL schema for the metadata database.
-/// The schema is intentionally minimal for Phase 1.3A foundation.
+//! Database schema definitions for the Storage Manager.
+//!
+//! This module contains the SQL schema for the metadata database.
+//! The schema is intentionally minimal for Phase 1.3A foundation.
 
 /// SQL statement to create the knowledge_objects table.
 /// This table stores metadata for all knowledge objects in the system.
