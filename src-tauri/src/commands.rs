@@ -1,12 +1,54 @@
 use nabu_core::storage::StorageManager;
 use nabu_core::event_bus::EventBus;
 use nabu_core::models::knowledge_object::KnowledgeObject;
+use nabu_core::reading_queue::{ReadingMetadata, ReadingStatus, ReadingPriority};
 use std::sync::Arc;
 
 use crate::settings::{AppSettings, SettingsStore};
 use std::path::Path;
 use tauri::{AppHandle, Manager, State};
 use serde::{Deserialize, Serialize};
+
+// ── Queue Types ────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QueueStatus {
+    Unread,
+    Reading,
+    Completed,
+    Archived,
+}
+
+impl Default for QueueStatus {
+    fn default() -> Self { Self::Unread }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QueuePriority {
+    Low,
+    Normal,
+    High,
+}
+
+impl Default for QueuePriority {
+    fn default() -> Self { Self::Normal }
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct QueueItem {
+    pub id: String,
+    pub title: String,
+    pub object_type: String,
+    pub status: QueueStatus,
+    pub priority: QueuePriority,
+    pub progress: f32,
+    pub source: String,
+    pub modified_at: String,
+    pub tags: Vec<String>,
+    pub selected: bool,
+}
 
 // ── Inbox Types ──────────────────────────────────────────────
 
@@ -359,6 +401,74 @@ pub fn inbox_edit_metadata(
 #[tauri::command]
 pub fn inbox_move(id: String, destination: String) -> Result<(), String> {
     Ok(())
+}
+
+// ── Reading Queue Commands ────────────────────────────────────────
+
+#[tauri::command]
+pub fn queue_get_all(store: State<'_, SettingsStore>) -> Result<Vec<QueueItem>, String> {
+    let settings = store.get();
+    let vault_path = std::path::PathBuf::from(settings.vault_path);
+    let event_bus = Arc::new(EventBus::new());
+    let manager = StorageManager::new(vault_path, event_bus);
+
+    if !manager.is_initialized() {
+        manager.initialize().map_err(|e| e.to_string())?;
+    }
+
+    let objects = manager.list_objects("", None, 1000)
+        .map_err(|e| e.to_string())?;
+
+    let queue_items = objects.into_iter().map(|obj| {
+        let reading_meta = ReadingMetadata::from_object(&obj);
+        QueueItem {
+            id: obj.id.to_string(),
+            title: obj.metadata.title.clone().unwrap_or_default(),
+            object_type: obj.object_type.to_string(),
+            status: reading_meta.status,
+            priority: reading_meta.priority,
+            progress: reading_meta.progress,
+            source: obj.metadata.source_url.clone().unwrap_or_default(),
+            modified_at: obj.modified_at.clone(),
+            tags: obj.metadata.custom.get("tags")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default(),
+            selected: false,
+        }
+    }).collect();
+
+    Ok(queue_items)
+}
+
+#[tauri::command]
+pub fn queue_set_status(id: String, status: String) -> Result<(), String> {
+    // TODO: Update KnowledgeObject metadata with reading status
+    Ok(())
+}
+
+#[tauri::command]
+pub fn queue_set_priority(id: String, priority: String) -> Result<(), String> {
+    // TODO: Update KnowledgeObject metadata with reading priority
+    Ok(())
+}
+
+#[tauri::command]
+pub fn queue_set_progress(id: String, progress: f32) -> Result<(), String> {
+    // TODO: Update KnowledgeObject metadata with reading progress
+    Ok(())
+}
+
+#[tauri::command]
+pub fn queue_batch_set_status(ids: Vec<String>, status: String) -> Result<(), String> {
+    for id in ids { let _ = queue_set_status(id, status.clone()); }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn queue_archive_completed() -> Result<usize, String> {
+    // TODO: Archive all completed reading queue items
+    Ok(0)
 }
 
 #[tauri::command]
