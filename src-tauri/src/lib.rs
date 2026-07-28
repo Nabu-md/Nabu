@@ -9,6 +9,10 @@ pub mod vault;
 mod markdown;
 pub use markdown::{Document, ParseError, parse};
 
+use nabu_core::capture::{CaptureEngine, WatchFolderConfig, WatchFolderService};
+use nabu_core::event_bus::EventBus;
+use std::sync::Arc;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let settings_path = std::env::var("NABU_SETTINGS_PATH")
@@ -39,7 +43,20 @@ pub fn run() {
             crate::commands::settings_set,
             crate::commands::settings_set_all
         ])
-        .setup(|_app| Ok(()))
+        .setup(|app| {
+            let event_bus = Arc::new(EventBus::new());
+            let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
+            let config = WatchFolderConfig::default();
+            match WatchFolderService::new(config, engine, event_bus).start() {
+                Ok(service) => {
+                    app.manage(service);
+                }
+                Err(e) => {
+                    eprintln!("Watch folders disabled: {}", e);
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

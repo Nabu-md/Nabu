@@ -75,7 +75,11 @@ impl Normaliser {
         fs::read(path).map_err(|e| CaptureError::ReadFailed(format!("{}: {}", path.display(), e)))
     }
 
-    fn detect_mime_type(&self, path: &Path) -> String {
+    /// Detects the MIME type of a file based on its extension.
+    ///
+    /// This is a lightweight check that does not read the file contents.
+    /// Returns `"application/octet-stream"` for unknown extensions.
+    pub fn detect_mime_type(&self, path: &Path) -> String {
         let extension = path
             .extension()
             .and_then(|e| e.to_str())

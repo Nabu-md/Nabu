@@ -6,6 +6,9 @@ pub mod ingestion_result;
 pub mod normaliser;
 pub mod pipeline;
 pub mod types;
+pub mod watch_folder;
+pub mod watch_folder_config;
+pub mod watch_folder_service;
 
 pub use engine::CaptureEngine;
 pub use file_drop_handler::FileDropHandler;
@@ -15,3 +18,6 @@ pub use ingestion_result::{IngestionResult, IngestionStatus};
 pub use normaliser::Normaliser;
 pub use pipeline::IngestionPipeline;
 pub use types::{CaptureError, CaptureRequest, CaptureResult};
+pub use watch_folder::WatchFolderHandler;
+pub use watch_folder_config::{ImportFolder, WatchFolderConfig};
+pub use watch_folder_service::WatchFolderService;
