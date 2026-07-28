@@ -21,8 +21,8 @@ use uuid::Uuid;
 use super::provider::StorageProvider;
 use super::schema::{
     CREATE_KNOWLEDGE_OBJECTS_TABLE, CREATE_SCHEMA_VERSION_TABLE, CREATE_VAULTS_TABLE,
-    CURRENT_SCHEMA_VERSION, INSERT_KNOWLEDGE_OBJECT, INSERT_SCHEMA_VERSION,
-    SELECT_KNOWLEDGE_OBJECT_BY_ID, SELECT_OBJECTS_BY_VAULT,
+    CURRENT_SCHEMA_VERSION, DELETE_KNOWLEDGE_OBJECT, INSERT_KNOWLEDGE_OBJECT,
+    INSERT_SCHEMA_VERSION, SELECT_KNOWLEDGE_OBJECT_BY_ID, SELECT_OBJECTS_BY_VAULT,
 };
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
 use chrono;
@@ -266,6 +266,12 @@ impl StorageProvider for SQLiteStorage {
         }
 
         Ok(results)
+    }
+
+    fn delete_object(&self, id: &str) -> Result<()> {
+        let conn = self.connect()?;
+        conn.execute(DELETE_KNOWLEDGE_OBJECT, [id])?;
+        Ok(())
     }
 
     fn get_object(&self, id: &str) -> Result<Option<KnowledgeObject>> {
