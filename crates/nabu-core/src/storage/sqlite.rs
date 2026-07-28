@@ -2,24 +2,45 @@
 ///
 /// This module provides a SQLite-backed implementation of the StorageProvider
 /// trait, managing the metadata database at `.nabu/db/metadata.db`.
-
+///
+/// # Design Decisions
+///
+/// - **Thread Safety**: Each method opens a fresh connection to avoid `Sync` issues
+///   with `rusqlite::Connection`. This is a valid approach for SQLite.
+/// - **Transactions**: All write operations use implicit transactions. Future phases
+///   may add explicit transaction support for batch operations.
+/// - **JSON Storage**: `ObjectType` and `custom_metadata` are stored as JSON strings
+///   to allow schema evolution without migrations.
+/// - **Metadata Only**: Only `ObjectMetadata` is persisted; `ObjectContent` is not
+///   stored in the metadata database (content is stored separately in the vault).
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension};
 use std::path::PathBuf;
 use uuid::Uuid;
 
+use super::provider::StorageProvider;
 use super::schema::{
     CREATE_KNOWLEDGE_OBJECTS_TABLE, CREATE_SCHEMA_VERSION_TABLE, CREATE_VAULTS_TABLE,
-    CURRENT_SCHEMA_VERSION, INSERT_SCHEMA_VERSION, INSERT_KNOWLEDGE_OBJECT,
+    CURRENT_SCHEMA_VERSION, INSERT_KNOWLEDGE_OBJECT, INSERT_SCHEMA_VERSION,
     SELECT_KNOWLEDGE_OBJECT_BY_ID,
 };
-use super::provider::StorageProvider;
-use crate::models::knowledge_object::{KnowledgeObject, ObjectType, ObjectContent, ObjectMetadata};
+use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
 
 /// SQLite-backed storage provider.
 ///
 /// Manages the metadata database for knowledge objects and vault metadata.
 /// The database is stored at `.nabu/db/metadata.db` within the vault directory.
+///
+/// # Example
+///
+/// ```ignore
+/// use std::path::PathBuf;
+/// use nabu_core::storage::SQLiteStorage;
+///
+/// let storage = SQLiteStorage::new(PathBuf::from("/path/to/vault"));
+/// storage.initialize()?;
+/// // ... use storage to save/retrieve objects
+/// ```
 pub struct SQLiteStorage {
     /// Path to the vault directory.
     vault_path: PathBuf,
@@ -39,15 +60,10 @@ impl SQLiteStorage {
         }
     }
 
-    /// Get the path to the database file.
-    pub fn db_path(&self) -> &PathBuf {
-        &self.db_path
-    }
-
     /// Get a new database connection.
     ///
     /// This opens a fresh connection to the database.
-    pub fn connect(&self) -> Result<Connection> {
+    fn connect(&self) -> Result<Connection> {
         Connection::open(&self.db_path)
             .map_err(|e| anyhow::anyhow!("Failed to open database at {:?}: {}", self.db_path, e))
     }
@@ -57,21 +73,96 @@ impl SQLiteStorage {
     /// This method creates the necessary tables if they do not exist.
     /// It should only be called after the database file is created.
     fn init_schema(conn: &Connection) -> Result<()> {
-        conn.execute(CREATE_KNOWLEDGE_OBJECTS_TABLE, []).map_err(|e| anyhow::anyhow!("Failed to create knowledge_objects table: {}", e))?;
-        conn.execute(CREATE_VAULTS_TABLE, []).map_err(|e| anyhow::anyhow!("Failed to create vaults table: {}", e))?;
-        conn.execute(CREATE_SCHEMA_VERSION_TABLE, []).map_err(|e| anyhow::anyhow!("Failed to create schema_version table: {}", e))?;
-        conn.execute(INSERT_SCHEMA_VERSION, rusqlite::params![CURRENT_SCHEMA_VERSION, chrono::Utc::now().to_rfc3339()])
-            .map_err(|e| anyhow::anyhow!("Failed to insert schema version: {}", e))?;
+        conn.execute(CREATE_KNOWLEDGE_OBJECTS_TABLE, [])
+            .map_err(|e| anyhow::anyhow!("Failed to create knowledge_objects table: {}", e))?;
+        conn.execute(CREATE_VAULTS_TABLE, [])
+            .map_err(|e| anyhow::anyhow!("Failed to create vaults table: {}", e))?;
+        conn.execute(CREATE_SCHEMA_VERSION_TABLE, [])
+            .map_err(|e| anyhow::anyhow!("Failed to create schema_version table: {}", e))?;
+        conn.execute(
+            INSERT_SCHEMA_VERSION,
+            rusqlite::params![CURRENT_SCHEMA_VERSION, chrono::Utc::now().to_rfc3339()],
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to insert schema version: {}", e))?;
         Ok(())
+    }
+}
+
+impl StorageProvider for SQLiteStorage {
+    /// Initialize the storage backend.
+    ///
+    /// Creates the `.nabu/db` directory if it does not exist and
+    /// initializes the database schema. Never overwrites an existing database.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The database file exists but has an incompatible schema
+    /// - The directory cannot be created due to permissions
+    /// - The database cannot be initialized
+    fn initialize(&self) -> Result<()> {
+        // Check if database already exists
+        if self.db_path.exists() {
+            // Database exists, just open and verify connection
+            let conn = self.connect()?;
+
+            // Verify schema version exists
+            let version: Option<i64> = conn
+                .query_row(
+                    "SELECT version FROM schema_version WHERE version = 1",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| anyhow::anyhow!("Failed to query schema version: {}", e))?;
+
+            if version.is_none() {
+                anyhow::bail!("Database exists but schema version is not 1");
+            }
+
+            // Database is valid, return success
+            return Ok(());
+        }
+
+        // Create the .nabu/db directory
+        let db_dir = self.vault_path.join(".nabu").join("db");
+        std::fs::create_dir_all(&db_dir).map_err(|e| {
+            anyhow::anyhow!("Failed to create database directory {:?}: {}", db_dir, e)
+        })?;
+
+        // Create and initialize the database
+        let conn = self.connect()?;
+
+        Self::init_schema(&conn)
+            .map_err(|e| anyhow::anyhow!("Failed to initialize database schema: {}", e))?;
+
+        Ok(())
+    }
+
+    /// Check if the storage backend is initialized.
+    fn is_initialized(&self) -> bool {
+        self.db_path.exists()
+    }
+
+    /// Get the path to the database file.
+    fn db_path(&self) -> &PathBuf {
+        &self.db_path
     }
 
     /// Save a knowledge object to the database.
     ///
     /// Uses INSERT OR REPLACE to handle duplicate IDs safely.
     /// Serializes the object to JSON for storage.
-    pub fn save_object(&self, object: &KnowledgeObject) -> Result<()> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The storage backend is not initialized
+    /// - Serialization of the object fails
+    /// - The database write operation fails
+    fn save_object(&self, object: &KnowledgeObject) -> Result<()> {
         let conn = self.connect()?;
-        
+
         let custom_json = serde_json::to_string(&object.metadata.custom)
             .map_err(|e| anyhow::anyhow!("Failed to serialize custom metadata: {}", e))?;
 
@@ -95,33 +186,54 @@ impl SQLiteStorage {
                 object.metadata.modified,
                 custom_json,
             ],
-        ).map_err(|e| anyhow::anyhow!("Failed to save knowledge object: {}", e))?;
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to save knowledge object: {}", e))?;
 
         Ok(())
     }
 
     /// Retrieve a knowledge object by its UUID.
     ///
-    /// Returns None if the object does not exist.
-    pub fn get_object(&self, id: &str) -> Result<Option<KnowledgeObject>> {
+    /// Returns `None` if the object does not exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The storage backend is not initialized
+    /// - Deserialization of the object fails
+    /// - The database read operation fails
+    fn get_object(&self, id: &str) -> Result<Option<KnowledgeObject>> {
         let conn = self.connect()?;
 
-        let result = conn.query_row(
-            SELECT_KNOWLEDGE_OBJECT_BY_ID,
-            [id],
-            |row| {
+        let result = conn
+            .query_row(SELECT_KNOWLEDGE_OBJECT_BY_ID, [id], |row| {
                 let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str)
-                    .map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+                let id = Uuid::parse_str(&id_str).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
 
                 let object_type: String = row.get(2)?;
-                let object_type: ObjectType = serde_json::from_str(&object_type)
-                    .map_err(|e| rusqlite::Error::FromSqlConversionFailure(2, rusqlite::types::Type::Text, Box::new(e)))?;
+                let object_type: ObjectType = serde_json::from_str(&object_type).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        2,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
 
                 let custom_json: String = row.get(15)?;
-                let custom: std::collections::HashMap<String, serde_json::Value> = 
-                    serde_json::from_str(&custom_json)
-                        .map_err(|e| rusqlite::Error::FromSqlConversionFailure(15, rusqlite::types::Type::Text, Box::new(e)))?;
+                let custom: std::collections::HashMap<String, serde_json::Value> =
+                    serde_json::from_str(&custom_json).map_err(|e| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            15,
+                            rusqlite::types::Type::Text,
+                            Box::new(e),
+                        )
+                    })?;
 
                 Ok(KnowledgeObject {
                     id,
@@ -144,64 +256,11 @@ impl SQLiteStorage {
                         custom,
                     },
                 })
-            },
-        ).optional().map_err(|e| anyhow::anyhow!("Failed to query knowledge object: {}", e))?;
+            })
+            .optional()
+            .map_err(|e| anyhow::anyhow!("Failed to query knowledge object: {}", e))?;
 
         Ok(result)
-    }
-
-    /// Update an existing knowledge object.
-    ///
-    /// This is an alias for save_object since we use INSERT OR REPLACE.
-    /// The object identity (id) is preserved.
-    pub fn update_object(&self, object: &KnowledgeObject) -> Result<()> {
-        self.save_object(object)
-    }
-}
-
-impl StorageProvider for SQLiteStorage {
-    /// Initialize the storage backend.
-    ///
-    /// Creates the `.nabu/db` directory if it does not exist and
-    /// initializes the database schema. Never overwrites an existing database.
-    fn initialize(&self) -> Result<()> {
-        // Check if database already exists
-        if self.db_path.exists() {
-            // Database exists, just open and verify connection
-            let conn = self.connect()?;
-            
-            // Verify schema version exists
-            let version: Option<i64> = conn.query_row(
-                "SELECT version FROM schema_version WHERE version = 1",
-                [],
-                |row| row.get(0),
-            ).optional().map_err(|e| anyhow::anyhow!("Failed to query schema version: {}", e))?;
-
-            if version.is_none() {
-                anyhow::bail!("Database exists but schema version is not 1");
-            }
-
-            // Database is valid, return success
-            return Ok(());
-        }
-
-        // Create the .nabu/db directory
-        let db_dir = self.vault_path.join(".nabu").join("db");
-        std::fs::create_dir_all(&db_dir)
-            .map_err(|e| anyhow::anyhow!("Failed to create database directory {:?}: {}", db_dir, e))?;
-
-        // Create and initialize the database
-        let conn = self.connect()?;
-
-        Self::init_schema(&conn)
-            .map_err(|e| anyhow::anyhow!("Failed to initialize database schema: {}", e))?;
-
-        Ok(())
-    }
-
-    /// Check if the storage backend is initialized.
-    fn is_initialized(&self) -> bool {
-        self.db_path.exists()
     }
 }
 
