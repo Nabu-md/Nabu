@@ -1,3 +1,4 @@
+pub mod browser;
 pub mod engine;
 pub mod file_drop_handler;
 pub mod handler;
@@ -11,6 +12,7 @@ pub mod watch_folder;
 pub mod watch_folder_config;
 pub mod watch_folder_service;
 
+pub use browser::BrowserCaptureHandler;
 pub use engine::CaptureEngine;
 pub use file_drop_handler::FileDropHandler;
 pub use handler::CaptureHandler;

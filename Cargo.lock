@@ -100,6 +100,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "log",
+ "nabu-core",
  "notify",
  "parking_lot",
  "pulldown-cmark",
@@ -111,6 +112,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-log",
  "thiserror 2.0.19",
+ "tokio",
  "uuid",
  "walkdir",
 ]

@@ -2,6 +2,8 @@ pub mod commands;
 pub mod export_engine;
 pub mod models;
 pub mod native;
+pub mod native_messaging;
+pub mod native_messaging_socket;
 pub mod settings;
 pub mod template_manager;
 pub mod vault;
@@ -9,12 +11,13 @@ pub mod vault;
 mod markdown;
 pub use markdown::{Document, ParseError, parse};
 
-use nabu_core::capture::{CaptureEngine, WatchFolderConfig, WatchFolderService};
+use nabu_core::capture::{BrowserCaptureHandler, CaptureEngine, WatchFolderConfig, WatchFolderService};
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
     DuplicateDetector, OcrProcessor, ProcessingPipeline, TimelineExtractor,
 };
 use std::sync::Arc;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -57,8 +60,12 @@ pub fn run() {
             pipeline.register(Arc::new(OcrProcessor::new()));
 
             let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
+
+            // Register browser capture handler for Safari extension
+            engine.register(Arc::new(BrowserCaptureHandler::new()));
+
             let config = WatchFolderConfig::default();
-            match WatchFolderService::new(config, engine, event_bus).start() {
+            match WatchFolderService::new(config, engine.clone(), event_bus.clone()).start() {
                 Ok(service) => {
                     app.manage(service);
                 }
@@ -66,6 +73,20 @@ pub fn run() {
                     eprintln!("Watch folders disabled: {}", e);
                 }
             }
+
+            // Start native messaging socket server
+            let socket_state = Arc::new(crate::native_messaging_socket::SocketServerState {
+                engine: engine.clone(),
+            });
+            match crate::native_messaging_socket::start_socket_server(socket_state) {
+                Ok(_handle) => {
+                    println!("Native messaging socket server started");
+                }
+                Err(e) => {
+                    eprintln!("Failed to start native messaging socket server: {}", e);
+                }
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
