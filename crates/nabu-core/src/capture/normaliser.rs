@@ -10,11 +10,24 @@ use crate::capture::{CaptureError, IngestionOptions, IngestionRequest};
 /// - MIME type detection
 /// - byte reading
 ///
-/// It does not parse, enrich, or transform content.
+/// It does not parse, enrich, or transform content. Those responsibilities
+/// belong to the [`IngestionPipeline`] and downstream processors.
+///
+/// The normaliser is source-agnostic: it accepts a `source` identifier so
+/// that any handler (file drop, watch folder, API webhook, etc.) can use it
+/// without modification.
 pub struct Normaliser;
 
 impl Normaliser {
     /// Normalizes a file path into an [`IngestionRequest`].
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - The capture source identifier (e.g., "file_drop", "watch_folder").
+    /// * `file_path` - Path to the file to normalize.
+    /// * `vault_id` - Target vault identifier.
+    /// * `source_file` - Original source file path, if applicable.
+    /// * `options` - Ingestion options controlling processing behaviour.
     ///
     /// # Errors
     ///
@@ -22,6 +35,7 @@ impl Normaliser {
     /// detection fails.
     pub fn normalize(
         &self,
+        source: &str,
         file_path: &Path,
         vault_id: &str,
         source_file: Option<String>,
@@ -32,7 +46,7 @@ impl Normaliser {
         let mime_type = self.detect_mime_type(file_path);
 
         Ok(IngestionRequest {
-            source: "file_drop".to_string(),
+            source: source.to_string(),
             raw_bytes,
             mime_type,
             vault_id: vault_id.to_string(),
@@ -117,6 +131,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),
@@ -146,6 +161,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),
@@ -172,6 +188,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),
@@ -198,6 +215,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),
@@ -220,6 +238,7 @@ mod tests {
     fn normalize_missing_file() {
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             Path::new("/nonexistent/path/file.txt"),
             "vault-1",
             None,
@@ -236,7 +255,13 @@ mod tests {
         let _ = fs::create_dir_all(&dir);
 
         let normaliser = Normaliser;
-        let result = normaliser.normalize(&dir, "vault-1", None, IngestionOptions::default());
+        let result = normaliser.normalize(
+            "file_drop",
+            &dir,
+            "vault-1",
+            None,
+            IngestionOptions::default(),
+        );
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), CaptureError::InvalidFile(_)));
@@ -253,6 +278,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),
@@ -288,6 +314,7 @@ mod tests {
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
+            "file_drop",
             &file_path,
             "vault-1",
             file_path.to_str().map(|s| s.to_string()),

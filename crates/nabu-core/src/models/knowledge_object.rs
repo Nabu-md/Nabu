@@ -11,6 +11,7 @@ use uuid::Uuid;
 /// This struct is intentionally free of business logic. It serves as the
 /// foundational serialization contract for IPC, storage, and downstream subsystems.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct KnowledgeObject {
     /// Unique identifier for this knowledge object.
     pub id: Uuid,
@@ -35,6 +36,7 @@ pub struct KnowledgeObject {
 ///
 /// Processors may safely append new fields to `custom` without schema redesign.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct ObjectMetadata {
     /// Human-readable title of the object.
     pub title: Option<String>,
@@ -69,6 +71,7 @@ pub struct ObjectMetadata {
 /// Plugin-defined types should use `Custom(String)`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ObjectType {
     Note,
     Document,
@@ -100,6 +103,7 @@ pub enum ObjectType {
 /// New variants may be added in future phases without breaking serialization.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ObjectContent {
     /// Markdown formatted text.
     Markdown,

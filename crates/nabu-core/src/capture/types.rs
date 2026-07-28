@@ -3,6 +3,15 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 /// A request to capture knowledge from an external source.
+///
+/// Every capture operation begins with a `CaptureRequest`. The request carries
+/// the raw payload from the source, the target vault, and arbitrary context
+/// that handlers may use to enrich the capture.
+///
+/// # Serialization
+///
+/// `CaptureRequest` is serializable for IPC between the Tauri command layer
+/// and the core capture engine.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaptureRequest {
     /// The type of capture source (e.g., "browser", "watch_folder", "clipboard").
@@ -16,6 +25,10 @@ pub struct CaptureRequest {
 }
 
 /// The result of a capture operation.
+///
+/// Returned by [`CaptureHandler::capture`] after processing a [`CaptureRequest`].
+/// A successful result carries a serialized [`IngestionRequest`] in `payload`,
+/// which the engine will deserialize and pass to the [`IngestionPipeline`].
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CaptureResult {
     /// Whether the capture succeeded.
@@ -31,6 +44,9 @@ pub struct CaptureResult {
 }
 
 /// Typed errors returned by capture handlers and the normaliser.
+///
+/// All errors in the capture pipeline are represented by this enum. No handler
+/// should panic; every failure path must return a typed `CaptureError`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CaptureError {
     /// The provided file path is invalid or inaccessible.

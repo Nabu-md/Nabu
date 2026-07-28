@@ -10,7 +10,11 @@ use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMeta
 /// - selecting the appropriate content format
 /// - populating base metadata available at ingestion time
 ///
-/// No enrichment, parsing, or processing occurs here.
+/// No enrichment, parsing, or processing occurs here. Those responsibilities
+/// belong to downstream processors.
+///
+/// The pipeline is stateless and may be instantiated once and reused for all
+/// ingestion operations.
 pub struct IngestionPipeline;
 
 impl IngestionPipeline {
@@ -19,11 +23,19 @@ impl IngestionPipeline {
     /// # Errors
     ///
     /// Returns [`CaptureError`] if the request cannot be transformed into a
-    /// valid [`KnowledgeObject`].
+    /// valid [`KnowledgeObject`]. Currently, the pipeline never fails under
+    /// normal operation; all MIME types map to a valid `ObjectType` and
+    /// `ObjectContent`.
     pub fn process(&self, request: IngestionRequest) -> Result<IngestionResult, CaptureError> {
         let object_type = self.determine_object_type(&request.mime_type);
         let content = self.determine_content(&request.mime_type, &request.raw_bytes);
         let metadata = self.build_metadata(&request);
+        let mut warnings = Vec::new();
+
+        // Warn if JSON parsing fell back to plain text
+        if request.mime_type == "application/json" && matches!(content, ObjectContent::PlainText) {
+            warnings.push("JSON content was invalid; stored as plain text".to_string());
+        }
 
         let knowledge_object = KnowledgeObject {
             id: uuid::Uuid::new_v4(),
@@ -37,10 +49,11 @@ impl IngestionPipeline {
 
         Ok(IngestionResult {
             knowledge_object: Some(knowledge_object),
+            knowledge_object_id: None,
             source: request.source,
             timestamp: Self::current_timestamp(),
             status: IngestionStatus::Success,
-            warnings: Vec::new(),
+            warnings,
         })
     }
 
@@ -106,7 +119,7 @@ impl IngestionPipeline {
         }
     }
 
-    pub fn current_timestamp() -> String {
+    fn current_timestamp() -> String {
         let now = std::time::SystemTime::now();
         let duration = now.duration_since(std::time::UNIX_EPOCH).unwrap();
         let secs = duration.as_secs();
@@ -335,5 +348,26 @@ mod tests {
         let obj = result.knowledge_object.unwrap();
         assert_eq!(obj.metadata.title, None);
         assert_eq!(obj.metadata.source_file, None);
+    }
+
+    #[test]
+    fn process_invalid_json_warns_and_falls_back_to_plain_text() {
+        let request = IngestionRequest {
+            source: "file_drop".to_string(),
+            raw_bytes: b"{invalid json".to_vec(),
+            mime_type: "application/json".to_string(),
+            vault_id: "vault-1".to_string(),
+            source_file: Some("/path/to/bad.json".to_string()),
+            options: IngestionOptions::default(),
+        };
+
+        let pipeline = IngestionPipeline;
+        let result = pipeline.process(request).unwrap();
+
+        assert_eq!(result.status, IngestionStatus::Success);
+        assert_eq!(result.warnings.len(), 1);
+        assert!(result.warnings[0].contains("JSON content was invalid"));
+        let obj = result.knowledge_object.unwrap();
+        assert_eq!(obj.content, ObjectContent::PlainText);
     }
 }
