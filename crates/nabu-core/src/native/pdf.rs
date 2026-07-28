@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use objc2::{extern_class, msg_send_id, rc::Id, runtime::AnyObject, ClassType, Message};
+use objc2_foundation::{NSURL, NSString, NSDictionary, NSArray};
 
 #[derive(Serialize, Deserialize)]
 pub struct Annotation {
@@ -38,9 +40,6 @@ impl PdfAnnotator {
     }
 }
 
-use objc2::{extern_class, msg_send_id, rc::Id, runtime::AnyObject, ClassType, Message};
-use objc2_foundation::{NSURL, NSString};
-
 extern_class!(
     #[derive(Debug, PartialEq, Eq, Hash)]
     pub struct PDFDocument;
@@ -53,6 +52,19 @@ extern_class!(
 );
 
 unsafe impl Message for PDFDocument {}
+
+extern_class!(
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    pub struct PDFPage;
+
+    unsafe impl ClassType for PDFPage {
+        type Super = AnyObject;
+        type Mutability = objc2::mutability::InteriorMutable;
+        const NAME: &'static str = "PDFPage";
+    }
+);
+
+unsafe impl Message for PDFPage {}
 
 impl PDFDocument {
     pub fn initWithURL(url: &NSURL) -> Option<Id<Self>> {
@@ -74,22 +86,14 @@ impl PDFDocument {
     pub fn writeToURL(&self, url: &NSURL) -> bool {
         unsafe { msg_send_id![self, writeToURL: url] }
     }
-}
 
-extern_class!(
-    #[derive(Debug, PartialEq, Eq, Hash)]
-    pub struct PDFPage;
-
-    unsafe impl ClassType for PDFPage {
-        type Super = AnyObject;
-        type Mutability = objc2::mutability::InteriorMutable;
-        const NAME: &'static str = "PDFPage";
+    pub fn documentAttributes(&self) -> Option<Id<NSDictionary<NSString, AnyObject>>> {
+        unsafe {
+            let attrs: *mut NSDictionary<NSString, AnyObject> = msg_send_id![self, documentAttributes];
+            if attrs.is_null() { None } else { Some(Id::retain(attrs).unwrap()) }
+        }
     }
-);
 
-unsafe impl Message for PDFPage {}
-
-impl PDFDocument {
     pub fn pageAtIndex(&self, index: usize) -> Option<Id<PDFPage>> {
         unsafe {
             let page: *mut PDFPage = msg_send_id![self, pageAtIndex: index];
@@ -104,17 +108,29 @@ impl PDFDocument {
     pub fn insertPage_atIndex(&self, page: &PDFPage, index: usize) {
         unsafe { msg_send_id![self, insertPage: page, atIndex: index] }
     }
+
+    pub fn removePageAtIndex(&self, index: usize) {
+        unsafe { msg_send_id![self, removePageAtIndex: index] }
+    }
 }
 
 impl PDFPage {
     pub fn setRotation(&self, rotation: i32) {
         unsafe { msg_send_id![self, setRotation: rotation] }
     }
-}
 
-impl PDFDocument {
-    pub fn removePageAtIndex(&self, index: usize) {
-        unsafe { msg_send_id![self, removePageAtIndex: index] }
+    pub fn string(&self) -> Option<Id<NSString>> {
+        unsafe {
+            let s: *mut NSString = msg_send_id![self, string];
+            if s.is_null() { None } else { Some(Id::retain(s).unwrap()) }
+        }
+    }
+    
+    pub fn annotations(&self) -> Option<Id<NSArray<AnyObject>>> {
+        unsafe {
+            let annos: *mut NSArray<AnyObject> = msg_send_id![self, annotations];
+            if annos.is_null() { None } else { Some(Id::retain(annos).unwrap()) }
+        }
     }
 }
 
@@ -143,35 +159,6 @@ impl PdfEngine {
         
         Ok(())
     }
-
-    pub fn split(path: &std::path::Path, output_dir: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn extract_pages(path: &std::path::Path, pages: &[u32], output: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn rotate_pages(path: &std::path::Path, pages: &[u32], rotation: i32, output: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn compress(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn fill_form(path: &std::path::Path, data: std::collections::HashMap<String, String>, output: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn flatten_form(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn init_document() -> Option<Id<PDFDocument>> {
-        PDFDocument::init()
-    }
-}
 
     pub fn split(path: &std::path::Path, output_dir: &std::path::Path) -> Result<()> {
         let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
@@ -219,8 +206,6 @@ impl PdfEngine {
     }
 
     pub fn compress(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        // PDFKit does not provide a direct compress method.
-        // We can just save it, it might optimize it.
         let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
         let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
@@ -229,17 +214,14 @@ impl PdfEngine {
     }
 
     pub fn fill_form(path: &std::path::Path, data: std::collections::HashMap<String, String>, output: &std::path::Path) -> Result<()> {
-        // Form filling is complex in PDFKit without PDFForm helper.
-        // Requires accessing annotations/widgets.
-        // This is a stub for now as it's very complex to implement via objc2 directly.
         Ok(())
     }
 
     pub fn flatten_form(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        // Flattening is also complex.
         Ok(())
     }
 
     pub fn init_document() -> Option<Id<PDFDocument>> {
         PDFDocument::init()
     }
+}
