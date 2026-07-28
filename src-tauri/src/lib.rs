@@ -12,8 +12,9 @@ mod markdown;
 pub use markdown::{Document, ParseError, parse};
 
 use nabu_core::capture::{
-    ArticleCaptureHandler, BrowserCaptureHandler, CaptureEngine, GitHubRepositoryHandler,
-    WatchFolderConfig, WatchFolderService, YouTubeCaptureHandler,
+    ArticleCaptureHandler, BrowserCaptureHandler, CaptureEngine, ClipboardHandler,
+    GitHubRepositoryHandler, ScreenshotHandler, WatchFolderConfig, WatchFolderService,
+    YouTubeCaptureHandler,
 };
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
@@ -69,6 +70,8 @@ pub fn run() {
             engine.register(Arc::new(ArticleCaptureHandler::new()));
             engine.register(Arc::new(YouTubeCaptureHandler::new()));
             engine.register(Arc::new(GitHubRepositoryHandler::new()));
+            engine.register(Arc::new(ClipboardHandler::default()));
+            engine.register(Arc::new(ScreenshotHandler::default()));
 
             let config = WatchFolderConfig::default();
             match WatchFolderService::new(config, engine.clone(), event_bus.clone()).start() {
