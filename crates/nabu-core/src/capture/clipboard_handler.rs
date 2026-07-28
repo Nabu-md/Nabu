@@ -44,6 +44,27 @@ use crate::capture::{
     CaptureHandler, CaptureRequest, CaptureResult, ClipboardMonitorConfig, ClipboardMonitorMode,
     IngestionOptions, IngestionRequest,
 };
+use objc2::rc::AutoreleasePool;
+use objc2::ClassType;
+use objc2_foundation::{NSObject, NSString};
+
+objc2::extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct NSPasteboard;
+);
+
+objc2::extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct NSImage;
+);
+
+objc2::extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct NSData;
+);
 
 /// Handles clipboard capture requests on macOS.
 ///
@@ -105,12 +126,11 @@ impl ClipboardHandler {
     /// macOS-specific pasteboard reading using objc2.
     #[cfg(target_os = "macos")]
     fn read_macos_pasteboard(&self) -> Option<(String, Vec<u8>)> {
-        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         // Obtain the general pasteboard via +generalPasteboard
-        let pasteboard_class = objc2::runtime::AnyObject::class("NSPasteboard")?;
-        let pasteboard: objc2::rc::Retained<objc2::runtime::AnyObject> =
+        let pasteboard_class = NSPasteboard::class();
+        let pasteboard: objc2::rc::Retained<NSPasteboard> =
             unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
 
         // Try URL first (highest priority)
@@ -142,19 +162,15 @@ impl ClipboardHandler {
     /// Reads a string value from the pasteboard for the given type.
     #[cfg(target_os = "macos")]
     fn pasteboard_string_for_type(
-        pasteboard: &objc2::rc::Retained<objc2::runtime::AnyObject>,
+        pasteboard: &objc2::rc::Retained<NSPasteboard>,
         type_name: &str,
     ) -> Option<String> {
-        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         let type_str = NSString::from_str(type_name);
 
         // Check if the pasteboard has this type
-        let types: objc2::rc::Retained<objc2::runtime::AnyObject> = unsafe {
-            let msg = objc2::msg_send![pasteboard, types];
-            msg
-        };
+        let types = unsafe { objc2::msg_send![pasteboard, types] };
 
         let has_type: bool = unsafe {
             let msg = objc2::msg_send![types, containsObject: &*type_str];
@@ -166,33 +182,28 @@ impl ClipboardHandler {
         }
 
         // Read the string value
-        let value: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
+        let value: Option<objc2::rc::Retained<NSString>> = unsafe {
             let msg = objc2::msg_send![pasteboard, stringForType: &*type_str];
             msg
         };
 
         value.and_then(|v| {
-            let ns_string: &NSString = v.downcast_ref();
-            // Use the pool-aware to_str method
-            ns_string.to_str().ok().map(|s| s.to_string())
+            let pool = AutoreleasePool::new();
+            v.to_str(&pool).ok().map(|s| s.to_string())
         })
     }
 
     /// Reads image data from the pasteboard as PNG bytes.
     #[cfg(target_os = "macos")]
     fn pasteboard_image_data(
-        pasteboard: &objc2::rc::Retained<objc2::runtime::AnyObject>,
+        pasteboard: &objc2::rc::Retained<NSPasteboard>,
     ) -> Option<Vec<u8>> {
-        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         let type_str = NSString::from_str("public.png");
 
         // Check if the pasteboard has image data
-        let types: objc2::rc::Retained<objc2::runtime::AnyObject> = unsafe {
-            let msg = objc2::msg_send![pasteboard, types];
-            msg
-        };
+        let types = unsafe { objc2::msg_send![pasteboard, types] };
 
         let has_type: bool = unsafe {
             let msg = objc2::msg_send![types, containsObject: &*type_str];
@@ -204,17 +215,11 @@ impl ClipboardHandler {
         }
 
         // Read the image
-        let image: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
-            let msg = objc2::msg_send![pasteboard, imageForType: &*type_str];
-            msg
-        };
+        let image = unsafe { objc2::msg_send![pasteboard, imageForType: &*type_str] };
 
         image.and_then(|img| {
             // Get TIFF representation first (NSImage -> TIFF)
-            let tiff_data: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
-                let msg = objc2::msg_send![img, TIFFRepresentation];
-                msg
-            };
+            let tiff_data = unsafe { objc2::msg_send![img, TIFFRepresentation] };
 
             tiff_data.and_then(|data| {
                 let bytes_ptr: *const u8 = unsafe {

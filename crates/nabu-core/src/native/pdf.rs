@@ -1,9 +1,8 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use objc2::rc::Retained;
-use objc2::runtime::AnyObject;
-use objc2::{ClassType, Message, RefEncode};
-use objc2_foundation::{NSNumber, NSObject, NSString, NSURL, NSDictionary, NSArray};
+use objc2::{ClassType, encode::RefEncode};
+use objc2_foundation::{NSNumber, NSString, NSURL, NSDictionary, NSArray, NSObject};
 
 #[derive(Serialize, Deserialize)]
 pub struct Annotation {
@@ -55,18 +54,18 @@ objc2::extern_class!(
 );
 
 impl PDFDocument {
-    pub fn initWithURL(url: &NSURL) -> Option<Retained<Self>> {
+    pub fn initWithURL(url: &NSURL) -> Option<Retained<NSObject>> {
         unsafe {
             let cls = <Self as ClassType>::class();
-            let obj: Retained<Self> = objc2::msg_send![cls, initWithURL: url];
+            let obj: Retained<NSObject> = objc2::msg_send![cls, initWithURL: url];
             Some(obj)
         }
     }
 
-    pub fn init() -> Option<Retained<Self>> {
+    pub fn init() -> Option<Retained<NSObject>> {
         unsafe {
             let cls = <Self as ClassType>::class();
-            let obj: Retained<Self> = objc2::msg_send![cls, init];
+            let obj: Retained<NSObject> = objc2::msg_send![cls, init];
             Some(obj)
         }
     }
@@ -75,9 +74,9 @@ impl PDFDocument {
         unsafe { objc2::msg_send![self, writeToURL: url] }
     }
 
-    pub fn documentAttributes(&self) -> Option<Retained<NSDictionary<NSString, AnyObject>>> {
+    pub fn documentAttributes(&self) -> Option<Retained<NSDictionary<NSString, NSObject>>> {
         unsafe {
-            let attrs: Retained<NSDictionary<NSString, AnyObject>> = objc2::msg_send![self, documentAttributes];
+            let attrs: Retained<NSDictionary<NSString, NSObject>> = objc2::msg_send![self, documentAttributes];
             Some(attrs)
         }
     }
@@ -114,9 +113,9 @@ impl PDFPage {
         }
     }
 
-    pub fn annotations(&self) -> Option<Retained<NSArray<AnyObject>>> {
+    pub fn annotations(&self) -> Option<Retained<NSArray<NSObject>>> {
         unsafe {
-            let annos: Retained<NSArray<AnyObject>> = objc2::msg_send![self, annotations];
+            let annos: Retained<NSArray<NSObject>> = objc2::msg_send![self, annotations];
             Some(annos)
         }
     }
@@ -200,13 +199,13 @@ impl PdfEngine {
         // Apply compression by re-saving with reduced image quality.
         // PDFKit's writeToURL uses the document's internal compression settings.
         // For further compression, we can set document attributes.
-        let attrs = doc.document_attributes().unwrap_or_else(|| {
+        let attrs = doc.documentAttributes().unwrap_or_else(|| {
             NSDictionary::new()
         });
         // Set compression hint via document attributes
         let key = NSString::from_str("PDFCompressionQuality");
-        let value: f64 = 0.7; // 70% quality for compression
-        attrs.set_object(&NSNumber::from_f64(value), &key);
+        let value = NSNumber::new_f64(0.7); // 70% quality for compression
+        attrs.setObject(&value, &key);
 
         let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
         if !doc.writeToURL(&output_url) {

@@ -46,6 +46,14 @@ use std::time::{Duration, Instant};
 
 use crate::capture::{CaptureEngine, ClipboardMonitorConfig, ClipboardMonitorMode};
 use crate::event_bus::EventBus;
+use objc2::ClassType;
+use objc2_foundation::{NSObject, NSString};
+
+objc2::extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct NSPasteboard;
+);
 
 /// Service that monitors the macOS pasteboard and dispatches
 /// new content to the [`CaptureEngine`].
@@ -228,12 +236,9 @@ impl ClipboardMonitor {
     fn pasteboard_change_count() -> u64 {
         #[cfg(target_os = "macos")]
         {
-            use objc2::runtime::AnyObject;
-
-            let pasteboard_class = objc2::runtime::AnyObject::class("NSPasteboard");
-
-            let pasteboard: objc2::rc::Retained<objc2::runtime::AnyObject> =
-                unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
+            // Obtain the general pasteboard via +generalPasteboard
+            let pasteboard_class = NSPasteboard::class();
+            let pasteboard = unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
 
             let changed_count: u64 = unsafe {
                 let msg = objc2::msg_send![pasteboard, changedCount];
