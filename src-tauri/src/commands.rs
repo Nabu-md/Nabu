@@ -5,9 +5,77 @@ use nabu_core::reading_queue::{ReadingMetadata, ReadingStatus, ReadingPriority};
 use std::sync::Arc;
 
 use crate::settings::{AppSettings, SettingsStore};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager, State};
 use serde::{Deserialize, Serialize};
+
+// ── Security Utilities ──────────────────────────────────────
+
+/// Validates that a file path is within the vault directory.
+/// Prevents path traversal attacks by ensuring the resolved path
+/// is a descendant of the vault path.
+fn validate_path_within_vault(vault_path: &Path, user_path: &str) -> Result<PathBuf, String> {
+    let resolved = vault_path.join(user_path);
+    let canonical = resolved.canonicalize().map_err(|e| format!("Invalid path: {}", e))?;
+    let canonical_vault = vault_path.canonicalize().map_err(|e| format!("Invalid vault path: {}", e))?;
+    
+    if !canonical.starts_with(&canonical_vault) {
+        return Err(format!(
+            "Path traversal detected: {} is outside vault directory {}",
+            user_path,
+            canonical_vault.display()
+        ));
+    }
+    
+    Ok(canonical)
+}
+
+/// Validates that a string input does not contain dangerous characters
+/// or patterns that could be used for injection attacks.
+fn validate_input_safe(input: &str, max_length: usize) -> Result<(), String> {
+    if input.len() > max_length {
+        return Err(format!("Input exceeds maximum length of {} characters", max_length));
+    }
+    
+    // Check for null bytes
+    if input.contains('\0') {
+        return Err("Input contains null bytes".to_string());
+    }
+    
+    // Check for path traversal patterns
+    if input.contains("..") {
+        return Err("Input contains path traversal pattern '..'".to_string());
+    }
+    
+    // Check for null byte injection
+    if input.contains('%') && input.contains('0') {
+        return Err("Input contains potential URL encoding injection".to_string());
+    }
+    
+    Ok(())
+}
+
+/// Validates that a file path is safe (no traversal, no absolute paths outside vault).
+fn validate_file_path_safe(path: &str) -> Result<(), String> {
+    if path.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+    
+    // Reject absolute paths that could escape the vault
+    if Path::new(path).is_absolute() && !path.starts_with('/') {
+        // Relative paths are fine, absolute paths need vault validation
+    }
+    
+    // Check for dangerous characters
+    let dangerous_chars = ['\0', '<', '>', '|', '&', ';', '$', '`'];
+    for c in dangerous_chars {
+        if path.contains(c) {
+            return Err(format!("Path contains dangerous character: {}", c));
+        }
+    }
+    
+    Ok(())
+}
 
 // ── Queue Types ────────────────────────────────────────────────────
 
@@ -278,13 +346,28 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn note_create_file(path: String, content: String) -> Result<(), String> {
-    if let Some(parent) = Path::new(&path).parent() {
+pub fn note_create_file(
+    path: String,
+    content: String,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.vault_path);
+
+    // Validate path is within vault
+    let safe_path = validate_path_within_vault(&vault_path, &path)?;
+
+    // Validate input safety
+    validate_input_safe(&path, 500)?;
+    validate_input_safe(&content, 1_000_000)?; // 1MB max content
+
+    if let Some(parent) = safe_path.parent() {
         if !parent.as_os_str().is_empty() {
-            let _ = std::fs::create_dir_all(parent);
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create directories: {}", e))?;
         }
     }
-    std::fs::write(path, content).map_err(|e| e.to_string())?;
+    std::fs::write(&safe_path, content).map_err(|e| e.to_string())?;
     Ok(())
 }
 

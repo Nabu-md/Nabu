@@ -12,6 +12,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 
 const SOCKET_PATH: &str = "/tmp/nabu-native-messaging.sock";
+const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10 MB max message size
 
 /// Errors that can occur during socket operations
 #[derive(Debug, thiserror::Error)]
@@ -24,6 +25,9 @@ pub enum SocketError {
     
     #[error("Capture error: {0}")]
     CaptureError(String),
+    
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
 
 /// Result type for socket operations
@@ -32,6 +36,46 @@ pub type SocketResult<T> = Result<T, SocketError>;
 /// Shared state for the socket server
 pub struct SocketServerState {
     pub engine: Arc<CaptureEngine>,
+}
+
+/// Validates a native messaging capture request.
+///
+/// Ensures the request has a valid source type, vault ID, and payload size.
+/// Rejects requests that exceed the maximum message size or have invalid fields.
+fn validate_capture_request(request: &CaptureRequest) -> SocketResult<()> {
+    // Validate source type
+    let valid_sources = ["clipboard", "screenshot", "browser", "watch_folder", "reader_mode", "youtube", "github"];
+    if !valid_sources.contains(&request.source_type.as_str()) {
+        return Err(SocketError::ValidationError(format!(
+            "Invalid source type: {}. Valid sources: {:?}",
+            request.source_type, valid_sources
+        )));
+    }
+
+    // Validate vault ID is not empty
+    if request.vault_id.is_empty() {
+        return Err(SocketError::ValidationError("Vault ID cannot be empty".to_string()));
+    }
+
+    // Validate payload size
+    let payload_size = serde_json::to_vec(&request.payload).map_err(SocketError::SerializationError)?;
+    if payload_size.len() > MAX_MESSAGE_SIZE {
+        return Err(SocketError::ValidationError(format!(
+            "Payload size {} exceeds maximum {} bytes",
+            payload_size.len(), MAX_MESSAGE_SIZE
+        )));
+    }
+
+    // Validate context size
+    let context_size = serde_json::to_vec(&request.context).map_err(SocketError::SerializationError)?;
+    if context_size.len() > MAX_MESSAGE_SIZE {
+        return Err(SocketError::ValidationError(format!(
+            "Context size {} exceeds maximum {} bytes",
+            context_size.len(), MAX_MESSAGE_SIZE
+        )));
+    }
+
+    Ok(())
 }
 
 /// Starts the Unix socket server for native messaging communication.
@@ -122,12 +166,36 @@ async fn handle_connection(
         }
         let length = u32::from_be_bytes(length_bytes) as usize;
 
+        // Validate message size
+        if length > MAX_MESSAGE_SIZE {
+            eprintln!("Message size {} exceeds maximum allowed size", length);
+            break;
+        }
+
         // Read message body
         let mut buffer = vec![0u8; length];
         stream.read_exact(&mut buffer).await?;
 
         // Deserialize message
         let message: CaptureRequest = serde_json::from_slice(&buffer)?;
+
+        // Validate the request before dispatching
+        if let Err(e) = validate_capture_request(&message) {
+            eprintln!("Invalid capture request: {}", e);
+            // Send error response
+            let error_response = serde_json::json!({
+                "success": false,
+                "error": e.to_string(),
+                "message": "Invalid capture request"
+            });
+            let response_json = serde_json::to_vec(&error_response)?;
+            let response_length = response_json.len() as u32;
+            let mut response_length_bytes = response_length.to_be_bytes();
+            stream.write_all(&mut response_length_bytes).await?;
+            stream.write_all(&response_json).await?;
+            stream.flush().await?;
+            continue;
+        }
 
         // Dispatch to capture engine
         let result = engine.dispatch(message);
