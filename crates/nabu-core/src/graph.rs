@@ -1,3 +1,18 @@
+use crate::models::graph::RelationType;
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GraphNode {
+    File(NodeMetadata),
+    Entity(Uuid),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GraphEdgeType {
+    WikiLink,
+    Semantic(RelationType),
+}
+
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use regex::Regex;
@@ -13,8 +28,9 @@ pub struct NodeMetadata {
 }
 
 pub struct VaultGraph {
-    pub graph: Graph<NodeMetadata, String>,
+    pub graph: Graph<GraphNode, GraphEdgeType>,
     node_map: HashMap<String, NodeIndex>,
+    entity_map: HashMap<Uuid, NodeIndex>,
 }
 
 impl VaultGraph {
@@ -22,6 +38,7 @@ impl VaultGraph {
         Self {
             graph: Graph::new(),
             node_map: HashMap::new(),
+            entity_map: HashMap::new(),
         }
     }
 
@@ -34,12 +51,11 @@ impl VaultGraph {
         let node_index = *self
             .node_map
             .entry(folder_path.clone())
-            .or_insert_with(|| self.graph.add_node(metadata));
+            .or_insert_with(|| self.graph.add_node(GraphNode::File(metadata)));
 
         if let Some(parent) = parent_folder {
-            if let Some(parent_index) = self.node_map.get(&parent) {
-                self.graph
-                    .add_edge(*parent_index, node_index, "contains".to_string());
+            if let Some(&parent_index) = self.node_map.get(&parent) {
+                self.graph.add_edge(parent_index, node_index, GraphEdgeType::WikiLink);
             }
         }
     }
@@ -56,9 +72,8 @@ impl VaultGraph {
         let node_index = *self
             .node_map
             .entry(note_path.clone())
-            .or_insert_with(|| self.graph.add_node(metadata));
+            .or_insert_with(|| self.graph.add_node(GraphNode::File(metadata)));
 
-        // Simple regex to find [[wiki-links]]
         let re = Regex::new(r"\[\[(.*?)\]\]").unwrap();
 
         for cap in re.captures_iter(content) {
@@ -71,32 +86,62 @@ impl VaultGraph {
             let target_node_index = *self
                 .node_map
                 .entry(target.clone())
-                .or_insert_with(|| self.graph.add_node(target_metadata));
+                .or_insert_with(|| self.graph.add_node(GraphNode::File(target_metadata)));
             self.graph
-                .add_edge(node_index, target_node_index, "links_to".to_string());
+                .add_edge(node_index, target_node_index, GraphEdgeType::WikiLink);
         }
     }
     pub fn get_backlinks(&self, note_path: &str) -> Vec<String> {
         let node_index = match self.node_map.get(note_path) {
             Some(idx) => *idx,
-            None => return vec![],
+            None => return Vec::new(),
         };
 
         self.graph
             .edges_directed(node_index, petgraph::Direction::Incoming)
-            .map(|edge| self.graph[edge.source()].path.clone())
+            .filter(|e| matches!(e.weight(), GraphEdgeType::WikiLink))
+            .filter_map(|e| {
+                let source = e.source();
+                if let GraphNode::File(metadata) = &self.graph[source] {
+                    Some(metadata.path.clone())
+                } else {
+                    None
+                }
+            })
             .collect()
     }
-
     pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
         self.graph
             .node_indices()
             .filter(|&idx| {
-                let metadata = self.graph[idx].clone();
-                let content = std::fs::read_to_string(&metadata.path).unwrap_or_default();
-                crate::parser::extract_tags(&content).contains(&tag.to_string())
+                if let GraphNode::File(metadata) = &self.graph[idx] {
+                    let content = std::fs::read_to_string(&metadata.path).unwrap_or_default();
+                    crate::parser::extract_tags(&content).contains(&tag.to_string())
+                } else {
+                    false
+                }
             })
-            .map(|idx| self.graph[idx].path.clone())
+            .filter_map(|idx| {
+                if let GraphNode::File(metadata) = &self.graph[idx] {
+                    Some(metadata.path.clone())
+                } else {
+                    None
+                }
+            })
             .collect()
+    }
+
+    pub fn add_entity(&mut self, entity_id: Uuid) {
+        if self.entity_map.contains_key(&entity_id) {
+            return;
+        }
+        let node_index = self.graph.add_node(GraphNode::Entity(entity_id));
+        self.entity_map.insert(entity_id, node_index);
+    }
+
+    pub fn add_semantic_relation(&mut self, source: Uuid, target: Uuid, relation: RelationType) {
+        if let (Some(&s_idx), Some(&t_idx)) = (self.entity_map.get(&source), self.entity_map.get(&target)) {
+            self.graph.add_edge(s_idx, t_idx, GraphEdgeType::Semantic(relation));
+        }
     }
 }

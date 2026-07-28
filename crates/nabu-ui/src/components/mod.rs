@@ -11,3 +11,4 @@ pub mod sandboxed_html;
 pub mod settings;
 pub mod theme_toggle;
 pub mod vault_setup_wizard;
+pub mod relation_editor;
