@@ -11,7 +11,10 @@ pub mod vault;
 mod markdown;
 pub use markdown::{Document, ParseError, parse};
 
-use nabu_core::capture::{BrowserCaptureHandler, CaptureEngine, WatchFolderConfig, WatchFolderService};
+use nabu_core::capture::{
+    ArticleCaptureHandler, BrowserCaptureHandler, CaptureEngine, GitHubRepositoryHandler,
+    WatchFolderConfig, WatchFolderService, YouTubeCaptureHandler,
+};
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
     DuplicateDetector, OcrProcessor, ProcessingPipeline, TimelineExtractor,
@@ -61,8 +64,11 @@ pub fn run() {
 
             let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
 
-            // Register browser capture handler for Safari extension
+            // Register browser capture handlers
             engine.register(Arc::new(BrowserCaptureHandler::new()));
+            engine.register(Arc::new(ArticleCaptureHandler::new()));
+            engine.register(Arc::new(YouTubeCaptureHandler::new()));
+            engine.register(Arc::new(GitHubRepositoryHandler::new()));
 
             let config = WatchFolderConfig::default();
             match WatchFolderService::new(config, engine.clone(), event_bus.clone()).start() {
