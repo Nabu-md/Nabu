@@ -18,6 +18,15 @@ pub const EVENT_ITEM_PROCESSED: &str = "ItemProcessed";
 /// Event type name for [`ItemStored`].
 pub const EVENT_ITEM_STORED: &str = "ItemStored";
 
+/// Event type name for [`ItemProcessingStarted`].
+pub const EVENT_ITEM_PROCESSING_STARTED: &str = "ItemProcessingStarted";
+
+/// Event type name for [`ItemProcessingCompleted`].
+pub const EVENT_ITEM_PROCESSING_COMPLETED: &str = "ItemProcessingCompleted";
+
+/// Event type name for [`ItemProcessingFailed`].
+pub const EVENT_ITEM_PROCESSING_FAILED: &str = "ItemProcessingFailed";
+
 /// Event published when an item is captured by the CaptureEngine.
 ///
 /// This event signals that a capture request has been successfully processed
@@ -62,6 +71,63 @@ pub struct ItemProcessed {
     pub warnings: Vec<String>,
 }
 
+/// Event published when processing of an item has started.
+///
+/// This event is emitted by the [`ProcessingPipeline`] before executing the
+/// processor chain. It signals that a knowledge object is about to be
+/// reviewed by the registered processors.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ItemProcessingStarted {
+    /// The unique identifier of the item being processed.
+    pub id: Uuid,
+    /// The vault ID where the item will be stored.
+    pub vault_id: String,
+    /// The object type being processed.
+    pub object_type: String,
+    /// The timestamp when processing started.
+    pub timestamp: String,
+}
+
+/// Event published when processing of an item has completed successfully.
+///
+/// This event is emitted by the [`ProcessingPipeline`] after all processors
+/// have executed successfully. It signals that the knowledge object has been
+/// reviewed and is ready for storage.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ItemProcessingCompleted {
+    /// The unique identifier of the processed item.
+    pub id: Uuid,
+    /// The vault ID where the item will be stored.
+    pub vault_id: String,
+    /// The object type of the processed item.
+    pub object_type: String,
+    /// The timestamp when processing completed.
+    pub timestamp: String,
+    /// Non-fatal warnings collected during processing.
+    pub warnings: Vec<String>,
+}
+
+/// Event published when processing of an item has failed or been rejected.
+///
+/// This event is emitted by the [`ProcessingPipeline`] when a processor
+/// rejects the object or an unrecoverable error occurs. The object will NOT
+/// be forwarded to the [`StorageManager`] for persistence.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ItemProcessingFailed {
+    /// The unique identifier of the rejected item.
+    pub id: Uuid,
+    /// The vault ID of the rejected item.
+    pub vault_id: String,
+    /// The object type of the rejected item.
+    pub object_type: String,
+    /// The timestamp when processing failed.
+    pub timestamp: String,
+    /// The reason for the rejection or failure.
+    pub reason: String,
+    /// Non-fatal warnings collected before failure.
+    pub warnings: Vec<String>,
+}
+
 /// Event published when an item has been stored by the StorageManager.
 ///
 /// This event signals that a KnowledgeObject has been persisted to the
@@ -87,6 +153,9 @@ pub trait KnowledgeEvents: Send + Sync + 'static {}
 impl KnowledgeEvents for ItemCaptured {}
 impl KnowledgeEvents for ItemProcessed {}
 impl KnowledgeEvents for ItemStored {}
+impl KnowledgeEvents for ItemProcessingStarted {}
+impl KnowledgeEvents for ItemProcessingCompleted {}
+impl KnowledgeEvents for ItemProcessingFailed {}
 
 /// Creates an IngestionRequest from an ItemCaptured event.
 impl From<&ItemCaptured> for IngestionRequest {
