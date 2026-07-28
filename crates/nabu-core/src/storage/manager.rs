@@ -23,7 +23,9 @@ use std::sync::Arc;
 
 use super::provider::StorageProvider;
 use super::sqlite::SQLiteStorage;
-use crate::event_bus::{EventBus, ItemProcessed, ItemStored};
+use crate::event_bus::{
+    EVENT_ITEM_PROCESSED, EVENT_ITEM_STORED, EventBus, ItemProcessed, ItemStored,
+};
 use crate::models::knowledge_object::KnowledgeObject;
 
 /// The Storage Manager is the single source of truth for structured object metadata.
@@ -65,10 +67,17 @@ impl StorageManager {
         });
 
         let mgr = manager.clone();
-        event_bus.subscribe("ItemProcessed", move |event: &ItemProcessed| {
-            let _ = mgr.save_object(&event.knowledge_object);
+        event_bus.subscribe(EVENT_ITEM_PROCESSED, move |event: &ItemProcessed| {
+            let save_result = mgr.save_object(&event.knowledge_object);
+            if let Err(e) = save_result {
+                // Log the error but do not panic; storage failures should not
+                // crash other subscribers. In a production system, this would
+                // be reported to an error tracking service.
+                eprintln!("StorageManager failed to save object {}: {}", event.id, e);
+                return;
+            }
             let stored_event = ItemStored::from(&event.knowledge_object);
-            mgr.event_bus.publish("ItemStored", &stored_event);
+            mgr.event_bus.publish(EVENT_ITEM_STORED, &stored_event);
         });
 
         manager

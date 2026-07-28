@@ -5,7 +5,9 @@ use crate::capture::{
     CaptureHandler, CaptureRequest, CaptureResult, IngestionRequest, IngestionResult,
     IngestionStatus,
 };
-use crate::event_bus::{EventBus, ItemCaptured, ItemProcessed};
+use crate::event_bus::{
+    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EventBus, ItemCaptured, ItemProcessed,
+};
 
 /// The central capture engine responsible for routing ingestion requests.
 ///
@@ -118,9 +120,15 @@ impl CaptureEngine {
     /// 2. If dispatch fails, return a failed `IngestionResult`.
     /// 3. Deserialize the handler's payload into an `IngestionRequest`.
     /// 4. Publish an [`ItemCaptured`] event to the event bus.
-    /// 5. Wait for the [`ItemProcessed`] event from the pipeline.
+    /// 5. Wait for the [`ItemProcessed`] event from the pipeline (with timeout).
     /// 6. Return the pipeline's `IngestionResult`, with `knowledge_object_id`
     ///    populated from the created `KnowledgeObject`.
+    ///
+    /// # Timeout
+    ///
+    /// If no [`ItemProcessed`] response is received within 30 seconds, the
+    /// ingestion is considered failed. This prevents indefinite blocking if
+    /// no pipeline subscriber is registered.
     pub fn ingest(&self, request: CaptureRequest) -> IngestionResult {
         let capture_result = self.dispatch(request.clone());
 
@@ -170,15 +178,16 @@ impl CaptureEngine {
         };
 
         let bus = self.event_bus.clone();
-        let _unsub = bus.subscribe("ItemProcessed", move |processed: &ItemProcessed| {
+        let _unsub = bus.subscribe(EVENT_ITEM_PROCESSED, move |processed: &ItemProcessed| {
             if processed.id == id {
                 let _ = tx.send(processed.clone());
             }
         });
 
-        self.event_bus.publish("ItemCaptured", &event);
+        self.event_bus.publish(EVENT_ITEM_CAPTURED, &event);
 
-        match rx.recv() {
+        // Wait for the pipeline response with a timeout to prevent indefinite blocking.
+        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
             Ok(processed) => {
                 let knowledge_object = processed.knowledge_object;
                 IngestionResult {
@@ -192,7 +201,7 @@ impl CaptureEngine {
             }
             Err(_) => self.build_failed_result(
                 request.source_type,
-                "No response from processing pipeline".to_string(),
+                "No response from processing pipeline within timeout".to_string(),
                 Vec::new(),
             ),
         }
@@ -222,21 +231,21 @@ impl CaptureEngine {
     /// on their own data.
     pub fn current_timestamp() -> String {
         let now = std::time::SystemTime::now();
-        let duration = now.duration_since(std::time::UNIX_EPOCH).unwrap();
+        let duration = now
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_else(|_| {
+                // Fallback for systems with clock issues; should never happen in practice.
+                std::time::Duration::from_secs(0)
+            });
         let secs = duration.as_secs();
         let millis = duration.subsec_millis();
         format!("{}.{:03}Z", secs, millis)
     }
 }
 
-impl Default for CaptureEngine {
-    fn default() -> Self {
-        // Note: This requires an EventBus to be created separately.
-        // The default implementation is provided for convenience in tests
-        // that don't need event bus integration.
-        panic!("CaptureEngine::default() is not supported. Use CaptureEngine::new(Arc::new(EventBus::new())) instead.");
-    }
-}
+// Note: CaptureEngine does not implement Default because it requires an
+// EventBus to function correctly. Tests should use:
+//   CaptureEngine::new(Arc::new(EventBus::new()))
 
 #[cfg(test)]
 mod tests {
@@ -462,5 +471,51 @@ mod tests {
         }
         assert!(result.knowledge_object.is_none());
         assert_eq!(result.source, "file_drop");
+    }
+
+    #[test]
+    fn ingest_times_out_when_no_pipeline_subscriber() {
+        let bus = Arc::new(EventBus::new());
+        // No pipeline registered — no one will publish ItemProcessed
+        let engine = CaptureEngine::new(bus);
+        let handler = Arc::new(MockHandler {
+            source: "file_drop",
+            can_handle: true,
+            result: CaptureResult {
+                success: true,
+                knowledge_object_id: None,
+                error: None,
+                message: "Captured".to_string(),
+                payload: Some(serde_json::json!({
+                    "source": "file_drop",
+                    "raw_bytes": [116, 101, 115, 116],
+                    "mime_type": "text/plain",
+                    "vault_id": "vault-1",
+                    "source_file": null,
+                    "options": {
+                        "create_knowledge_object": true,
+                        "extract_metadata": false,
+                        "custom": {}
+                    }
+                })),
+            },
+        });
+        engine.register(handler);
+
+        let request = CaptureRequest {
+            source_type: "file_drop".to_string(),
+            payload: serde_json::json!({"file_path": "/path/to/file.txt"}),
+            vault_id: "vault-1".to_string(),
+            context: HashMap::new(),
+        };
+
+        let result = engine.ingest(request);
+        match result.status {
+            IngestionStatus::Failed(e) => {
+                assert!(e.contains("timeout"), "Expected timeout error, got: {}", e);
+            }
+            IngestionStatus::Success => panic!("Expected failed status due to timeout"),
+        }
+        assert!(result.knowledge_object.is_none());
     }
 }
