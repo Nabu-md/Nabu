@@ -18,7 +18,7 @@ use nabu_core::capture::{
 };
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
-    DuplicateDetector, OcrProcessor, ProcessingPipeline, TimelineExtractor,
+    DuplicateDetector, MetadataExtractor, OcrProcessor, ProcessingPipeline, TimelineExtractor,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -62,6 +62,7 @@ pub fn run() {
             pipeline.register(Arc::new(TimelineExtractor::new()));
             #[cfg(all(target_os = "macos", target_os = "ios"))]
             pipeline.register(Arc::new(OcrProcessor::new()));
+            pipeline.register(Arc::new(MetadataExtractor::new()));
 
             let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
 
