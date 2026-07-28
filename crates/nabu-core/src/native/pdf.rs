@@ -3,6 +3,16 @@ use serde::{Deserialize, Serialize};
 use objc2::{extern_class, msg_send_id, rc::Id, runtime::AnyObject, ClassType, Message};
 use objc2_foundation::{NSURL, NSString, NSDictionary, NSArray};
 
+// Extension for NSDictionary
+impl NSDictionary<NSString, AnyObject> {
+    pub fn objectForKey(&self, key: &NSString) -> Option<Id<AnyObject>> {
+        unsafe {
+            let val: *mut AnyObject = msg_send_id![self, objectForKey: key];
+            if val.is_null() { None } else { Some(Id::retain(val).unwrap()) }
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Annotation {
     pub page: u32,
