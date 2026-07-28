@@ -58,6 +58,8 @@ impl Indexer {
         self.writer.add_document(doc)?;
         self.writer.commit()?;
         Ok(())
+    }
+
     pub fn search(&self, search_query: &SearchQuery) -> anyhow::Result<Vec<String>> {
         let searcher = self.reader.searcher();
         let query_parser = tantivy::query::QueryParser::for_index(
