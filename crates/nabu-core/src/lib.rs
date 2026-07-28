@@ -28,3 +28,4 @@ pub mod watcher;
 
 #[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub mod native;
+pub mod search_query;

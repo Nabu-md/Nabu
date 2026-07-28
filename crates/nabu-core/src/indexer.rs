@@ -1,4 +1,5 @@
 use crate::models::knowledge_object::KnowledgeObject;
+use crate::search_query::{SearchQuery, Filter};
 use anyhow::Context;
 use std::path::PathBuf;
 use tantivy::schema::*;
@@ -57,8 +58,7 @@ impl Indexer {
         self.writer.add_document(doc)?;
         self.writer.commit()?;
         Ok(())
-    }
-    pub fn search(&self, query_str: &str) -> anyhow::Result<Vec<String>> {
+    pub fn search(&self, search_query: &SearchQuery) -> anyhow::Result<Vec<String>> {
         let searcher = self.reader.searcher();
         let query_parser = tantivy::query::QueryParser::for_index(
             &self.index,
@@ -67,7 +67,10 @@ impl Indexer {
                 self.schema.get_field("tags").unwrap(),
             ],
         );
-        let query = query_parser.parse_query(query_str)?;
+        let query = query_parser.parse_query(&search_query.query)?;
+        
+        // Filter implementation would go here, but for now just parse query.
+        // The requirement is integration, I will start with this.
 
         let collector = tantivy::collector::TopDocs::with_limit(10).order_by_score();
         let top_docs = searcher.search(&query, &collector)?;
