@@ -18,7 +18,7 @@ use nabu_core::capture::{
 };
 use nabu_core::event_bus::EventBus;
 use nabu_core::processing::{
-    DuplicateDetector, MetadataExtractor, OcrProcessor, ProcessingPipeline, TimelineExtractor,
+    DuplicateDetector, MetadataExtractor, OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor, ProcessingPipeline, TimelineExtractor,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -63,7 +63,9 @@ pub fn run() {
             #[cfg(all(target_os = "macos", target_os = "ios"))]
             pipeline.register(Arc::new(OcrProcessor::new()));
             pipeline.register(Arc::new(MetadataExtractor::new()));
-
+            pipeline.register(Arc::new(PdfTextProcessor::new()));
+            pipeline.register(Arc::new(PdfMetadataProcessor::new()));
+            pipeline.register(Arc::new(PdfAnnotationProcessor::new()));
             let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
 
             // Register browser capture handlers

@@ -44,6 +44,9 @@ mod duplicate_detector;
 mod timeline_extractor;
 mod ocr_processor;
 mod metadata_extractor;
+mod pdf_text_processor;
+mod pdf_metadata_processor;
+mod pdf_annotation_processor;
 
 pub use history::{ProcessingHistoryEntry, PROCESSING_HISTORY_KEY};
 pub use pipeline::ProcessingPipeline;
@@ -52,3 +55,6 @@ pub use duplicate_detector::{DuplicateConfidence, DuplicateDetector, DuplicateIn
 pub use timeline_extractor::{TimelineExtractor, TimelineInfo};
 pub use ocr_processor::{OcrInfo, OcrProcessor};
 pub use metadata_extractor::MetadataExtractor;
+pub use pdf_text_processor::PdfTextProcessor;
+pub use pdf_metadata_processor::PdfMetadataProcessor;
+pub use pdf_annotation_processor::PdfAnnotationProcessor;
