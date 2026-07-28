@@ -32,6 +32,8 @@ mod events;
 
 pub use bus::{EventBus, Subscription};
 pub use events::{
-    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EVENT_ITEM_STORED, ItemCaptured, ItemProcessed,
+    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EVENT_ITEM_PROCESSING_COMPLETED,
+    EVENT_ITEM_PROCESSING_FAILED, EVENT_ITEM_PROCESSING_STARTED, EVENT_ITEM_STORED, ItemCaptured,
+    ItemProcessed, ItemProcessingCompleted, ItemProcessingFailed, ItemProcessingStarted,
     ItemStored, KnowledgeEvents,
 };
