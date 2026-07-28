@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use crate::capture::{CaptureHandler, CaptureRequest, CaptureResult};
+use crate::capture::{
+    CaptureHandler, CaptureRequest, CaptureResult, IngestionPipeline, IngestionRequest,
+    IngestionResult, IngestionStatus,
+};
 
 /// The central capture engine responsible for routing ingestion requests.
 ///
@@ -70,6 +73,71 @@ impl CaptureEngine {
             payload: None,
         }
     }
+
+    /// Runs the full ingestion flow: dispatch → normalize → pipeline.
+    ///
+    /// Returns an [`IngestionResult`] regardless of whether dispatch succeeds
+    /// or fails, so callers always have a single result type to handle.
+    pub fn ingest(&self, request: CaptureRequest) -> IngestionResult {
+        let capture_result = self.dispatch(request);
+
+        if !capture_result.success {
+            return IngestionResult {
+                knowledge_object: None,
+                source: "unknown".to_string(),
+                timestamp: IngestionPipeline::current_timestamp(),
+                status: IngestionStatus::Failed(
+                    capture_result
+                        .error
+                        .unwrap_or_else(|| "Unknown error".to_string()),
+                ),
+                warnings: Vec::new(),
+            };
+        }
+
+        let payload = match capture_result.payload {
+            Some(p) => p,
+            None => {
+                return IngestionResult {
+                    knowledge_object: None,
+                    source: "unknown".to_string(),
+                    timestamp: IngestionPipeline::current_timestamp(),
+                    status: IngestionStatus::Failed(
+                        "Capture succeeded but produced no payload".to_string(),
+                    ),
+                    warnings: Vec::new(),
+                };
+            }
+        };
+
+        let ingestion_request: IngestionRequest = match serde_json::from_value(payload) {
+            Ok(req) => req,
+            Err(e) => {
+                return IngestionResult {
+                    knowledge_object: None,
+                    source: "unknown".to_string(),
+                    timestamp: IngestionPipeline::current_timestamp(),
+                    status: IngestionStatus::Failed(format!(
+                        "Failed to deserialize ingestion request: {}",
+                        e
+                    )),
+                    warnings: Vec::new(),
+                };
+            }
+        };
+
+        let pipeline = IngestionPipeline;
+        match pipeline.process(ingestion_request) {
+            Ok(result) => result,
+            Err(e) => IngestionResult {
+                knowledge_object: None,
+                source: "unknown".to_string(),
+                timestamp: IngestionPipeline::current_timestamp(),
+                status: IngestionStatus::Failed(e.to_string()),
+                warnings: Vec::new(),
+            },
+        }
+    }
 }
 
 impl Default for CaptureEngine {
@@ -81,6 +149,8 @@ impl Default for CaptureEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::capture::IngestionOptions;
+    use crate::models::knowledge_object::{ObjectContent, ObjectType};
     use std::sync::Arc;
     use uuid::Uuid;
 
@@ -195,5 +265,96 @@ mod tests {
         let result = engine.dispatch(request);
         assert!(!result.success);
         assert!(result.error.is_some());
+    }
+
+    #[test]
+    fn ingest_full_flow_creates_knowledge_object() {
+        let engine = CaptureEngine::new();
+        let ingestion_request = IngestionRequest {
+            source: "file_drop".to_string(),
+            raw_bytes: b"Hello, world!".to_vec(),
+            mime_type: "text/plain".to_string(),
+            vault_id: "vault-1".to_string(),
+            source_file: Some("/path/to/hello.txt".to_string()),
+            options: IngestionOptions::default(),
+        };
+        let payload = serde_json::to_value(&ingestion_request).unwrap();
+
+        let handler = Arc::new(MockHandler {
+            source: "file_drop",
+            can_handle: true,
+            result: CaptureResult {
+                success: true,
+                knowledge_object_id: None,
+                error: None,
+                message: "Captured".to_string(),
+                payload: Some(payload),
+            },
+        });
+        engine.register(handler);
+
+        let request = CaptureRequest {
+            source_type: "file_drop".to_string(),
+            payload: serde_json::json!({"file_path": "/path/to/hello.txt"}),
+            vault_id: "vault-1".to_string(),
+            context: HashMap::new(),
+        };
+
+        let result = engine.ingest(request);
+        assert_eq!(result.status, IngestionStatus::Success);
+        assert!(result.knowledge_object.is_some());
+        let obj = result.knowledge_object.unwrap();
+        assert_eq!(obj.vault_id, "vault-1");
+        assert_eq!(obj.object_type, ObjectType::Note);
+        assert_eq!(obj.content, ObjectContent::PlainText);
+    }
+
+    #[test]
+    fn ingest_handles_failed_capture() {
+        let engine = CaptureEngine::new();
+        let request = CaptureRequest {
+            source_type: "missing".to_string(),
+            payload: serde_json::json!({}),
+            vault_id: "vault-1".to_string(),
+            context: HashMap::new(),
+        };
+
+        let result = engine.ingest(request);
+        match result.status {
+            IngestionStatus::Failed(_) => {}
+            IngestionStatus::Success => panic!("Expected failed status"),
+        }
+        assert!(result.knowledge_object.is_none());
+    }
+
+    #[test]
+    fn ingest_handles_missing_payload() {
+        let engine = CaptureEngine::new();
+        let handler = Arc::new(MockHandler {
+            source: "file_drop",
+            can_handle: true,
+            result: CaptureResult {
+                success: true,
+                knowledge_object_id: None,
+                error: None,
+                message: "Captured".to_string(),
+                payload: None,
+            },
+        });
+        engine.register(handler);
+
+        let request = CaptureRequest {
+            source_type: "file_drop".to_string(),
+            payload: serde_json::json!({"file_path": "/path/to/file.txt"}),
+            vault_id: "vault-1".to_string(),
+            context: HashMap::new(),
+        };
+
+        let result = engine.ingest(request);
+        match result.status {
+            IngestionStatus::Failed(_) => {}
+            IngestionStatus::Success => panic!("Expected failed status"),
+        }
+        assert!(result.knowledge_object.is_none());
     }
 }

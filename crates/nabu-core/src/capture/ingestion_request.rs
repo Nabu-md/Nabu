@@ -15,6 +15,8 @@ pub struct IngestionRequest {
     pub mime_type: String,
     /// Target vault identifier.
     pub vault_id: String,
+    /// Original source file path, if applicable.
+    pub source_file: Option<String>,
     /// Options controlling how the request should be processed.
     pub options: IngestionOptions,
 }
