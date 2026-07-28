@@ -15,7 +15,34 @@ pub use sqlite::SQLiteStorage;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::knowledge_object::{KnowledgeObject, ObjectType, ObjectContent, ObjectMetadata};
+    use std::collections::HashMap;
     use tempfile::tempdir;
+    use uuid::Uuid;
+
+    fn create_test_object(id: Uuid) -> KnowledgeObject {
+        KnowledgeObject {
+            id,
+            object_type: ObjectType::Note,
+            vault_id: "test-vault".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            modified_at: "2024-06-01T00:00:00Z".to_string(),
+            content: ObjectContent::Markdown,
+            metadata: ObjectMetadata {
+                title: Some("Test Note".to_string()),
+                author: Some("Test Author".to_string()),
+                language: Some("en".to_string()),
+                source_url: None,
+                source_file: Some("/path/to/note.md".to_string()),
+                mime_type: Some("text/markdown".to_string()),
+                page_count: None,
+                word_count: Some(100),
+                created: None,
+                modified: None,
+                custom: HashMap::new(),
+            },
+        }
+    }
 
     #[test]
     fn storage_manager_initializes_new_database() {
@@ -62,5 +89,88 @@ mod tests {
         let nabu_db_path = vault_path.join(".nabu").join("db");
         assert!(nabu_db_path.exists());
         assert!(nabu_db_path.is_dir());
+    }
+
+    #[test]
+    fn save_object_persists_knowledge_object() {
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let vault_path = temp_dir.path().to_path_buf();
+
+        let manager = StorageManager::new(vault_path);
+        manager.initialize().expect("Failed to initialize storage");
+
+        let object = create_test_object(Uuid::new_v4());
+        manager.save_object(&object).expect("Failed to save object");
+
+        // Verify the object can be retrieved
+        let retrieved = manager.get_object(&object.id.to_string()).expect("Failed to get object");
+        assert!(retrieved.is_some());
+    }
+
+    #[test]
+    fn get_object_returns_none_for_nonexistent_id() {
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let vault_path = temp_dir.path().to_path_buf();
+
+        let manager = StorageManager::new(vault_path);
+        manager.initialize().expect("Failed to initialize storage");
+
+        let retrieved = manager.get_object("nonexistent-id").expect("Failed to get object");
+        assert!(retrieved.is_none());
+    }
+
+    #[test]
+    fn save_and_get_object_round_trip_preserves_metadata() {
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let vault_path = temp_dir.path().to_path_buf();
+
+        let manager = StorageManager::new(vault_path);
+        manager.initialize().expect("Failed to initialize storage");
+
+        let original = create_test_object(Uuid::new_v4());
+        manager.save_object(&original).expect("Failed to save object");
+
+        let retrieved = manager.get_object(&original.id.to_string()).expect("Failed to get object");
+        assert!(retrieved.is_some());
+
+        let retrieved = retrieved.unwrap();
+        assert_eq!(original.id, retrieved.id);
+        assert_eq!(original.vault_id, retrieved.vault_id);
+        assert_eq!(original.object_type, retrieved.object_type);
+        assert_eq!(original.created_at, retrieved.created_at);
+        assert_eq!(original.modified_at, retrieved.modified_at);
+        assert_eq!(original.metadata.title, retrieved.metadata.title);
+        assert_eq!(original.metadata.author, retrieved.metadata.author);
+        assert_eq!(original.metadata.language, retrieved.metadata.language);
+        assert_eq!(original.metadata.source_file, retrieved.metadata.source_file);
+        assert_eq!(original.metadata.mime_type, retrieved.metadata.mime_type);
+        assert_eq!(original.metadata.word_count, retrieved.metadata.word_count);
+    }
+
+    #[test]
+    fn update_object_replaces_existing_object() {
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let vault_path = temp_dir.path().to_path_buf();
+
+        let manager = StorageManager::new(vault_path);
+        manager.initialize().expect("Failed to initialize storage");
+
+        let id = Uuid::new_v4();
+        let original = create_test_object(id);
+        manager.save_object(&original).expect("Failed to save object");
+
+        // Update the object
+        let mut updated = create_test_object(id);
+        updated.metadata.title = Some("Updated Title".to_string());
+        updated.modified_at = "2024-07-01T00:00:00Z".to_string();
+        
+        manager.update_object(&updated).expect("Failed to update object");
+
+        // Verify the update
+        let retrieved = manager.get_object(&id.to_string()).expect("Failed to get object");
+        assert!(retrieved.is_some());
+        let retrieved = retrieved.unwrap();
+        assert_eq!(retrieved.metadata.title, Some("Updated Title".to_string()));
+        assert_eq!(retrieved.modified_at, "2024-07-01T00:00:00Z");
     }
 }
