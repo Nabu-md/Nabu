@@ -5,7 +5,11 @@ use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
 use crate::components::note_editor::NoteEditor;
+use crate::components::reading_queue::ReadingQueue;
+use crate::components::relation_editor::RelationEditor;
 use crate::components::settings::settings_panel::SettingsPanel;
+use crate::components::template_editor::TemplateEditor;
+use crate::components::template_picker::TemplatePicker;
 use crate::components::vault_setup_wizard::VaultSetupWizard;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -22,6 +26,8 @@ pub enum ViewMode {
     Editor,
     Graph,
     Inbox,
+    ReadingQueue,
+    Templates,
     Settings,
 }
 
@@ -130,6 +136,18 @@ pub fn App() -> impl IntoView {
                             >
                                 "⚙️ Settings"
                             </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::ReadingQueue { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::ReadingQueue)
+                            >
+                                "📚 Reading Queue"
+                            </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Templates { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Templates)
+                            >
+                                "📋 Templates"
+                            </button>
 
                             <div class="flex-1"></div>
 
@@ -170,6 +188,23 @@ pub fn App() -> impl IntoView {
                                 ViewMode::Inbox => view! {
                                     <div class="max-w-7xl mx-auto h-full">
                                         <Inbox />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::ReadingQueue => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <ReadingQueue />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Templates => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <TemplateEditor
+                                            templates=vec![]
+                                            folder_templates=vec![]
+                                            on_save=Callback::new(|_| {})
+                                            on_delete=Callback::new(|_| {})
+                                            on_assign=Callback::new(|_| {})
+                                            on_unassign=Callback::new(|_| {})
+                                        />
                                     </div>
                                 }.into_any(),
                             }}
