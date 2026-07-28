@@ -21,8 +21,9 @@
 //! - Never rejects storage automatically.
 //! - Never performs blocking I/O.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use crate::processing::processor::{ProcessingDecision, ProcessingResult, Processor};
 use crate::models::knowledge_object::KnowledgeObject;
@@ -30,6 +31,39 @@ use crate::storage::StorageProvider;
 use serde::{Deserialize, Serialize};
 
 use sha2::{Sha256, Digest};
+
+/// Cache for content hashes to avoid recomputing for the same objects.
+/// Uses a simple in-memory LRU-like cache with a maximum size.
+/// Wrapped in Mutex for thread-safe interior mutability.
+struct ContentHashCache {
+    cache: Mutex<HashMap<String, String>>,
+    max_size: usize,
+}
+
+impl ContentHashCache {
+    fn new(max_size: usize) -> Self {
+        Self {
+            cache: Mutex::new(HashMap::with_capacity(max_size)),
+            max_size,
+        }
+    }
+
+    fn get(&self, key: &str) -> Option<String> {
+        self.cache.lock().ok().and_then(|c| c.get(key).cloned())
+    }
+
+    fn insert(&self, key: String, hash: String) {
+        if let Ok(mut cache) = self.cache.lock() {
+            if cache.len() >= self.max_size {
+                // Remove a random entry when cache is full
+                if let Some(old_key) = cache.keys().next().cloned() {
+                    cache.remove(&old_key);
+                }
+            }
+            cache.insert(key, hash);
+        }
+    }
+}
 
 /// Confidence level for duplicate detection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -73,8 +107,16 @@ pub struct DuplicateInfo {
 /// The processor enriches the knowledge object's metadata with duplicate
 /// information but never rejects storage. All documents remain reviewable
 /// in the Inbox.
+///
+/// Performance optimizations:
+/// - Content hash caching to avoid recomputation
+/// - Limited candidate checks (max 50 objects queried)
+/// - Early exit on confirmed duplicates
 pub struct DuplicateDetector {
     storage: Option<Arc<dyn StorageProvider>>,
+    hash_cache: ContentHashCache,
+    /// Maximum number of candidate objects to check per detection.
+    max_candidates: usize,
 }
 
 impl std::fmt::Debug for DuplicateDetector {
@@ -92,22 +134,36 @@ impl DuplicateDetector {
     /// potential duplicates. Without storage, only filename-based detection
     /// is available.
     pub fn new(storage: Option<Arc<dyn StorageProvider>>) -> Self {
-        Self { storage }
+        Self {
+            storage,
+            hash_cache: ContentHashCache::new(1000),
+            max_candidates: 50,
+        }
     }
 
     /// Creates a detector without storage access.
     ///
     /// Only filename-based detection will be available.
     pub fn without_storage() -> Self {
-        Self { storage: None }
+        Self {
+            storage: None,
+            hash_cache: ContentHashCache::new(1000),
+            max_candidates: 50,
+        }
     }
 
     /// Computes a SHA-256 hash of the object's content.
     ///
     /// For binary content, the raw bytes are hashed.
     /// For text content, normalization may improve detection of variants.
+    /// Uses a cache to avoid recomputing hashes for the same object.
     fn compute_content_hash(&self, object: &KnowledgeObject) -> String {
-        let bytes = match &object.content {
+        let cache_key = object.id.to_string();
+        if let Some(cached) = self.hash_cache.get(&cache_key) {
+            return cached;
+        }
+
+        let hash = match &object.content {
             // For structured content, hash the JSON serialization
             _ => {
                 // We don't have raw bytes here, so we'll use metadata as proxy
@@ -123,7 +179,9 @@ impl DuplicateDetector {
                 format!("{:x}", hasher.finalize())
             }
         };
-        bytes
+
+        self.hash_cache.insert(cache_key, hash.clone());
+        hash
     }
 
     /// Checks filename similarity against existing objects.
@@ -148,8 +206,9 @@ impl DuplicateDetector {
 
         // Query existing objects via storage if available
         if let Some(storage) = &self.storage {
-            // Use list_objects to find objects with the same source file in the same vault
-            if let Ok(existing_objects) = storage.list_objects(&object.vault_id, Some(source_file), 10) {
+            // Use list_objects to find objects with the same source file in the same vault.
+            // Limit candidates to max_candidates for performance.
+            if let Ok(existing_objects) = storage.list_objects(&object.vault_id, Some(source_file), self.max_candidates) {
                 for existing in existing_objects {
                     // Skip the object itself
                     if existing.id == object.id {
@@ -168,6 +227,11 @@ impl DuplicateDetector {
                             best_match = existing.metadata.source_file.clone();
                             candidates.push(existing.id.to_string());
                         }
+                    }
+
+                    // Early exit on confirmed duplicate
+                    if best_confidence == DuplicateConfidence::Confirmed {
+                        break;
                     }
                 }
             }
