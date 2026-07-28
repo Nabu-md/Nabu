@@ -32,8 +32,7 @@ mod tests {
         assert!(ts.ends_with("Z"));
         assert!(ts.contains("."));
         
-        let without_z = ts.trim_end_matches('Z');
-        let parts: Vec<&str> = without_z.split(".").collect();
+        let parts: Vec<&str> = ts.split(".").collect();
         assert_eq!(parts.len(), 2);
         
         let millis_part = parts[1];
