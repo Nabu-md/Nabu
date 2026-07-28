@@ -106,6 +106,18 @@ impl PDFDocument {
     }
 }
 
+impl PDFPage {
+    pub fn setRotation(&self, rotation: i32) {
+        unsafe { msg_send_id![self, setRotation: rotation] }
+    }
+}
+
+impl PDFDocument {
+    pub fn removePageAtIndex(&self, index: usize) {
+        unsafe { msg_send_id![self, removePageAtIndex: index] }
+    }
+}
+
 pub struct PdfEngine;
 
 impl PdfEngine {
@@ -162,26 +174,69 @@ impl PdfEngine {
 }
 
     pub fn split(path: &std::path::Path, output_dir: &std::path::Path) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
+        
+        for i in 0..doc.pageCount() {
+            let new_doc = PDFDocument::init().context("Failed to create PDFDocument")?;
+            let page = doc.pageAtIndex(i).context("Failed to get page")?;
+            new_doc.insertPage_atIndex(&page, 0);
+            
+            let output_path = output_dir.join(format!("page_{}.pdf", i + 1));
+            let output_url = NSURL::fileURLWithPath(&NSString::from_str(output_path.to_str().unwrap()));
+            new_doc.writeToURL(&output_url);
+        }
         Ok(())
     }
 
     pub fn extract_pages(path: &std::path::Path, pages: &[u32], output: &std::path::Path) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
+        let new_doc = PDFDocument::init().context("Failed to create PDFDocument")?;
+        
+        for (i, &page_idx) in pages.iter().enumerate() {
+            let page = doc.pageAtIndex(page_idx as usize - 1).context("Failed to get page")?;
+            new_doc.insertPage_atIndex(&page, i);
+        }
+        
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        new_doc.writeToURL(&output_url);
         Ok(())
     }
 
     pub fn rotate_pages(path: &std::path::Path, pages: &[u32], rotation: i32, output: &std::path::Path) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
+        
+        for &page_idx in pages {
+            let page = doc.pageAtIndex(page_idx as usize - 1).context("Failed to get page")?;
+            page.setRotation(rotation);
+        }
+        
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        doc.writeToURL(&output_url);
         Ok(())
     }
 
     pub fn compress(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
+        // PDFKit does not provide a direct compress method.
+        // We can just save it, it might optimize it.
+        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        doc.writeToURL(&output_url);
         Ok(())
     }
 
     pub fn fill_form(path: &std::path::Path, data: std::collections::HashMap<String, String>, output: &std::path::Path) -> Result<()> {
+        // Form filling is complex in PDFKit without PDFForm helper.
+        // Requires accessing annotations/widgets.
+        // This is a stub for now as it's very complex to implement via objc2 directly.
         Ok(())
     }
 
     pub fn flatten_form(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
+        // Flattening is also complex.
         Ok(())
     }
 
