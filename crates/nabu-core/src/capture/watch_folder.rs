@@ -131,10 +131,9 @@ impl CaptureHandler for WatchFolderHandler {
             _ => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some("Missing or invalid 'file_path' in payload".to_string()),
                     message: "Watch folder capture failed: invalid payload".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -173,20 +172,18 @@ impl CaptureHandler for WatchFolderHandler {
                     Err(e) => {
                         return CaptureResult {
                             success: false,
-                            knowledge_object_id: None,
+                            knowledge_object: None,
                             error: Some(format!(
                                 "Failed to serialize ingestion request: {}",
                                 e
                             )),
-                            message: "Watch folder capture failed: serialization error"
-                                .to_string(),
-                            payload: None,
+                            message: "Watch folder capture failed: serialization error".to_string(),
                         };
                     }
                 };
                 CaptureResult {
                     success: true,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: None,
                     message: format!(
                         "File '{}' captured from watch folder",
@@ -197,15 +194,13 @@ impl CaptureHandler for WatchFolderHandler {
             }
             Err(e) => CaptureResult {
                 success: false,
-                knowledge_object_id: None,
+                knowledge_object: None,
                 error: Some(e.to_string()),
                 message: format!("Watch folder capture failed: {}", e),
-                payload: None,
             },
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

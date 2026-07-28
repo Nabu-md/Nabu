@@ -1,4 +1,5 @@
 use crate::components::graph_view::{GraphMode, GraphView};
+use crate::components::inbox::Inbox;
 use crate::components::layout::left_sidebar::LeftSidebar;
 use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::right_inspector::RightInspector;
@@ -20,6 +21,7 @@ pub enum AppScreen {
 pub enum ViewMode {
     Editor,
     Graph,
+    Inbox,
     Settings,
 }
 
@@ -163,6 +165,11 @@ pub fn App() -> impl IntoView {
                                 ViewMode::Settings => view! {
                                     <div class="max-w-4xl mx-auto h-full">
                                         <SettingsPanel />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Inbox => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <Inbox />
                                     </div>
                                 }.into_any(),
                             }}
