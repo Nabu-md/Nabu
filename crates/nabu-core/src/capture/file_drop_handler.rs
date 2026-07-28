@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use crate::capture::{
-    CaptureHandler, CaptureRequest, CaptureResult, IngestionOptions, Normaliser,
-};
+use crate::capture::{CaptureHandler, CaptureRequest, CaptureResult, IngestionOptions, Normaliser};
 
 /// Handles file drop capture events.
 ///
@@ -46,17 +44,21 @@ impl CaptureHandler for FileDropHandler {
                     error: Some("Missing or invalid 'file_path' in payload".to_string()),
                     message: "Capture failed: invalid payload".to_string(),
                     payload: None,
-                }
+                };
             }
         };
 
+        let source_file = file_path.to_str().map(|s| s.to_string());
         let options = IngestionOptions {
             create_knowledge_object: true,
             extract_metadata: true,
             custom: request.context,
         };
 
-        match self.normaliser.normalize(&file_path, &request.vault_id, options) {
+        match self
+            .normaliser
+            .normalize(&file_path, &request.vault_id, source_file, options)
+        {
             Ok(ingestion_request) => {
                 let payload = serde_json::to_value(&ingestion_request)
                     .expect("IngestionRequest should always be serializable");
@@ -64,10 +66,7 @@ impl CaptureHandler for FileDropHandler {
                     success: true,
                     knowledge_object_id: None,
                     error: None,
-                    message: format!(
-                        "File '{}' captured successfully",
-                        file_path.display()
-                    ),
+                    message: format!("File '{}' captured successfully", file_path.display()),
                     payload: Some(payload),
                 }
             }

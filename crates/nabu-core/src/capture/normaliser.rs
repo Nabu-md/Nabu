@@ -24,6 +24,7 @@ impl Normaliser {
         &self,
         file_path: &Path,
         vault_id: &str,
+        source_file: Option<String>,
         options: IngestionOptions,
     ) -> Result<IngestionRequest, CaptureError> {
         self.validate_file(file_path)?;
@@ -35,6 +36,7 @@ impl Normaliser {
             raw_bytes,
             mime_type,
             vault_id: vault_id.to_string(),
+            source_file,
             options,
         })
     }
@@ -84,11 +86,19 @@ impl Normaliser {
             Some("xml") => "application/xml".to_string(),
             Some("csv") => "text/csv".to_string(),
             Some("doc") => "application/msword".to_string(),
-            Some("docx") => "application/vnd.openxmlformats-officedocument.wordprocessingml.document".to_string(),
+            Some("docx") => {
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    .to_string()
+            }
             Some("xls") => "application/vnd.ms-excel".to_string(),
-            Some("xlsx") => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string(),
+            Some("xlsx") => {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string()
+            }
             Some("ppt") => "application/vnd.ms-powerpoint".to_string(),
-            Some("pptx") => "application/vnd.openxmlformats-officedocument.presentationml.presentation".to_string(),
+            Some("pptx") => {
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    .to_string()
+            }
             _ => "application/octet-stream".to_string(),
         }
     }
@@ -109,6 +119,7 @@ mod tests {
         let result = normaliser.normalize(
             &file_path,
             "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
             IngestionOptions::default(),
         );
 
@@ -118,6 +129,10 @@ mod tests {
         assert_eq!(request.mime_type, "text/plain");
         assert_eq!(request.raw_bytes, b"Hello, Nabu!");
         assert_eq!(request.vault_id, "vault-1");
+        assert_eq!(
+            request.source_file,
+            file_path.to_str().map(|s| s.to_string())
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -133,12 +148,17 @@ mod tests {
         let result = normaliser.normalize(
             &file_path,
             "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
             IngestionOptions::default(),
         );
 
         assert!(result.is_ok());
         let request = result.unwrap();
         assert_eq!(request.mime_type, "text/markdown");
+        assert_eq!(
+            request.source_file,
+            file_path.to_str().map(|s| s.to_string())
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -154,12 +174,17 @@ mod tests {
         let result = normaliser.normalize(
             &file_path,
             "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
             IngestionOptions::default(),
         );
 
         assert!(result.is_ok());
         let request = result.unwrap();
         assert_eq!(request.mime_type, "application/pdf");
+        assert_eq!(
+            request.source_file,
+            file_path.to_str().map(|s| s.to_string())
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -169,12 +194,13 @@ mod tests {
         let dir = std::env::temp_dir().join("nabu_capture_test_bin");
         let _ = fs::create_dir_all(&dir);
         let file_path = dir.join("data.bin");
-        fs::write(&file_path, &[0u8, 255u8, 128u8]).unwrap();
+        fs::write(&file_path, [0u8, 255u8, 128u8]).unwrap();
 
         let normaliser = Normaliser;
         let result = normaliser.normalize(
             &file_path,
             "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
             IngestionOptions::default(),
         );
 
@@ -182,6 +208,10 @@ mod tests {
         let request = result.unwrap();
         assert_eq!(request.mime_type, "application/octet-stream");
         assert_eq!(request.raw_bytes, &[0u8, 255u8, 128u8]);
+        assert_eq!(
+            request.source_file,
+            file_path.to_str().map(|s| s.to_string())
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -192,6 +222,7 @@ mod tests {
         let result = normaliser.normalize(
             Path::new("/nonexistent/path/file.txt"),
             "vault-1",
+            None,
             IngestionOptions::default(),
         );
 
@@ -205,11 +236,7 @@ mod tests {
         let _ = fs::create_dir_all(&dir);
 
         let normaliser = Normaliser;
-        let result = normaliser.normalize(
-            &dir,
-            "vault-1",
-            IngestionOptions::default(),
-        );
+        let result = normaliser.normalize(&dir, "vault-1", None, IngestionOptions::default());
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), CaptureError::InvalidFile(_)));
@@ -228,12 +255,17 @@ mod tests {
         let result = normaliser.normalize(
             &file_path,
             "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
             IngestionOptions::default(),
         );
 
         assert!(result.is_ok());
         let request = result.unwrap();
         assert_eq!(request.raw_bytes, b"Unicode content");
+        assert_eq!(
+            request.source_file,
+            file_path.to_str().map(|s| s.to_string())
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -255,7 +287,12 @@ mod tests {
         };
 
         let normaliser = Normaliser;
-        let result = normaliser.normalize(&file_path, "vault-1", options.clone());
+        let result = normaliser.normalize(
+            &file_path,
+            "vault-1",
+            file_path.to_str().map(|s| s.to_string()),
+            options.clone(),
+        );
 
         assert!(result.is_ok());
         let request = result.unwrap();
