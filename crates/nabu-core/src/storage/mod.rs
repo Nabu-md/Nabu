@@ -27,10 +27,12 @@ pub use sqlite::SQLiteStorage;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::event_bus::EventBus;
     use crate::models::knowledge_object::{
         KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType,
     };
     use std::collections::HashMap;
+    use std::sync::Arc;
     use tempfile::tempdir;
     use uuid::Uuid;
 
@@ -94,7 +96,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path.clone());
+        let manager = StorageManager::new(vault_path.clone(), Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         assert!(manager.is_initialized());
@@ -109,14 +111,14 @@ mod tests {
         let vault_path = temp_dir.path().to_path_buf();
 
         // First initialization
-        let manager1 = StorageManager::new(vault_path.clone());
+        let manager1 = StorageManager::new(vault_path.clone(), Arc::new(EventBus::new()));
         manager1.initialize().expect("Failed to initialize storage");
 
         // Get the database path
         let db_path = manager1.db_path().clone();
 
         // Second initialization should succeed without error
-        let manager2 = StorageManager::new(vault_path.clone());
+        let manager2 = StorageManager::new(vault_path.clone(), Arc::new(EventBus::new()));
         manager2
             .initialize()
             .expect("Failed to re-initialize storage");
@@ -130,7 +132,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path.clone());
+        let manager = StorageManager::new(vault_path.clone(), Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let nabu_db_path = vault_path.join(".nabu").join("db");
@@ -147,7 +149,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let object = create_test_object(Uuid::new_v4());
@@ -165,7 +167,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let retrieved = manager
@@ -179,7 +181,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let original = create_test_object(Uuid::new_v4());
@@ -218,7 +220,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let id = Uuid::new_v4();
@@ -255,7 +257,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let mut custom = HashMap::new();
@@ -290,7 +292,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         // Test various object types
@@ -348,7 +350,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         let ids: Vec<Uuid> = (0..5).map(|_| Uuid::new_v4()).collect();
@@ -377,7 +379,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let vault_path = temp_dir.path().to_path_buf();
 
-        let manager = StorageManager::new(vault_path);
+        let manager = StorageManager::new(vault_path, Arc::new(EventBus::new()));
         manager.initialize().expect("Failed to initialize storage");
 
         // Invalid UUID format should return None (not found) rather than error

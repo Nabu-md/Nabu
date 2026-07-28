@@ -1,4 +1,5 @@
 use nabu_core::capture::{CaptureEngine, CaptureRequest, FileDropHandler, IngestionStatus};
+use nabu_core::event_bus::EventBus;
 use nabu_core::models::knowledge_object::{ObjectContent, ObjectType};
 use std::collections::HashMap;
 use std::fs;
@@ -24,6 +25,10 @@ fn write_temp_file(dir: &std::path::Path, name: &str, content: &[u8]) -> std::pa
     path
 }
 
+fn create_event_bus() -> Arc<EventBus> {
+    Arc::new(EventBus::new())
+}
+
 // ---------------------------------------------------------------------------
 // End-to-end: File → CaptureEngine → Handler → Normaliser → Pipeline → KnowledgeObject
 // ---------------------------------------------------------------------------
@@ -33,7 +38,9 @@ fn e2e_text_file_produces_note() {
     let (dir, _) = setup_temp_dir("e2e_text");
     let file_path = write_temp_file(&dir, "note.txt", b"Hello, Nabu!");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -63,7 +70,9 @@ fn e2e_markdown_file_produces_note_with_markdown_content() {
     let (dir, _) = setup_temp_dir("e2e_markdown");
     let file_path = write_temp_file(&dir, "readme.md", b"# README\n\nContent here.");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -88,7 +97,9 @@ fn e2e_pdf_file_produces_pdf_object() {
     let (dir, _) = setup_temp_dir("e2e_pdf");
     let file_path = write_temp_file(&dir, "paper.pdf", b"%PDF-1.4 fake content");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -112,7 +123,9 @@ fn e2e_image_file_produces_image_object() {
     let (dir, _) = setup_temp_dir("e2e_image");
     let file_path = write_temp_file(&dir, "photo.png", b"\x89PNG\r\n\x1a\nfake png data");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -136,7 +149,9 @@ fn e2e_binary_file_produces_attachment() {
     let (dir, _) = setup_temp_dir("e2e_binary");
     let file_path = write_temp_file(&dir, "data.bin", &[0u8, 255u8, 128u8, 16u8]);
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -157,7 +172,9 @@ fn e2e_binary_file_produces_attachment() {
 
 #[test]
 fn e2e_invalid_path_returns_failed_result() {
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -179,7 +196,9 @@ fn e2e_empty_file_produces_note() {
     let (dir, _) = setup_temp_dir("e2e_empty");
     let file_path = write_temp_file(&dir, "empty.txt", b"");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -203,7 +222,9 @@ fn e2e_unsupported_mime_type_produces_attachment() {
     let (dir, _) = setup_temp_dir("e2e_unknown");
     let file_path = write_temp_file(&dir, "unknown.xyz", b"some unknown content");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -224,7 +245,9 @@ fn e2e_unsupported_mime_type_produces_attachment() {
 
 #[test]
 fn e2e_no_handler_returns_failed_result() {
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     // No handler registered
 
     let request = CaptureRequest {
@@ -242,7 +265,9 @@ fn e2e_no_handler_returns_failed_result() {
 
 #[test]
 fn e2e_handler_can_be_unregistered() {
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
     assert!(engine.lookup("file_drop").is_some());
 
@@ -265,7 +290,9 @@ fn e2e_json_file_produces_document_with_structured_content() {
     let (dir, _) = setup_temp_dir("e2e_json");
     let file_path = write_temp_file(&dir, "data.json", br#"{"key": "value", "count": 42}"#);
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -289,7 +316,9 @@ fn e2e_html_file_produces_document_with_html_content() {
     let (dir, _) = setup_temp_dir("e2e_html");
     let file_path = write_temp_file(&dir, "page.html", b"<html><body>Hello</body></html>");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -313,7 +342,9 @@ fn e2e_audio_file_produces_audio_recording() {
     let (dir, _) = setup_temp_dir("e2e_audio");
     let file_path = write_temp_file(&dir, "song.mp3", b"ID3 fake mp3 content");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -336,7 +367,9 @@ fn e2e_video_file_produces_video_object() {
     let (dir, _) = setup_temp_dir("e2e_video");
     let file_path = write_temp_file(&dir, "clip.mp4", b"\x00\x00\x00\x20ftypfake mp4");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -359,7 +392,9 @@ fn e2e_unicode_filename_handled_correctly() {
     let (dir, _) = setup_temp_dir("e2e_unicode_日本語");
     let file_path = write_temp_file(&dir, "日本語ファイル.txt", b"Unicode content");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -382,7 +417,9 @@ fn e2e_unicode_filename_handled_correctly() {
 fn e2e_directory_path_returns_failed_result() {
     let (dir, _) = setup_temp_dir("e2e_dir");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -401,7 +438,9 @@ fn e2e_directory_path_returns_failed_result() {
 
 #[test]
 fn e2e_missing_payload_returns_failed_result() {
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -422,7 +461,9 @@ fn e2e_result_contains_timestamp() {
     let (dir, _) = setup_temp_dir("e2e_timestamp");
     let file_path = write_temp_file(&dir, "ts.txt", b"timestamp test");
 
-    let engine = CaptureEngine::new();
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let engine = CaptureEngine::new(bus);
     engine.register(Arc::new(FileDropHandler::new()));
 
     let request = CaptureRequest {
@@ -436,6 +477,35 @@ fn e2e_result_contains_timestamp() {
     assert_eq!(result.status, IngestionStatus::Success);
     assert!(!result.timestamp.is_empty());
     assert!(result.timestamp.ends_with("Z"));
+
+    teardown_temp_dir(&dir);
+}
+
+// ---------------------------------------------------------------------------
+// Event Bus Integration Tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn e2e_event_bus_lifecycle_completes() {
+    let (dir, _) = setup_temp_dir("e2e_lifecycle");
+    let file_path = write_temp_file(&dir, "lifecycle.txt", b"Lifecycle test");
+
+    let bus = create_event_bus();
+    let _pipeline = nabu_core::capture::IngestionPipeline::new(bus.clone());
+    let _storage = nabu_core::storage::StorageManager::new(dir.clone(), bus.clone());
+    let engine = CaptureEngine::new(bus);
+    engine.register(Arc::new(FileDropHandler::new()));
+
+    let request = CaptureRequest {
+        source_type: "file_drop".to_string(),
+        payload: serde_json::json!({ "file_path": file_path.to_str() }),
+        vault_id: "vault-1".to_string(),
+        context: HashMap::new(),
+    };
+
+    let result = engine.ingest(request);
+    assert_eq!(result.status, IngestionStatus::Success);
+    assert!(result.knowledge_object.is_some());
 
     teardown_temp_dir(&dir);
 }

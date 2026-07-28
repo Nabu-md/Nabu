@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::capture::{
-    CaptureHandler, CaptureRequest, CaptureResult, IngestionPipeline, IngestionRequest,
-    IngestionResult, IngestionStatus,
+    CaptureHandler, CaptureRequest, CaptureResult, IngestionRequest, IngestionResult,
+    IngestionStatus,
 };
+use crate::event_bus::{EventBus, ItemCaptured, ItemProcessed};
 
 /// The central capture engine responsible for routing ingestion requests.
 ///
@@ -33,13 +34,18 @@ use crate::capture::{
 ///    longer needed.
 pub struct CaptureEngine {
     handlers: RwLock<HashMap<String, Arc<dyn CaptureHandler>>>,
+    event_bus: Arc<EventBus>,
 }
 
 impl CaptureEngine {
     /// Creates a new capture engine with no registered handlers.
-    pub fn new() -> Self {
+    ///
+    /// The event bus is used to publish [`ItemCaptured`] events after successful
+    /// capture, decoupling the engine from downstream processing.
+    pub fn new(event_bus: Arc<EventBus>) -> Self {
         Self {
             handlers: RwLock::new(HashMap::new()),
+            event_bus,
         }
     }
 
@@ -101,7 +107,7 @@ impl CaptureEngine {
         }
     }
 
-    /// Runs the full ingestion flow: dispatch → normalize → pipeline.
+    /// Runs the full ingestion flow: dispatch → publish ItemCaptured → pipeline → storage.
     ///
     /// Returns an [`IngestionResult`] regardless of whether dispatch succeeds
     /// or fails, so callers always have a single result type to handle.
@@ -111,8 +117,9 @@ impl CaptureEngine {
     /// 1. Dispatch the request to the appropriate handler.
     /// 2. If dispatch fails, return a failed `IngestionResult`.
     /// 3. Deserialize the handler's payload into an `IngestionRequest`.
-    /// 4. Pass the `IngestionRequest` to the `IngestionPipeline`.
-    /// 5. Return the pipeline's `IngestionResult`, with `knowledge_object_id`
+    /// 4. Publish an [`ItemCaptured`] event to the event bus.
+    /// 5. Wait for the [`ItemProcessed`] event from the pipeline.
+    /// 6. Return the pipeline's `IngestionResult`, with `knowledge_object_id`
     ///    populated from the created `KnowledgeObject`.
     pub fn ingest(&self, request: CaptureRequest) -> IngestionResult {
         let capture_result = self.dispatch(request.clone());
@@ -149,13 +156,45 @@ impl CaptureEngine {
             }
         };
 
-        let pipeline = IngestionPipeline;
-        match pipeline.process(ingestion_request) {
-            Ok(mut result) => {
-                result.knowledge_object_id = result.knowledge_object.as_ref().map(|obj| obj.id);
-                result
+        let id = uuid::Uuid::new_v4();
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        let event = ItemCaptured {
+            id,
+            source: request.source_type.clone(),
+            vault_id: request.vault_id.clone(),
+            timestamp: Self::current_timestamp(),
+            raw_bytes: ingestion_request.raw_bytes.clone(),
+            mime_type: ingestion_request.mime_type.clone(),
+            source_file: ingestion_request.source_file.clone(),
+        };
+
+        let bus = self.event_bus.clone();
+        let _unsub = bus.subscribe("ItemProcessed", move |processed: &ItemProcessed| {
+            if processed.id == id {
+                let _ = tx.send(processed.clone());
             }
-            Err(e) => self.build_failed_result(request.source_type, e.to_string(), Vec::new()),
+        });
+
+        self.event_bus.publish("ItemCaptured", &event);
+
+        match rx.recv() {
+            Ok(processed) => {
+                let knowledge_object = processed.knowledge_object;
+                IngestionResult {
+                    knowledge_object: Some(knowledge_object.clone()),
+                    knowledge_object_id: Some(processed.id),
+                    source: event.source,
+                    timestamp: event.timestamp,
+                    status: IngestionStatus::Success,
+                    warnings: processed.warnings,
+                }
+            }
+            Err(_) => self.build_failed_result(
+                request.source_type,
+                "No response from processing pipeline".to_string(),
+                Vec::new(),
+            ),
         }
     }
 
@@ -192,14 +231,18 @@ impl CaptureEngine {
 
 impl Default for CaptureEngine {
     fn default() -> Self {
-        Self::new()
+        // Note: This requires an EventBus to be created separately.
+        // The default implementation is provided for convenience in tests
+        // that don't need event bus integration.
+        panic!("CaptureEngine::default() is not supported. Use CaptureEngine::new(Arc::new(EventBus::new())) instead.");
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::capture::IngestionOptions;
+    use crate::capture::{IngestionOptions, IngestionPipeline};
+    use crate::event_bus::EventBus;
     use crate::models::knowledge_object::{ObjectContent, ObjectType};
     use std::sync::Arc;
     use uuid::Uuid;
@@ -235,7 +278,8 @@ mod tests {
 
     #[test]
     fn register_and_dispatch() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let handler = Arc::new(MockHandler {
             source: "test_source",
             can_handle: true,
@@ -257,7 +301,8 @@ mod tests {
 
     #[test]
     fn dispatch_no_handler() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let request = test_request("missing");
         let result = engine.dispatch(request);
         assert!(!result.success);
@@ -272,7 +317,8 @@ mod tests {
 
     #[test]
     fn unregister_removes_handler() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let handler = Arc::new(MockHandler {
             source: "removable",
             can_handle: true,
@@ -297,7 +343,8 @@ mod tests {
 
     #[test]
     fn can_handle_is_checked_before_capture() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let handler = Arc::new(MockHandler {
             source: "conditional",
             can_handle: false,
@@ -319,7 +366,9 @@ mod tests {
 
     #[test]
     fn ingest_full_flow_creates_knowledge_object() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let _pipeline = IngestionPipeline::new(bus.clone());
+        let engine = CaptureEngine::new(bus.clone());
         let ingestion_request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"Hello, world!".to_vec(),
@@ -364,7 +413,8 @@ mod tests {
 
     #[test]
     fn ingest_handles_failed_capture() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let request = CaptureRequest {
             source_type: "missing".to_string(),
             payload: serde_json::json!({}),
@@ -383,7 +433,8 @@ mod tests {
 
     #[test]
     fn ingest_handles_missing_payload() {
-        let engine = CaptureEngine::new();
+        let bus = Arc::new(EventBus::new());
+        let engine = CaptureEngine::new(bus);
         let handler = Arc::new(MockHandler {
             source: "file_drop",
             can_handle: true,
