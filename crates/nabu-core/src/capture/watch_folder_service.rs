@@ -98,8 +98,13 @@ impl WatchFolderService {
         // Watch each enabled folder
         for folder in enabled_folders {
             let path = PathBuf::from(&folder.path);
+            let mode = if folder.recursive {
+                RecursiveMode::Recursive
+            } else {
+                RecursiveMode::NonRecursive
+            };
             watcher
-                .watch(&path, RecursiveMode::Recursive)
+                .watch(&path, mode)
                 .map_err(|e| format!("{}", e))?;
         }
 
@@ -118,8 +123,12 @@ impl WatchFolderService {
         recent_files: &Arc<Mutex<HashMap<PathBuf, Instant>>>,
         debounce: Duration,
     ) {
-        // Only process files
-        if !path.is_file() {
+        // Only process files (non-blocking check via metadata)
+        if let Ok(m) = std::fs::metadata(&path) {
+            if !m.is_file() {
+                return;
+            }
+        } else {
             return;
         }
 
@@ -139,7 +148,7 @@ impl WatchFolderService {
         }
 
         // Dispatch to capture engine
-        let request = crate::capture::CaptureRequest {
+        let _ = engine.ingest(crate::capture::CaptureRequest {
             source_type: "watch_folder".to_string(),
             payload: serde_json::json!({
                 "file_path": path.to_str(),
@@ -147,16 +156,13 @@ impl WatchFolderService {
             }),
             vault_id: "default".to_string(),
             context: std::collections::HashMap::new(),
-        };
-
-        let _ = engine.ingest(request);
+        });
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn rejects_no_enabled_folders() {
@@ -172,8 +178,10 @@ mod tests {
         let service = WatchFolderService::new(config, engine, bus);
 
         let result = service.start();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No enabled"));
+        match result {
+            Err(msg) => assert!(msg.contains("No enabled")),
+            Ok(_) => panic!("Expected error for disabled folders"),
+        }
     }
 
     #[test]

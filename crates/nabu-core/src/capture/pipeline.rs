@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::capture::{CaptureError, IngestionRequest, IngestionResult, IngestionStatus};
+use crate::capture::utils::current_timestamp;
 use crate::event_bus::{
     EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EventBus, ItemCaptured, ItemProcessed,
 };
@@ -78,8 +79,8 @@ impl IngestionPipeline {
             id,
             object_type,
             vault_id: request.vault_id.clone(),
-            created_at: Self::current_timestamp(),
-            modified_at: Self::current_timestamp(),
+            created_at: current_timestamp(),
+            modified_at: current_timestamp(),
             content,
             metadata,
         };
@@ -88,7 +89,7 @@ impl IngestionPipeline {
             knowledge_object: Some(knowledge_object),
             knowledge_object_id: Some(id),
             source: request.source,
-            timestamp: Self::current_timestamp(),
+            timestamp: current_timestamp(),
             status: IngestionStatus::Success,
             warnings,
         })
@@ -150,23 +151,10 @@ impl IngestionPipeline {
             mime_type: Some(request.mime_type.clone()),
             page_count: None,
             word_count: None,
-            created: Some(Self::current_timestamp()),
-            modified: Some(Self::current_timestamp()),
+            created: Some(current_timestamp()),
+            modified: Some(current_timestamp()),
             custom: HashMap::new(),
         }
-    }
-
-    fn current_timestamp() -> String {
-        let now = std::time::SystemTime::now();
-        let duration = now
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_else(|_| {
-                // Fallback for systems with clock issues; should never happen in practice.
-                std::time::Duration::from_secs(0)
-            });
-        let secs = duration.as_secs();
-        let millis = duration.subsec_millis();
-        format!("{}.{:03}Z", secs, millis)
     }
 }
 

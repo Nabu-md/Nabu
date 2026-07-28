@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::capture::{
     CaptureHandler, CaptureRequest, CaptureResult, IngestionRequest, IngestionResult,
-    IngestionStatus,
+    IngestionStatus, utils::current_timestamp,
 };
 use crate::event_bus::{
     EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EventBus, ItemCaptured, ItemProcessed,
@@ -171,20 +171,23 @@ impl CaptureEngine {
             id,
             source: request.source_type.clone(),
             vault_id: request.vault_id.clone(),
-            timestamp: Self::current_timestamp(),
+            timestamp: current_timestamp(),
             raw_bytes: ingestion_request.raw_bytes.clone(),
             mime_type: ingestion_request.mime_type.clone(),
             source_file: ingestion_request.source_file.clone(),
         };
 
         let bus = self.event_bus.clone();
-        let _unsub = bus.subscribe(EVENT_ITEM_PROCESSED, move |processed: &ItemProcessed| {
+        let unsub = bus.subscribe(EVENT_ITEM_PROCESSED, move |processed: &ItemProcessed| {
             if processed.id == id {
                 let _ = tx.send(processed.clone());
             }
         });
 
         self.event_bus.publish(EVENT_ITEM_CAPTURED, &event);
+
+        // Keep subscription alive until we get response or timeout
+        let _ = unsub;
 
         // Wait for the pipeline response with a timeout to prevent indefinite blocking.
         match rx.recv_timeout(std::time::Duration::from_secs(30)) {
@@ -218,28 +221,10 @@ impl CaptureEngine {
             knowledge_object: None,
             knowledge_object_id: None,
             source,
-            timestamp: Self::current_timestamp(),
+            timestamp: current_timestamp(),
             status: IngestionStatus::Failed(error),
             warnings,
         }
-    }
-
-    /// Returns an ISO 8601 timestamp with millisecond precision.
-    ///
-    /// Used internally to timestamp `IngestionResult` and `KnowledgeObject`
-    /// instances. May also be used by handlers that need to set timestamps
-    /// on their own data.
-    pub fn current_timestamp() -> String {
-        let now = std::time::SystemTime::now();
-        let duration = now
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_else(|_| {
-                // Fallback for systems with clock issues; should never happen in practice.
-                std::time::Duration::from_secs(0)
-            });
-        let secs = duration.as_secs();
-        let millis = duration.subsec_millis();
-        format!("{}.{:03}Z", secs, millis)
     }
 }
 
