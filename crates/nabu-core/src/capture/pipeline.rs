@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::capture::{CaptureError, IngestionRequest, IngestionResult, IngestionStatus};
+use crate::event_bus::{EventBus, ItemCaptured, ItemProcessed};
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
 
 /// Transforms a normalized [`IngestionRequest`] into a [`KnowledgeObject`].
@@ -18,6 +20,28 @@ use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMeta
 pub struct IngestionPipeline;
 
 impl IngestionPipeline {
+    /// Creates a new ingestion pipeline and registers it as a subscriber
+    /// on the provided event bus.
+    ///
+    /// The pipeline subscribes to [`ItemCaptured`] events and publishes
+    /// [`ItemProcessed`] events when processing completes.
+    pub fn new(event_bus: Arc<EventBus>) -> Self {
+        let bus = event_bus;
+        let bus_for_closure = bus.clone();
+        bus.subscribe("ItemCaptured", move |event: &ItemCaptured| {
+            let request: IngestionRequest = event.into();
+            let pipeline = IngestionPipeline;
+            if let Ok(result) = pipeline.process_with_id(request, event.id) {
+                if let Some(obj) = result.knowledge_object {
+                    let processed = ItemProcessed::from(&obj);
+                    bus_for_closure.publish("ItemProcessed", &processed);
+                }
+            }
+        });
+
+        Self
+    }
+
     /// Processes an [`IngestionRequest`] and returns an [`IngestionResult`].
     ///
     /// # Errors
@@ -27,6 +51,18 @@ impl IngestionPipeline {
     /// normal operation; all MIME types map to a valid `ObjectType` and
     /// `ObjectContent`.
     pub fn process(&self, request: IngestionRequest) -> Result<IngestionResult, CaptureError> {
+        self.process_with_id(request, uuid::Uuid::new_v4())
+    }
+
+    /// Processes an [`IngestionRequest`] with a specific ID and returns an [`IngestionResult`].
+    ///
+    /// This is used by the event bus pipeline to preserve the capture ID
+    /// across the ItemCaptured → ItemProcessed lifecycle.
+    pub fn process_with_id(
+        &self,
+        request: IngestionRequest,
+        id: uuid::Uuid,
+    ) -> Result<IngestionResult, CaptureError> {
         let object_type = self.determine_object_type(&request.mime_type);
         let content = self.determine_content(&request.mime_type, &request.raw_bytes);
         let metadata = self.build_metadata(&request);
@@ -38,7 +74,7 @@ impl IngestionPipeline {
         }
 
         let knowledge_object = KnowledgeObject {
-            id: uuid::Uuid::new_v4(),
+            id,
             object_type,
             vault_id: request.vault_id.clone(),
             created_at: Self::current_timestamp(),
@@ -49,7 +85,7 @@ impl IngestionPipeline {
 
         Ok(IngestionResult {
             knowledge_object: Some(knowledge_object),
-            knowledge_object_id: None,
+            knowledge_object_id: Some(id),
             source: request.source,
             timestamp: Self::current_timestamp(),
             status: IngestionStatus::Success,
@@ -132,9 +168,12 @@ impl IngestionPipeline {
 mod tests {
     use super::*;
     use crate::capture::IngestionOptions;
+    use crate::event_bus::EventBus;
 
     #[test]
     fn process_text_file_creates_note() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"Hello, world!".to_vec(),
@@ -144,7 +183,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         assert_eq!(result.status, IngestionStatus::Success);
@@ -162,6 +200,8 @@ mod tests {
 
     #[test]
     fn process_markdown_file_creates_note_with_markdown_content() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"# Title\n\nBody".to_vec(),
@@ -171,7 +211,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -182,6 +221,8 @@ mod tests {
 
     #[test]
     fn process_pdf_creates_pdf_object() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"%PDF-1.4 fake".to_vec(),
@@ -191,7 +232,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -201,6 +241,8 @@ mod tests {
 
     #[test]
     fn process_image_creates_image_object() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"\x89PNG\r\n\x1a\n".to_vec(),
@@ -210,7 +252,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -220,6 +261,8 @@ mod tests {
 
     #[test]
     fn process_audio_creates_audio_recording_object() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"ID3".to_vec(),
@@ -229,7 +272,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -238,6 +280,8 @@ mod tests {
 
     #[test]
     fn process_video_creates_video_object() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"\x00\x00\x00\x20ftyp".to_vec(),
@@ -247,7 +291,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -256,6 +299,8 @@ mod tests {
 
     #[test]
     fn process_json_creates_document_with_structured_content() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"{\"key\": \"value\"}".to_vec(),
@@ -265,7 +310,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -275,6 +319,8 @@ mod tests {
 
     #[test]
     fn process_html_creates_document_with_html_content() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"<html><body>Hello</body></html>".to_vec(),
@@ -284,7 +330,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -294,6 +339,8 @@ mod tests {
 
     #[test]
     fn process_unknown_mime_creates_attachment() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"\x00\x01\x02\x03".to_vec(),
@@ -303,7 +350,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -313,6 +359,8 @@ mod tests {
 
     #[test]
     fn process_sets_timestamps() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"test".to_vec(),
@@ -322,7 +370,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -333,6 +380,8 @@ mod tests {
 
     #[test]
     fn process_without_source_file_has_no_title() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"test".to_vec(),
@@ -342,7 +391,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         let obj = result.knowledge_object.unwrap();
@@ -352,6 +400,8 @@ mod tests {
 
     #[test]
     fn process_invalid_json_warns_and_falls_back_to_plain_text() {
+        let bus = Arc::new(EventBus::new());
+        let pipeline = IngestionPipeline::new(bus);
         let request = IngestionRequest {
             source: "file_drop".to_string(),
             raw_bytes: b"{invalid json".to_vec(),
@@ -361,7 +411,6 @@ mod tests {
             options: IngestionOptions::default(),
         };
 
-        let pipeline = IngestionPipeline;
         let result = pipeline.process(request).unwrap();
 
         assert_eq!(result.status, IngestionStatus::Success);

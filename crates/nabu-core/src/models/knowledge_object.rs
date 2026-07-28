@@ -35,7 +35,7 @@ pub struct KnowledgeObject {
 /// detection, timeline extraction, and document management.
 ///
 /// Processors may safely append new fields to `custom` without schema redesign.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[non_exhaustive]
 pub struct ObjectMetadata {
     /// Human-readable title of the object.

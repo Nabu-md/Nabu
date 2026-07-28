@@ -1,4 +1,5 @@
 pub mod capture;
+pub mod event_bus;
 pub mod export_engine;
 pub mod graph;
 pub mod models;
