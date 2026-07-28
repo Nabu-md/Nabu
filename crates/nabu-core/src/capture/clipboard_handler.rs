@@ -105,12 +105,12 @@ impl ClipboardHandler {
     /// macOS-specific pasteboard reading using objc2.
     #[cfg(target_os = "macos")]
     fn read_macos_pasteboard(&self) -> Option<(String, Vec<u8>)> {
-        use objc2::ClassType;
+        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         // Obtain the general pasteboard via +generalPasteboard
-        let pasteboard_class = objc2::ClassType::class("NSPasteboard")?;
-        let pasteboard: objc2::rc::Retained<objc2::ClassType> =
+        let pasteboard_class = objc2::runtime::AnyObject::class("NSPasteboard")?;
+        let pasteboard: objc2::rc::Retained<objc2::runtime::AnyObject> =
             unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
 
         // Try URL first (highest priority)
@@ -142,16 +142,16 @@ impl ClipboardHandler {
     /// Reads a string value from the pasteboard for the given type.
     #[cfg(target_os = "macos")]
     fn pasteboard_string_for_type(
-        pasteboard: &objc2::rc::Retained<objc2::ClassType>,
+        pasteboard: &objc2::rc::Retained<objc2::runtime::AnyObject>,
         type_name: &str,
     ) -> Option<String> {
-        use objc2::ClassType;
+        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         let type_str = NSString::from_str(type_name);
 
         // Check if the pasteboard has this type
-        let types: objc2::rc::Retained<objc2::ClassType> = unsafe {
+        let types: objc2::rc::Retained<objc2::runtime::AnyObject> = unsafe {
             let msg = objc2::msg_send![pasteboard, types];
             msg
         };
@@ -166,7 +166,7 @@ impl ClipboardHandler {
         }
 
         // Read the string value
-        let value: Option<objc2::rc::Retained<objc2::ClassType>> = unsafe {
+        let value: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
             let msg = objc2::msg_send![pasteboard, stringForType: &*type_str];
             msg
         };
@@ -181,15 +181,15 @@ impl ClipboardHandler {
     /// Reads image data from the pasteboard as PNG bytes.
     #[cfg(target_os = "macos")]
     fn pasteboard_image_data(
-        pasteboard: &objc2::rc::Retained<objc2::ClassType>,
+        pasteboard: &objc2::rc::Retained<objc2::runtime::AnyObject>,
     ) -> Option<Vec<u8>> {
-        use objc2::ClassType;
+        use objc2::runtime::AnyObject;
         use objc2_foundation::NSString;
 
         let type_str = NSString::from_str("public.png");
 
         // Check if the pasteboard has image data
-        let types: objc2::rc::Retained<objc2::ClassType> = unsafe {
+        let types: objc2::rc::Retained<objc2::runtime::AnyObject> = unsafe {
             let msg = objc2::msg_send![pasteboard, types];
             msg
         };
@@ -204,14 +204,14 @@ impl ClipboardHandler {
         }
 
         // Read the image
-        let image: Option<objc2::rc::Retained<objc2::ClassType>> = unsafe {
+        let image: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
             let msg = objc2::msg_send![pasteboard, imageForType: &*type_str];
             msg
         };
 
         image.and_then(|img| {
             // Get TIFF representation first (NSImage -> TIFF)
-            let tiff_data: Option<objc2::rc::Retained<objc2::ClassType>> = unsafe {
+            let tiff_data: Option<objc2::rc::Retained<objc2::runtime::AnyObject>> = unsafe {
                 let msg = objc2::msg_send![img, TIFFRepresentation];
                 msg
             };
@@ -257,6 +257,8 @@ impl CaptureHandler for ClipboardHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some("Clipboard monitoring is disabled".to_string()),
                     message: "Clipboard capture skipped: monitoring is disabled".to_string(),
                 };
@@ -269,6 +271,8 @@ impl CaptureHandler for ClipboardHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: None,
                     message: "No supported clipboard content available".to_string(),
                 };
@@ -302,6 +306,8 @@ impl CaptureHandler for ClipboardHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some(format!(
                         "Failed to serialize ingestion request: {}",
                         e
@@ -314,6 +320,8 @@ impl CaptureHandler for ClipboardHandler {
         CaptureResult {
             success: true,
             knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
             error: None,
             message: "Clipboard content captured".to_string(),
         }

@@ -297,6 +297,8 @@ impl CaptureHandler for ArticleCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some("Missing 'html' in payload".to_string()),
                     message: "Article capture failed: missing HTML".to_string(),
                 };
@@ -357,9 +359,10 @@ impl CaptureHandler for ArticleCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
+                    payload: None,
                     error: Some(format!("Serialization error: {}", e)),
                     message: "Article capture failed: serialization error".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -367,12 +370,13 @@ impl CaptureHandler for ArticleCaptureHandler {
         CaptureResult {
             success: true,
             knowledge_object_id: None,
+            knowledge_object: None,
+            payload: None,
             error: None,
             message: format!(
                 "Article captured: {}",
                 extract.title.unwrap_or_else(|| "Untitled".to_string())
             ),
-            payload: Some(payload),
         }
     }
 }
@@ -602,9 +606,10 @@ impl CaptureHandler for YouTubeCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
+                    payload: None,
                     error: Some("Missing 'html' in payload".to_string()),
                     message: "YouTube capture failed: missing HTML".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -669,6 +674,8 @@ impl CaptureHandler for YouTubeCaptureHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some(format!("Serialization error: {}", e)),
                     message: "YouTube capture failed: serialization error".to_string(),
                 };
@@ -678,6 +685,8 @@ impl CaptureHandler for YouTubeCaptureHandler {
         CaptureResult {
             success: true,
             knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
             error: None,
             message: format!(
                 "YouTube video captured: {}",
@@ -911,9 +920,10 @@ impl CaptureHandler for GitHubRepositoryHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object_id: None,
+                    knowledge_object: None,
+                    payload: None,
                     error: Some("Missing 'html' in payload".to_string()),
                     message: "GitHub capture failed: missing HTML".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -989,6 +999,8 @@ impl CaptureHandler for GitHubRepositoryHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some(format!("Serialization error: {}", e)),
                     message: "GitHub capture failed: serialization error".to_string(),
                 };
@@ -1004,6 +1016,8 @@ impl CaptureHandler for GitHubRepositoryHandler {
         CaptureResult {
             success: true,
             knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
             error: None,
             message: format!("GitHub repository captured: {}", repo_display),
         }

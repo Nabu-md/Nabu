@@ -30,10 +30,7 @@ impl Processor for PdfTextProcessor {
             return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = match NSURL::fileURLWithPath(&NSString::from_str(source_file)) {
-            Some(url) => url,
-            None => return ProcessingResult::skipped("Invalid PDF path"),
-        };
+        let url = NSURL::fileURLWithPath(&NSString::from_str(source_file));
 
         let doc = match PDFDocument::initWithURL(&url) {
             Some(doc) => doc,
@@ -46,10 +43,9 @@ impl Processor for PdfTextProcessor {
         for i in 0..doc.pageCount() {
             if let Some(page) = doc.pageAtIndex(i) {
                 if let Some(text) = page.string() {
-                    if let Ok(s) = text.to_str() {
-                        extracted_text.push_str(s);
-                        is_scanned = false;
-                    }
+                    let s = text.to_str();
+                    extracted_text.push_str(s);
+                    is_scanned = false;
                 }
             }
         }

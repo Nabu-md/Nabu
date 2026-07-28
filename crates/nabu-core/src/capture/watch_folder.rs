@@ -132,6 +132,8 @@ impl CaptureHandler for WatchFolderHandler {
                 return CaptureResult {
                     success: false,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: Some("Missing or invalid 'file_path' in payload".to_string()),
                     message: "Watch folder capture failed: invalid payload".to_string(),
                 };
@@ -143,12 +145,13 @@ impl CaptureHandler for WatchFolderHandler {
             return CaptureResult {
                 success: false,
                 knowledge_object_id: None,
+                knowledge_object: None,
+                payload: None,
                 error: None,
                 message: format!(
                     "Unsupported file type: {}",
                     file_path.display()
                 ),
-                payload: None,
             };
         }
 
@@ -173,6 +176,8 @@ impl CaptureHandler for WatchFolderHandler {
                         return CaptureResult {
                             success: false,
                             knowledge_object: None,
+                            knowledge_object_id: None,
+                            payload: None,
                             error: Some(format!(
                                 "Failed to serialize ingestion request: {}",
                                 e
@@ -184,17 +189,20 @@ impl CaptureHandler for WatchFolderHandler {
                 CaptureResult {
                     success: true,
                     knowledge_object: None,
+                    knowledge_object_id: None,
+                    payload: None,
                     error: None,
                     message: format!(
                         "File '{}' captured from watch folder",
                         file_path.display()
                     ),
-                    payload: Some(payload),
                 }
             }
             Err(e) => CaptureResult {
                 success: false,
                 knowledge_object: None,
+                knowledge_object_id: None,
+                payload: None,
                 error: Some(e.to_string()),
                 message: format!("Watch folder capture failed: {}", e),
             },

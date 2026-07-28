@@ -30,10 +30,7 @@ impl Processor for PdfMetadataProcessor {
             return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = match NSURL::fileURLWithPath(&NSString::from_str(source_file)) {
-            Some(url) => url,
-            None => return ProcessingResult::skipped("Invalid PDF path"),
-        };
+        let url = NSURL::fileURLWithPath(&NSString::from_str(source_file));
 
         let doc = match PDFDocument::initWithURL(&url) {
             Some(doc) => doc,
