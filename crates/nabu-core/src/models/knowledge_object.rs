@@ -1,3 +1,4 @@
+use crate::models::properties::PropertyValue;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -62,7 +63,7 @@ pub struct ObjectMetadata {
     ///
     /// Processors may insert any key-value pairs here without requiring
     /// schema changes. Values should be JSON-compatible.
-    pub custom: HashMap<String, serde_json::Value>,
+    pub custom: HashMap<String, PropertyValue>,
 }
 
 /// The category of a knowledge object.

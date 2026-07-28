@@ -1,3 +1,4 @@
+use crate::models::properties::PropertyDefinition;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -6,6 +7,7 @@ use std::path::PathBuf;
 pub struct VaultConfig {
     pub name: String,
     pub path: PathBuf,
+    pub property_definitions: Vec<PropertyDefinition>,
 }
 
 impl VaultConfig {
@@ -22,6 +24,7 @@ impl VaultConfig {
         let config = VaultConfig {
             name,
             path: path.clone(),
+            property_definitions: Vec::new(),
         };
         let config_path = nabu_dir.join("config.json");
         std::fs::write(config_path, serde_json::to_string_pretty(&config)?)?;

@@ -1,3 +1,4 @@
+use crate::models::knowledge_object::KnowledgeObject;
 use anyhow::Context;
 use std::path::PathBuf;
 use tantivy::schema::*;
@@ -16,6 +17,7 @@ impl Indexer {
         schema_builder.add_text_field("path", STORED | STRING);
         schema_builder.add_text_field("content", TEXT | STORED);
         schema_builder.add_text_field("tags", TEXT | STORED);
+        schema_builder.add_json_field("custom", STORED);
         let schema = schema_builder.build();
 
         let index = Index::open_or_create(
@@ -35,20 +37,24 @@ impl Indexer {
             schema,
         })
     }
-
-    pub fn index_document(&mut self, path: &str, content: &str) -> anyhow::Result<()> {
+    pub fn index_document(&mut self, ko: &KnowledgeObject) -> anyhow::Result<()> {
+        let path = ko.id.to_string();
+        let content = match &ko.content {
+            crate::models::knowledge_object::ObjectContent::Text(c) => c,
+            _ => "",
+        };
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();
         let tag_field = self.schema.get_field("tags").unwrap();
+        let custom_field = self.schema.get_field("custom").unwrap();
 
-        let document = doc!(
-            path_field => path,
-            content_field => content,
-            tag_field => crate::parser::extract_tags(content).join(" "),
-        );
+        let mut doc = TantivyDocument::default();
+        doc.add_text(path_field, path);
+        doc.add_text(content_field, content);
+        doc.add_text(tag_field, crate::parser::extract_tags(content).join(" "));
+        doc.add_json_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
 
-        self.writer.add_document(document)?;
-
+        self.writer.add_document(doc)?;
         self.writer.commit()?;
         Ok(())
     }
