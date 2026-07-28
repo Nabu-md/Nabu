@@ -27,6 +27,7 @@ use std::sync::Arc;
 use crate::processing::processor::{ProcessingDecision, ProcessingResult, Processor};
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::storage::StorageProvider;
+use serde::{Deserialize, Serialize};
 
 use sha2::{Sha256, Digest};
 
@@ -75,6 +76,14 @@ pub struct DuplicateInfo {
 #[derive(Debug)]
 pub struct DuplicateDetector {
     storage: Option<Arc<dyn StorageProvider>>,
+}
+
+impl std::fmt::Debug for DuplicateDetector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DuplicateDetector")
+            .field("storage", &self.storage.as_ref().map(|_| "Arc<dyn StorageProvider>"))
+            .finish()
+    }
 }
 
 impl DuplicateDetector {

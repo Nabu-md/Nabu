@@ -31,6 +31,7 @@ use std::collections::HashMap;
 use crate::processing::processor::{ProcessingDecision, ProcessingResult, Processor};
 use crate::models::knowledge_object::KnowledgeObject;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 /// Structured timeline information attached to a knowledge object.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -67,7 +68,7 @@ pub struct TimelineExtractor {
 impl TimelineExtractor {
     /// Creates a new timeline extractor with default date patterns.
     pub fn new() -> Self {
-        let patterns = vec![
+        let date_patterns = vec![
             // ISO 8601: 2024-01-01 or 2024-01-01T12:00:00Z
             Regex::new(r"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})?)?").unwrap(),
             // MM/DD/YYYY

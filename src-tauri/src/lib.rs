@@ -11,6 +11,9 @@ pub use markdown::{Document, ParseError, parse};
 
 use nabu_core::capture::{CaptureEngine, WatchFolderConfig, WatchFolderService};
 use nabu_core::event_bus::EventBus;
+use nabu_core::processing::{
+    DuplicateDetector, OcrProcessor, ProcessingPipeline, TimelineExtractor,
+};
 use std::sync::Arc;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -45,6 +48,14 @@ pub fn run() {
         ])
         .setup(|app| {
             let event_bus = Arc::new(EventBus::new());
+
+            // Create processing pipeline and register processors in order
+            let pipeline = Arc::new(ProcessingPipeline::new(event_bus.clone()));
+            pipeline.register(Arc::new(DuplicateDetector::without_storage()));
+            pipeline.register(Arc::new(TimelineExtractor::new()));
+            #[cfg(all(target_os = "macos", target_os = "ios"))]
+            pipeline.register(Arc::new(OcrProcessor::new()));
+
             let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
             let config = WatchFolderConfig::default();
             match WatchFolderService::new(config, engine, event_bus).start() {
