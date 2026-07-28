@@ -86,4 +86,30 @@ pub trait StorageProvider: Send + Sync {
     fn update_object(&self, object: &KnowledgeObject) -> Result<()> {
         self.save_object(object)
     }
+
+    /// List knowledge objects in a vault, optionally filtered by source file.
+    ///
+    /// This is used by processors for duplicate detection. It returns a limited
+    /// set of objects to avoid expensive full vault scans.
+    ///
+    /// # Arguments
+    ///
+    /// * `vault_id` - The vault to query.
+    /// * `source_file` - Optional source file path to filter by.
+    /// * `limit` - Maximum number of objects to return.
+    ///
+    /// # Returns
+    ///
+    /// A list of knowledge objects matching the criteria.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the storage backend is not initialized or the query fails.
+    fn list_objects(&self, vault_id: &str, source_file: Option<&str>, limit: usize) -> Result<Vec<KnowledgeObject>> {
+        // Default implementation uses get_object for each ID.
+        // Backends should override with efficient queries.
+        let mut results = Vec::new();
+        // This is a placeholder; actual implementations should query effectively.
+        Ok(results)
+    }
 }

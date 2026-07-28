@@ -22,7 +22,7 @@ use super::provider::StorageProvider;
 use super::schema::{
     CREATE_KNOWLEDGE_OBJECTS_TABLE, CREATE_SCHEMA_VERSION_TABLE, CREATE_VAULTS_TABLE,
     CURRENT_SCHEMA_VERSION, INSERT_KNOWLEDGE_OBJECT, INSERT_SCHEMA_VERSION,
-    SELECT_KNOWLEDGE_OBJECT_BY_ID,
+    SELECT_KNOWLEDGE_OBJECT_BY_ID, SELECT_OBJECTS_BY_VAULT,
 };
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
 
@@ -202,6 +202,89 @@ impl StorageProvider for SQLiteStorage {
     /// - The storage backend is not initialized
     /// - Deserialization of the object fails
     /// - The database read operation fails
+    fn list_objects(&self, vault_id: &str, source_file: Option<&str>, limit: usize) -> Result<Vec<KnowledgeObject>> {
+        let conn = self.connect()?;
+        
+        let query = if source_file.is_some() {
+            r#"
+                SELECT id, vault_id, object_type, created_at, modified_at,
+                    title, author, language, source_url, source_file,
+                    mime_type, page_count, word_count, source_created, source_modified,
+                    custom_metadata
+                FROM knowledge_objects 
+                WHERE vault_id = ? AND source_file = ?
+                ORDER BY modified_at DESC
+                LIMIT ?
+            "#
+        } else {
+            r#"
+                SELECT id, vault_id, object_type, created_at, modified_at,
+                    title, author, language, source_url, source_file,
+                    mime_type, page_count, word_count, source_created, source_modified,
+                    custom_metadata
+                FROM knowledge_objects 
+                WHERE vault_id = ?
+                ORDER BY modified_at DESC
+                LIMIT ?
+            "#
+        };
+
+        let mut results = Vec::new();
+        let mut stmt = conn.prepare(query)?;
+
+        let rows = if let Some(sf) = source_file {
+            stmt.query_map([vault_id, sf], |row| self.row_to_knowledge_object(row))?
+        } else {
+            stmt.query_map([vault_id], |row| self.row_to_knowledge_object(row))?
+        };
+
+        for row in rows {
+            results.push(row?);
+        }
+
+        Ok(results)
+    }
+
+    fn row_to_knowledge_object(&self, row: &rusqlite::Row) -> Result<KnowledgeObject, rusqlite::Error> {
+        let id_str: String = row.get(0)?;
+        let id = Uuid::parse_str(&id_str).map_err(|e| {
+            rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e))
+        })?;
+
+        let object_type: String = row.get(2)?;
+        let object_type: ObjectType = serde_json::from_str(&object_type).map_err(|e| {
+            rusqlite::Error::FromSqlConversionFailure(2, rusqlite::types::Type::Text, Box::new(e))
+        })?;
+
+        let custom_json: String = row.get(15)?;
+        let custom: std::collections::HashMap<String, serde_json::Value> =
+            serde_json::from_str(&custom_json).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(15, rusqlite::types::Type::Text, Box::new(e))
+            })?;
+
+        Ok(KnowledgeObject {
+            id,
+            vault_id: row.get(1)?,
+            object_type,
+            created_at: row.get(3)?,
+            modified_at: row.get(4)?,
+            content: ObjectContent::PlainText,
+            metadata: ObjectMetadata {
+                title: row.get(5)?,
+                author: row.get(6)?,
+                language: row.get(7)?,
+                source_url: row.get(8)?,
+                source_file: row.get(9)?,
+                mime_type: row.get(10)?,
+                page_count: row.get(11)?,
+                word_count: row.get(12)?,
+                created: row.get(13)?,
+                modified: row.get(14)?,
+                custom,
+            },
+        })
+    }
+
     fn get_object(&self, id: &str) -> Result<Option<KnowledgeObject>> {
         let conn = self.connect()?;
 
