@@ -27,9 +27,31 @@ impl Processor for PdfMetadataProcessor {
             .context("Failed to load PDF")?;
         
         if let Some(attrs) = doc.documentAttributes() {
-            // Need to map NSDictionary to something usable.
-            // Simplified for now: just log that we have metadata
-            println!("Extracted PDF metadata: {:?}", attrs);
+            let keys = vec![
+                ("Title", "Title"),
+                ("Author", "Author"),
+                ("Subject", "Subject"),
+            ];
+
+            let mut found = false;
+            for (key_name, map_key) in keys {
+                let ns_key = NSString::from_str(key_name);
+                if let Some(val) = attrs.objectForKey(&ns_key) {
+                    if let Some(s) = val.downcast_ref::<NSString>() {
+                        knowledge_object.metadata.custom.insert(
+                            map_key.to_string(), 
+                            serde_json::Value::String(s.to_string())
+                        );
+                        found = true;
+                    }
+                }
+            }
+            
+            if !found {
+                return Ok(ProcessingResult::warning("No PDF metadata attributes found"));
+            }
+        } else {
+            return Ok(ProcessingResult::warning("No PDF document attributes found"));
         }
         
         Ok(ProcessingResult::success("PDF metadata extracted"))

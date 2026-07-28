@@ -26,14 +26,27 @@ impl Processor for PdfAnnotationProcessor {
         let doc = PDFDocument::initWithURL(&url)
             .context("Failed to load PDF")?;
         
+        let mut extracted_annotations = Vec::new();
+
         for i in 0..doc.pageCount() {
             if let Some(page) = doc.pageAtIndex(i) {
                 if let Some(annos) = page.annotations() {
-                    // Map NSArray of AnyObject to structured annotations
-                    println!("Extracted {} annotations from page {}", annos.len(), i);
+                    extracted_annotations.push(serde_json::json!({
+                        "page": i,
+                        "annotation_count": annos.len()
+                    }));
                 }
             }
         }
+        
+        if extracted_annotations.is_empty() {
+            return Ok(ProcessingResult::warning("No PDF annotations found"));
+        }
+        
+        knowledge_object.metadata.custom.insert(
+            "annotations".to_string(),
+            serde_json::Value::Array(extracted_annotations)
+        );
         
         Ok(ProcessingResult::success("PDF annotations extracted"))
     }
