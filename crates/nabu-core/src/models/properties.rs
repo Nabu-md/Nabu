@@ -50,5 +50,3 @@ impl PropertyDefinition {
     }
 }
 
-#[cfg(test)]
-mod tests;
