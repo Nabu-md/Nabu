@@ -11,7 +11,7 @@ use uuid::Uuid;
 ///
 /// This struct is intentionally free of business logic. It serves as the
 /// foundational serialization contract for IPC, storage, and downstream subsystems.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[non_exhaustive]
 pub struct KnowledgeObject {
     /// Unique identifier for this knowledge object.
@@ -70,7 +70,7 @@ pub struct ObjectMetadata {
 ///
 /// New variants may be added in future phases without breaking serialization.
 /// Plugin-defined types should use `Custom(String)`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ObjectType {
@@ -95,6 +95,12 @@ pub enum ObjectType {
     Scan,
     Screenshot,
     Attachment,
+    Contract,
+    Article,
+    Resume,
+    Presentation,
+    Manual,
+    Letter,
     /// A plugin-defined or otherwise unrecognised object type.
     Custom(String),
 }
@@ -116,6 +122,41 @@ pub enum ObjectContent {
     Binary,
     /// Structured data in JSON format.
     Structured(serde_json::Value),
+}
+
+impl std::fmt::Display for ObjectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ObjectType::Note => write!(f, "note"),
+            ObjectType::Document => write!(f, "document"),
+            ObjectType::Pdf => write!(f, "pdf"),
+            ObjectType::Image => write!(f, "image"),
+            ObjectType::Receipt => write!(f, "receipt"),
+            ObjectType::Invoice => write!(f, "invoice"),
+            ObjectType::Meeting => write!(f, "meeting"),
+            ObjectType::Person => write!(f, "person"),
+            ObjectType::Organisation => write!(f, "organisation"),
+            ObjectType::Project => write!(f, "project"),
+            ObjectType::ResearchPaper => write!(f, "research_paper"),
+            ObjectType::Book => write!(f, "book"),
+            ObjectType::Course => write!(f, "course"),
+            ObjectType::Website => write!(f, "website"),
+            ObjectType::Bookmark => write!(f, "bookmark"),
+            ObjectType::Repository => write!(f, "repository"),
+            ObjectType::AudioRecording => write!(f, "audio_recording"),
+            ObjectType::Video => write!(f, "video"),
+            ObjectType::Scan => write!(f, "scan"),
+            ObjectType::Screenshot => write!(f, "screenshot"),
+            ObjectType::Attachment => write!(f, "attachment"),
+            ObjectType::Contract => write!(f, "contract"),
+            ObjectType::Article => write!(f, "article"),
+            ObjectType::Resume => write!(f, "resume"),
+            ObjectType::Presentation => write!(f, "presentation"),
+            ObjectType::Manual => write!(f, "manual"),
+            ObjectType::Letter => write!(f, "letter"),
+            ObjectType::Custom(s) => write!(f, "{}", s),
+        }
+    }
 }
 
 impl ObjectContent {

@@ -1,7 +1,6 @@
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent};
 use crate::processing::processor::{ProcessingResult, Processor};
-use crate::native::pdf::{PDFDocument};
-use anyhow::{Context, Result};
+use crate::native::pdf::PDFDocument;
 use objc2_foundation::{NSURL, NSString};
 
 #[derive(Debug, Clone)]
@@ -16,39 +15,56 @@ impl PdfTextProcessor {
 impl Processor for PdfTextProcessor {
     fn name(&self) -> &'static str { "pdf_text_processor" }
 
-    fn process(&self, knowledge_object: &mut KnowledgeObject) -> Result<ProcessingResult> {
-        if !knowledge_object.id.to_string().ends_with(".pdf") {
-            return Ok(ProcessingResult::skipped("Not a PDF"));
+    fn process(&self, knowledge_object: KnowledgeObject) -> ProcessingResult {
+        let source_file = match &knowledge_object.metadata.source_file {
+            Some(path) => path,
+            None => return ProcessingResult::skipped("No source file"),
+        };
+
+        if !source_file.to_lowercase().ends_with(".pdf") {
+            return ProcessingResult::skipped("Not a PDF");
         }
 
-        let path = std::path::PathBuf::from(knowledge_object.id.to_string());
+        let path = std::path::PathBuf::from(source_file);
         if !path.exists() {
-            return Ok(ProcessingResult::skipped("File not found"));
+            return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
-        let doc = PDFDocument::initWithURL(&url)
-            .context("Failed to load PDF")?;
-        
+        let url = match NSURL::fileURLWithPath(&NSString::from_str(source_file)) {
+            Some(url) => url,
+            None => return ProcessingResult::skipped("Invalid PDF path"),
+        };
+
+        let doc = match PDFDocument::initWithURL(&url) {
+            Some(doc) => doc,
+            None => return ProcessingResult::warning("Failed to load PDF document"),
+        };
+
         let mut extracted_text = String::new();
-        let mut is_scanned = true; 
-        
+        let mut is_scanned = true;
+
         for i in 0..doc.pageCount() {
-            let page = doc.pageAtIndex(i).context("Failed to get page")?;
-            if let Some(text) = page.string() {
-                if let Ok(s) = text.to_str() {
-                    extracted_text.push_str(s);
-                    is_scanned = false; // Found text, so it's not scanned
+            if let Some(page) = doc.pageAtIndex(i) {
+                if let Some(text) = page.string() {
+                    if let Ok(s) = text.to_str() {
+                        extracted_text.push_str(s);
+                        is_scanned = false;
+                    }
                 }
             }
         }
-        
+
         if is_scanned {
-            return Ok(ProcessingResult::success("Scanned PDF, needs OCR"));
+            return ProcessingResult::warning("Scanned PDF, needs OCR");
         }
-        
-        knowledge_object.content = ObjectContent::Text(extracted_text);
-        
-        Ok(ProcessingResult::success("PDF text extracted"))
+
+        let mut ko = knowledge_object;
+        ko.content = ObjectContent::PlainText;
+        ko.metadata.custom.insert(
+            "extracted_text".to_string(),
+            serde_json::Value::String(extracted_text),
+        );
+
+        ProcessingResult::modified(ko, vec!["PDF text extracted".to_string()])
     }
 }

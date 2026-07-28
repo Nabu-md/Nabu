@@ -76,6 +76,51 @@ impl ProcessingResult {
             modified: false,
         }
     }
+
+    /// Creates a successful processing result with a single warning message.
+    pub fn success(message: impl Into<String>) -> Self {
+        Self {
+            knowledge_object: KnowledgeObject::default(),
+            decision: ProcessingDecision::Continue,
+            warnings: vec![message.into()],
+            modified: false,
+        }
+    }
+
+    /// Creates a processing result with a warning and no modification.
+    pub fn warning(message: impl Into<String>) -> Self {
+        Self {
+            knowledge_object: KnowledgeObject::default(),
+            decision: ProcessingDecision::Continue,
+            warnings: vec![message.into()],
+            modified: false,
+        }
+    }
+
+    /// Creates a processing result indicating the object was skipped.
+    pub fn skipped(reason: impl Into<String>) -> Self {
+        Self {
+            knowledge_object: KnowledgeObject::default(),
+            decision: ProcessingDecision::Continue,
+            warnings: vec![reason.into()],
+            modified: false,
+        }
+    }
+
+    /// Returns whether processing succeeded (Continue decision).
+    pub fn success_flag(&self) -> bool {
+        matches!(self.decision, ProcessingDecision::Continue)
+    }
+
+    /// Returns the first warning message, if any.
+    pub fn warning_msg(&self) -> Option<&str> {
+        self.warnings.first().map(|s| s.as_str())
+    }
+
+    /// Returns whether processing was skipped (e.g., object type was not generic).
+    pub fn skipped_flag(&self) -> bool {
+        !self.modified && self.warnings.is_empty()
+    }
 }
 
 /// A single processing step in the processing pipeline.

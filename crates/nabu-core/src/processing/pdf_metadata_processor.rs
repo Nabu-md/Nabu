@@ -1,7 +1,6 @@
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::processing::processor::{ProcessingResult, Processor};
-use crate::native::pdf::{PDFDocument};
-use anyhow::{Context, Result};
+use crate::native::pdf::PDFDocument;
 use objc2_foundation::{NSURL, NSString};
 
 #[derive(Debug, Clone)]
@@ -16,16 +15,31 @@ impl PdfMetadataProcessor {
 impl Processor for PdfMetadataProcessor {
     fn name(&self) -> &'static str { "pdf_metadata_processor" }
 
-    fn process(&self, knowledge_object: &mut KnowledgeObject) -> Result<ProcessingResult> {
-        if !knowledge_object.id.to_string().ends_with(".pdf") {
-            return Ok(ProcessingResult::skipped("Not a PDF"));
+    fn process(&self, knowledge_object: KnowledgeObject) -> ProcessingResult {
+        let source_file = match &knowledge_object.metadata.source_file {
+            Some(path) => path,
+            None => return ProcessingResult::skipped("No source file"),
+        };
+
+        if !source_file.to_lowercase().ends_with(".pdf") {
+            return ProcessingResult::skipped("Not a PDF");
         }
 
-        let path = std::path::PathBuf::from(knowledge_object.id.to_string());
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
-        let doc = PDFDocument::initWithURL(&url)
-            .context("Failed to load PDF")?;
-        
+        let path = std::path::PathBuf::from(source_file);
+        if !path.exists() {
+            return ProcessingResult::skipped("PDF file not found");
+        }
+
+        let url = match NSURL::fileURLWithPath(&NSString::from_str(source_file)) {
+            Some(url) => url,
+            None => return ProcessingResult::skipped("Invalid PDF path"),
+        };
+
+        let doc = match PDFDocument::initWithURL(&url) {
+            Some(doc) => doc,
+            None => return ProcessingResult::warning("Failed to load PDF document"),
+        };
+
         if let Some(attrs) = doc.documentAttributes() {
             let keys = vec![
                 ("Title", "Title"),
@@ -34,26 +48,27 @@ impl Processor for PdfMetadataProcessor {
             ];
 
             let mut found = false;
+            let mut ko = knowledge_object;
             for (key_name, map_key) in keys {
                 let ns_key = NSString::from_str(key_name);
                 if let Some(val) = attrs.objectForKey(&ns_key) {
                     if let Some(s) = val.downcast_ref::<NSString>() {
-                        knowledge_object.metadata.custom.insert(
-                            map_key.to_string(), 
+                        ko.metadata.custom.insert(
+                            map_key.to_string(),
                             serde_json::Value::String(s.to_string())
                         );
                         found = true;
                     }
                 }
             }
-            
+
             if !found {
-                return Ok(ProcessingResult::warning("No PDF metadata attributes found"));
+                return ProcessingResult::warning("No PDF metadata attributes found");
             }
+
+            ProcessingResult::modified(ko, vec!["PDF metadata extracted".to_string()])
         } else {
-            return Ok(ProcessingResult::warning("No PDF document attributes found"));
+            ProcessingResult::warning("No PDF document attributes found")
         }
-        
-        Ok(ProcessingResult::success("PDF metadata extracted"))
     }
 }

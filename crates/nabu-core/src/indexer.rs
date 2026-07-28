@@ -86,9 +86,9 @@ impl Indexer {
         }
 
         let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown(m) => m.as_str(),
-            crate::models::knowledge_object::ObjectContent::PlainText(t) => t.as_str(),
-            crate::models::knowledge_object::ObjectContent::Html(h) => h.as_str(),
+            crate::models::knowledge_object::ObjectContent::Markdown => "",
+            crate::models::knowledge_object::ObjectContent::PlainText => "",
+            crate::models::knowledge_object::ObjectContent::Html => "",
             crate::models::knowledge_object::ObjectContent::Binary => "",
             crate::models::knowledge_object::ObjectContent::Structured(json) => {
                 serde_json::to_string(json).unwrap_or_default().as_str()
@@ -107,7 +107,7 @@ impl Indexer {
         doc.add_text(path_field, doc_id.clone());
         doc.add_text(content_field, content);
         doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
-        doc.add_json_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
+        doc.add_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());
         doc.add_text(modified_at_field, ko.modified_at.clone());
@@ -168,9 +168,9 @@ impl Indexer {
     fn build_document(&self, ko: &KnowledgeObject) -> anyhow::Result<TantivyDocument> {
         let doc_id = ko.id.to_string();
         let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown(m) => m.as_str(),
-            crate::models::knowledge_object::ObjectContent::PlainText(t) => t.as_str(),
-            crate::models::knowledge_object::ObjectContent::Html(h) => h.as_str(),
+            crate::models::knowledge_object::ObjectContent::Markdown => "",
+            crate::models::knowledge_object::ObjectContent::PlainText => "",
+            crate::models::knowledge_object::ObjectContent::Html => "",
             crate::models::knowledge_object::ObjectContent::Binary => "",
             crate::models::knowledge_object::ObjectContent::Structured(json) => {
                 serde_json::to_string(json).unwrap_or_default().as_str()
@@ -189,7 +189,7 @@ impl Indexer {
         doc.add_text(path_field, doc_id);
         doc.add_text(content_field, content);
         doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
-        doc.add_json_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
+        doc.add_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());
         doc.add_text(modified_at_field, ko.modified_at.clone());
