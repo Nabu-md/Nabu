@@ -415,62 +415,210 @@ pub fn settings_set_all(
 
 // ── Inbox Commands ──────────────────────────────────────────────────
 
-#[tauri::command]
-pub fn inbox_subscribe() -> Result<Vec<InboxItem>, String> {
-    Ok(vec![])
+/// Helper: create a StorageManager from the vault path in settings.
+fn get_storage_manager(store: &State<'_, SettingsStore>) -> Result<StorageManager, String> {
+    let settings = store.get();
+    let vault_path = std::path::PathBuf::from(&settings.vault_path);
+    let event_bus = Arc::new(EventBus::new());
+    let manager = StorageManager::new(vault_path, event_bus);
+    if !manager.is_initialized() {
+        manager.initialize().map_err(|e| e.to_string())?;
+    }
+    Ok(manager)
+}
+
+/// Helper: convert a KnowledgeObject to an InboxItem.
+fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
+    let inbox_status_str = obj.metadata.custom.get("inbox_status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("pending");
+    let status = match inbox_status_str {
+        "processing" => InboxStatus::Processing,
+        "ready" => InboxStatus::Ready,
+        "approved" => InboxStatus::Approved,
+        "rejected" => InboxStatus::Rejected,
+        "failed" => InboxStatus::Failed,
+        _ => InboxStatus::Pending,
+    };
+
+    let duplicate_info = obj.metadata.custom.get("duplicate_info")
+        .and_then(|v| serde_json::from_value::<DuplicateInfo>(v.clone()).ok());
+
+    let timeline_info = obj.metadata.custom.get("timeline_info")
+        .and_then(|v| serde_json::from_value::<TimelineInfo>(v.clone()).ok());
+
+    let ocr_info = obj.metadata.custom.get("ocr_info")
+        .and_then(|v| serde_json::from_value::<OcrInfo>(v.clone()).ok());
+
+    let processing_history = obj.metadata.custom.get("processing_history")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| serde_json::from_value::<ProcessingHistoryEntry>(v.clone()).ok())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let warnings = obj.metadata.custom.get("processing_warnings")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    InboxItem {
+        id: obj.id.to_string(),
+        title: obj.metadata.title.clone().unwrap_or_default(),
+        object_type: obj.object_type.to_string(),
+        source: obj.metadata.source_url.clone().unwrap_or_default(),
+        status,
+        mime_type: obj.metadata.mime_type.clone(),
+        source_file: obj.metadata.source_file.clone(),
+        metadata: InboxMetadata {
+            title: obj.metadata.title.clone(),
+            author: obj.metadata.author.clone(),
+            language: obj.metadata.language.clone(),
+            source_url: obj.metadata.source_url.clone(),
+            tags: obj.metadata.custom.get("tags")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .unwrap_or_default(),
+            custom: obj.metadata.custom.clone(),
+        },
+        duplicate_info,
+        timeline_info,
+        ocr_info,
+        processing_history,
+        warnings,
+        selected: false,
+    }
 }
 
 #[tauri::command]
-pub fn inbox_get_queue() -> Result<Vec<InboxItem>, String> {
-    Ok(vec![])
+pub fn inbox_subscribe(store: State<'_, SettingsStore>) -> Result<Vec<InboxItem>, String> {
+    inbox_get_queue(store)
 }
 
 #[tauri::command]
-pub fn inbox_approve(id: String) -> Result<(), String> {
+pub fn inbox_get_queue(store: State<'_, SettingsStore>) -> Result<Vec<InboxItem>, String> {
+    let manager = get_storage_manager(&store)?;
+    let objects = manager.list_objects("", None, 1000)
+        .map_err(|e| e.to_string())?;
+
+    let inbox_items: Vec<InboxItem> = objects
+        .into_iter()
+        .filter(|obj| {
+            obj.metadata.custom.contains_key("inbox_status")
+                || obj.metadata.custom.contains_key("auto_file_suggestions")
+                || obj.metadata.custom.contains_key("classification")
+        })
+        .map(|obj| knowledge_object_to_inbox_item(&obj))
+        .collect();
+
+    Ok(inbox_items)
+}
+
+#[tauri::command]
+pub fn inbox_approve(store: State<'_, SettingsStore>, id: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+
+    obj.metadata.custom.insert(
+        "inbox_status".to_string(),
+        serde_json::Value::String("approved".to_string()),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_reject(id: String, reason: String) -> Result<(), String> {
+pub fn inbox_reject(store: State<'_, SettingsStore>, id: String, reason: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+
+    obj.metadata.custom.insert(
+        "inbox_status".to_string(),
+        serde_json::Value::String("rejected".to_string()),
+    );
+    obj.metadata.custom.insert(
+        "rejection_reason".to_string(),
+        serde_json::Value::String(reason),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_retry(id: String) -> Result<(), String> {
+pub fn inbox_retry(store: State<'_, SettingsStore>, id: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+
+    obj.metadata.custom.insert(
+        "inbox_status".to_string(),
+        serde_json::Value::String("pending".to_string()),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_delete(id: String) -> Result<(), String> {
+pub fn inbox_delete(store: State<'_, SettingsStore>, id: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    manager.delete_object(&id).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_batch_approve(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_approve(id); }
+pub fn inbox_batch_approve(store: State<'_, SettingsStore>, ids: Vec<String>) -> Result<(), String> {
+    for id in ids {
+        if let Err(e) = inbox_approve(store.clone(), id) {
+            eprintln!("Failed to approve inbox item: {}", e);
+        }
+    }
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_batch_reject(ids: Vec<String>, reason: String) -> Result<(), String> {
-    for id in ids { let _ = inbox_reject(id, reason.clone()); }
+pub fn inbox_batch_reject(store: State<'_, SettingsStore>, ids: Vec<String>, reason: String) -> Result<(), String> {
+    for id in ids {
+        if let Err(e) = inbox_reject(store.clone(), id, reason.clone()) {
+            eprintln!("Failed to reject inbox item: {}", e);
+        }
+    }
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_batch_delete(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_delete(id); }
+pub fn inbox_batch_delete(store: State<'_, SettingsStore>, ids: Vec<String>) -> Result<(), String> {
+    for id in ids {
+        if let Err(e) = inbox_delete(store.clone(), id) {
+            eprintln!("Failed to delete inbox item: {}", e);
+        }
+    }
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_batch_retry(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_retry(id); }
+pub fn inbox_batch_retry(store: State<'_, SettingsStore>, ids: Vec<String>) -> Result<(), String> {
+    for id in ids {
+        if let Err(e) = inbox_retry(store.clone(), id) {
+            eprintln!("Failed to retry inbox item: {}", e);
+        }
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub fn inbox_edit_metadata(
+    store: State<'_, SettingsStore>,
     id: String,
     title: Option<String>,
     author: Option<String>,
@@ -478,11 +626,39 @@ pub fn inbox_edit_metadata(
     tags: Vec<String>,
     custom: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+
+    if let Some(t) = title { obj.metadata.title = Some(t); }
+    if let Some(a) = author { obj.metadata.author = Some(a); }
+    if let Some(l) = language { obj.metadata.language = Some(l); }
+    if !tags.is_empty() {
+        obj.metadata.custom.insert("tags".to_string(), serde_json::Value::Array(
+            tags.into_iter().map(serde_json::Value::String).collect()
+        ));
+    }
+    for (key, value) in custom {
+        obj.metadata.custom.insert(key, value);
+    }
+
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_move(id: String, destination: String) -> Result<(), String> {
+pub fn inbox_move(store: State<'_, SettingsStore>, id: String, destination: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Inbox item not found: {}", id))?;
+
+    obj.metadata.custom.insert(
+        "destination_folder".to_string(),
+        serde_json::Value::String(destination),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -525,33 +701,100 @@ pub fn queue_get_all(store: State<'_, SettingsStore>) -> Result<Vec<QueueItem>, 
 }
 
 #[tauri::command]
-pub fn queue_set_status(id: String, status: String) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata with reading status
+pub fn queue_set_status(store: State<'_, SettingsStore>, id: String, status: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Object not found: {}", id))?;
+
+    let reading_meta = ReadingMetadata {
+        status: match status.as_str() {
+            "reading" => ReadingStatus::Reading,
+            "completed" => ReadingStatus::Read,
+            "archived" => ReadingStatus::Archived,
+            _ => ReadingStatus::Unread,
+        },
+        ..ReadingMetadata::from_object(&obj)
+    };
+    obj.metadata.custom.insert(
+        "reading_queue".to_string(),
+        serde_json::to_value(&reading_meta).unwrap_or_default(),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn queue_set_priority(id: String, priority: String) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata with reading priority
+pub fn queue_set_priority(store: State<'_, SettingsStore>, id: String, priority: String) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Object not found: {}", id))?;
+
+    let mut reading_meta = ReadingMetadata::from_object(&obj);
+    reading_meta.priority = match priority.as_str() {
+        "low" => ReadingPriority::Low,
+        "high" => ReadingPriority::High,
+        _ => ReadingPriority::Normal,
+    };
+    obj.metadata.custom.insert(
+        "reading_queue".to_string(),
+        serde_json::to_value(&reading_meta).unwrap_or_default(),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn queue_set_progress(id: String, progress: f32) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata with reading progress
+pub fn queue_set_progress(store: State<'_, SettingsStore>, id: String, progress: f32) -> Result<(), String> {
+    let manager = get_storage_manager(&store)?;
+    let mut obj = manager.get_object(&id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Object not found: {}", id))?;
+
+    let mut reading_meta = ReadingMetadata::from_object(&obj);
+    reading_meta.progress = progress.clamp(0.0, 1.0);
+    obj.metadata.custom.insert(
+        "reading_queue".to_string(),
+        serde_json::to_value(&reading_meta).unwrap_or_default(),
+    );
+    manager.save_object(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn queue_batch_set_status(ids: Vec<String>, status: String) -> Result<(), String> {
-    for id in ids { let _ = queue_set_status(id, status.clone()); }
+pub fn queue_batch_set_status(store: State<'_, SettingsStore>, ids: Vec<String>, status: String) -> Result<(), String> {
+    for id in ids {
+        if let Err(e) = queue_set_status(store.clone(), id, status.clone()) {
+            eprintln!("Failed to set queue status: {}", e);
+        }
+    }
     Ok(())
 }
 
 #[tauri::command]
-pub fn queue_archive_completed() -> Result<usize, String> {
-    // TODO: Archive all completed reading queue items
-    Ok(0)
+pub fn queue_archive_completed(store: State<'_, SettingsStore>) -> Result<usize, String> {
+    let manager = get_storage_manager(&store)?;
+    let objects = manager.list_objects("", None, 1000)
+        .map_err(|e| e.to_string())?;
+
+    let mut archived = 0;
+    for obj in objects {
+        let reading_meta = ReadingMetadata::from_object(&obj);
+        if reading_meta.status == ReadingStatus::Read {
+            let mut obj = obj;
+            let mut meta = reading_meta;
+            meta.status = ReadingStatus::Archived;
+            obj.metadata.custom.insert(
+                "reading_queue".to_string(),
+                serde_json::to_value(&meta).unwrap_or_default(),
+            );
+            if manager.save_object(&obj).is_ok() {
+                archived += 1;
+            }
+        }
+    }
+    Ok(archived)
 }
 
 #[tauri::command]
@@ -560,13 +803,13 @@ pub fn fetch_objects(store: State<'_, SettingsStore>) -> Result<Vec<KnowledgeObj
     let vault_path = std::path::PathBuf::from(settings.vault_path);
     let event_bus = Arc::new(EventBus::new());
     let manager = StorageManager::new(vault_path, event_bus);
-    
-    // Assuming SQLiteStorage needs initialization
+
     if !manager.is_initialized() {
         manager.initialize().map_err(|e| e.to_string())?;
     }
-    
-    // Need a way to fetch ALL objects.
-    // Let me check StorageManager API for fetching all objects.
-    todo!("Implement fetch_all")
+
+    let objects = manager.list_objects("", None, 1000)
+        .map_err(|e| e.to_string())?;
+
+    Ok(objects)
 }

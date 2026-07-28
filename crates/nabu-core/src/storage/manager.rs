@@ -150,6 +150,15 @@ impl StorageManager {
     pub fn update_object(&self, object: &KnowledgeObject) -> Result<()> {
         self.provider.update_object(object)
     }
+
+    /// Delete a knowledge object by its UUID.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the storage backend is not initialized or the delete fails.
+    pub fn delete_object(&self, id: &str) -> Result<()> {
+        self.provider.delete_object(id)
+    }
 }
 
 #[cfg(test)]

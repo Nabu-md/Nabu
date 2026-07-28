@@ -116,4 +116,14 @@ pub trait StorageProvider: Send + Sync {
         Ok(results)
     }
 
+    /// Delete a knowledge object by its UUID.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the storage backend is not initialized or the delete fails.
+    fn delete_object(&self, id: &str) -> Result<()> {
+        // Default implementation does nothing; backends should override.
+        Ok(())
+    }
+
 }

@@ -86,3 +86,8 @@ pub const SELECT_OBJECTS_BY_VAULT: &str = r#"
     ORDER BY modified_at DESC
     LIMIT ?
 "#;
+
+/// SQL statement to delete a knowledge object by ID.
+pub const DELETE_KNOWLEDGE_OBJECT: &str = r#"
+    DELETE FROM knowledge_objects WHERE id = ?
+"#;
