@@ -100,6 +100,8 @@ impl CaptureEngine {
         CaptureResult {
             success: false,
             knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
             error: Some(format!(
                 "No handler available for source type: {}",
                 request.source_type
@@ -276,13 +278,14 @@ mod tests {
         let handler = Arc::new(MockHandler {
             source: "test_source",
             can_handle: true,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: Some(Uuid::new_v4()),
-                error: None,
-                message: "Captured".to_string(),
-                payload: None,
-            },
+                result: CaptureResult {
+                    success: true,
+                    knowledge_object: None,
+                    knowledge_object_id: Some(Uuid::new_v4()),
+                    payload: None,
+                    error: None,
+                    message: "Captured".to_string(),
+                },
         });
         engine.register(handler);
 
@@ -315,13 +318,14 @@ mod tests {
         let handler = Arc::new(MockHandler {
             source: "removable",
             can_handle: true,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: Some(Uuid::new_v4()),
-                error: None,
-                message: "Captured".to_string(),
-                payload: None,
-            },
+                result: CaptureResult {
+                    success: true,
+                    knowledge_object: None,
+                    knowledge_object_id: Some(Uuid::new_v4()),
+                    payload: None,
+                    error: None,
+                    message: "Captured".to_string(),
+                },
         });
         engine.register(handler);
         assert!(engine.lookup("removable").is_some());

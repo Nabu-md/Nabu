@@ -1,8 +1,6 @@
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::processing::processor::{ProcessingResult, Processor};
-use crate::native::pdf::{PDFDocument, PdfEngine};
-use crate::models::graph::RelationType;
-use anyhow::{Context, Result};
+use crate::native::pdf::PDFDocument;
 use objc2_foundation::{NSURL, NSString};
 
 #[derive(Debug, Clone)]
@@ -17,16 +15,31 @@ impl PdfAnnotationProcessor {
 impl Processor for PdfAnnotationProcessor {
     fn name(&self) -> &'static str { "pdf_annotation_processor" }
 
-    fn process(&self, knowledge_object: &mut KnowledgeObject) -> Result<ProcessingResult> {
-        if !knowledge_object.id.to_string().ends_with(".pdf") {
-            return Ok(ProcessingResult::skipped("Not a PDF"));
+    fn process(&self, knowledge_object: KnowledgeObject) -> ProcessingResult {
+        let source_file = match &knowledge_object.metadata.source_file {
+            Some(path) => path,
+            None => return ProcessingResult::skipped("No source file"),
+        };
+
+        if !source_file.to_lowercase().ends_with(".pdf") {
+            return ProcessingResult::skipped("Not a PDF");
         }
 
-        let path = std::path::PathBuf::from(knowledge_object.id.to_string());
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
-        let doc = PDFDocument::initWithURL(&url)
-            .context("Failed to load PDF")?;
-        
+        let path = std::path::PathBuf::from(source_file);
+        if !path.exists() {
+            return ProcessingResult::skipped("PDF file not found");
+        }
+
+        let url = match NSURL::fileURLWithPath(&NSString::from_str(source_file)) {
+            Some(url) => url,
+            None => return ProcessingResult::skipped("Invalid PDF path"),
+        };
+
+        let doc = match PDFDocument::initWithURL(&url) {
+            Some(doc) => doc,
+            None => return ProcessingResult::warning("Failed to load PDF document"),
+        };
+
         let mut extracted_annotations = Vec::new();
         let mut annotation_edges = Vec::new();
 
@@ -39,15 +52,10 @@ impl Processor for PdfAnnotationProcessor {
                         "annotation_count": page_annotation_count
                     }));
 
-                    // Create graph edges for annotations that reference other documents
-                    // This enables annotation-based relationship discovery
                     for j in 0..page_annotation_count {
                         if let Some(annotation) = annos.object_at_index(j) {
-                            // Extract annotation content and create graph edges
-                            // for cross-document references found in annotations
                             if let Some(content) = annotation.content() {
                                 let content_str = content.to_string();
-                                // Check if annotation references another document
                                 if content_str.contains("file://") || content_str.contains(".pdf") {
                                     annotation_edges.push(serde_json::json!({
                                         "page": i,
@@ -61,24 +69,24 @@ impl Processor for PdfAnnotationProcessor {
                 }
             }
         }
-        
+
         if extracted_annotations.is_empty() {
-            return Ok(ProcessingResult::warning("No PDF annotations found"));
+            return ProcessingResult::warning("No PDF annotations found");
         }
-        
-        knowledge_object.metadata.custom.insert(
+
+        let mut ko = knowledge_object;
+        ko.metadata.custom.insert(
             "annotations".to_string(),
             serde_json::Value::Array(extracted_annotations)
         );
 
-        // Store annotation graph edges for graph integration
         if !annotation_edges.is_empty() {
-            knowledge_object.metadata.custom.insert(
+            ko.metadata.custom.insert(
                 "annotation_edges".to_string(),
                 serde_json::Value::Array(annotation_edges)
             );
         }
-        
-        Ok(ProcessingResult::success("PDF annotations extracted with graph edges"))
+
+        ProcessingResult::modified(ko, vec!["PDF annotations extracted with graph edges".to_string()])
     }
 }

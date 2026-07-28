@@ -36,10 +36,27 @@ pub struct CaptureResult {
     pub success: bool,
     /// The created knowledge object, if successful.
     pub knowledge_object: Option<KnowledgeObject>,
+    /// The ID of the created knowledge object, if successful.
+    pub knowledge_object_id: Option<uuid::Uuid>,
+    /// The serialized payload from the handler, if any.
+    pub payload: Option<serde_json::Value>,
     /// Error description, if the capture failed.
     pub error: Option<String>,
     /// Human-readable status message.
     pub message: String,
+}
+
+impl Default for CaptureResult {
+    fn default() -> Self {
+        Self {
+            success: false,
+            knowledge_object: None,
+            knowledge_object_id: None,
+            payload: None,
+            error: None,
+            message: String::new(),
+        }
+    }
 }
 
 /// Typed errors returned by capture handlers and the normaliser.
