@@ -73,7 +73,6 @@ pub struct DuplicateInfo {
 /// The processor enriches the knowledge object's metadata with duplicate
 /// information but never rejects storage. All documents remain reviewable
 /// in the Inbox.
-#[derive(Debug)]
 pub struct DuplicateDetector {
     storage: Option<Arc<dyn StorageProvider>>,
 }

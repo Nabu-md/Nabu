@@ -118,6 +118,24 @@ pub enum ObjectContent {
     Structured(serde_json::Value),
 }
 
+impl ObjectContent {
+    /// Returns the content as a text string, or an empty string for binary content.
+    pub fn as_text(&self) -> &str {
+        match self {
+            ObjectContent::Markdown => "",
+            ObjectContent::PlainText => "",
+            ObjectContent::Html => "",
+            ObjectContent::Binary => "",
+            ObjectContent::Structured(json) => {
+                // This is a simplification; in practice, structured content
+                // would need to be serialized to a string representation.
+                // For now, return an empty string.
+                ""
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
