@@ -8,8 +8,7 @@ pub mod settings;
 pub mod template_manager;
 pub mod vault;
 
-mod markdown;
-pub use markdown::{Document, ParseError, parse};
+pub use nabu_core::markdown::{Document, ParseError, parse};
 
 use nabu_core::capture::{
     ArticleCaptureHandler, BrowserCaptureHandler, CaptureEngine, ClipboardHandler,

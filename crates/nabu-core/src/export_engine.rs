@@ -24,7 +24,7 @@ impl ExportEngine {
         template_name: &str,
     ) -> Result<()> {
         let content = std::fs::read_to_string(note_path)?;
-        let html_content = crate::parser::parse_markdown_to_html(&content);
+        let html_content = crate::markdown::parse_markdown_to_html(&content);
 
         let tera = tera::Tera::new(&format!(
             "{}/.nabu/templates/**/*",
