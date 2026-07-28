@@ -1,3 +1,8 @@
+use nabu_core::storage::StorageManager;
+use nabu_core::event_bus::EventBus;
+use nabu_core::models::knowledge_object::KnowledgeObject;
+use std::sync::Arc;
+
 use crate::settings::{AppSettings, SettingsStore};
 use std::path::Path;
 use tauri::{AppHandle, Manager, State};
@@ -196,4 +201,19 @@ pub fn settings_set_all(
 ) -> Result<(), String> {
     store.save(&settings).map_err(|e| e.to_string())?;
     Ok(())
+#[tauri::command]
+pub fn fetch_objects(store: State<'_, SettingsStore>) -> Result<Vec<KnowledgeObject>, String> {
+    let settings = store.get();
+    let vault_path = std::path::PathBuf::from(settings.vault_path);
+    let event_bus = Arc::new(EventBus::new());
+    let manager = StorageManager::new(vault_path, event_bus);
+    
+    // Assuming SQLiteStorage needs initialization
+    if !manager.is_initialized() {
+        manager.initialize().map_err(|e| e.to_string())?;
+    }
+    
+    // Need a way to fetch ALL objects.
+    // Let me check StorageManager API for fetching all objects.
+    todo!("Implement fetch_all")
 }

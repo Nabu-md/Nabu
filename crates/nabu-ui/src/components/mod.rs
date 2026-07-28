@@ -13,3 +13,5 @@ pub mod theme_toggle;
 pub mod vault_setup_wizard;
 pub mod relation_editor;
 pub mod collections;
+pub mod template_picker;
+pub mod template_editor;
