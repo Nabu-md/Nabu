@@ -7,6 +7,8 @@ pub mod normaliser;
 pub mod pipeline;
 pub mod types;
 
+pub use engine::CaptureEngine;
+pub use file_drop_handler::FileDropHandler;
 pub use handler::CaptureHandler;
 pub use ingestion_request::{IngestionOptions, IngestionRequest};
 pub use ingestion_result::{IngestionResult, IngestionStatus};

@@ -5,6 +5,10 @@ use std::collections::HashMap;
 ///
 /// This is the standard intermediate representation for all captured input
 /// before it is transformed into a [`crate::models::knowledge_object::KnowledgeObject`].
+///
+/// Every handler produces an `IngestionRequest` as its normalized output.
+/// The engine passes this directly to the [`IngestionPipeline`] without
+/// further transformation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct IngestionRequest {
     /// The capture source that produced this request (e.g., "file_drop").
@@ -22,6 +26,10 @@ pub struct IngestionRequest {
 }
 
 /// Options that control ingestion behaviour.
+///
+/// Passed by the handler to the normaliser and carried through to the
+/// [`IngestionPipeline`]. Handlers may populate `custom` with
+/// source-specific options.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct IngestionOptions {
     /// Whether to create a KnowledgeObject from this request.

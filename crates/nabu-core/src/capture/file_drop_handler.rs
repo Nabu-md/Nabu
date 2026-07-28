@@ -6,6 +6,23 @@ use crate::capture::{CaptureHandler, CaptureRequest, CaptureResult, IngestionOpt
 ///
 /// Validates the dropped file, detects its MIME type, and normalizes it into
 /// an [`IngestionRequest`].
+///
+/// This is the first concrete handler in the capture system. It demonstrates
+/// the handler contract: extract source-specific data from the payload,
+/// normalize it, and return a `CaptureResult` with a serialized
+/// `IngestionRequest` on success.
+///
+/// # Payload Format
+///
+/// The handler expects the `payload` field of [`CaptureRequest`] to contain:
+///
+/// ```json
+/// {
+///   "file_path": "/absolute/path/to/file"
+/// }
+/// ```
+///
+/// Any additional fields in `payload` are ignored.
 pub struct FileDropHandler {
     normaliser: Normaliser,
 }
@@ -55,13 +72,26 @@ impl CaptureHandler for FileDropHandler {
             custom: request.context,
         };
 
-        match self
-            .normaliser
-            .normalize(&file_path, &request.vault_id, source_file, options)
-        {
+        match self.normaliser.normalize(
+            self.source_type(),
+            &file_path,
+            &request.vault_id,
+            source_file,
+            options,
+        ) {
             Ok(ingestion_request) => {
-                let payload = serde_json::to_value(&ingestion_request)
-                    .expect("IngestionRequest should always be serializable");
+                let payload = match serde_json::to_value(&ingestion_request) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return CaptureResult {
+                            success: false,
+                            knowledge_object_id: None,
+                            error: Some(format!("Failed to serialize ingestion request: {}", e)),
+                            message: "Capture failed: serialization error".to_string(),
+                            payload: None,
+                        };
+                    }
+                };
                 CaptureResult {
                     success: true,
                     knowledge_object_id: None,
