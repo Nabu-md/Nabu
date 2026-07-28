@@ -3,6 +3,7 @@ pub mod export_engine;
 pub mod graph;
 pub mod models;
 pub mod parser;
+pub mod storage;
 pub mod template_manager;
 pub mod theme_manager;
 pub mod vault_config;
