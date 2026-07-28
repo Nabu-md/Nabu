@@ -20,7 +20,10 @@
 use anyhow::Result;
 use std::path::PathBuf;
 
-use crate::models::knowledge_object::KnowledgeObject;
+use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
+use chrono;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Trait defining the storage provider interface.
 ///
@@ -112,4 +115,5 @@ pub trait StorageProvider: Send + Sync {
         // This is a placeholder; actual implementations should query effectively.
         Ok(results)
     }
+
 }
