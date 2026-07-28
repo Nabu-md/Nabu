@@ -1,3 +1,4 @@
+use crate::models::knowledge_object::KnowledgeObject;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -27,20 +28,18 @@ pub struct CaptureRequest {
 /// The result of a capture operation.
 ///
 /// Returned by [`CaptureHandler::capture`] after processing a [`CaptureRequest`].
-/// A successful result carries a serialized [`IngestionRequest`] in `payload`,
-/// which the engine will deserialize and pass to the [`IngestionPipeline`].
+///
+/// A successful result carries the [`KnowledgeObject`] created by the handler.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CaptureResult {
     /// Whether the capture succeeded.
     pub success: bool,
-    /// Identifier of the created knowledge object, if successful.
-    pub knowledge_object_id: Option<Uuid>,
+    /// The created knowledge object, if successful.
+    pub knowledge_object: Option<KnowledgeObject>,
     /// Error description, if the capture failed.
     pub error: Option<String>,
     /// Human-readable status message.
     pub message: String,
-    /// Normalized payload produced by the handler, if any.
-    pub payload: Option<serde_json::Value>,
 }
 
 /// Typed errors returned by capture handlers and the normaliser.

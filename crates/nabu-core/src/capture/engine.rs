@@ -99,13 +99,12 @@ impl CaptureEngine {
         }
         CaptureResult {
             success: false,
-            knowledge_object_id: None,
+            knowledge_object: None,
             error: Some(format!(
                 "No handler available for source type: {}",
                 request.source_type
             )),
             message: "Capture failed: no suitable handler".to_string(),
-            payload: None,
         }
     }
 

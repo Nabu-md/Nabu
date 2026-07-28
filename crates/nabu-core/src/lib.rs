@@ -3,7 +3,7 @@ pub mod event_bus;
 pub mod export_engine;
 pub mod graph;
 pub mod models;
-pub mod parser;
+pub mod markdown;
 pub mod processing;
 pub mod storage;
 pub mod template_manager;

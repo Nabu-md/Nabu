@@ -122,7 +122,6 @@ dependencies = [
  "nabu-core",
  "notify",
  "parking_lot",
- "pulldown-cmark",
  "rfd",
  "serde",
  "serde_json",

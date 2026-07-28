@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 
 use crate::models::template::Template;
 

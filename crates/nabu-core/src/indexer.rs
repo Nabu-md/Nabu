@@ -52,7 +52,7 @@ impl Indexer {
         let mut doc = TantivyDocument::default();
         doc.add_text(path_field, path);
         doc.add_text(content_field, content);
-        doc.add_text(tag_field, crate::parser::extract_tags(content).join(" "));
+        doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
         doc.add_json_object(custom_field, serde_json::to_value(&ko.metadata.custom)?);
 
         self.writer.add_document(doc)?;
