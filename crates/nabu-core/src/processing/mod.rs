@@ -43,6 +43,7 @@ mod processor;
 mod duplicate_detector;
 mod timeline_extractor;
 mod ocr_processor;
+mod metadata_extractor;
 
 pub use history::{ProcessingHistoryEntry, PROCESSING_HISTORY_KEY};
 pub use pipeline::ProcessingPipeline;
@@ -50,3 +51,4 @@ pub use processor::{ProcessingDecision, ProcessingResult, Processor};
 pub use duplicate_detector::{DuplicateConfidence, DuplicateDetector, DuplicateInfo};
 pub use timeline_extractor::{TimelineExtractor, TimelineInfo};
 pub use ocr_processor::{OcrInfo, OcrProcessor};
+pub use metadata_extractor::MetadataExtractor;

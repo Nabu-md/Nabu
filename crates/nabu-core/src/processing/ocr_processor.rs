@@ -160,23 +160,17 @@ impl Processor for OcrProcessor {
         }
 
         #[cfg(all(target_os = "macos", target_os = "ios"))]
-        {
-            self.process_macos(knowledge_object)
-        }
+        return self.process_macos(knowledge_object);
 
-        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-        {
-            let info = OcrInfo {
-                warning: Some("OCR not supported on this platform".to_string()),
-                ..Default::default()
-            };
-            knowledge_object.metadata.custom.insert(
-                "ocr_info".to_string(),
-                serde_json::to_value(&info).unwrap_or_default(),
-            );
-            let warnings = vec!["OCR not supported on this platform".to_string()];
-            ProcessingResult::modified(knowledge_object, warnings)
-        }
+        let info = OcrInfo {
+            warning: Some("OCR not supported on this platform".to_string()),
+            ..Default::default()
+        };
+        knowledge_object.metadata.custom.insert(
+            "ocr_info".to_string(),
+            serde_json::to_value(info).unwrap(),
+        );
+        ProcessingResult::unchanged(knowledge_object)
     }
 
     #[cfg(all(target_os = "macos", target_os = "ios"))]
