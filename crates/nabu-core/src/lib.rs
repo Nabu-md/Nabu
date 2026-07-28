@@ -7,6 +7,7 @@ pub mod parser;
 pub mod processing;
 pub mod storage;
 pub mod template_manager;
+pub mod reading_queue;
 pub mod theme_manager;
 pub mod vault_config;
 
