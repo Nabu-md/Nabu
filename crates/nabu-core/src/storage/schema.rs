@@ -73,3 +73,16 @@ pub const SELECT_KNOWLEDGE_OBJECT_BY_ID: &str = r#"
         custom_metadata
     FROM knowledge_objects WHERE id = ?
 "#;
+
+/// SQL statement to list knowledge objects by vault ID, optionally filtered by source file.
+pub const SELECT_OBJECTS_BY_VAULT: &str = r#"
+    SELECT 
+        id, vault_id, object_type, created_at, modified_at,
+        title, author, language, source_url, source_file,
+        mime_type, page_count, word_count, source_created, source_modified,
+        custom_metadata
+    FROM knowledge_objects 
+    WHERE vault_id = ?
+    ORDER BY modified_at DESC
+    LIMIT ?
+"#;
