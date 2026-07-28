@@ -254,12 +254,12 @@ impl CaptureHandler for ClipboardHandler {
     fn capture(&self, request: CaptureRequest) -> CaptureResult {
         // Check if clipboard monitoring is enabled for this request
         if self.config.mode == ClipboardMonitorMode::Disabled {
-            return CaptureResult {
-                success: false,
-                knowledge_object_id: None,
-                error: Some("Clipboard monitoring is disabled".to_string()),
-                message: "Clipboard capture skipped: monitoring is disabled".to_string(),
-                payload: None,
+                return CaptureResult {
+                    success: false,
+                    knowledge_object: None,
+                    error: Some("Clipboard monitoring is disabled".to_string()),
+                    message: "Clipboard capture skipped: monitoring is disabled".to_string(),
+                };
             };
         }
 
@@ -269,10 +269,9 @@ impl CaptureHandler for ClipboardHandler {
             None => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: None,
                     message: "No supported clipboard content available".to_string(),
-                    payload: None,
                 };
             }
         };
@@ -303,24 +302,21 @@ impl CaptureHandler for ClipboardHandler {
             Err(e) => {
                 return CaptureResult {
                     success: false,
-                    knowledge_object_id: None,
+                    knowledge_object: None,
                     error: Some(format!(
                         "Failed to serialize ingestion request: {}",
                         e
                     )),
-                    message: "Clipboard capture failed: serialization error"
-                        .to_string(),
-                    payload: None,
+                    message: "Clipboard capture failed: serialization error".to_string(),
                 };
             }
         };
 
         CaptureResult {
             success: true,
-            knowledge_object_id: None,
+            knowledge_object: None,
             error: None,
             message: "Clipboard content captured".to_string(),
-            payload: Some(payload),
         }
     }
 }
