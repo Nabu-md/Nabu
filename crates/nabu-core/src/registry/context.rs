@@ -50,6 +50,9 @@ use crate::plugin::version::Version;
 use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
+use crate::jobs;
+use crate::diagnostics::PerformanceMonitor;
+
 // ---------------------------------------------------------------------------
 // Forward type aliases — prevents circular crate dependencies.
 // Concrete types are resolved at crate level (nabu-core) via the registry.
@@ -233,14 +236,14 @@ impl ApplicationContext {
     /// Returns the job queue if registered.
     pub fn job_queue(
         &self,
-    ) -> Option<Arc<crate::job_queue::JobQueue>> {
+    ) -> Option<Arc<jobs::DurableJobQueue>> {
         self.resolve("job_queue")
     }
 
     /// Returns the worker pool if registered.
     pub fn worker_pool(
         &self,
-    ) -> Option<Arc<crate::job_queue::WorkerPool>> {
+    ) -> Option<Arc<jobs::WorkerPool>> {
         self.resolve("worker_pool")
     }
 
@@ -256,6 +259,20 @@ impl ApplicationContext {
         &self,
     ) -> Option<Arc<std::sync::Mutex<crate::indexer::Indexer>>> {
         self.resolve("indexer")
+    }
+
+    /// Returns the storage manager if registered.
+    pub fn storage_manager(
+        &self,
+    ) -> Option<Arc<crate::storage::StorageManager>> {
+        self.resolve("storage_manager")
+    }
+
+    /// Returns the performance monitor if registered.
+    pub fn performance_monitor(
+        &self,
+    ) -> Option<Arc<PerformanceMonitor>> {
+        self.resolve("performance_monitor")
     }
 
     // -----------------------------------------------------------------------
@@ -510,7 +527,7 @@ pub fn build_standard_application_context() -> ApplicationContext {
 
     // Register built-in capabilities
     let nabu_version = Version::new(0, 1, 0);
-    capability_registry.register_builtin_capabilities(&nabu_version);
+    register_builtin_capabilities(&mut capability_registry, &nabu_version);
 
     let ctx = ApplicationContext::new(registry, event_bus, capability_registry);
 
