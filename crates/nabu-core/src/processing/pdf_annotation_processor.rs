@@ -1,9 +1,6 @@
 use crate::models::knowledge_object::KnowledgeObject;
-use crate::native::pdf::PDFDocument;
+use crate::native::pdf::PdfDocument;
 use crate::processing::processor::{ProcessingResult, Processor};
-use objc2::msg_send;
-use objc2::rc::Retained;
-use objc2_foundation::{NSObject, NSString, NSURL};
 
 #[derive(Debug, Clone)]
 pub struct PdfAnnotationProcessor;
@@ -32,9 +29,7 @@ impl Processor for PdfAnnotationProcessor {
             return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = NSURL::fileURLWithPath(&NSString::from_str(source_file));
-
-        let doc = match PDFDocument::initWithURL(&url) {
+        let doc = match PdfDocument::from_path(&path) {
             Some(doc) => doc,
             None => return ProcessingResult::warning("Failed to load PDF document"),
         };
@@ -42,39 +37,21 @@ impl Processor for PdfAnnotationProcessor {
         let mut extracted_annotations = Vec::new();
         let mut annotation_edges = Vec::new();
 
-        for i in 0..doc.pageCount() {
-            if let Some(page) = doc.pageAtIndex(i) {
-                if let Some(annos) = page.annotations() {
-                    let page_annotation_count = annos.count();
-                    extracted_annotations.push(serde_json::json!({
-                        "page": i,
-                        "annotation_count": page_annotation_count
-                    }));
+        for i in 0..doc.page_count() {
+            if let Some(page) = doc.page(i) {
+                let annotations = page.annotations();
+                extracted_annotations.push(serde_json::json!({
+                    "page": i,
+                    "annotation_count": annotations.len()
+                }));
 
-                    for j in 0..page_annotation_count {
-                        // SAFETY: `annos` is a valid `NSArray`; `objectAtIndex:`
-                        // returns an autoreleased object (or `nil`). The index
-                        // `j` is guaranteed to be in range by the loop bound.
-                        let annotation: Option<Retained<NSObject>> =
-                            unsafe { objc2::msg_send![&*annos, objectAtIndex: j] };
-
-                        if let Some(annotation) = annotation {
-                            // SAFETY: `annotation` is a valid `NSObject`;
-                            // `contents` returns an autoreleased `NSString` (or `nil`).
-                            let content: Option<Retained<NSString>> =
-                                unsafe { objc2::msg_send![&*annotation, contents] };
-
-                            if let Some(content) = content {
-                                let content_str = crate::native::pdf::nsstring_to_string(&content);
-                                if content_str.contains("file://") || content_str.contains(".pdf") {
-                                    annotation_edges.push(serde_json::json!({
-                                        "page": i,
-                                        "type": "file_reference",
-                                        "content": content_str
-                                    }));
-                                }
-                            }
-                        }
+                for ann in annotations {
+                    if ann.content.contains("file://") || ann.content.contains(".pdf") {
+                        annotation_edges.push(serde_json::json!({
+                            "page": i,
+                            "type": "file_reference",
+                            "content": ann.content
+                        }));
                     }
                 }
             }

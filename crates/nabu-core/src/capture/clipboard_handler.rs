@@ -44,28 +44,7 @@ use crate::capture::{
     CaptureHandler, CaptureRequest, CaptureResult, ClipboardMonitorConfig, ClipboardMonitorMode,
     IngestionOptions, IngestionRequest,
 };
-use objc2::msg_send;
-use objc2::rc::autoreleasepool;
-use objc2::ClassType;
-use objc2_foundation::{NSObject, NSString};
-
-objc2::extern_class!(
-    #[derive(Debug, PartialEq)]
-    #[unsafe(super(NSObject))]
-    pub struct NSPasteboard;
-);
-
-objc2::extern_class!(
-    #[derive(Debug, PartialEq)]
-    #[unsafe(super(NSObject))]
-    pub struct NSImage;
-);
-
-objc2::extern_class!(
-    #[derive(Debug, PartialEq)]
-    #[unsafe(super(NSObject))]
-    pub struct NSData;
-);
+use crate::native::clipboard::{self, ClipboardContent};
 
 /// Handles clipboard capture requests on macOS.
 ///
@@ -114,147 +93,23 @@ impl ClipboardHandler {
     /// Returns `None` if no supported content is available or if
     /// the pasteboard cannot be accessed.
     fn read_clipboard_content(&self) -> Option<(String, Vec<u8>)> {
-        #[cfg(target_os = "macos")]
-        {
-            self.read_macos_pasteboard()
-        }
-        #[cfg(not(target_os = "macos"))]
-        {
-            None
-        }
-    }
+        let content = clipboard::read_clipboard();
 
-    /// macOS-specific pasteboard reading using objc2.
-    #[cfg(target_os = "macos")]
-    fn read_macos_pasteboard(&self) -> Option<(String, Vec<u8>)> {
-        use objc2_foundation::NSString;
-
-        // Obtain the general pasteboard via +generalPasteboard
-        let pasteboard_class = NSPasteboard::class();
-        let pasteboard: objc2::rc::Retained<NSPasteboard> =
-            unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
-
-        // Try URL first (highest priority)
-        if let Some(url_str) = Self::pasteboard_string_for_type(&pasteboard, "public.url") {
-            if url_str.trim().starts_with("http") {
-                return Some(("text/uri-list".to_string(), url_str.into_bytes()));
+        match content {
+            ClipboardContent::Text(text) => {
+                Some(("text/plain".to_string(), text.into_bytes()))
             }
+            ClipboardContent::Html(html) => {
+                Some(("text/html".to_string(), html.into_bytes()))
+            }
+            ClipboardContent::Url(url) => {
+                Some(("text/uri-list".to_string(), url.into_bytes()))
+            }
+            ClipboardContent::Image(data) => {
+                Some(("image/png".to_string(), data))
+            }
+            ClipboardContent::None => None,
         }
-
-        // Try HTML (rich text)
-        if let Some(html) = Self::pasteboard_string_for_type(&pasteboard, "public.html") {
-            return Some(("text/html".to_string(), html.into_bytes()));
-        }
-
-        // Try plain text
-        if let Some(text) = Self::pasteboard_string_for_type(&pasteboard, "public.utf8-plain-text")
-        {
-            return Some(("text/plain".to_string(), text.into_bytes()));
-        }
-
-        // Try image (PNG)
-        if let Some(image_data) = Self::pasteboard_image_data(&pasteboard) {
-            return Some(("image/png".to_string(), image_data));
-        }
-
-        None
-    }
-
-    /// Reads a string value from the pasteboard for the given type.
-    #[cfg(target_os = "macos")]
-    fn pasteboard_string_for_type(
-        pasteboard: &objc2::rc::Retained<NSPasteboard>,
-        type_name: &str,
-    ) -> Option<String> {
-        use objc2_foundation::NSString;
-
-        let type_str = NSString::from_str(type_name);
-
-        // Check if the pasteboard has this type
-        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `types` returns an
-        // autoreleased `NSArray`.
-        let types: objc2::rc::Retained<objc2_foundation::NSArray<objc2_foundation::NSObject>> =
-            unsafe { objc2::msg_send![&**pasteboard, types] };
-
-        let has_type: bool = unsafe {
-            let msg = objc2::msg_send![types, containsObject: &*type_str];
-            msg
-        };
-
-        if !has_type {
-            return None;
-        }
-
-        // Read the string value
-        let value: Option<objc2::rc::Retained<NSString>> = unsafe {
-            let msg = objc2::msg_send![pasteboard, stringForType: &*type_str];
-            msg
-        };
-
-        value.and_then(|v| {
-            autoreleasepool(|pool| {
-                // SAFETY: `v` is a valid `NSString` and `pool` is the current
-                // autorelease pool. `to_str` returns a borrowed `&str` whose
-                // lifetime is bounded by the pool; we copy it into an owned
-                // `String` before the pool drains.
-                let s = unsafe { v.to_str(pool) };
-                Some(s.to_string())
-            })
-        })
-    }
-
-    /// Reads image data from the pasteboard as PNG bytes.
-    #[cfg(target_os = "macos")]
-    fn pasteboard_image_data(
-        pasteboard: &objc2::rc::Retained<NSPasteboard>,
-    ) -> Option<Vec<u8>> {
-        use objc2_foundation::NSString;
-
-        let type_str = NSString::from_str("public.png");
-
-        // Check if the pasteboard has image data
-        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `types` returns an
-        // autoreleased `NSArray`.
-        let types: objc2::rc::Retained<objc2_foundation::NSArray<objc2_foundation::NSObject>> =
-            unsafe { objc2::msg_send![&**pasteboard, types] };
-
-        // SAFETY: `types` is a valid `NSArray`; `containsObject:` returns a
-        // primitive `BOOL`.
-        let has_type: bool = unsafe { objc2::msg_send![&*types, containsObject: &*type_str] };
-
-        if !has_type {
-            return None;
-        }
-
-        // Read the image
-        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `imageForType:`
-        // returns an autoreleased `NSImage` (or `nil`).
-        let image: Option<objc2::rc::Retained<NSImage>> =
-            unsafe { objc2::msg_send![&**pasteboard, imageForType: &*type_str] };
-
-        image.and_then(|img| {
-            // Get TIFF representation first (NSImage -> TIFF)
-            // SAFETY: `img` is a valid `NSImage`; `TIFFRepresentation` returns
-            // an autoreleased `NSData` (or `nil`).
-            let tiff_data: Option<objc2::rc::Retained<objc2_foundation::NSData>> =
-                unsafe { objc2::msg_send![&*img, TIFFRepresentation] };
-
-            tiff_data.and_then(|data| {
-                // SAFETY: `data` is a valid `NSData`; `bytes` returns a raw
-                // pointer to the underlying buffer and `length` returns its
-                // size in bytes.
-                let bytes_ptr: *const u8 = unsafe { objc2::msg_send![&*data, bytes] };
-                let length: usize = unsafe { objc2::msg_send![&*data, length] };
-
-                if bytes_ptr.is_null() || length == 0 {
-                    return None;
-                }
-
-                // SAFETY: `bytes_ptr` is valid for `length` bytes as guaranteed
-                // by the `NSData` contract. We immediately copy into a `Vec`.
-                Some(unsafe { std::slice::from_raw_parts(bytes_ptr, length).to_vec() })
-            })
-        })
     }
 }
 
@@ -350,6 +205,7 @@ impl CaptureHandler for ClipboardHandler {
     }
 
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,8 +1,6 @@
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent};
-use crate::native::pdf::PDFDocument;
+use crate::native::pdf::PdfDocument;
 use crate::processing::processor::{ProcessingResult, Processor};
-use objc2::rc::autoreleasepool;
-use objc2_foundation::{NSString, NSURL};
 
 #[derive(Debug, Clone)]
 pub struct PdfTextProcessor;
@@ -31,9 +29,7 @@ impl Processor for PdfTextProcessor {
             return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = NSURL::fileURLWithPath(&NSString::from_str(source_file));
-
-        let doc = match PDFDocument::initWithURL(&url) {
+        let doc = match PdfDocument::from_path(&path) {
             Some(doc) => doc,
             None => return ProcessingResult::warning("Failed to load PDF document"),
         };
@@ -41,16 +37,11 @@ impl Processor for PdfTextProcessor {
         let mut extracted_text = String::new();
         let mut is_scanned = true;
 
-        for i in 0..doc.pageCount() {
-            if let Some(page) = doc.pageAtIndex(i) {
+        for i in 0..doc.page_count() {
+            if let Some(page) = doc.page(i) {
                 if let Some(text) = page.string() {
-                    autoreleasepool(|pool| {
-                        // SAFETY: `text` is a valid `NSString` and `pool` is
-                        // the current autorelease pool.
-                        let s = unsafe { text.to_str(pool) };
-                        extracted_text.push_str(s);
-                        is_scanned = false;
-                    });
+                    extracted_text.push_str(&text);
+                    is_scanned = false;
                 }
             }
         }
