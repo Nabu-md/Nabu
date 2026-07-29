@@ -48,10 +48,10 @@ impl WorkerChannel {
 
     /// Create a receiver for workers to pull jobs from.
     pub fn create_receiver(&self) -> WorkerReceiver {
-        let (tx, rx): (_, mpsc::UnboundedReceiver<Job>) = mpsc::unbounded_channel();
+        let (_tx, rx): (_, mpsc::UnboundedReceiver<Job>) = mpsc::unbounded_channel();
 
         // Forward from the main channel to this receiver
-        let main_tx = self.job_tx.clone();
+        let _main_tx = self.job_tx.clone();
         tokio::spawn(async move {
             // This is simplified — in production this would fan-out to multiple receivers
             // Workers pull from the shared queue instead of per-worker channels
