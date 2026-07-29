@@ -1,7 +1,8 @@
 use crate::models::knowledge_object::{KnowledgeObject, ObjectContent};
-use crate::processing::processor::{ProcessingResult, Processor};
 use crate::native::pdf::PDFDocument;
-use objc2_foundation::{NSURL, NSString};
+use crate::processing::processor::{ProcessingResult, Processor};
+use objc2::rc::autoreleasepool;
+use objc2_foundation::{NSString, NSURL};
 
 #[derive(Debug, Clone)]
 pub struct PdfTextProcessor;
@@ -43,9 +44,13 @@ impl Processor for PdfTextProcessor {
         for i in 0..doc.pageCount() {
             if let Some(page) = doc.pageAtIndex(i) {
                 if let Some(text) = page.string() {
-                    let s = text.to_str();
-                    extracted_text.push_str(s);
-                    is_scanned = false;
+                    autoreleasepool(|pool| {
+                        // SAFETY: `text` is a valid `NSString` and `pool` is
+                        // the current autorelease pool.
+                        let s = unsafe { text.to_str(pool) };
+                        extracted_text.push_str(s);
+                        is_scanned = false;
+                    });
                 }
             }
         }

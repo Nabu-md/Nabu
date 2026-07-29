@@ -44,7 +44,8 @@ use crate::capture::{
     CaptureHandler, CaptureRequest, CaptureResult, ClipboardMonitorConfig, ClipboardMonitorMode,
     IngestionOptions, IngestionRequest,
 };
-use objc2::rc::AutoreleasePool;
+use objc2::msg_send;
+use objc2::rc::autoreleasepool;
 use objc2::ClassType;
 use objc2_foundation::{NSObject, NSString};
 
@@ -170,7 +171,10 @@ impl ClipboardHandler {
         let type_str = NSString::from_str(type_name);
 
         // Check if the pasteboard has this type
-        let types = unsafe { objc2::msg_send![pasteboard, types] };
+        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `types` returns an
+        // autoreleased `NSArray`.
+        let types: objc2::rc::Retained<objc2_foundation::NSArray<objc2_foundation::NSObject>> =
+            unsafe { objc2::msg_send![&**pasteboard, types] };
 
         let has_type: bool = unsafe {
             let msg = objc2::msg_send![types, containsObject: &*type_str];
@@ -188,8 +192,14 @@ impl ClipboardHandler {
         };
 
         value.and_then(|v| {
-            let pool = AutoreleasePool::new();
-            v.to_str(&pool).ok().map(|s| s.to_string())
+            autoreleasepool(|pool| {
+                // SAFETY: `v` is a valid `NSString` and `pool` is the current
+                // autorelease pool. `to_str` returns a borrowed `&str` whose
+                // lifetime is bounded by the pool; we copy it into an owned
+                // `String` before the pool drains.
+                let s = unsafe { v.to_str(pool) };
+                Some(s.to_string())
+            })
         })
     }
 
@@ -203,38 +213,45 @@ impl ClipboardHandler {
         let type_str = NSString::from_str("public.png");
 
         // Check if the pasteboard has image data
-        let types = unsafe { objc2::msg_send![pasteboard, types] };
+        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `types` returns an
+        // autoreleased `NSArray`.
+        let types: objc2::rc::Retained<objc2_foundation::NSArray<objc2_foundation::NSObject>> =
+            unsafe { objc2::msg_send![&**pasteboard, types] };
 
-        let has_type: bool = unsafe {
-            let msg = objc2::msg_send![types, containsObject: &*type_str];
-            msg
-        };
+        // SAFETY: `types` is a valid `NSArray`; `containsObject:` returns a
+        // primitive `BOOL`.
+        let has_type: bool = unsafe { objc2::msg_send![&*types, containsObject: &*type_str] };
 
         if !has_type {
             return None;
         }
 
         // Read the image
-        let image = unsafe { objc2::msg_send![pasteboard, imageForType: &*type_str] };
+        // SAFETY: `pasteboard` is a valid `NSPasteboard`; `imageForType:`
+        // returns an autoreleased `NSImage` (or `nil`).
+        let image: Option<objc2::rc::Retained<NSImage>> =
+            unsafe { objc2::msg_send![&**pasteboard, imageForType: &*type_str] };
 
         image.and_then(|img| {
             // Get TIFF representation first (NSImage -> TIFF)
-            let tiff_data = unsafe { objc2::msg_send![img, TIFFRepresentation] };
+            // SAFETY: `img` is a valid `NSImage`; `TIFFRepresentation` returns
+            // an autoreleased `NSData` (or `nil`).
+            let tiff_data: Option<objc2::rc::Retained<objc2_foundation::NSData>> =
+                unsafe { objc2::msg_send![&*img, TIFFRepresentation] };
 
             tiff_data.and_then(|data| {
-                let bytes_ptr: *const u8 = unsafe {
-                    let msg = objc2::msg_send![data, bytes];
-                    msg
-                };
-                let length: usize = unsafe {
-                    let msg = objc2::msg_send![data, length];
-                    msg
-                };
+                // SAFETY: `data` is a valid `NSData`; `bytes` returns a raw
+                // pointer to the underlying buffer and `length` returns its
+                // size in bytes.
+                let bytes_ptr: *const u8 = unsafe { objc2::msg_send![&*data, bytes] };
+                let length: usize = unsafe { objc2::msg_send![&*data, length] };
 
                 if bytes_ptr.is_null() || length == 0 {
                     return None;
                 }
 
+                // SAFETY: `bytes_ptr` is valid for `length` bytes as guaranteed
+                // by the `NSData` contract. We immediately copy into a `Vec`.
                 Some(unsafe { std::slice::from_raw_parts(bytes_ptr, length).to_vec() })
             })
         })

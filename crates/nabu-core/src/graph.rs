@@ -1,6 +1,10 @@
 use crate::models::knowledge_object::KnowledgeObject;
-
 use crate::models::graph::RelationType;
+use petgraph::graph::{Graph, NodeIndex};
+use petgraph::visit::EdgeRef;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,13 +18,6 @@ pub enum GraphEdgeType {
     WikiLink,
     Semantic(RelationType),
 }
-
-use petgraph::graph::{Graph, NodeIndex};
-use petgraph::visit::EdgeRef;
-use regex::Regex;
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct VaultGraph {

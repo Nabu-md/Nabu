@@ -114,8 +114,7 @@ impl ScreenshotHandler {
 
         match mode {
             ScreenshotMode::FullScreen => {
-                let display_id = unsafe { core_graphics::display::CGMainDisplayID() };
-                let display = CGDisplay::new(display_id);
+                let display = CGDisplay::main();
                 display
                     .image()
                     .ok_or_else(|| "Failed to capture full screen".to_string())
@@ -124,8 +123,7 @@ impl ScreenshotHandler {
             ScreenshotMode::ActiveWindow => {
                 // Active window capture requires core_foundation which is not available
                 // Fall back to full screen capture
-                let display_id = unsafe { core_graphics::display::CGMainDisplayID() };
-                let display = CGDisplay::new(display_id);
+                let display = CGDisplay::main();
                 display
                     .image()
                     .ok_or_else(|| "Failed to capture full screen".to_string())
@@ -159,8 +157,7 @@ impl ScreenshotHandler {
                     return Err("Region dimensions must be positive".to_string());
                 }
 
-                let display_id = unsafe { core_graphics::display::CGMainDisplayID() };
-                let display = CGDisplay::new(display_id);
+                let display = CGDisplay::main();
 
                 let full_image = display
                     .image()
@@ -186,7 +183,7 @@ impl ScreenshotHandler {
         // We need to convert to RGBA for the image crate.
         // Get the raw bytes from CFData
         let data_ptr = data.as_ptr();
-        let data_len = data.len();
+        let data_len = data.len() as usize;
         let raw_pixels = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
         let mut rgba_pixels = Vec::with_capacity((width as usize) * (height as usize) * 4);
 
@@ -204,7 +201,7 @@ impl ScreenshotHandler {
             }
         }
 
-        let image_buffer = image::ImageBuffer::from_raw(
+        let image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::from_raw(
             width as u32,
             height as u32,
             rgba_pixels,

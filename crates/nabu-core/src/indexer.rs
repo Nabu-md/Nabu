@@ -60,11 +60,16 @@ impl Indexer {
         let searcher = reader.searcher();
         let path_field = schema.get_field("path").unwrap();
         let mut ids = HashSet::new();
-        for doc_addr in searcher.doc_addresses() {
-            if let Ok(doc) = searcher.doc(doc_addr) {
-                if let Some(path_val) = doc.get_first(path_field) {
-                    if let Some(path_str) = path_val.as_str() {
-                        ids.insert(path_str.to_string());
+        // Use segment readers to iterate over all documents
+        let segment_readers = searcher.segment_readers();
+        for (segment_ordinal, segment_reader) in segment_readers.iter().enumerate() {
+            for doc_id in 0..segment_reader.max_doc() {
+                let doc_address = tantivy::DocAddress::new(segment_ordinal as u32, doc_id as u32);
+                if let Ok(doc) = searcher.doc::<TantivyDocument>(doc_address) {
+                    if let Some(path_val) = doc.get_first(path_field) {
+                        if let Some(path_str) = path_val.as_str() {
+                            ids.insert(path_str.to_string());
+                        }
                     }
                 }
             }
@@ -86,12 +91,12 @@ impl Indexer {
         }
 
         let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown => "",
-            crate::models::knowledge_object::ObjectContent::PlainText => "",
-            crate::models::knowledge_object::ObjectContent::Html => "",
-            crate::models::knowledge_object::ObjectContent::Binary => "",
+            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
+            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
+            crate::models::knowledge_object::ObjectContent::Html => String::new(),
+            crate::models::knowledge_object::ObjectContent::Binary => String::new(),
             crate::models::knowledge_object::ObjectContent::Structured(json) => {
-                serde_json::to_string(json).unwrap_or_default().as_str()
+                serde_json::to_string(json).unwrap_or_default()
             }
         };
 
@@ -105,8 +110,8 @@ impl Indexer {
 
         let mut doc = TantivyDocument::default();
         doc.add_text(path_field, doc_id.clone());
-        doc.add_text(content_field, content);
-        doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
+        doc.add_text(content_field, &content);
+        doc.add_text(tag_field, crate::markdown::extract_tags(&content).join(" "));
         doc.add_text(custom_field, serde_json::to_string(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());
@@ -168,12 +173,12 @@ impl Indexer {
     fn build_document(&self, ko: &KnowledgeObject) -> anyhow::Result<TantivyDocument> {
         let doc_id = ko.id.to_string();
         let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown => "",
-            crate::models::knowledge_object::ObjectContent::PlainText => "",
-            crate::models::knowledge_object::ObjectContent::Html => "",
-            crate::models::knowledge_object::ObjectContent::Binary => "",
+            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
+            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
+            crate::models::knowledge_object::ObjectContent::Html => String::new(),
+            crate::models::knowledge_object::ObjectContent::Binary => String::new(),
             crate::models::knowledge_object::ObjectContent::Structured(json) => {
-                serde_json::to_string(json).unwrap_or_default().as_str()
+                serde_json::to_string(json).unwrap_or_default()
             }
         };
 
@@ -187,8 +192,8 @@ impl Indexer {
 
         let mut doc = TantivyDocument::default();
         doc.add_text(path_field, doc_id);
-        doc.add_text(content_field, content);
-        doc.add_text(tag_field, crate::markdown::extract_tags(content).join(" "));
+        doc.add_text(content_field, &content);
+        doc.add_text(tag_field, crate::markdown::extract_tags(&content).join(" "));
         doc.add_text(custom_field, serde_json::to_string(&ko.metadata.custom)?);
         doc.add_text(title_field, ko.metadata.title.clone().unwrap_or_default());
         doc.add_text(object_type_field, ko.object_type.to_string());

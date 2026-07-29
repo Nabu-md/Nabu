@@ -39,7 +39,7 @@ tempfile = "3.10"
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 objc2 = "0.6"
-objc2-foundation = "0.3"
-objc2-vision = "0.3"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSArray", "NSDictionary", "NSObject", "NSURL", "NSData", "NSError"] }
+objc2-vision = { version = "0.3", features = ["VNObservation", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler", "VNTypes"] }
 core-graphics = "0.22"
 image = "0.25"

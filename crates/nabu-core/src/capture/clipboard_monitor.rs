@@ -46,6 +46,7 @@ use std::time::{Duration, Instant};
 
 use crate::capture::{CaptureEngine, ClipboardMonitorConfig, ClipboardMonitorMode};
 use crate::event_bus::EventBus;
+use objc2::msg_send;
 use objc2::ClassType;
 use objc2_foundation::{NSObject, NSString};
 
@@ -238,12 +239,15 @@ impl ClipboardMonitor {
         {
             // Obtain the general pasteboard via +generalPasteboard
             let pasteboard_class = NSPasteboard::class();
-            let pasteboard = unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
+            // SAFETY: `pasteboard_class` is the `NSPasteboard` class object;
+            // `generalPasteboard` is a class method that returns an autoreleased
+            // `NSPasteboard` instance.
+            let pasteboard: objc2::rc::Retained<NSPasteboard> =
+                unsafe { objc2::msg_send![pasteboard_class, generalPasteboard] };
 
-            let changed_count: u64 = unsafe {
-                let msg = objc2::msg_send![pasteboard, changedCount];
-                msg
-            };
+            // SAFETY: `pasteboard` is a valid `NSPasteboard`; `changedCount`
+            // returns a primitive integer.
+            let changed_count: u64 = unsafe { objc2::msg_send![&*pasteboard, changedCount] };
             changed_count
         }
         #[cfg(not(target_os = "macos"))]
