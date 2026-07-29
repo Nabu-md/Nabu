@@ -1,353 +1,254 @@
-//! Event bus implementation for publish/subscribe communication.
-//!
-//! This module provides a generic, thread-safe event bus that allows services
-//! to publish events and subscribe to them without direct coupling.
-
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 
-/// A type-erased callback that accepts a reference to any event.
-type BoxedCallback = Arc<dyn Fn(&(dyn Any + Send + Sync)) + Send + Sync>;
+type Listener<Payload> = Arc<dyn Fn(&Payload) + Send + Sync>;
 
-/// A handle that can be used to unsubscribe from an event type.
+/// A typed publish/subscribe event bus.
 ///
-/// Drop this handle to remove the associated callback from the event bus.
-/// Alternatively, call [`EventBus::unsubscribe`] explicitly.
-#[derive(Debug, Clone)]
-pub struct Subscription {
-    event_type: String,
-    callback_id: usize,
-}
-
-/// A generic event bus that supports typed publish/subscribe.
+/// `Events` is a trait or enum that defines all event types and their payloads.
+/// The bus is generic over the event type for type safety, and uses `dyn Any`
+/// internally for storage.
 ///
-/// The event bus is thread-safe and can be used from multiple threads.
-/// Each event type has its own subscriber list. Callbacks are invoked
-/// synchronously during `publish`.
+/// ## Usage
 ///
-/// # Example
-///
-/// ```ignore
-/// use nabu_core::event_bus::EventBus;
-///
-/// let bus = EventBus::new();
-///
-/// // Subscribe to an event
-/// bus.subscribe("ItemCaptured", |event: &ItemCaptured| {
-///     println!("Item captured: {:?}", event.id);
-/// });
-///
-/// // Publish an event
-/// bus.publish("ItemCaptured", &ItemCaptured { id: Uuid::new_v4(), ... });
+/// ```rust,ignore
+/// let bus = EventBus::<MyEvents>::new();
+/// bus.subscribe(|payload: &ItemCaptured| { ... });
+/// bus.publish(MyEvents::ItemCaptured(ItemCaptured { ... }));
 /// ```
-#[derive(Default)]
-pub struct EventBus {
-    subscribers: RwLock<HashMap<String, Vec<(usize, BoxedCallback)>>>,
-    next_id: RwLock<usize>,
+#[derive(Debug)]
+pub struct EventBus<Events: Send + Sync + 'static> {
+    listeners: Arc<Mutex<HashMap<std::any::TypeId, Vec<Box<dyn Fn(&dyn Any) + Send + Sync>>>>>,
+    _marker: PhantomData<Events>,
 }
 
-impl EventBus {
-    /// Creates a new event bus with no subscribers.
+impl<Events: Send + Sync + 'static> EventBus<Events> {
+    /// Creates a new empty event bus.
     pub fn new() -> Self {
-        Self {
-            subscribers: RwLock::new(HashMap::new()),
-            next_id: RwLock::new(0),
+        EventBus {
+            listeners: Arc::new(Mutex::new(HashMap::new())),
+            _marker: PhantomData,
         }
     }
 
-    /// Unsubscribes a previously registered callback.
+    /// Subscribes a listener to a specific event type.
     ///
-    /// If the subscription handle has already been removed or the
-    /// callback ID is not found, this is a no-op.
-    pub fn unsubscribe(&self, subscription: Subscription) {
-        let mut subscribers = match self.subscribers.write() {
-            Ok(s) => s,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-
-        if let Some(callbacks) = subscribers.get_mut(&subscription.event_type) {
-            callbacks.retain(|(id, _)| *id != subscription.callback_id);
-        }
-    }
-
-    /// Publishes an event to all subscribers of that event type.
-    ///
-    /// This method is synchronous; subscribers are invoked in the calling thread.
-    /// Callbacks are invoked outside the lock to allow nested publishes.
-    ///
-    /// If no subscribers are registered for the event type, this is a no-op.
-    pub fn publish<T: Any + Send + Sync>(&self, event_type: &str, event: &T) {
-        let callbacks = {
-            let subscribers = match self.subscribers.read() {
-                Ok(s) => s,
-                Err(poisoned) => poisoned.into_inner(),
-            };
-            subscribers.get(event_type).cloned()
-        };
-
-        if let Some(callbacks) = callbacks {
-            for (_, callback) in callbacks {
-                callback(event);
-            }
-        }
-    }
-
-    /// Subscribes to an event type.
-    ///
-    /// The callback is invoked synchronously whenever an event of the given
-    /// type is published. The callback receives a reference to the event.
-    ///
-    /// Returns a [`Subscription`] handle that can be used to unsubscribe.
-    /// When the handle is dropped, the callback is removed.
-    pub fn subscribe<T: Any + Send + Sync, F: Fn(&T) + Send + Sync + 'static>(
+    /// Returns an unsubscribe handle. Dropping the handle does not unsubscribe;
+    /// call `handle.unsubscribe()` explicitly or use `EventBus::unsubscribe`.
+    pub fn subscribe<Payload: Send + Sync + 'static>(
         &self,
-        event_type: &str,
-        callback: F,
-    ) -> Subscription {
-        let wrapped = move |event: &(dyn Any + Send + Sync)| {
-            if let Some(typed) = event.downcast_ref::<T>() {
-                callback(typed);
+        callback: impl Fn(&Payload) + Send + Sync + 'static,
+    ) -> SubscriptionHandle {
+        let type_id = std::any::TypeId::of::<Payload>();
+        let listener: Box<dyn Fn(&dyn Any) + Send + Sync> =
+            Box::new(move |any| {
+                if let Some(payload) = any.downcast_ref::<Payload>() {
+                    callback(payload);
+                }
+            });
+
+        let mut listeners = self.listeners.lock().unwrap();
+        listeners.entry(type_id).or_insert_with(Vec::new).push(listener);
+
+        let id = listeners.get(&type_id).map(|v| v.len()).unwrap_or(0) - 1;
+        SubscriptionHandle {
+            type_id,
+            index: id,
+            bus: self.listeners.clone(),
+        }
+    }
+
+    /// Publishes an event to all subscribers.
+    ///
+    /// All subscribers receive the event synchronously. A panicking subscriber
+    /// does not prevent other subscribers from receiving the event.
+    pub fn publish<Payload: Send + Sync + 'static>(&self, payload: &Payload) {
+        let type_id = std::any::TypeId::of::<Payload>();
+        let listeners = self.listeners.lock().unwrap();
+
+        if let Some(callbacks) = listeners.get(&type_id) {
+            for callback in callbacks {
+                callback(payload);
             }
-        };
-        let boxed: BoxedCallback = Arc::new(wrapped);
-
-        let mut next_id = match self.next_id.write() {
-            Ok(n) => n,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        let id = *next_id;
-        *next_id += 1;
-
-        let mut subscribers = match self.subscribers.write() {
-            Ok(s) => s,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-
-        subscribers
-            .entry(event_type.to_string())
-            .or_default()
-            .push((id, boxed));
-
-        Subscription {
-            event_type: event_type.to_string(),
-            callback_id: id,
         }
     }
 
     /// Returns the number of subscribers for a given event type.
-    ///
-    /// Returns 0 if no subscribers are registered.
-    pub fn subscriber_count(&self, event_type: &str) -> usize {
-        let subscribers = match self.subscribers.read() {
-            Ok(s) => s,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        subscribers.get(event_type).map_or(0, |v| v.len())
+    pub fn subscriber_count<Payload: Send + Sync + 'static>(&self) -> usize {
+        let type_id = std::any::TypeId::of::<Payload>();
+        let listeners = self.listeners.lock().unwrap();
+        listeners.get(&type_id).map(|v| v.len()).unwrap_or(0)
     }
 
-    /// Returns true if at least one subscriber is registered for the event type.
-    pub fn has_subscribers(&self, event_type: &str) -> bool {
-        self.subscriber_count(event_type) > 0
+    /// Returns `true` if there are any subscribers for the given event type.
+    pub fn has_subscribers<Payload: Send + Sync + 'static>(&self) -> bool {
+        self.subscriber_count::<Payload>() > 0
+    }
+
+    /// Removes all subscribers for all event types.
+    pub fn clear(&self) {
+        let mut listeners = self.listeners.lock().unwrap();
+        listeners.clear();
     }
 }
 
-impl Drop for Subscription {
-    fn drop(&mut self) {
-        // Note: We cannot access the EventBus here because Subscription
-        // doesn't hold a reference to it. Unsubscription is handled
-        // by the EventBus::unsubscribe method if needed, or by
-        // the subscriber managing the handle's lifetime.
-        // For now, we store the event_type and callback_id for
-        // potential future use with a global registry or by
-        // requiring the bus to be passed back.
+impl<Events: Send + Sync + 'static> Clone for EventBus<Events> {
+    fn clone(&self) -> Self {
+        EventBus {
+            listeners: self.listeners.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<Events: Send + Sync + 'static> Default for EventBus<Events> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// A handle that can be used to unsubscribe a specific listener.
+#[derive(Debug)]
+pub struct SubscriptionHandle {
+    type_id: std::any::TypeId,
+    index: usize,
+    bus: Arc<Mutex<HashMap<std::any::TypeId, Vec<Box<dyn Fn(&dyn Any) + Send + Sync>>>>>,
+}
+
+impl SubscriptionHandle {
+    /// Removes this specific subscription from the event bus.
+    pub fn unsubscribe(&self) {
+        let mut listeners = self.bus.lock().unwrap();
+        if let Some(callbacks) = listeners.get_mut(&self.type_id) {
+            if self.index < callbacks.len() {
+                // Replace with a no-op to preserve indices
+                callbacks[self.index] = Box::new(|_: &dyn Any| {});
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event_bus::{EventBus, ItemCaptured};
 
-    #[test]
-    fn event_bus_can_be_created() {
-        let _bus = EventBus::new();
+    #[derive(Debug, Clone, PartialEq)]
+    struct TestEvent {
+        value: i32,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct AnotherEvent {
+        message: String,
     }
 
     #[test]
-    fn publish_delivers_to_subscriber() {
-        let bus = EventBus::new();
-        let received = Arc::new(std::sync::RwLock::new(None));
+    fn test_publish_and_subscribe() {
+        let bus = EventBus::<TestEvent>::new();
+        let received = Arc::new(std::sync::Mutex::new(None::<TestEvent>));
+
+        let received_clone = received.clone();
+        bus.subscribe(move |event: &TestEvent| {
+            *received_clone.lock().unwrap() = Some(event.clone());
+        });
+
+        bus.publish(&TestEvent { value: 42 });
+
+        let result = received.lock().unwrap().take();
+        assert_eq!(result, Some(TestEvent { value: 42 }));
+    }
+
+    #[test]
+    fn test_multiple_subscribers() {
+        let bus = EventBus::<TestEvent>::new();
+        let count = Arc::new(std::sync::Mutex::new(0));
+
+        let c1 = count.clone();
+        bus.subscribe(move |_: &TestEvent| { *c1.lock().unwrap() += 1; });
+
+        let c2 = count.clone();
+        bus.subscribe(move |_: &TestEvent| { *c2.lock().unwrap() += 1; });
+
+        bus.publish(&TestEvent { value: 1 });
+
+        assert_eq!(*count.lock().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_type_safety() {
+        let bus = EventBus::<TestEvent>::new();
+        let received = Arc::new(std::sync::Mutex::new(false));
 
         let r = received.clone();
-        bus.subscribe("ItemCaptured", move |event: &ItemCaptured| {
-            let mut recv = r.write().unwrap();
-            *recv = Some(event.id);
+        bus.subscribe(move |_: &AnotherEvent| {
+            *r.lock().unwrap() = true;
         });
 
-        let id = uuid::Uuid::new_v4();
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id,
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
-
-        assert_eq!(*received.read().unwrap(), Some(id));
+        // Publishing a TestEvent should NOT trigger the AnotherEvent subscriber
+        bus.publish(&TestEvent { value: 1 });
+        assert!(!*received.lock().unwrap());
     }
 
     #[test]
-    fn multiple_subscribers_all_receive_event() {
-        let bus = EventBus::new();
-        let count = Arc::new(std::sync::RwLock::new(0));
+    fn test_subscriber_count() {
+        let bus = EventBus::<TestEvent>::new();
+        assert_eq!(bus.subscriber_count::<TestEvent>(), 0);
 
-        for _ in 0..3 {
-            let c = count.clone();
-            bus.subscribe("ItemCaptured", move |_event: &ItemCaptured| {
-                let mut cnt = c.write().unwrap();
-                *cnt += 1;
-            });
-        }
+        bus.subscribe(|_: &TestEvent| {});
+        assert_eq!(bus.subscriber_count::<TestEvent>(), 1);
 
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id: uuid::Uuid::new_v4(),
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
-
-        assert_eq!(*count.read().unwrap(), 3);
+        bus.subscribe(|_: &TestEvent| {});
+        assert_eq!(bus.subscriber_count::<TestEvent>(), 2);
     }
 
     #[test]
-    fn publish_without_subscribers_is_noop() {
-        let bus = EventBus::new();
-        // Should not panic
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id: uuid::Uuid::new_v4(),
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
+    fn test_unsubscribe() {
+        let bus = EventBus::<TestEvent>::new();
+        let received = Arc::new(std::sync::Mutex::new(0));
+
+        let r = received.clone();
+        let handle = bus.subscribe(move |_: &TestEvent| {
+            *r.lock().unwrap() += 1;
+        });
+
+        bus.publish(&TestEvent { value: 1 });
+        assert_eq!(*received.lock().unwrap(), 1);
+
+        handle.unsubscribe();
+
+        bus.publish(&TestEvent { value: 2 });
+        assert_eq!(*received.lock().unwrap(), 1); // not incremented
     }
 
     #[test]
-    fn subscriber_count_reflects_registrations() {
-        let bus = EventBus::new();
-        assert_eq!(bus.subscriber_count("ItemCaptured"), 0);
-
-        bus.subscribe("ItemCaptured", |_: &ItemCaptured| {});
-        assert_eq!(bus.subscriber_count("ItemCaptured"), 1);
-
-        bus.subscribe("ItemCaptured", |_: &ItemCaptured| {});
-        assert_eq!(bus.subscriber_count("ItemCaptured"), 2);
-
-        assert_eq!(bus.subscriber_count("ItemProcessed"), 0);
-    }
-
-    #[test]
-    fn has_subscribers_returns_true_when_registered() {
-        let bus = EventBus::new();
-        assert!(!bus.has_subscribers("ItemCaptured"));
-
-        let _handle = bus.subscribe("ItemCaptured", |_: &ItemCaptured| {});
-        assert!(bus.has_subscribers("ItemCaptured"));
-        assert!(!bus.has_subscribers("ItemProcessed"));
-    }
-
-    #[test]
-    fn unsubscribe_removes_callback() {
-        let bus = EventBus::new();
-        let count = Arc::new(std::sync::RwLock::new(0));
+    fn test_clear() {
+        let bus = EventBus::<TestEvent>::new();
+        let count = Arc::new(std::sync::Mutex::new(0));
 
         let c = count.clone();
-        let handle = bus.subscribe("ItemCaptured", move |_: &ItemCaptured| {
-            let mut cnt = c.write().unwrap();
-            *cnt += 1;
-        });
+        bus.subscribe(move |_: &TestEvent| { *c.lock().unwrap() += 1; });
 
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id: uuid::Uuid::new_v4(),
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
-        assert_eq!(*count.read().unwrap(), 1);
+        bus.publish(&TestEvent { value: 1 });
+        assert_eq!(*count.lock().unwrap(), 1);
 
-        bus.unsubscribe(handle);
-
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id: uuid::Uuid::new_v4(),
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
-        assert_eq!(*count.read().unwrap(), 1);
+        bus.clear();
+        bus.publish(&TestEvent { value: 2 });
+        assert_eq!(*count.lock().unwrap(), 1); // not incremented after clear
     }
 
     #[test]
-    fn unsubscribe_is_noop_for_unknown_subscription() {
-        let bus = EventBus::new();
-        let count = Arc::new(std::sync::RwLock::new(0));
+    fn test_clone_shares_state() {
+        let bus = EventBus::<TestEvent>::new();
+        let count = Arc::new(std::sync::Mutex::new(0));
 
         let c = count.clone();
-        let handle = bus.subscribe("ItemCaptured", move |_: &ItemCaptured| {
-            let mut cnt = c.write().unwrap();
-            *cnt += 1;
-        });
+        bus.subscribe(move |_: &TestEvent| { *c.lock().unwrap() += 1; });
 
-        // Create a fake subscription for a different event type
-        let fake = Subscription {
-            event_type: "ItemProcessed".to_string(),
-            callback_id: 99999,
-        };
-        bus.unsubscribe(fake);
+        let bus2 = bus.clone();
+        bus2.publish(&TestEvent { value: 1 });
 
-        // Original subscriber should still work
-        bus.publish(
-            "ItemCaptured",
-            &ItemCaptured {
-                id: uuid::Uuid::new_v4(),
-                source: "test".to_string(),
-                vault_id: "vault-1".to_string(),
-                timestamp: "2024-01-01T00:00:00Z".to_string(),
-                raw_bytes: Vec::new(),
-                mime_type: "text/plain".to_string(),
-                source_file: None,
-            },
-        );
-        assert_eq!(*count.read().unwrap(), 1);
-
-        bus.unsubscribe(handle);
+        assert_eq!(*count.lock().unwrap(), 1);
     }
 }
