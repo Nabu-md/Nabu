@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::ObjectType;
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -149,6 +149,7 @@ fn sanitize_filename(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{KnowledgeObject, ObjectContent};
 
     #[tokio::test]
     async fn test_file_invoice() {

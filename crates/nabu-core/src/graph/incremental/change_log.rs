@@ -16,6 +16,7 @@ use uuid::Uuid;
 pub struct ChangeLog {
     log_path: PathBuf,
     file: Mutex<fs::File>,
+    #[allow(dead_code)]
     /// Number of entries written since last compaction
     entries_since_compact: u64,
     /// Total entries in the current log
@@ -83,18 +84,16 @@ impl ChangeLog {
 
     /// Append a change entry to the log.
     pub fn append(&self, entry: &ChangeEntry) -> Result<(), String> {
-        let mut file = self.file.lock().map_err(|e| e.to_string())?;
+        let file = self.file.lock().map_err(|e| e.to_string())?;
 
         let json = serde_json::to_string(entry)
             .map_err(|e| format!("Serialization error: {}", e))?;
 
-        writeln!(file, "{}", json)
+        writeln!(&*file, "{}", json)
             .map_err(|e| format!("Write error: {}", e))?;
 
         file.flush().map_err(|e| format!("Flush error: {}", e))?;
 
-        // Manually track: since we can't mutate in the lock easily
-        // we'll read the file size instead
         Ok(())
     }
 

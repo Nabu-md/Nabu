@@ -201,6 +201,8 @@ mod tests {
     use super::*;
     use crate::graph::incremental::engine::IncrementalUpdateEngine;
     use crate::graph::version::GraphVersion;
+    use crate::models::ObjectType;
+    use uuid::Uuid;
 
     #[test]
     fn test_event_bridge_creation() {
@@ -208,9 +210,7 @@ mod tests {
         let graph = Arc::new(Mutex::new(VaultGraph::new()));
         let snapshot = GraphSnapshot::new(GraphVersion::new());
 
-        let bridge = GraphEventBridge::new(engine, graph, snapshot);
-        // Bridge should be creatable without panicking
-        assert!(true);
+        let _bridge = GraphEventBridge::new(engine, graph, snapshot);
     }
 
     #[test]

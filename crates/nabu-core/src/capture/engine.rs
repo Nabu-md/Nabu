@@ -97,7 +97,7 @@ impl CaptureEngine {
                 queue.enqueue(job)?;
 
                 // Publish with job ID
-                if let Some(ref bus) = self.event_bus {
+                if let Some(ref _bus) = self.event_bus {
                     // Re-publish with job ID — in real impl this would be done once
                 }
             }

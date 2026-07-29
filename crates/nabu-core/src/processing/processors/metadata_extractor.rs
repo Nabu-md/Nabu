@@ -190,6 +190,7 @@ fn url_decode(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{KnowledgeObject, ObjectContent};
 
     #[tokio::test]
     async fn test_extract_title_from_h1() {

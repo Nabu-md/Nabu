@@ -187,7 +187,7 @@ impl GraphStore {
 mod tests {
     use super::*;
     use crate::graph::serializer::{SerializedEdge, SerializedNode};
-    use crate::graph::version::GraphVersion;
+    use crate::graph::version::{BuildSource, GraphVersion};
     use tempfile::tempdir;
 
     fn create_test_snapshot() -> GraphSnapshot {

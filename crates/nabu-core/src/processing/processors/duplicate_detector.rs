@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::{ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
@@ -112,6 +112,7 @@ impl Processor for DuplicateDetector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::KnowledgeObject;
 
     #[tokio::test]
     async fn test_detect_duplicate() {
@@ -122,7 +123,7 @@ mod tests {
         );
 
         let ctx = ProcessingContext::new(obj.clone());
-        let result1 = detector
+        let _result1 = detector
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
