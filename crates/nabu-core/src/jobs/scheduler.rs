@@ -1,7 +1,7 @@
 use crate::jobs::errors::{JobError, JobResult};
 use crate::jobs::job::{Job, JobStatus};
 use crate::jobs::persistence::JobStore;
-use crate::jobs::priority::Priority;
+
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};

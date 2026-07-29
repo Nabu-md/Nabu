@@ -1,4 +1,4 @@
-use crate::models::{CaptureSource, KnowledgeObject, ObjectType, ProcessingState};
+use crate::models::{CaptureSource, ObjectType};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

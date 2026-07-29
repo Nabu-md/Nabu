@@ -8,7 +8,6 @@
 //! - File layer creation
 //! - Subsystem identifier consistency
 
-use std::path::PathBuf;
 use tempfile::tempdir;
 use tracing_subscriber::layer::Layer;
 use tracing_subscriber::Registry;

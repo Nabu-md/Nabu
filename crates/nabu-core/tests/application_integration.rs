@@ -7,7 +7,6 @@
 use std::sync::Arc;
 
 use nabu_core::event_bus::{EventBus, PipelineEvent};
-use nabu_core::registry::context::ValidationReport;
 use nabu_core::registry::lifecycle::LifecycleStage;
 use nabu_core::registry::Application;
 
@@ -30,7 +29,7 @@ fn application_builder_with_custom_event_bus() {
     let app = Application::builder()
         .with_event_bus(bus.clone())
         .build();
-    assert!(Arc::ptr_eq(&app.context().event_bus(), &bus));
+    assert!(Arc::ptr_eq(app.context().event_bus(), &bus));
 }
 
 #[test]

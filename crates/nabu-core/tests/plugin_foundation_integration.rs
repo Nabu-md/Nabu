@@ -12,7 +12,7 @@
 //! - PluginManager registration and installation
 
 use nabu_core::plugin::capability::{builtin_capabilities, Capability, CapabilityRegistry};
-use nabu_core::plugin::dependency::{validate_dependencies, DependencyGraph};
+use nabu_core::plugin::dependency::validate_dependencies;
 use nabu_core::plugin::features::{FeatureRegistry, FeatureStage};
 use nabu_core::plugin::lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 use nabu_core::plugin::manager::{PluginManager, RegistrationIssue};

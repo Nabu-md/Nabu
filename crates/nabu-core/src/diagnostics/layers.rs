@@ -9,8 +9,6 @@
 use std::path::Path;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::fmt::Layer as FmtLayer;
-use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::Layer;
 use tracing::Subscriber;
 
@@ -133,6 +131,7 @@ pub fn test_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::Loo
 mod tests {
     use super::*;
     use tempfile::tempdir;
+    use tracing_subscriber::layer::SubscriberExt;
 
     #[test]
     fn test_stderr_layer_creation() {

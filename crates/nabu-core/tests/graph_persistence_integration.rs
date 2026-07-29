@@ -1,12 +1,10 @@
-use nabu_core::graph::integrity::{check_integrity, compute_graph_checksum, quick_check, IntegrityReport};
-use nabu_core::graph::loader::{load_graph, create_initial_snapshot, LoadResult};
+use nabu_core::graph::integrity::{check_integrity, compute_graph_checksum, quick_check};
 use nabu_core::graph::persistence::GraphStore;
 use nabu_core::graph::recovery::{GraphRecovery, RecoveryResult, build_graph_from_objects};
 use nabu_core::graph::serializer::{EdgeDirection, GraphSnapshot, SerializedEdge, SerializedNode};
 use nabu_core::graph::version::{BuildSource, GraphVersion, VersionCompatibility, check_compatibility, CURRENT_GRAPH_SCHEMA_VERSION};
 use nabu_core::graph::VaultGraph;
 use nabu_core::models::{KnowledgeObject, ObjectContent, ObjectType};
-use std::collections::HashSet;
 use tempfile::tempdir;
 use uuid::Uuid;
 
@@ -222,7 +220,7 @@ fn test_vaultgraph_with_persistence() {
 
 #[test]
 fn test_serialization_determinism() {
-    let mut snapshot = create_test_snapshot();
+    let snapshot = create_test_snapshot();
     let json1 = snapshot.to_json_string().unwrap();
 
     // Re-serialize (should be identical)

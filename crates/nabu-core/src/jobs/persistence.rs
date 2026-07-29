@@ -2,7 +2,7 @@ use crate::jobs::errors::{JobError, JobResult};
 use crate::jobs::job::{Job, JobStatus};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
