@@ -84,12 +84,12 @@ impl ChangeLog {
 
     /// Append a change entry to the log.
     pub fn append(&self, entry: &ChangeEntry) -> Result<(), String> {
-        let file = self.file.lock().map_err(|e| e.to_string())?;
+        let mut file = self.file.lock().map_err(|e| e.to_string())?;
 
         let json = serde_json::to_string(entry)
             .map_err(|e| format!("Serialization error: {}", e))?;
 
-        writeln!(&*file, "{}", json)
+        writeln!(file, "{}", json)
             .map_err(|e| format!("Write error: {}", e))?;
 
         file.flush().map_err(|e| format!("Flush error: {}", e))?;
@@ -133,7 +133,7 @@ impl ChangeLog {
     where
         F: Fn() -> Result<CheckpointData, String>,
     {
-        let mut file = self.file.lock().map_err(|e| e.to_string())?;
+        let file = self.file.lock().map_err(|e| e.to_string())?;
 
         let checkpoint_data = snapshot_fn()?;
         let checkpoint = ChangeEntry::Checkpoint(checkpoint_data);

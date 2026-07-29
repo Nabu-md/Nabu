@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::{ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 
@@ -109,6 +109,7 @@ fn extract_dates(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::KnowledgeObject;
 
     #[tokio::test]
     async fn test_extract_iso_dates() {
