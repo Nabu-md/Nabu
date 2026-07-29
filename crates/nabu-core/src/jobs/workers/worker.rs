@@ -48,13 +48,22 @@ impl Worker {
     /// 4. Reports completion/failure back to the queue
     /// 5. Reports progress updates to the queue
     pub async fn run(self) {
-        log::info!("Worker {} started", self.id);
+        let span = tracing::info_span!(
+            "nabu",
+            subsystem = "worker",
+            component = "pool",
+            operation = "run",
+            worker_id = self.id,
+        );
+        let _guard = span.enter();
+
+        tracing::info!("Worker started");
         self.shutdown.register();
 
         loop {
             // Check for shutdown
             if self.shutdown.is_shutting_down() {
-                log::info!("Worker {} shutting down", self.id);
+                tracing::info!("Worker shutting down");
                 break;
             }
 
@@ -67,17 +76,27 @@ impl Worker {
                     continue;
                 }
                 Err(e) => {
-                    log::error!("Worker {} dequeue error: {}", self.id, e);
+                    tracing::error!(
+                        subsystem = "worker",
+                        component = "pool",
+                        operation = "dequeue",
+                        error = %e,
+                        "Dequeue error"
+                    );
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     continue;
                 }
             };
 
-            log::info!(
-                "Worker {} picked up job {} ({})",
-                self.id,
-                job.id,
-                job.processor_name
+            tracing::info!(
+                subsystem = "worker",
+                component = "pool",
+                operation = "pickup",
+                job_id = %job.id,
+                job_type = %job.job_type.name(),
+                processor = %job.processor_name,
+                priority = %job.priority.name(),
+                "Worker picked up job"
             );
 
             self.backpressure.job_started();
@@ -86,10 +105,12 @@ impl Worker {
             let executor = match self.executors.get(&job.processor_name) {
                 Some(executor) => executor,
                 None => {
-                    log::error!(
-                        "Worker {}: no executor for '{}'",
-                        self.id,
-                        job.processor_name
+                    tracing::error!(
+                        subsystem = "worker",
+                        component = "pool",
+                        operation = "execute",
+                        executor = %job.processor_name,
+                        "No executor found for job type"
                     );
                     let _ = self.queue.mark_failed(
                         &job.id.to_string(),
@@ -114,11 +135,24 @@ impl Worker {
 
             match result {
                 Ok(_) => {
-                    log::info!("Worker {} completed job {}", self.id, job.id);
+                    tracing::info!(
+                        subsystem = "worker",
+                        component = "pool",
+                        operation = "complete",
+                        job_id = %job.id,
+                        "Worker completed job"
+                    );
                     let _ = self.queue.mark_completed(&job.id.to_string());
                 }
                 Err(e) => {
-                    log::error!("Worker {} job {} failed: {}", self.id, job.id, e);
+                    tracing::error!(
+                        subsystem = "worker",
+                        component = "pool",
+                        operation = "fail",
+                        job_id = %job.id,
+                        error = %e,
+                        "Worker job failed"
+                    );
                     let _ = self.queue.mark_failed(
                         &job.id.to_string(),
                         &e.to_string(),
@@ -131,7 +165,7 @@ impl Worker {
         }
 
         self.shutdown.unregister();
-        log::info!("Worker {} stopped", self.id);
+        tracing::info!("Worker stopped");
     }
 }
 

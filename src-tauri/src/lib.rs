@@ -227,6 +227,16 @@ fn build_application_context() -> ApplicationContext {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // ------------------------------------------------------------------
+    // Initialize the Nabu observability foundation.
+    // ------------------------------------------------------------------
+    // This must happen before any other tracing calls.
+    // Uses NABU_LOG or RUST_LOG environment variables for filtering.
+    // Logs are written to .nabu/logs/ for post-hoc analysis.
+    // Nothing is ever sent to external servers — zero telemetry.
+    // ------------------------------------------------------------------
+    nabu_core::diagnostics::init(None, "nabu");
+
     let settings_path = std::env::var("NABU_SETTINGS_PATH")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| dirs_next().join("nabu").join("settings.json"));

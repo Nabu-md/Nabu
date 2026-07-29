@@ -47,10 +47,16 @@ impl WorkerPool {
 
     /// Start the worker pool, spawning all workers.
     pub async fn start(&self) {
-        log::info!(
-            "Starting worker pool with {} workers",
-            self.worker_count
+        let span = tracing::info_span!(
+            "nabu",
+            subsystem = "worker",
+            component = "pool",
+            operation = "start",
+            worker_count = self.worker_count,
         );
+        let _guard = span.enter();
+
+        tracing::info!("Starting worker pool");
 
         let mut handles = self.handles.lock().await;
 
@@ -70,7 +76,13 @@ impl WorkerPool {
             handles.push(handle);
         }
 
-        log::info!("Worker pool started with {} workers", handles.len());
+        tracing::info!(
+            subsystem = "worker",
+            component = "pool",
+            operation = "start",
+            workers_spawned = handles.len(),
+            "Worker pool started"
+        );
     }
 
     /// Initiate graceful shutdown of the worker pool.
@@ -80,13 +92,23 @@ impl WorkerPool {
     /// 2. Wait for active workers to finish their current job
     /// 3. Force-kill remaining workers after drain timeout
     pub async fn shutdown(&self) {
-        log::info!("Shutting down worker pool...");
+        tracing::info!(
+            subsystem = "worker",
+            component = "pool",
+            operation = "shutdown",
+            "Shutting down worker pool"
+        );
         self.shutdown.initiate();
 
         // Wait for workers to drain
         let drained = self.shutdown.drain().await;
         if !drained {
-            log::warn!("Worker pool drain timeout — force killing remaining workers");
+            tracing::warn!(
+                subsystem = "worker",
+                component = "pool",
+                operation = "shutdown",
+                "Worker pool drain timeout — force killing remaining workers"
+            );
         }
 
         let mut handles = self.handles.lock().await;
@@ -94,7 +116,12 @@ impl WorkerPool {
             handle.abort();
         }
 
-        log::info!("Worker pool shutdown complete");
+        tracing::info!(
+            subsystem = "worker",
+            component = "pool",
+            operation = "shutdown",
+            "Worker pool shutdown complete"
+        );
     }
 
     /// Number of workers in the pool.

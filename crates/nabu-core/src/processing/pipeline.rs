@@ -56,11 +56,38 @@ impl ProcessingPipeline {
         progress: ProgressReporter,
         cancellation: CancellationToken,
     ) -> ProcessingResult {
+        let span = tracing::debug_span!(
+            "nabu",
+            subsystem = "processing",
+            component = "pipeline",
+            operation = "run",
+            object_id = %object.id,
+            object_type = %object.object_type.variant_name(),
+            processor_count = self.processors.len(),
+        );
+        let _guard = span.enter();
+
+        tracing::info!(
+            subsystem = "processing",
+            component = "pipeline",
+            operation = "run",
+            object_id = %object.id,
+            "Pipeline execution started"
+        );
+
         let total_processors = self.processors.len() as f64;
 
         for (i, processor) in self.processors.iter().enumerate() {
             // Check cancellation
             if cancellation.is_cancelled() {
+                tracing::warn!(
+                    subsystem = "processing",
+                    component = "pipeline",
+                    operation = "run",
+                    object_id = %object.id,
+                    processor_index = i,
+                    "Pipeline cancelled"
+                );
                 return ProcessingResult {
                     object,
                     modified: true,
@@ -71,6 +98,14 @@ impl ProcessingPipeline {
 
             // Skip if processor doesn't support this object type
             if !processor.supports(&object.object_type) {
+                tracing::trace!(
+                    subsystem = "processing",
+                    component = "pipeline",
+                    operation = "skip",
+                    processor = processor.name(),
+                    object_type = %object.object_type.variant_name(),
+                    "Processor skipped (unsupported type)"
+                );
                 continue;
             }
 
@@ -83,10 +118,35 @@ impl ProcessingPipeline {
             // Create context
             let context = ProcessingContext::new(object);
 
-            // Run processor
+            // Run processor with a child span
+            let processor_span = tracing::debug_span!(
+                "nabu",
+                subsystem = "processing",
+                component = "processor",
+                operation = "process",
+                processor = processor.name(),
+                object_id = %context.object.id,
+            );
+            let _processor_guard = processor_span.enter();
+
+            let start = std::time::Instant::now();
             let result = processor
                 .process(&context, progress.clone(), cancellation.clone())
                 .await;
+            let duration = start.elapsed();
+
+            drop(_processor_guard);
+
+            tracing::debug!(
+                subsystem = "processing",
+                component = "pipeline",
+                operation = "processor_result",
+                processor = processor.name(),
+                object_id = %context.object.id,
+                duration_ms = duration.as_secs_f64() * 1000.0,
+                has_error = result.error.is_some(),
+                "Processor completed"
+            );
 
             object = result.object;
 
@@ -127,6 +187,14 @@ impl ProcessingPipeline {
         }
 
         progress.set_progress(1.0);
+
+        tracing::info!(
+            subsystem = "processing",
+            component = "pipeline",
+            operation = "run",
+            object_id = %object.id,
+            "Pipeline execution completed"
+        );
 
         ProcessingResult {
             object,

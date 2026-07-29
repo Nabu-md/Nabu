@@ -154,14 +154,22 @@ impl VaultGraph {
         }
 
         if loaded {
-            log::info!(
-                "VaultGraph loaded from disk: {} nodes, {} edges (generation {})",
-                graph.node_count(),
-                graph.edge_count(),
-                generation
+            tracing::info!(
+                subsystem = "graph",
+                component = "graph",
+                operation = "load",
+                node_count = graph.node_count(),
+                edge_count = graph.edge_count(),
+                generation = generation,
+                "VaultGraph loaded from disk"
             );
         } else {
-            log::info!("VaultGraph created fresh (no persisted graph found)");
+            tracing::info!(
+                subsystem = "graph",
+                component = "graph",
+                operation = "init",
+                "VaultGraph created fresh (no persisted graph found)"
+            );
         }
 
         *graph.loaded_from_disk.write().map_err(|e| e.to_string())? = loaded;

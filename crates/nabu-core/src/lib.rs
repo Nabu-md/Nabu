@@ -25,6 +25,7 @@
 //!     └── VaultGraph.update_node()
 //! ```
 
+pub mod diagnostics;
 pub mod event_bus;
 pub mod models;
 pub mod jobs;

@@ -196,6 +196,17 @@ impl Queue for DurableJobQueue {
             )));
         }
 
+        tracing::debug!(
+            subsystem = "queue",
+            component = "engine",
+            operation = "enqueue",
+            job_id = %job.id,
+            job_type = %job.job_type.name(),
+            priority = %job.priority.name(),
+            processor = %job.processor_name,
+            "Job enqueued"
+        );
+
         Ok(())
     }
 
@@ -237,6 +248,16 @@ impl Queue for DurableJobQueue {
                 JobStatus::Queued,
                 JobStatus::Running,
             )?;
+
+            tracing::debug!(
+                subsystem = "queue",
+                component = "engine",
+                operation = "dequeue",
+                job_id = %running.id,
+                job_type = %running.job_type.name(),
+                priority = %running.priority.name(),
+                "Job dequeued and marked running"
+            );
 
             return Ok(Some(running));
         }
