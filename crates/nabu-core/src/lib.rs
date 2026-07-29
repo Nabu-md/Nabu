@@ -37,7 +37,13 @@ pub mod theme_manager;
 pub mod vault_config;
 
 #[cfg(feature = "native")]
+pub mod job_queue;
+
+#[cfg(feature = "native")]
 pub mod registry;
+
+#[cfg(feature = "native")]
+pub mod plugin;
 
 #[cfg(feature = "native")]
 pub mod view_state;
