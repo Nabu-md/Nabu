@@ -1,6 +1,8 @@
 pub mod browser;
 pub mod clipboard_config;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub mod clipboard_handler;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub mod clipboard_monitor;
 pub mod engine;
 pub mod file_drop_handler;
@@ -15,11 +17,15 @@ pub mod types;
 pub mod utils;
 pub mod watch_folder;
 pub mod watch_folder_config;
+
+#[cfg(feature = "native")]
 pub mod watch_folder_service;
 
 pub use browser::BrowserCaptureHandler;
 pub use clipboard_config::{ClipboardMonitorConfig, ClipboardMonitorMode};
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub use clipboard_handler::ClipboardHandler;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub use clipboard_monitor::ClipboardMonitor;
 pub use engine::CaptureEngine;
 pub use file_drop_handler::FileDropHandler;
@@ -33,4 +39,5 @@ pub use screenshot_handler::{ScreenshotHandler, ScreenshotMode};
 pub use types::{CaptureError, CaptureRequest, CaptureResult};
 pub use watch_folder::WatchFolderHandler;
 pub use watch_folder_config::{ImportFolder, WatchFolderConfig};
+#[cfg(feature = "native")]
 pub use watch_folder_service::WatchFolderService;
