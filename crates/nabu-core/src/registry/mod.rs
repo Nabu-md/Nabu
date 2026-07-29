@@ -25,6 +25,13 @@
 pub mod context;
 pub mod lifecycle;
 
+/// Test utilities for building mock registries.
+///
+/// Only available in test builds. Provides `MockRegistryBuilder` for
+/// constructing `ApplicationContext` instances with mock services.
+#[cfg(feature = "test-utils")]
+pub mod test_utils;
+
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
