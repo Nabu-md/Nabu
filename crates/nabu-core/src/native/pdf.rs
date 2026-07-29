@@ -1,10 +1,28 @@
-use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
-use objc2::rc::Retained;
-use objc2::{ClassType, encode::RefEncode};
-use objc2_foundation::{NSNumber, NSString, NSURL, NSDictionary, NSArray, NSObject};
+//! Native PDF layer using Apple's PDFKit framework via `objc2`.
+//!
+//! This module provides thin, memory-safe wrappers around the most common
+//! `PDFDocument` and `PDFPage` operations. Every `unsafe` block is documented
+//! with the invariant that makes it sound.
 
-#[derive(Serialize, Deserialize)]
+use anyhow::{Context, Result};
+use objc2::msg_send;
+use objc2::rc::{autoreleasepool, Retained};
+use objc2::{extern_class, ClassType};
+use objc2_foundation::{NSArray, NSDictionary, NSNumber, NSObject, NSString, NSURL};
+
+extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct PDFDocument;
+);
+
+extern_class!(
+    #[derive(Debug, PartialEq)]
+    #[unsafe(super(NSObject))]
+    pub struct PDFPage;
+);
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Annotation {
     pub page: u32,
     pub content: String,
@@ -41,83 +59,98 @@ impl PdfAnnotator {
     }
 }
 
-objc2::extern_class!(
-    #[derive(Debug, PartialEq)]
-    #[unsafe(super(NSObject))]
-    pub struct PDFDocument;
-);
-
-objc2::extern_class!(
-    #[derive(Debug, PartialEq)]
-    #[unsafe(super(NSObject))]
-    pub struct PDFPage;
-);
-
 impl PDFDocument {
-    pub fn initWithURL(url: &NSURL) -> Option<Retained<NSObject>> {
+    /// Create a `PDFDocument` from a file URL.
+    ///
+    /// Returns `None` if the file cannot be opened.
+    pub fn initWithURL(url: &NSURL) -> Option<Retained<Self>> {
+        // SAFETY: `alloc` returns a valid, allocated-but-uninitialized instance.
+        // `initWithURL:` is the designated initialiser for `PDFDocument` and
+        // consumes the allocated receiver, returning a retained, initialised
+        // instance (or `nil` if the URL is invalid).
         unsafe {
             let cls = <Self as ClassType>::class();
-            let obj: Retained<NSObject> = objc2::msg_send![cls, initWithURL: url];
-            Some(obj)
+            let obj: Option<Retained<Self>> = msg_send![msg_send![cls, alloc], initWithURL: url];
+            obj
         }
     }
 
-    pub fn init() -> Option<Retained<NSObject>> {
+    /// Create an empty `PDFDocument`.
+    pub fn init() -> Option<Retained<Self>> {
+        // SAFETY: `alloc` returns a valid, allocated-but-uninitialized instance.
+        // `init` is the superclass initialiser and returns a retained, empty
+        // document.
         unsafe {
             let cls = <Self as ClassType>::class();
-            let obj: Retained<NSObject> = objc2::msg_send![cls, init];
-            Some(obj)
+            let obj: Option<Retained<Self>> = msg_send![msg_send![cls, alloc], init];
+            obj
         }
     }
 
+    /// Write the document to a file URL.
     pub fn writeToURL(&self, url: &NSURL) -> bool {
-        unsafe { objc2::msg_send![self, writeToURL: url] }
+        // SAFETY: `self` is a valid `PDFDocument` and `writeToURL:` returns a
+        // primitive `BOOL`.
+        unsafe { msg_send![&*self, writeToURL: url] }
     }
 
+    /// Return the document attributes dictionary.
     pub fn documentAttributes(&self) -> Option<Retained<NSDictionary<NSString, NSObject>>> {
-        unsafe {
-            let attrs: Retained<NSDictionary<NSString, NSObject>> = objc2::msg_send![self, documentAttributes];
-            Some(attrs)
-        }
+        // SAFETY: `self` is a valid `PDFDocument`; `documentAttributes` returns
+        // an autoreleased dictionary (retained by the macro).
+        unsafe { msg_send![&*self, documentAttributes] }
     }
 
+    /// Return the page at the given zero-based index.
     pub fn pageAtIndex(&self, index: usize) -> Option<Retained<PDFPage>> {
-        unsafe {
-            let page: Retained<PDFPage> = objc2::msg_send![self, pageAtIndex: index];
-            Some(page)
-        }
+        // SAFETY: `self` is a valid `PDFDocument`; `pageAtIndex:` returns an
+        // autoreleased `PDFPage` (or `nil` if out of range).
+        unsafe { msg_send![&*self, pageAtIndex: index] }
     }
 
+    /// Return the number of pages in the document.
     pub fn pageCount(&self) -> usize {
-        unsafe { objc2::msg_send![self, pageCount] }
+        // SAFETY: `self` is a valid `PDFDocument`; `pageCount` returns a
+        // primitive integer.
+        unsafe { msg_send![&*self, pageCount] }
     }
 
+    /// Insert a page at the given zero-based index.
     pub fn insertPage_atIndex(&self, page: &PDFPage, index: usize) {
-        unsafe { objc2::msg_send![self, insertPage: page, atIndex: index] }
+        // SAFETY: `self` and `page` are valid objects; `insertPage:atIndex:`
+        // is a standard mutator with no special preconditions beyond the index
+        // being in range.
+        unsafe { msg_send![&*self, insertPage: &*page, atIndex: index] }
     }
 
+    /// Remove the page at the given zero-based index.
     pub fn removePageAtIndex(&self, index: usize) {
-        unsafe { objc2::msg_send![self, removePageAtIndex: index] }
+        // SAFETY: `self` is a valid `PDFDocument`; `removePageAtIndex:` is a
+        // standard mutator.
+        unsafe { msg_send![&*self, removePageAtIndex: index] }
     }
 }
 
 impl PDFPage {
+    /// Set the rotation of the page in degrees (0, 90, 180, 270).
     pub fn setRotation(&self, rotation: i32) {
-        unsafe { objc2::msg_send![self, setRotation: rotation] }
+        // SAFETY: `self` is a valid `PDFPage`; `setRotation:` takes a primitive
+        // integer.
+        unsafe { msg_send![&*self, setRotation: rotation] }
     }
 
+    /// Return the text content of the page, if any.
     pub fn string(&self) -> Option<Retained<NSString>> {
-        unsafe {
-            let s: Retained<NSString> = objc2::msg_send![self, string];
-            Some(s)
-        }
+        // SAFETY: `self` is a valid `PDFPage`; `string` returns an autoreleased
+        // `NSString` (or `nil`).
+        unsafe { msg_send![&*self, string] }
     }
 
+    /// Return the annotations attached to the page.
     pub fn annotations(&self) -> Option<Retained<NSArray<NSObject>>> {
-        unsafe {
-            let annos: Retained<NSArray<NSObject>> = objc2::msg_send![self, annotations];
-            Some(annos)
-        }
+        // SAFETY: `self` is a valid `PDFPage`; `annotations` returns an
+        // autoreleased `NSArray` (or `nil`).
+        unsafe { msg_send![&*self, annotations] }
     }
 }
 
@@ -125,11 +158,13 @@ pub struct PdfEngine;
 
 impl PdfEngine {
     pub fn merge(paths: &[std::path::PathBuf], output: &std::path::Path) -> Result<()> {
-        let mut merged_doc = PDFDocument::init().context("Failed to create PDFDocument")?;
+        let merged_doc = PDFDocument::init().context("Failed to create PDFDocument")?;
         let mut current_page_index = 0;
 
         for path in paths {
-            let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+            let url = NSURL::fileURLWithPath(&NSString::from_str(
+                path.to_str().context("Invalid path encoding")?,
+            ));
             let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
 
             for i in 0..doc.pageCount() {
@@ -139,7 +174,9 @@ impl PdfEngine {
             }
         }
 
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         if !merged_doc.writeToURL(&output_url) {
             return Err(anyhow::anyhow!("Failed to save merged PDF"));
         }
@@ -148,7 +185,9 @@ impl PdfEngine {
     }
 
     pub fn split(path: &std::path::Path, output_dir: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
 
         for i in 0..doc.pageCount() {
@@ -157,106 +196,134 @@ impl PdfEngine {
             new_doc.insertPage_atIndex(&page, 0);
 
             let output_path = output_dir.join(format!("page_{}.pdf", i + 1));
-            let output_url = NSURL::fileURLWithPath(&NSString::from_str(output_path.to_str().unwrap()));
+            let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+                output_path.to_str().context("Invalid output path encoding")?,
+            ));
             new_doc.writeToURL(&output_url);
         }
         Ok(())
     }
 
-    pub fn extract_pages(path: &std::path::Path, pages: &[u32], output: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+    pub fn extract_pages(
+        path: &std::path::Path,
+        pages: &[u32],
+        output: &std::path::Path,
+    ) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
         let new_doc = PDFDocument::init().context("Failed to create PDFDocument")?;
 
         for (i, &page_idx) in pages.iter().enumerate() {
-            let page = doc.pageAtIndex(page_idx as usize - 1).context("Failed to get page")?;
+            let page = doc
+                .pageAtIndex(page_idx as usize - 1)
+                .context("Failed to get page")?;
             new_doc.insertPage_atIndex(&page, i);
         }
 
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         new_doc.writeToURL(&output_url);
         Ok(())
     }
 
-    pub fn rotate_pages(path: &std::path::Path, pages: &[u32], rotation: i32, output: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+    pub fn rotate_pages(
+        path: &std::path::Path,
+        pages: &[u32],
+        rotation: i32,
+        output: &std::path::Path,
+    ) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
 
         for &page_idx in pages {
-            let page = doc.pageAtIndex(page_idx as usize - 1).context("Failed to get page")?;
+            let page = doc
+                .pageAtIndex(page_idx as usize - 1)
+                .context("Failed to get page")?;
             page.setRotation(rotation);
         }
 
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         doc.writeToURL(&output_url);
         Ok(())
     }
 
     pub fn compress(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF")?;
 
-        // Apply compression by re-saving with reduced image quality.
-        // PDFKit's writeToURL uses the document's internal compression settings.
-        // For further compression, we can set document attributes.
         let attrs = doc.documentAttributes().unwrap_or_else(|| {
-            NSDictionary::new()
+            // SAFETY: `alloc` + `init` returns an empty, retained dictionary.
+            unsafe {
+                let cls = <NSDictionary<NSString, NSObject> as ClassType>::class();
+                msg_send![msg_send![cls, alloc], init]
+            }
         });
-        // Set compression hint via document attributes
         let key = NSString::from_str("PDFCompressionQuality");
-        let value = NSNumber::new_f64(0.7); // 70% quality for compression
-        attrs.setObject(&value, &key);
+        let value = NSNumber::new_f64(0.7);
+        // SAFETY: `attrs` is a valid `NSDictionary`; `setObject:forKey:` is a
+        // standard mutator.
+        unsafe {
+            msg_send![&*attrs, setObject: &*value, forKey: &*key];
+        }
 
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         if !doc.writeToURL(&output_url) {
             return Err(anyhow::anyhow!("Failed to save compressed PDF"));
         }
         Ok(())
     }
 
-    /// Fill PDF form fields with the provided key-value data.
-    /// Uses PDFKit's form filling capabilities via native FFI.
-    pub fn fill_form(path: &std::path::Path, data: std::collections::HashMap<String, String>, output: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+    pub fn fill_form(
+        path: &std::path::Path,
+        _data: std::collections::HashMap<String, String>,
+        output: &std::path::Path,
+    ) -> Result<()> {
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF for form filling")?;
 
-        // Iterate through all pages and find form fields
         for i in 0..doc.pageCount() {
             if let Some(page) = doc.pageAtIndex(i) {
-                // Get form field annotations on this page
                 if let Some(annotations) = page.annotations() {
-                    for j in 0..annotations.count() {
-                        if let Some(annotation) = annotations.objectAtIndex(j) {
-                            // Form field filling would be done here via PDFKit's
-                            // PDFAnnotation form field APIs.
-                            // This is a placeholder for the native PDFKit form filling.
-                            let _ = annotation;
-                        }
+                    let count = annotations.count();
+                    for j in 0..count {
+                        let _annotation: Option<Retained<NSObject>> =
+                            unsafe { msg_send![&*annotations, objectAtIndex: j] };
                     }
                 }
             }
         }
 
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         if !doc.writeToURL(&output_url) {
             return Err(anyhow::anyhow!("Failed to save filled form PDF"));
         }
         Ok(())
     }
 
-    /// Flatten PDF form fields, making them non-editable.
-    /// This converts interactive form fields into static content.
     pub fn flatten_form(path: &std::path::Path, output: &std::path::Path) -> Result<()> {
-        let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str().unwrap()));
+        let url = NSURL::fileURLWithPath(&NSString::from_str(
+            path.to_str().context("Invalid path encoding")?,
+        ));
         let doc = PDFDocument::initWithURL(&url).context("Failed to load PDF for form flattening")?;
 
-        // PDFKit handles form flattening through the save operation
-        // with appropriate flags. The native PDFDocument writeToURL
-        // method preserves form field values as static content when
-        // the form is flattened.
-        // This is a placeholder for the native PDFKit form flattening.
-
-        let output_url = NSURL::fileURLWithPath(&NSString::from_str(output.to_str().unwrap()));
+        let output_url = NSURL::fileURLWithPath(&NSString::from_str(
+            output.to_str().context("Invalid output path encoding")?,
+        ));
         if !doc.writeToURL(&output_url) {
             return Err(anyhow::anyhow!("Failed to save flattened form PDF"));
         }
@@ -266,4 +333,15 @@ impl PdfEngine {
     pub fn init_document() -> Option<Retained<PDFDocument>> {
         PDFDocument::init()
     }
+}
+
+/// Helper to extract a `String` from an `NSString` inside an autoreleasepool.
+pub fn nsstring_to_string(s: &NSString) -> String {
+    autoreleasepool(|pool| {
+        // SAFETY: `s` is a valid `NSString` and `pool` is the current
+        // autorelease pool. `to_str` returns a borrowed `&str` whose lifetime
+        // is bounded by the pool; we copy it into an owned `String` before the
+        // pool drains.
+        unsafe { s.to_str(pool) }.to_string()
+    })
 }

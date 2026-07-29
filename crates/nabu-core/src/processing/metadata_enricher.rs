@@ -155,10 +155,10 @@ impl MetadataEnricher {
 
         // Get content text
         let content_text = match &obj.content {
-            crate::models::knowledge_object::ObjectContent::Markdown => "",
-            crate::models::knowledge_object::ObjectContent::PlainText => "",
-            crate::models::knowledge_object::ObjectContent::Html => "",
-            crate::models::knowledge_object::ObjectContent::Structured(json) => json.to_string().as_str(),
+            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
+            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
+            crate::models::knowledge_object::ObjectContent::Html => String::new(),
+            crate::models::knowledge_object::ObjectContent::Structured(json) => json.to_string(),
             crate::models::knowledge_object::ObjectContent::Binary => return tags,
         };
 

@@ -378,18 +378,18 @@ impl ContentClassifier {
 
     fn score_content_text(&self, obj: &KnowledgeObject, scores: &mut HashMap<ObjectType, f64>, signals: &mut Vec<String>) {
         let content_text = match &obj.content {
-            crate::models::knowledge_object::ObjectContent::PlainText => "",
-            crate::models::knowledge_object::ObjectContent::Markdown => "",
-            crate::models::knowledge_object::ObjectContent::Html => "",
-            crate::models::knowledge_object::ObjectContent::Structured(json) => json.to_string().as_str(),
+            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
+            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
+            crate::models::knowledge_object::ObjectContent::Html => String::new(),
+            crate::models::knowledge_object::ObjectContent::Structured(json) => json.to_string(),
             crate::models::knowledge_object::ObjectContent::Binary => return,
         };
 
-        let text_lower = content_text.to_lowercase();
+        let _text_lower = content_text.to_lowercase();
         let text_sample = if content_text.len() > 2000 {
             &content_text[..2000]
         } else {
-            content_text
+            &content_text
         };
         let text_sample_lower = text_sample.to_lowercase();
 
