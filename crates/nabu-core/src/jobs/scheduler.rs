@@ -1,186 +1,199 @@
+use crate::jobs::errors::{JobError, JobResult};
+use crate::jobs::job::{Job, JobStatus};
+use crate::jobs::persistence::JobStore;
+use crate::jobs::priority::Priority;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
-/// Specifies when a job should be scheduled for execution.
-///
-/// This is the user-facing scheduling API used when enqueueing jobs.
-/// The scheduler internally converts this to an absolute `DateTime<Utc>`
-/// stored in the job's `scheduled_at` field.
+/// A specification for scheduled/delayed job execution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
 pub enum ScheduleSpec {
-    /// Schedule at an absolute time.
+    /// Execute at a specific time
     At(DateTime<Utc>),
-
-    /// Schedule after a duration from now.
+    /// Execute after a delay from now
     After(Duration),
-
-    /// Schedule immediately (or as soon as possible).
+    /// Execute immediately
     Immediate,
 }
 
 impl ScheduleSpec {
-    /// Resolves this spec to an absolute `DateTime<Utc>`.
-    pub fn resolve(&self) -> DateTime<Utc> {
+    /// Calculate the scheduled time from this spec.
+    pub fn scheduled_time(&self) -> DateTime<Utc> {
         match self {
-            ScheduleSpec::At(dt) => *dt,
-            ScheduleSpec::After(dur) => Utc::now() + *dur,
+            ScheduleSpec::At(time) => *time,
+            ScheduleSpec::After(duration) => Utc::now() + *duration,
             ScheduleSpec::Immediate => Utc::now(),
         }
     }
 }
 
 impl From<DateTime<Utc>> for ScheduleSpec {
-    fn from(dt: DateTime<Utc>) -> Self {
-        ScheduleSpec::At(dt)
+    fn from(time: DateTime<Utc>) -> Self {
+        ScheduleSpec::At(time)
     }
 }
 
 impl From<Duration> for ScheduleSpec {
-    fn from(dur: Duration) -> Self {
-        ScheduleSpec::After(dur)
+    fn from(duration: Duration) -> Self {
+        ScheduleSpec::After(duration)
     }
 }
 
-/// A simple scheduler for determining when jobs are due for execution.
-///
-/// This is a lightweight utility that checks whether a job's `scheduled_at`
-/// timestamp has passed. It does **not** manage a separate timer/clock thread —
-/// that responsibility belongs to the `WorkerPool` in Prompt 36.
-#[derive(Debug, Clone)]
+/// The Scheduler manages delayed job execution.
+/// It tracks scheduled jobs and makes them available when their time arrives.
 pub struct Scheduler {
-    /// The current time source (can be overridden for testing).
-    now: fn() -> DateTime<Utc>,
+    store: Arc<JobStore>,
+    running: Arc<AtomicBool>,
 }
 
 impl Scheduler {
-    /// Creates a new scheduler using the real system clock.
-    pub fn new() -> Self {
-        Scheduler { now: Utc::now }
-    }
-
-    /// Creates a scheduler with a custom time source (for testing).
-    pub fn with_clock(clock: fn() -> DateTime<Utc>) -> Self {
-        Scheduler { now: clock }
-    }
-
-    /// Returns `true` if the job is due for execution based on its scheduled time.
-    pub fn is_due(&self, scheduled_at: &DateTime<Utc>) -> bool {
-        *scheduled_at <= (self.now)()
-    }
-
-    /// Calculates how long until the job becomes due.
-    /// Returns `Duration::zero()` if the job is already due or past due.
-    pub fn time_until_due(&self, scheduled_at: &DateTime<Utc>) -> Duration {
-        let now = (self.now)();
-        if *scheduled_at <= now {
-            Duration::zero()
-        } else {
-            *scheduled_at - now
+    pub fn new(store: Arc<JobStore>) -> Self {
+        Self {
+            store,
+            running: Arc::new(AtomicBool::new(true)),
         }
     }
 
-    /// Returns all ready jobs from a list (those whose scheduled time has passed).
-    pub fn filter_ready<'a>(&self, jobs: &'a [crate::jobs::Job]) -> Vec<&'a crate::jobs::Job> {
-        jobs.iter().filter(|j| self.is_due(&j.scheduled_at)).collect()
+    /// Schedule a job for future execution.
+    pub fn schedule(&self, mut job: Job, spec: ScheduleSpec) -> JobResult<Job> {
+        let scheduled_at = spec.scheduled_time();
+        job.scheduled_at = Some(scheduled_at);
+        job.status = JobStatus::Scheduled;
+        self.store.store(&job)?;
+        Ok(job)
     }
 
-    /// Partitions jobs into those ready now and those scheduled for the future.
-    pub fn partition<'a>(
-        &self,
-        jobs: &'a [crate::jobs::Job],
-    ) -> (Vec<&'a crate::jobs::Job>, Vec<&'a crate::jobs::Job>) {
-        jobs.iter().partition(|j| self.is_due(&j.scheduled_at))
+    /// Find all scheduled jobs that are due for execution.
+    /// Moves them from Scheduled → Queued.
+    pub fn process_due_jobs(&self) -> JobResult<Vec<Job>> {
+        if !self.running.load(Ordering::Acquire) {
+            return Err(JobError::Shutdown);
+        }
+
+        let scheduled = self.store.load_by_status(JobStatus::Scheduled)?;
+        let mut due = Vec::new();
+        let now = Utc::now();
+
+        for job in scheduled {
+            if let Some(scheduled_at) = job.scheduled_at {
+                if now >= scheduled_at && job.is_ready() {
+                    let moved = self.store.move_job(
+                        &job.id.to_string(),
+                        JobStatus::Scheduled,
+                        JobStatus::Queued,
+                    )?;
+                    due.push(moved);
+                }
+            }
+        }
+
+        Ok(due)
+    }
+
+    /// Cancel a scheduled job.
+    pub fn cancel_scheduled(&self, job_id: &str) -> JobResult<Job> {
+        let job = self.store.move_job(job_id, JobStatus::Scheduled, JobStatus::Cancelled)?;
+        Ok(job)
+    }
+
+    /// Reschedule a job to a new time.
+    pub fn reschedule(&self, job_id: &str, new_spec: ScheduleSpec) -> JobResult<Job> {
+        let mut job = self
+            .store
+            .load(job_id)?
+            .ok_or_else(|| JobError::NotFound(job_id.to_string()))?;
+
+        let new_time = new_spec.scheduled_time();
+        job.scheduled_at = Some(new_time);
+        job.status = JobStatus::Scheduled;
+        self.store.store(&job)?;
+        Ok(job)
+    }
+
+    /// Count of scheduled jobs.
+    pub fn scheduled_count(&self) -> JobResult<usize> {
+        self.store.count(JobStatus::Scheduled)
+    }
+
+    /// Stop the scheduler.
+    pub fn shutdown(&self) {
+        self.running.store(false, Ordering::Release);
+    }
+
+    /// Whether the scheduler is running.
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::Acquire)
     }
 }
 
-impl Default for Scheduler {
-    fn default() -> Self {
-        Self::new()
-    }
+/// Common delay constants for scheduling.
+pub mod delays {
+    use chrono::Duration;
+
+    pub const THIRTY_SECONDS: Duration = Duration::seconds(30);
+    pub const FIVE_MINUTES: Duration = Duration::minutes(5);
+    pub const FIFTEEN_MINUTES: Duration = Duration::minutes(15);
+    pub const ONE_HOUR: Duration = Duration::hours(1);
+    pub const TWO_HOURS: Duration = Duration::hours(2);
+    pub const ONE_DAY: Duration = Duration::days(1);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jobs::job::{Job, JobPayload};
-    use crate::jobs::priority::Priority;
+    use crate::jobs::job::JobType;
+    use tempfile::tempdir;
 
     #[test]
-    fn test_schedule_spec_at() {
+    fn test_schedule_immediate() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(JobStore::new(dir.path()).unwrap());
+        let scheduler = Scheduler::new(store);
+
+        let mut job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr");
+        let scheduled = scheduler
+            .schedule(job.clone(), ScheduleSpec::Immediate)
+            .unwrap();
+        assert_eq!(scheduled.status, JobStatus::Scheduled);
+
+        let due = scheduler.process_due_jobs().unwrap();
+        assert!(!due.is_empty(), "Immediate jobs should be due immediately");
+    }
+
+    #[test]
+    fn test_schedule_delayed_not_due() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(JobStore::new(dir.path()).unwrap());
+        let scheduler = Scheduler::new(store);
+
+        let job = Job::new(JobType::Whisper, serde_json::json!({}), "whisper");
         let future = Utc::now() + Duration::hours(1);
-        let spec = ScheduleSpec::At(future);
-        assert_eq!(spec.resolve(), future);
+        scheduler
+            .schedule(job, ScheduleSpec::At(future))
+            .unwrap();
+
+        let due = scheduler.process_due_jobs().unwrap();
+        assert!(due.is_empty(), "Future jobs should not be due");
     }
 
     #[test]
-    fn test_schedule_spec_after() {
-        let dur = Duration::seconds(30);
-        let spec = ScheduleSpec::After(dur);
-        let resolved = spec.resolve();
-        let diff = resolved - Utc::now();
-        assert!(diff.num_seconds() >= 28 && diff.num_seconds() <= 32);
-    }
+    fn test_reschedule() {
+        let dir = tempdir().unwrap();
+        let store = Arc::new(JobStore::new(dir.path()).unwrap());
+        let scheduler = Scheduler::new(store);
 
-    #[test]
-    fn test_schedule_spec_immediate() {
-        let spec = ScheduleSpec::Immediate;
-        let resolved = spec.resolve();
-        let diff = (resolved - Utc::now()).num_seconds().abs();
-        assert!(diff <= 1);
-    }
+        let job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr");
+        let scheduled = scheduler.schedule(job, ScheduleSpec::Immediate).unwrap();
+        let id = scheduled.id.to_string();
 
-    #[test]
-    fn test_is_due() {
-        let scheduler = Scheduler::new();
-        let past = Utc::now() - Duration::minutes(5);
-        let future = Utc::now() + Duration::hours(1);
+        let future = Utc::now() + Duration::hours(2);
+        scheduler
+            .reschedule(&id, ScheduleSpec::At(future))
+            .unwrap();
 
-        assert!(scheduler.is_due(&past));
-        assert!(!scheduler.is_due(&future));
-    }
-
-    #[test]
-    fn test_time_until_due() {
-        let scheduler = Scheduler::new();
-
-        let past = Utc::now() - Duration::minutes(5);
-        assert_eq!(scheduler.time_until_due(&past), Duration::zero());
-
-        let future = Utc::now() + Duration::seconds(30);
-        let remaining = scheduler.time_until_due(&future);
-        assert!(remaining.num_seconds() >= 28 && remaining.num_seconds() <= 32);
-    }
-
-    #[test]
-    fn test_filter_ready() {
-        let scheduler = Scheduler::new();
-
-        let jobs = vec![
-            Job::scheduled("past", JobPayload::new(), Utc::now() - Duration::minutes(5)),
-            Job::scheduled("future", JobPayload::new(), Utc::now() + Duration::hours(1)),
-            Job::new("immediate", JobPayload::new()),
-        ];
-
-        let ready = scheduler.filter_ready(&jobs);
-        assert_eq!(ready.len(), 2);
-        assert_eq!(ready[0].job_type.0, "past");
-        assert_eq!(ready[1].job_type.0, "immediate");
-    }
-
-    #[test]
-    fn test_partition() {
-        let scheduler = Scheduler::new();
-
-        let jobs = vec![
-            Job::scheduled("past", JobPayload::new(), Utc::now() - Duration::minutes(5)),
-            Job::scheduled("future", JobPayload::new(), Utc::now() + Duration::hours(1)),
-        ];
-
-        let (ready, later) = scheduler.partition(&jobs);
-        assert_eq!(ready.len(), 1);
-        assert_eq!(ready[0].job_type.0, "past");
-        assert_eq!(later.len(), 1);
-        assert_eq!(later[0].job_type.0, "future");
+        let due = scheduler.process_due_jobs().unwrap();
+        assert!(due.is_empty(), "Rescheduled future job should not be due");
     }
 }

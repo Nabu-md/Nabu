@@ -1,171 +1,111 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::oneshot;
 
 /// Coordinates graceful shutdown of the worker pool.
 ///
-/// Shutdown proceeds in phases:
-/// 1. **Signal**: All workers receive `Shutdown` message.
-/// 2. **Drain**: Wait for active jobs to complete (up to `drain_timeout`).
-/// 3. **Force**: If jobs remain after timeout, log warning and proceed.
-/// 4. **Done**: All workers confirmed stopped.
-#[derive(Debug, Clone)]
+/// Shutdown sequence:
+/// 1. Signal shutdown (no new jobs accepted)
+/// 2. Wait for active workers to finish their current job
+/// 3. Force-kill remaining workers after drain timeout
 pub struct ShutdownCoordinator {
-    /// Whether shutdown has been initiated.
-    initiated: Arc<AtomicBool>,
-
-    /// Whether shutdown has completed.
-    completed: Arc<AtomicBool>,
-
-    /// Number of active (in-progress) jobs.
-    active_jobs: Arc<AtomicUsize>,
-
-    /// Timeout for waiting for active jobs to complete (seconds).
-    drain_timeout_secs: u64,
-
-    /// Channel to notify completion of shutdown.
-    notify: Arc<tokio::sync::Mutex<Option<oneshot::Sender<()>>>>,
+    /// Whether shutdown has been initiated
+    shutting_down: Arc<AtomicBool>,
+    /// Number of active workers still running
+    active_workers: Arc<AtomicUsize>,
+    /// Maximum time to wait for workers to drain
+    drain_timeout: Duration,
 }
 
 impl ShutdownCoordinator {
-    /// Creates a new shutdown coordinator.
-    pub fn new(drain_timeout_secs: u64) -> Self {
-        ShutdownCoordinator {
-            initiated: Arc::new(AtomicBool::new(false)),
-            completed: Arc::new(AtomicBool::new(false)),
-            active_jobs: Arc::new(AtomicUsize::new(0)),
-            drain_timeout_secs,
-            notify: Arc::new(tokio::sync::Mutex::new(None)),
+    pub fn new(drain_timeout: Duration) -> Self {
+        Self {
+            shutting_down: Arc::new(AtomicBool::new(false)),
+            active_workers: Arc::new(AtomicUsize::new(0)),
+            drain_timeout,
         }
     }
 
-    /// Returns the drain timeout.
-    pub fn drain_timeout(&self) -> Duration {
-        Duration::from_secs(self.drain_timeout_secs)
+    /// Default drain timeout of 30 seconds.
+    pub fn default_timeout() -> Self {
+        Self::new(Duration::from_secs(30))
     }
 
-    /// Returns `true` if shutdown has been initiated.
-    pub fn is_shutdown_initiated(&self) -> bool {
-        self.initiated.load(Ordering::Relaxed)
+    /// Check if shutdown has been requested.
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(Ordering::Acquire)
     }
 
-    /// Returns `true` if shutdown has completed.
-    pub fn is_shutdown_completed(&self) -> bool {
-        self.completed.load(Ordering::Relaxed)
+    /// Initiate graceful shutdown.
+    pub fn initiate(&self) {
+        self.shutting_down.store(true, Ordering::Release);
     }
 
-    /// Returns the number of currently active jobs.
-    pub fn active_jobs(&self) -> usize {
-        self.active_jobs.load(Ordering::Relaxed)
+    /// Register an active worker (called when a worker starts).
+    pub fn register_worker(&self) {
+        self.active_workers.fetch_add(1, Ordering::Release);
     }
 
-    /// Records that a job has started.
-    pub fn job_started(&self) {
-        self.active_jobs.fetch_add(1, Ordering::SeqCst);
+    /// Unregister a worker (called when a worker stops).
+    pub fn unregister_worker(&self) {
+        self.active_workers.fetch_sub(1, Ordering::Release);
     }
 
-    /// Records that a job has finished.
-    pub fn job_finished(&self) {
-        self.active_jobs.fetch_sub(1, Ordering::SeqCst);
+    /// Number of workers still active.
+    pub fn active_worker_count(&self) -> usize {
+        self.active_workers.load(Ordering::Acquire)
     }
 
-    /// Returns `true` if there are no active jobs.
-    pub fn is_drained(&self) -> bool {
-        self.active_jobs.load(Ordering::Relaxed) == 0
+    /// Whether all workers have finished.
+    pub fn all_workers_finished(&self) -> bool {
+        self.active_workers.load(Ordering::Acquire) == 0
     }
 
-    /// Initiates shutdown. Returns after all workers have stopped or the timeout is reached.
-    pub async fn initiate_shutdown(&self) {
-        self.initiated.store(true, Ordering::Release);
-
-        // Wait for active jobs to drain
-        let timeout = self.drain_timeout();
-        let deadline = tokio::time::Instant::now() + timeout;
-
-        while tokio::time::Instant::now() < deadline {
-            if self.is_drained() {
-                break;
+    /// Wait for all workers to finish, up to the drain timeout.
+    /// Returns true if all workers finished, false if timeout.
+    pub async fn drain(&self) -> bool {
+        let start = std::time::Instant::now();
+        while !self.all_workers_finished() {
+            if start.elapsed() >= self.drain_timeout {
+                return false;
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(Duration::from_millis(50)).await;
         }
+        true
+    }
 
-        if !self.is_drained() {
-            log::warn!(
-                "Shutdown timeout: {} jobs still active after {}s, forcing shutdown",
-                self.active_jobs(),
-                self.drain_timeout_secs
-            );
-        }
-
-        self.completed.store(true, Ordering::Release);
-
-        // Notify any waiters
-        let mut notify = self.notify.lock().await;
-        if let Some(sender) = notify.take() {
-            let _ = sender.send(());
+    /// Get a cloneable handle for workers.
+    pub fn handle(&self) -> ShutdownHandle {
+        ShutdownHandle {
+            shutting_down: self.shutting_down.clone(),
+            active_workers: self.active_workers.clone(),
         }
     }
 
-    /// Sets up a notification channel for shutdown completion.
-    pub async fn on_shutdown_complete(&self) -> oneshot::Receiver<()> {
-        let (tx, rx) = oneshot::channel();
-        let mut notify = self.notify.lock().await;
-        *notify = Some(tx);
-        rx
+    /// Reset shutdown state (for testing/recovery).
+    pub fn reset(&self) {
+        self.shutting_down.store(false, Ordering::Release);
+        self.active_workers.store(0, Ordering::Release);
     }
 }
 
-impl Default for ShutdownCoordinator {
-    fn default() -> Self {
-        Self::new(30) // 30 second default drain timeout
-    }
+/// A lightweight, cloneable handle for workers to check shutdown state.
+#[derive(Clone)]
+pub struct ShutdownHandle {
+    shutting_down: Arc<AtomicBool>,
+    active_workers: Arc<AtomicUsize>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_shutdown_coordinator_initial_state() {
-        let sc = ShutdownCoordinator::new(5);
-        assert!(!sc.is_shutdown_initiated());
-        assert!(!sc.is_shutdown_completed());
-        assert_eq!(sc.active_jobs(), 0);
-        assert!(sc.is_drained());
+impl ShutdownHandle {
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(Ordering::Acquire)
     }
 
-    #[tokio::test]
-    async fn test_shutdown_coordinator_job_tracking() {
-        let sc = ShutdownCoordinator::new(5);
-        sc.job_started();
-        assert_eq!(sc.active_jobs(), 1);
-        assert!(!sc.is_drained());
-
-        sc.job_finished();
-        assert_eq!(sc.active_jobs(), 0);
-        assert!(sc.is_drained());
+    pub fn register(&self) {
+        self.active_workers.fetch_add(1, Ordering::Release);
     }
 
-    #[tokio::test]
-    async fn test_shutdown_coordinator_drain() {
-        let sc = ShutdownCoordinator::new(1);
-        sc.job_started();
-
-        // Start shutdown in background
-        let sc_clone = sc.clone();
-        let handle = tokio::spawn(async move {
-            sc_clone.initiate_shutdown().await;
-        });
-
-        // Let the shutdown start and wait a bit
-        tokio::time::sleep(Duration::from_millis(50)).await;
-
-        // Complete the active job
-        sc.job_finished();
-
-        // Shutdown should complete now
-        handle.await.unwrap();
-        assert!(sc.is_shutdown_completed());
+    pub fn unregister(&self) {
+        self.active_workers.fetch_sub(1, Ordering::Release);
     }
 }

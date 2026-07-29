@@ -1,17 +1,49 @@
 //! # Nabu Core Library
 //!
-//! Core engine for the Nabu knowledge base application.
-//! This crate provides the foundational infrastructure including:
+//! The core library for the Nabu knowledge management platform.
 //!
-//! - `event_bus` — Typed publish/subscribe event bus for decoupled communication
-//! - `jobs` — Durable job queue with persistence, priority, retry, scheduling
-//! - `workers` — Async worker pool with configurable concurrency, backpressure, graceful shutdown
-//! - `capture` — Capture engine with source handlers and queue integration
-//! - `processing` — Processing pipeline with ordered processor chain
-//! - `pipeline_migration` — Async bridge connecting capture → queue → workers → pipeline → store
+//! ## Architecture
+//!
+//! Every subsystem flows through the canonical pipeline:
+//!
+//! ```text
+//! CaptureSource
+//!     │  CaptureEngine.ingest()
+//!     ▼
+//! CaptureEvent (published to EventBus)
+//!     │
+//!     ▼
+//! Job Queue (DurableJobQueue)
+//!     │  WorkerPool dequeue → PipelineExecutor.execute()
+//!     ▼
+//! ProcessingPipeline
+//!     │  All 14 processors execute in order
+//!     ▼
+//! StorageManager.save()
+//!     │
+//!     ├── Indexer.index_document()
+//!     └── VaultGraph.update_node()
+//! ```
 
 pub mod event_bus;
+pub mod models;
 pub mod jobs;
-pub mod capture;
 pub mod processing;
+pub mod capture;
 pub mod pipeline_migration;
+pub mod storage;
+pub mod indexer;
+pub mod graph;
+pub mod registry;
+
+// Re-export key types for convenient access
+pub use event_bus::*;
+pub use models::*;
+pub use jobs::*;
+pub use processing::*;
+pub use capture::*;
+pub use pipeline_migration::*;
+pub use storage::*;
+pub use indexer::*;
+pub use graph::*;
+pub use registry::*;

@@ -1,397 +1,292 @@
-use std::collections::HashMap;
-
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
-/// The universal knowledge object representing any item captured by Nabu.
-///
-/// Every entity in the system—notes, documents, people, projects, recordings,
-/// and plugin-defined types—is represented as a `KnowledgeObject`.
-///
-/// This struct is intentionally free of business logic. It serves as the
-/// foundational serialization contract for IPC, storage, and downstream subsystems.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[non_exhaustive]
+/// Universal runtime model for all knowledge within Nabu.
+/// Every subsystem uses KnowledgeObject as its primary domain type.
+/// No duplicate domain models exist.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KnowledgeObject {
-    /// Unique identifier for this knowledge object.
+    /// Unique identifier
     pub id: Uuid,
-    /// The category of knowledge this object represents.
+
+    /// Object type discriminator
     pub object_type: ObjectType,
-    /// The vault this object belongs to.
-    pub vault_id: String,
-    /// ISO 8601 timestamp of when this object was created.
-    pub created_at: String,
-    /// ISO 8601 timestamp of when this object was last modified.
-    pub modified_at: String,
-    /// The primary content of this knowledge object.
+
+    /// Content variant — how this object stores its primary data
     pub content: ObjectContent,
-    /// Non-content metadata describing this knowledge object.
+
+    /// Standard metadata
     pub metadata: ObjectMetadata,
+
+    /// Custom properties (extensible by vault config and plugins)
+    pub custom_properties: HashMap<String, CustomPropertyValue>,
+
+    /// Tags applied to this object
+    pub tags: Vec<String>,
+
+    /// Relationships to other KnowledgeObjects
+    pub relations: Vec<ObjectRelation>,
+
+    /// Processing state
+    pub processing_state: ProcessingState,
+
+    /// Content hash for deduplication (SHA-256)
+    pub content_hash: Option<String>,
+
+    /// When the object was created
+    pub created_at: DateTime<Utc>,
+
+    /// When the object was last modified
+    pub updated_at: DateTime<Utc>,
 }
 
-/// Metadata describing a knowledge object, excluding its primary content.
-///
-/// Metadata powers search, OCR, AI enrichment, graph enrichment, duplicate
-/// detection, timeline extraction, and document management.
-///
-/// Processors may safely append new fields to `custom` without schema redesign.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[non_exhaustive]
-pub struct ObjectMetadata {
-    /// Human-readable title of the object.
-    pub title: Option<String>,
-    /// Author or creator of the object.
-    pub author: Option<String>,
-    /// Language code (e.g., "en", "fr", "de").
-    pub language: Option<String>,
-    /// Original source URL if the object was captured from the web.
-    pub source_url: Option<String>,
-    /// Original source file path if the object was imported from a file.
-    pub source_file: Option<String>,
-    /// MIME type of the original source (e.g., "application/pdf").
-    pub mime_type: Option<String>,
-    /// Number of pages, applicable to paginated documents.
-    pub page_count: Option<u32>,
-    /// Number of words in the object content.
-    pub word_count: Option<u32>,
-    /// ISO 8601 timestamp of when the source was created.
-    pub created: Option<String>,
-    /// ISO 8601 timestamp of when the source was last modified.
-    pub modified: Option<String>,
-    /// Arbitrary plugin-defined metadata.
-    ///
-    /// Processors may insert any key-value pairs here without requiring
-    /// schema changes. Values should be JSON-compatible.
-    pub custom: HashMap<String, serde_json::Value>,
-}
-
-/// The category of a knowledge object.
-///
-/// New variants may be added in future phases without breaking serialization.
-/// Plugin-defined types should use `Custom(String)`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum ObjectType {
-    #[default]
-    Note,
-    Document,
-    Pdf,
-    Image,
-    Receipt,
-    Invoice,
-    Meeting,
-    Person,
-    Organisation,
-    Project,
-    ResearchPaper,
-    Book,
-    Course,
-    Website,
-    Bookmark,
-    Repository,
-    AudioRecording,
-    Video,
-    Scan,
-    Screenshot,
-    Attachment,
-    Contract,
-    Article,
-    Resume,
-    Presentation,
-    Manual,
-    Letter,
-    /// A plugin-defined or otherwise unrecognised object type.
-    Custom(String),
-}
-
-/// The primary content format of a knowledge object.
-///
-/// New variants may be added in future phases without breaking serialization.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum ObjectContent {
-    /// Markdown formatted text.
-    #[default]
-    Markdown,
-    /// Unformatted plain text.
-    PlainText,
-    /// HTML content.
-    Html,
-    /// Opaque binary data.
-    Binary,
-    /// Structured data in JSON format.
-    Structured(serde_json::Value),
-}
-
-impl std::fmt::Display for ObjectType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ObjectType::Note => write!(f, "note"),
-            ObjectType::Document => write!(f, "document"),
-            ObjectType::Pdf => write!(f, "pdf"),
-            ObjectType::Image => write!(f, "image"),
-            ObjectType::Receipt => write!(f, "receipt"),
-            ObjectType::Invoice => write!(f, "invoice"),
-            ObjectType::Meeting => write!(f, "meeting"),
-            ObjectType::Person => write!(f, "person"),
-            ObjectType::Organisation => write!(f, "organisation"),
-            ObjectType::Project => write!(f, "project"),
-            ObjectType::ResearchPaper => write!(f, "research_paper"),
-            ObjectType::Book => write!(f, "book"),
-            ObjectType::Course => write!(f, "course"),
-            ObjectType::Website => write!(f, "website"),
-            ObjectType::Bookmark => write!(f, "bookmark"),
-            ObjectType::Repository => write!(f, "repository"),
-            ObjectType::AudioRecording => write!(f, "audio_recording"),
-            ObjectType::Video => write!(f, "video"),
-            ObjectType::Scan => write!(f, "scan"),
-            ObjectType::Screenshot => write!(f, "screenshot"),
-            ObjectType::Attachment => write!(f, "attachment"),
-            ObjectType::Contract => write!(f, "contract"),
-            ObjectType::Article => write!(f, "article"),
-            ObjectType::Resume => write!(f, "resume"),
-            ObjectType::Presentation => write!(f, "presentation"),
-            ObjectType::Manual => write!(f, "manual"),
-            ObjectType::Letter => write!(f, "letter"),
-            ObjectType::Custom(s) => write!(f, "{}", s),
+impl KnowledgeObject {
+    pub fn new(object_type: ObjectType, content: ObjectContent) -> Self {
+        let now = Utc::now();
+        Self {
+            id: Uuid::new_v4(),
+            object_type,
+            content,
+            metadata: ObjectMetadata::default(),
+            custom_properties: HashMap::new(),
+            tags: Vec::new(),
+            relations: Vec::new(),
+            processing_state: ProcessingState::Pending,
+            content_hash: None,
+            created_at: now,
+            updated_at: now,
         }
     }
+
+    pub fn with_metadata(mut self, metadata: ObjectMetadata) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
+    pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.push(tag.into());
+        self
+    }
+
+    pub fn with_property(mut self, key: impl Into<String>, value: CustomPropertyValue) -> Self {
+        self.custom_properties.insert(key.into(), value);
+        self
+    }
+}
+
+/// 22 object types covering all knowledge variants
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ObjectType {
+    /// Standard text note
+    Note,
+    /// Bookmark/URL capture
+    Bookmark,
+    /// Document (PDF, Word, etc.)
+    Document,
+    /// Image
+    Image,
+    /// Screenshot capture
+    Screenshot,
+    /// Scan (from scanner or camera)
+    Scan,
+    /// Audio recording
+    AudioRecording,
+    /// Video recording
+    VideoRecording,
+    /// GitHub repository
+    Repository,
+    /// YouTube video reference
+    YouTubeVideo,
+    /// Article (readability-extracted web content)
+    Article,
+    /// Email capture
+    Email,
+    /// Contact/Person
+    Contact,
+    /// Project entity
+    Project,
+    /// Task/Action item
+    Task,
+    /// Event/Appointment
+    Event,
+    /// Code snippet
+    CodeSnippet,
+    /// Whiteboard / drawing
+    Whiteboard,
+    /// Template
+    Template,
+    /// Attachment (any binary file)
+    Attachment,
+    /// Collection / folder
+    Collection,
+    /// Dashboard / workspace
+    Dashboard,
+}
+
+impl ObjectType {
+    pub fn variant_name(&self) -> &'static str {
+        match self {
+            ObjectType::Note => "note",
+            ObjectType::Bookmark => "bookmark",
+            ObjectType::Document => "document",
+            ObjectType::Image => "image",
+            ObjectType::Screenshot => "screenshot",
+            ObjectType::Scan => "scan",
+            ObjectType::AudioRecording => "audio_recording",
+            ObjectType::VideoRecording => "video_recording",
+            ObjectType::Repository => "repository",
+            ObjectType::YouTubeVideo => "youtube_video",
+            ObjectType::Article => "article",
+            ObjectType::Email => "email",
+            ObjectType::Contact => "contact",
+            ObjectType::Project => "project",
+            ObjectType::Task => "task",
+            ObjectType::Event => "event",
+            ObjectType::CodeSnippet => "code_snippet",
+            ObjectType::Whiteboard => "whiteboard",
+            ObjectType::Template => "template",
+            ObjectType::Attachment => "attachment",
+            ObjectType::Collection => "collection",
+            ObjectType::Dashboard => "dashboard",
+        }
+    }
+}
+
+/// Five content variants for how KnowledgeObject stores its primary data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ObjectContent {
+    /// Markdown body text
+    Markdown(String),
+    /// Rich HTML content (e.g., extracted articles)
+    RichHtml(String),
+    /// Raw text (no formatting)
+    PlainText(String),
+    /// URL reference (bookmarks, videos, repos)
+    Uri(String),
+    /// Binary data (images, attachments, audio)
+    Binary {
+        mime_type: String,
+        data: Vec<u8>,
+        filename: Option<String>,
+    },
 }
 
 impl ObjectContent {
-    /// Returns the content as a text string, or an empty string for binary content.
-    ///
-    /// This method is the canonical way to extract searchable text from any
-    /// `ObjectContent` variant. It is used by the indexer and processing
-    /// pipeline to ensure full-text search works regardless of content format.
-    ///
-    /// # Architectural note (Principle 1 — Markdown is canonical)
-    ///
-    /// At runtime the `KnowledgeObject` carries a content *descriptor* (format
-    /// type), while the actual bytes live in the Markdown file on disk. Text
-    /// content is therefore not duplicated inside the `ObjectContent` enum.
-    /// The indexer is responsible for reading source files directly when
-    /// indexing (see `Indexer::build_document`).
-    ///
-    /// Structured content (JSON) is serialised inline because it is not a
-    /// user-authored Markdown file.
-    pub fn as_text(&self) -> String {
+    pub fn content_type_hint(&self) -> &'static str {
         match self {
-            ObjectContent::Markdown | ObjectContent::PlainText | ObjectContent::Html => {
-                // Content lives in the source Markdown file on disk.
-                // See Principle 1: Markdown is the canonical source of truth.
-                // The indexer reads files directly when building the search index.
-                String::new()
-            }
-            ObjectContent::Binary => String::new(),
-            ObjectContent::Structured(json) => {
-                serde_json::to_string(json).unwrap_or_default()
-            }
+            ObjectContent::Markdown(_) => "text/markdown",
+            ObjectContent::RichHtml(_) => "text/html",
+            ObjectContent::PlainText(_) => "text/plain",
+            ObjectContent::Uri(_) => "text/uri-list",
+            ObjectContent::Binary { mime_type, .. } => mime_type.as_str(),
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
+/// Standard metadata applicable to all object types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ObjectMetadata {
+    /// Human-readable title
+    pub title: Option<String>,
+    /// Original source URL (if captured from web)
+    pub source_url: Option<String>,
+    /// Author(s)
+    pub authors: Vec<String>,
+    /// Publication date (for articles, documents)
+    pub publication_date: Option<DateTime<Utc>>,
+    /// Site/domain name (for web captures)
+    pub site_name: Option<String>,
+    /// Language code (e.g., "en", "fr")
+    pub language: Option<String>,
+    /// File size in bytes
+    pub file_size: Option<u64>,
+    /// MIME type
+    pub mime_type: Option<String>,
+    /// OCR confidence score (0.0–1.0)
+    pub ocr_confidence: Option<f64>,
+    /// Original filename (for file drops)
+    pub original_filename: Option<String>,
+    /// Vault path where this object is stored
+    pub vault_path: Option<String>,
+    /// Extended description / excerpt
+    pub description: Option<String>,
+}
 
-    #[test]
-    fn object_type_all_variants_serialize() {
-        let variants = vec![
-            ObjectType::Note,
-            ObjectType::Document,
-            ObjectType::Pdf,
-            ObjectType::Image,
-            ObjectType::Receipt,
-            ObjectType::Invoice,
-            ObjectType::Meeting,
-            ObjectType::Person,
-            ObjectType::Organisation,
-            ObjectType::Project,
-            ObjectType::ResearchPaper,
-            ObjectType::Book,
-            ObjectType::Course,
-            ObjectType::Website,
-            ObjectType::Bookmark,
-            ObjectType::Repository,
-            ObjectType::AudioRecording,
-            ObjectType::Video,
-            ObjectType::Scan,
-            ObjectType::Screenshot,
-            ObjectType::Attachment,
-            ObjectType::Custom("plugin_type".to_string()),
-        ];
-
-        for variant in variants {
-            let serialized =
-                serde_json::to_string(&variant).expect("Failed to serialize ObjectType");
-            let deserialized: ObjectType =
-                serde_json::from_str(&serialized).expect("Failed to deserialize ObjectType");
-            assert_eq!(variant, deserialized);
+impl Default for ObjectMetadata {
+    fn default() -> Self {
+        Self {
+            title: None,
+            source_url: None,
+            authors: Vec::new(),
+            publication_date: None,
+            site_name: None,
+            language: None,
+            file_size: None,
+            mime_type: None,
+            ocr_confidence: None,
+            original_filename: None,
+            vault_path: None,
+            description: None,
         }
     }
+}
 
-    #[test]
-    fn object_content_all_variants_serialize() {
-        let variants = vec![
-            ObjectContent::Markdown,
-            ObjectContent::PlainText,
-            ObjectContent::Html,
-            ObjectContent::Binary,
-            ObjectContent::Structured(json!({"key": "value"})),
-        ];
+/// Extensible custom property value types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CustomPropertyValue {
+    Text(String),
+    Number(f64),
+    Bool(bool),
+    Date(String),
+    Select(String),
+    MultiSelect(Vec<String>),
+    Url(String),
+}
 
-        for variant in variants {
-            let serialized =
-                serde_json::to_string(&variant).expect("Failed to serialize ObjectContent");
-            let deserialized: ObjectContent =
-                serde_json::from_str(&serialized).expect("Failed to deserialize ObjectContent");
-            assert_eq!(variant, deserialized);
-        }
-    }
+/// A relationship between this object and another
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ObjectRelation {
+    pub target_id: Uuid,
+    pub relation_type: RelationType,
+    pub label: Option<String>,
+}
 
-    #[test]
-    fn object_metadata_empty_serializes() {
-        let metadata = ObjectMetadata {
-            title: None,
-            author: None,
-            language: None,
-            source_url: None,
-            source_file: None,
-            mime_type: None,
-            page_count: None,
-            word_count: None,
-            created: None,
-            modified: None,
-            custom: HashMap::new(),
-        };
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RelationType {
+    References,
+    ReferencedBy,
+    Parent,
+    Child,
+    Attached,
+    Related,
+    Custom(String),
+}
 
-        let serialized =
-            serde_json::to_string(&metadata).expect("Failed to serialize empty metadata");
-        let deserialized: ObjectMetadata =
-            serde_json::from_str(&serialized).expect("Failed to deserialize empty metadata");
-        assert_eq!(metadata, deserialized);
-    }
+/// Processing state of a KnowledgeObject
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ProcessingState {
+    Pending,
+    Processing,
+    Completed,
+    Failed(String),
+    Cancelled,
+}
 
-    #[test]
-    fn object_metadata_populated_round_trip() {
-        let mut custom = HashMap::new();
-        custom.insert("ocr_confidence".to_string(), json!(0.95));
-        custom.insert("entities".to_string(), json!(["Nabu", "Rust"]));
-
-        let metadata = ObjectMetadata {
-            title: Some("Test Document".to_string()),
-            author: Some("Author Name".to_string()),
-            language: Some("en".to_string()),
-            source_url: Some("https://example.com/doc".to_string()),
-            source_file: Some("/path/to/file.pdf".to_string()),
-            mime_type: Some("application/pdf".to_string()),
-            page_count: Some(42),
-            word_count: Some(12345),
-            created: Some("2024-01-01T00:00:00Z".to_string()),
-            modified: Some("2024-06-01T00:00:00Z".to_string()),
-            custom,
-        };
-
-        let serialized = serde_json::to_string(&metadata).expect("Failed to serialize metadata");
-        let deserialized: ObjectMetadata =
-            serde_json::from_str(&serialized).expect("Failed to deserialize metadata");
-        assert_eq!(metadata, deserialized);
-    }
-
-    #[test]
-    fn object_metadata_custom_survives_round_trip() {
-        let mut custom = HashMap::new();
-        custom.insert(
-            "plugin_data".to_string(),
-            json!({"nested": true, "count": 7}),
-        );
-
-        let metadata = ObjectMetadata {
-            title: None,
-            author: None,
-            language: None,
-            source_url: None,
-            source_file: None,
-            mime_type: None,
-            page_count: None,
-            word_count: None,
-            created: None,
-            modified: None,
-            custom,
-        };
-
-        let serialized =
-            serde_json::to_string(&metadata).expect("Failed to serialize custom metadata");
-        let deserialized: ObjectMetadata =
-            serde_json::from_str(&serialized).expect("Failed to deserialize custom metadata");
-        assert_eq!(metadata, deserialized);
-    }
-
-    #[test]
-    fn knowledge_object_full_round_trip() {
-        let obj = KnowledgeObject {
-            id: Uuid::new_v4(),
-            object_type: ObjectType::ResearchPaper,
-            vault_id: "vault-123".to_string(),
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-            modified_at: "2024-06-01T00:00:00Z".to_string(),
-            content: ObjectContent::Structured(json!({"abstract": "A study of Rust."})),
-            metadata: ObjectMetadata {
-                title: Some("Rust Research".to_string()),
-                author: Some("Jane Doe".to_string()),
-                language: Some("en".to_string()),
-                source_url: Some("https://arxiv.org/abs/1234".to_string()),
-                source_file: None,
-                mime_type: Some("application/pdf".to_string()),
-                page_count: Some(12),
-                word_count: Some(8500),
-                created: Some("2024-01-01T00:00:00Z".to_string()),
-                modified: Some("2024-05-15T00:00:00Z".to_string()),
-                custom: HashMap::new(),
-            },
-        };
-
-        let serialized = serde_json::to_string(&obj).expect("Failed to serialize KnowledgeObject");
-        let deserialized: KnowledgeObject =
-            serde_json::from_str(&serialized).expect("Failed to deserialize KnowledgeObject");
-        assert_eq!(obj, deserialized);
-    }
-
-    #[test]
-    fn object_type_custom_string_round_trip() {
-        let variant = ObjectType::Custom("my_custom_type".to_string());
-        let serialized = serde_json::to_string(&variant).expect("Failed to serialize Custom");
-        let deserialized: ObjectType =
-            serde_json::from_str(&serialized).expect("Failed to deserialize Custom");
-        assert_eq!(variant, deserialized);
-    }
-
-    #[test]
-    fn object_content_structured_json_round_trip() {
-        let payload = json!({
-            "frontmatter": {
-                "tags": ["rust", "nabu"],
-                "date": "2024-06-01"
-            },
-            "body": "Hello, world!"
-        });
-        let variant = ObjectContent::Structured(payload.clone());
-        let serialized = serde_json::to_string(&variant).expect("Failed to serialize Structured");
-        let deserialized: ObjectContent =
-            serde_json::from_str(&serialized).expect("Failed to deserialize Structured");
-        assert_eq!(variant, deserialized);
-    }
-
-    #[test]
-    fn object_content_binary_round_trip() {
-        let variant = ObjectContent::Binary;
-        let serialized = serde_json::to_string(&variant).expect("Failed to serialize Binary");
-        let deserialized: ObjectContent =
-            serde_json::from_str(&serialized).expect("Failed to deserialize Binary");
-        assert_eq!(variant, deserialized);
-    }
+/// Capture source types
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum CaptureSource {
+    Browser,
+    Clipboard,
+    Screenshot,
+    FileDrop,
+    WatchFolder,
+    SafariReader,
+    YouTube,
+    GitHub,
+    Manual,
+    Api,
+    Plugin,
 }

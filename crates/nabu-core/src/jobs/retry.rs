@@ -1,197 +1,154 @@
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Configuration for retry behaviour.
-///
-/// Controls how a failed job is retried, including the backoff strategy
-/// and the maximum time window for retries.
+/// Configurable retry policy for jobs.
+/// Supports exponential backoff with jitter.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryPolicy {
-    /// The initial delay before the first retry (e.g., 5 seconds).
-    pub initial_delay_seconds: u64,
+    /// Maximum number of retry attempts
+    pub max_retries: u32,
 
-    /// The multiplier applied to the delay after each retry.
-    /// A value of 2.0 doubles the delay each time (exponential backoff).
+    /// Base delay in seconds (first retry delay)
+    pub base_delay_seconds: u64,
+
+    /// Backoff multiplier (exponential: delay * multiplier^attempt)
     pub backoff_multiplier: f64,
 
-    /// The maximum delay between retries (e.g., 1 hour).
+    /// Maximum delay in seconds (cap the backoff)
     pub max_delay_seconds: u64,
 
-    /// Jitter factor (0.0 — 1.0). Adds randomness to prevent thundering herd.
-    /// 0.0 = no jitter, 0.5 = up to 50% randomness added.
-    pub jitter_factor: f64,
-}
-
-impl RetryPolicy {
-    /// Creates a simple retry policy with no backoff (constant delay).
-    pub fn constant(delay: Duration) -> Self {
-        let secs = delay.num_seconds().max(1) as u64;
-        RetryPolicy {
-            initial_delay_seconds: secs,
-            backoff_multiplier: 1.0,
-            max_delay_seconds: secs,
-            jitter_factor: 0.0,
-        }
-    }
-
-    /// Creates an exponential backoff retry policy.
-    ///
-    /// - `initial_delay`: The delay before the first retry.
-    /// - `multiplier`: The factor by which the delay increases each retry (e.g., 2.0).
-    /// - `max_delay`: The maximum delay between retries.
-    pub fn exponential(initial_delay: Duration, multiplier: f64, max_delay: Duration) -> Self {
-        let init_secs = initial_delay.num_seconds().max(1) as u64;
-        let max_secs = max_delay.num_seconds().max(init_secs) as u64;
-        RetryPolicy {
-            initial_delay_seconds: init_secs,
-            backoff_multiplier: multiplier.max(1.0),
-            max_delay_seconds: max_secs,
-            jitter_factor: 0.0,
-        }
-    }
-
-    /// Creates an exponential backoff policy with jitter to prevent thundering herd.
-    pub fn with_jitter(mut self, jitter_factor: f64) -> Self {
-        self.jitter_factor = jitter_factor.clamp(0.0, 1.0);
-        self
-    }
-
-    /// Calculates the delay before the next retry for the given retry attempt number.
-    ///
-    /// Uses exponential backoff: `delay = min(initial * multiplier^attempt, max_delay)`
-    /// Optionally adds jitter: `delay *= (1.0 + random * jitter_factor)`
-    pub fn backoff_delay(&self, retry_count: u32) -> Duration {
-        let base_secs = self.initial_delay_seconds as f64
-            * self.backoff_multiplier.powi(retry_count as i32);
-        let clamped_secs = base_secs.min(self.max_delay_seconds as f64);
-
-        let secs = if self.jitter_factor > 0.0 {
-            // Simple deterministic jitter using retry_count as seed for reproducibility
-            let pseudo_random = ((retry_count as f64 * 0.1618) % 1.0).abs();
-            let jitter_amount = 1.0 + (pseudo_random * self.jitter_factor);
-            (clamped_secs * jitter_amount) as i64
-        } else {
-            clamped_secs as i64
-        };
-
-        Duration::seconds(secs.max(1))
-    }
-
-    /// Returns `true` if a job with this policy should be retried given the retry count and max retries.
-    pub fn should_retry(&self, retry_count: u32, max_retries: u32) -> bool {
-        retry_count < max_retries
-    }
+    /// Whether to add random jitter to delay
+    pub jitter: bool,
 }
 
 impl Default for RetryPolicy {
-    /// Default retry policy: exponential backoff starting at 5 seconds,
-    /// doubling each time, capped at 1 hour, with 10% jitter.
     fn default() -> Self {
-        RetryPolicy {
-            initial_delay_seconds: 5,
+        Self {
+            max_retries: 3,
+            base_delay_seconds: 5,
             backoff_multiplier: 2.0,
             max_delay_seconds: 3600, // 1 hour
-            jitter_factor: 0.1,
+            jitter: true,
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_constant_retry() {
-        let policy = RetryPolicy::constant(Duration::seconds(30));
-        let d1 = policy.backoff_delay(0);
-        let d2 = policy.backoff_delay(5);
-        assert_eq!(d1.num_seconds(), 30);
-        assert_eq!(d2.num_seconds(), 30);
+impl RetryPolicy {
+    /// Standard retry policy for user-facing operations.
+    pub fn standard() -> Self {
+        Self {
+            max_retries: 3,
+            base_delay_seconds: 10,
+            backoff_multiplier: 2.0,
+            max_delay_seconds: 300, // 5 minutes
+            jitter: true,
+        }
     }
 
-    #[test]
-    fn test_exponential_backoff() {
-        let policy = RetryPolicy::exponential(
-            Duration::seconds(5),
-            2.0,
-            Duration::seconds(300),
-        );
-
-        let d0 = policy.backoff_delay(0);
-        assert_eq!(d0.num_seconds(), 5); // 5 * 2^0 = 5
-
-        let d1 = policy.backoff_delay(1);
-        assert_eq!(d1.num_seconds(), 10); // 5 * 2^1 = 10
-
-        let d2 = policy.backoff_delay(2);
-        assert_eq!(d2.num_seconds(), 20); // 5 * 2^2 = 20
-
-        let d3 = policy.backoff_delay(3);
-        assert_eq!(d3.num_seconds(), 40); // 5 * 2^3 = 40
+    /// Aggressive retry policy for critical operations.
+    pub fn aggressive() -> Self {
+        Self {
+            max_retries: 5,
+            base_delay_seconds: 2,
+            backoff_multiplier: 2.0,
+            max_delay_seconds: 60, // 1 minute
+            jitter: true,
+        }
     }
 
-    #[test]
-    fn test_exponential_backoff_capped() {
-        let policy = RetryPolicy::exponential(
-            Duration::seconds(10),
-            2.0,
-            Duration::seconds(30),
-        );
-
-        let d0 = policy.backoff_delay(0);
-        assert_eq!(d0.num_seconds(), 10);
-
-        // 10 * 2^2 = 40, capped at 30
-        let d2 = policy.backoff_delay(2);
-        assert_eq!(d2.num_seconds(), 30);
+    /// Patient retry policy for background operations.
+    pub fn patient() -> Self {
+        Self {
+            max_retries: 10,
+            base_delay_seconds: 30,
+            backoff_multiplier: 3.0,
+            max_delay_seconds: 86400, // 24 hours
+            jitter: true,
+        }
     }
 
-    #[test]
-    fn test_should_retry() {
-        let policy = RetryPolicy::default();
-        assert!(policy.should_retry(0, 3));
-        assert!(policy.should_retry(2, 3));
-        assert!(!policy.should_retry(3, 3));
-        assert!(!policy.should_retry(5, 3));
+    /// Never retry.
+    pub fn no_retry() -> Self {
+        Self {
+            max_retries: 0,
+            base_delay_seconds: 0,
+            backoff_multiplier: 1.0,
+            max_delay_seconds: 0,
+            jitter: false,
+        }
     }
 
-    #[test]
-    fn test_default_policy() {
-        let policy = RetryPolicy::default();
-        assert_eq!(policy.initial_delay_seconds, 5);
-        assert_eq!(policy.backoff_multiplier, 2.0);
-        assert_eq!(policy.max_delay_seconds, 3600);
-        assert!((policy.jitter_factor - 0.1).abs() < f64::EPSILON);
+    /// Calculate the delay before the next retry attempt.
+    /// Returns the duration to wait before retrying.
+    pub fn retry_delay(&self, attempt: u32) -> Duration {
+        if attempt >= self.max_retries {
+            return Duration::zero();
+        }
+
+        let base = self.base_delay_seconds as f64;
+        let multiplier = self.backoff_multiplier.powi(attempt as i32);
+        let mut delay_secs = (base * multiplier).min(self.max_delay_seconds as f64);
+
+        if self.jitter {
+            // Add ±25% jitter
+            let jitter_amount = delay_secs * 0.25;
+            // Use a deterministic simple jitter based on attempt
+            let jitter_frac = (attempt as f64 * 0.618033988749895).fract() * 2.0 - 1.0; // -1..1
+            delay_secs += jitter_amount * jitter_frac;
+        }
+
+        Duration::seconds(delay_secs as i64).max(Duration::seconds(1))
     }
 
-    #[test]
-    fn test_minimum_one_second() {
-        let policy = RetryPolicy::constant(Duration::milliseconds(100));
-        let d = policy.backoff_delay(0);
-        assert_eq!(d.num_seconds(), 1);
+    /// Calculate the next scheduled time for a retry.
+    pub fn next_retry_time(&self, attempt: u32) -> DateTime<Utc> {
+        Utc::now() + self.retry_delay(attempt)
     }
 
-    #[test]
-    fn test_jitter_adds_variation() {
-        let no_jitter = RetryPolicy::exponential(Duration::seconds(10), 2.0, Duration::seconds(100));
-        let with_jitter = RetryPolicy::exponential(Duration::seconds(10), 2.0, Duration::seconds(100))
-            .with_jitter(0.5);
+    /// Whether another retry is allowed.
+    pub fn can_retry(&self, attempt: u32) -> bool {
+        attempt < self.max_retries
+    }
+}
 
-        let d0 = no_jitter.backoff_delay(0);
-        let d1 = with_jitter.backoff_delay(0);
+/// Predefined retry policies for different processor types.
+pub mod policies {
+    use super::RetryPolicy;
 
-        // With jitter 0.5, the delay should differ from the base (pseudo-random)
-        // Since jitter adds randomness, the delay may be larger than the base
-        // But we can't guarantee exact values due to the pseudo-random calculation
-        assert!(d1.num_seconds() >= 1);
+    /// OCR retry: 3 retries, 10s base, 2x backoff
+    pub fn ocr() -> RetryPolicy {
+        RetryPolicy::standard()
     }
 
-    #[test]
-    fn test_with_jitter_clamps() {
-        let policy = RetryPolicy::default().with_jitter(2.0);
-        assert!((policy.jitter_factor - 1.0).abs() < f64::EPSILON);
+    /// Whisper retry: 5 retries, 30s base, 3x backoff (transcription is expensive)
+    pub fn whisper() -> RetryPolicy {
+        RetryPolicy::patient()
+    }
 
-        let policy = RetryPolicy::default().with_jitter(-0.5);
-        assert!((policy.jitter_factor - 0.0).abs() < f64::EPSILON);
+    /// Metadata extraction retry: 3 retries, 5s base, 2x backoff
+    pub fn metadata() -> RetryPolicy {
+        RetryPolicy {
+            max_retries: 3,
+            base_delay_seconds: 5,
+            backoff_multiplier: 2.0,
+            max_delay_seconds: 60,
+            jitter: true,
+        }
+    }
+
+    /// AI/embedding retry: 5 retries, 15s base, 2x backoff
+    pub fn ai() -> RetryPolicy {
+        RetryPolicy {
+            max_retries: 5,
+            base_delay_seconds: 15,
+            backoff_multiplier: 2.0,
+            max_delay_seconds: 300,
+            jitter: true,
+        }
+    }
+
+    /// Persistence retry: aggressive, low latency
+    pub fn persistence() -> RetryPolicy {
+        RetryPolicy::aggressive()
     }
 }

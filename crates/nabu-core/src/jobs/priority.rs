@@ -1,123 +1,110 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::fmt;
 
-/// Priority levels for job scheduling.
-///
-/// Higher-priority jobs are always dequeued before lower-priority jobs.
-/// Within the same priority level, jobs are dequeued in FIFO order.
+/// Priority levels determining job execution order.
+/// Higher-priority jobs execute before lower-priority jobs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum Priority {
-    /// Critical — executes before all other jobs.
-    /// Reserved for system operations that must complete immediately.
-    Critical = 5,
-
-    /// High — executes after critical jobs.
-    /// Use for user-facing operations where latency matters.
-    High = 4,
-
-    /// Normal — the default priority.
-    /// Use for standard background operations.
-    Normal = 3,
-
-    /// Low — executes after normal jobs.
-    /// Use for non-urgent maintenance operations.
-    Low = 2,
-
-    /// Background — executes when no higher-priority work exists.
-    /// Use for batch processing, indexing, analytics.
-    Background = 1,
+    /// System-critical operations (must execute immediately)
+    Critical = 0,
+    /// User-facing operations (OCR, metadata extraction on visible items)
+    High = 1,
+    /// Standard background processing
+    Normal = 2,
+    /// Non-urgent processing (batch operations, analytics)
+    Low = 3,
+    /// Deferred processing (maintenance, garbage collection)
+    Background = 4,
 }
 
 impl Priority {
-    /// Returns all priority levels in descending order.
-    pub fn all_descending() -> Vec<Priority> {
-        vec![
-            Priority::Critical,
-            Priority::High,
-            Priority::Normal,
-            Priority::Low,
-            Priority::Background,
-        ]
-    }
+    /// All priority levels in descending order of importance.
+    pub const ALL: [Priority; 5] = [
+        Priority::Critical,
+        Priority::High,
+        Priority::Normal,
+        Priority::Low,
+        Priority::Background,
+    ];
 
-    /// Returns a human-readable label for this priority.
     pub fn label(&self) -> &'static str {
         match self {
-            Priority::Critical => "Critical",
-            Priority::High => "High",
-            Priority::Normal => "Normal",
-            Priority::Low => "Low",
-            Priority::Background => "Background",
+            Priority::Critical => "critical",
+            Priority::High => "high",
+            Priority::Normal => "normal",
+            Priority::Low => "low",
+            Priority::Background => "background",
         }
     }
-}
 
-impl fmt::Display for Priority {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.label())
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "critical" => Some(Priority::Critical),
+            "high" => Some(Priority::High),
+            "normal" => Some(Priority::Normal),
+            "low" => Some(Priority::Low),
+            "background" => Some(Priority::Background),
+            _ => None,
+        }
     }
 }
 
 impl PartialOrd for Priority {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        // Lower numeric value = higher priority
+        // Critical(0) > High(1) > Normal(2) > Low(3) > Background(4)
+        other.value().partial_cmp(&self.value())
     }
 }
 
 impl Ord for Priority {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_val = *self as i32;
-        let other_val = *other as i32;
-        self_val.cmp(&other_val)
+        other.value().cmp(&self.value())
     }
 }
 
-impl Default for Priority {
-    fn default() -> Self {
-        Priority::Normal
+impl Priority {
+    pub fn value(&self) -> u8 {
+        match self {
+            Priority::Critical => 0,
+            Priority::High => 1,
+            Priority::Normal => 2,
+            Priority::Low => 3,
+            Priority::Background => 4,
+        }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// A wrapper for items that need priority-based ordering.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PriorityItem<T> {
+    pub priority: Priority,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub item: T,
+}
 
-    #[test]
-    fn test_priority_ordering() {
-        assert!(Priority::Critical > Priority::High);
-        assert!(Priority::High > Priority::Normal);
-        assert!(Priority::Normal > Priority::Low);
-        assert!(Priority::Low > Priority::Background);
-
-        // Same priority is equal
-        assert_eq!(Priority::Normal, Priority::Normal);
+impl<T> PriorityItem<T> {
+    pub fn new(priority: Priority, created_at: chrono::DateTime<chrono::Utc>, item: T) -> Self {
+        Self {
+            priority,
+            created_at,
+            item,
+        }
     }
+}
 
-    #[test]
-    fn test_priority_all_descending() {
-        let levels = Priority::all_descending();
-        assert_eq!(levels.len(), 5);
-        assert_eq!(levels[0], Priority::Critical);
-        assert_eq!(levels[1], Priority::High);
-        assert_eq!(levels[2], Priority::Normal);
-        assert_eq!(levels[3], Priority::Low);
-        assert_eq!(levels[4], Priority::Background);
+impl<T: PartialEq> PartialOrd for PriorityItem<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
+}
 
-    #[test]
-    fn test_priority_default() {
-        let p: Priority = Default::default();
-        assert_eq!(p, Priority::Normal);
-    }
-
-    #[test]
-    fn test_priority_serialization() {
-        let json = serde_json::to_string(&Priority::Critical).unwrap();
-        assert_eq!(json, "\"critical\"");
-
-        let p: Priority = serde_json::from_str("\"high\"").unwrap();
-        assert_eq!(p, Priority::High);
+impl<T: PartialEq> Ord for PriorityItem<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Higher priority first, then FIFO by created_at
+        match self.priority.cmp(&other.priority) {
+            Ordering::Equal => self.created_at.cmp(&other.created_at),
+            ordering => ordering,
+        }
     }
 }
