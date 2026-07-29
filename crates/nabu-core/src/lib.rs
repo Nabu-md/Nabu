@@ -39,14 +39,27 @@ pub mod registry;
 pub mod plugin;
 
 // Re-export key types for convenient access
+// Ambiguous glob re-exports are intentional — all public API types should
+// be available at the crate root for ergonomic use by consumers.
+#[allow(ambiguous_glob_reexports)]
 pub use event_bus::*;
+#[allow(ambiguous_glob_reexports)]
 pub use models::*;
+#[allow(ambiguous_glob_reexports)]
 pub use jobs::*;
+#[allow(ambiguous_glob_reexports)]
 pub use processing::*;
+#[allow(ambiguous_glob_reexports)]
 pub use capture::*;
+#[allow(ambiguous_glob_reexports)]
 pub use pipeline_migration::*;
+#[allow(ambiguous_glob_reexports)]
 pub use storage::*;
+#[allow(ambiguous_glob_reexports)]
 pub use indexer::*;
+#[allow(ambiguous_glob_reexports)]
 pub use graph::*;
+#[allow(ambiguous_glob_reexports)]
 pub use registry::*;
+#[allow(ambiguous_glob_reexports)]
 pub use plugin::*;
