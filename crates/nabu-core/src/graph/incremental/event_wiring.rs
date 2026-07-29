@@ -58,7 +58,7 @@ impl GraphEventBridge {
                 let object_id = stored.object_id;
 
                 let mut engine = engine.lock().unwrap();
-                let mut graph = graph.lock().unwrap();
+                let graph = graph.lock().unwrap();
                 let mut snapshot = snapshot.lock().unwrap();
 
                 // Determine change type

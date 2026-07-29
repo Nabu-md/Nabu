@@ -79,7 +79,7 @@ impl Processor for ContentClassifier {
     }
 }
 
-fn classify_content(text: &str, metadata: &ObjectMetadata) -> Option<String> {
+fn classify_content(text: &str, _metadata: &ObjectMetadata) -> Option<String> {
     let lower = text.to_lowercase();
 
     // Invoice detection

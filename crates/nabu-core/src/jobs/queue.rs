@@ -150,7 +150,7 @@ impl DurableJobQueue {
     }
 
     /// Create a cancellation token for a job.
-    pub fn cancellation_token(&self, job_id: &str) -> CancellationToken {
+    pub fn cancellation_token(&self, _job_id: &str) -> CancellationToken {
         CancellationToken::new()
     }
 
@@ -398,7 +398,7 @@ impl Queue for DurableJobQueue {
             JobError::NotFound(job_id.to_string())
         })?;
 
-        let policy = self.get_retry_policy(&job.job_type);
+        let _policy = self.get_retry_policy(&job.job_type);
         job.retry_count += 1;
         job.last_error = Some(error.to_string());
 

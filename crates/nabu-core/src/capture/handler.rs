@@ -1,4 +1,4 @@
-use crate::models::{CaptureSource, ObjectType};
+use crate::models::{CaptureSource, KnowledgeObject, ObjectType};
 use async_trait::async_trait;
 
 /// Result of a capture operation.

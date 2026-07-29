@@ -71,7 +71,7 @@ impl GraphRecovery {
                 }
             }
 
-            LoadResult::Corrupted { reason, report } => {
+            LoadResult::Corrupted { reason, report: _ } => {
                 tracing::warn!("Graph corruption detected: {} — will rebuild", reason);
                 // Try to save corrupted file for debugging
                 if let Err(e) = self.store.delete() {

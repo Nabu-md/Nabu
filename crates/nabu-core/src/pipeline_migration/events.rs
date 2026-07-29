@@ -10,7 +10,7 @@ use crate::jobs::job::Job;
 /// PipelineEvent so that StorageManager, Indexer, VaultGraph, and UI
 /// can react.
 pub fn wire_job_events_to_event_bus(
-    event_bus: &EventBus<PipelineEvent>,
+    _event_bus: &EventBus<PipelineEvent>,
 ) {
     // Subscribe to queue lifecycle events via the event bus.
     // This function sets up subscriptions that bridge job state transitions
