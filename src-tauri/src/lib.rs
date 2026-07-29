@@ -8,6 +8,16 @@ pub mod settings;
 pub mod template_manager;
 pub mod vault;
 
+// ---------------------------------------------------------------------------
+// Architectural note (Principle 6 — One Search Engine):
+// The canonical Indexer lives in nabu_core and is the only Tantivy instance.
+// No duplicate search engine exists — src-tauri/search.rs has been removed.
+//
+// Architectural note (Principle 7 — One Graph Engine):
+// The canonical VaultGraph lives in nabu_core and is the only Petgraph instance.
+// No duplicate graph engine exists — src-tauri/graph.rs has been removed.
+// ---------------------------------------------------------------------------
+
 pub use nabu_core::markdown::{Document, ParseError, parse};
 
 use nabu_core::capture::{
@@ -15,7 +25,11 @@ use nabu_core::capture::{
     GitHubRepositoryHandler, ScreenshotHandler, WatchFolderConfig, WatchFolderService,
     YouTubeCaptureHandler,
 };
-use nabu_core::event_bus::EventBus;
+use nabu_core::event_bus::{
+    EVENT_ITEM_STORED, EventBus, ItemStored,
+};
+use nabu_core::graph::VaultGraph;
+use nabu_core::indexer::Indexer;
 use nabu_core::processing::{
     AutoFiler, ContentClassifier, DuplicateDetector, MetadataEnricher, MetadataExtractor, OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor, ProcessingPipeline, TimelineExtractor,
 };
@@ -113,6 +127,29 @@ pub fn run() {
                     eprintln!("Watch folders disabled: {}", e);
                 }
             }
+
+            // Wire canonical Indexer as EVENT_ITEM_STORED subscriber
+            // (Principle 6 — One Search Engine)
+            let indexer_path = std::path::PathBuf::from(".nabu/index");
+            if let Ok(mut indexer) = Indexer::new(indexer_path) {
+                let idx_bus = event_bus.clone();
+                event_bus.subscribe(EVENT_ITEM_STORED, move |event: &ItemStored| {
+                    if let Err(e) = indexer.index_document(&event.knowledge_object) {
+                        eprintln!("Indexer failed to index {}: {}", event.id, e);
+                    }
+                });
+            } else {
+                eprintln!("Warning: Could not initialize Indexer — search will be unavailable");
+            }
+
+            // Wire canonical VaultGraph as EVENT_ITEM_STORED subscriber
+            // (Principle 7 — One Graph Engine)
+            let vault_graph = Arc::new(std::sync::RwLock::new(VaultGraph::new()));
+            let vg = vault_graph.clone();
+            event_bus.subscribe(EVENT_ITEM_STORED, move |event: &ItemStored| {
+                let mut graph = vg.write().unwrap();
+                graph.update_node(&event.knowledge_object);
+            });
 
             // Start native messaging socket server
             let socket_state = Arc::new(crate::native_messaging_socket::SocketServerState {

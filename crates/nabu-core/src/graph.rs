@@ -7,6 +7,18 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+// ---------------------------------------------------------------------------
+// Architectural note: VaultGraph is the SINGLE canonical graph (Principle 7).
+//
+// No subsystem may introduce its own graph, relation engine, or graph
+// database. All entity relations, wiki-link backlinks, and semantic edges
+// flow through this module.
+//
+// The graph is a *derived* data structure. It is rebuilt from Markdown
+// content on vault open and incrementally updated via the EventBus. Deleting
+// it (`rm -rf .nabu/graph`) must never destroy user-authored knowledge.
+// ---------------------------------------------------------------------------
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GraphNode {
     Object(KnowledgeObject),
@@ -87,13 +99,25 @@ impl VaultGraph {
             .collect()
     }
 
+    /// Filter graph nodes by tag.
+    ///
+    /// # Known debt (Principle 1 — Metadata First)
+    ///
+    /// This currently reads each node's source file from disk to extract tags.
+    /// Ideally, tags are extracted at ingestion time and stored in
+    /// `ObjectMetadata.custom["tags"]` so this method can query metadata
+    /// without disk I/O. Until then, `filter_by_tag` correctly respects
+    /// Markdown as the canonical source of truth.
     pub fn filter_by_tag(&self, tag: &str) -> Vec<String> {
         self.graph
             .node_indices()
             .filter(|&idx| {
                 if let GraphNode::Object(obj) = &self.graph[idx] {
-                    // This is inefficient but necessary for now
-                    let content = std::fs::read_to_string(obj.metadata.source_file.as_ref().unwrap_or(&"".to_string())).unwrap_or_default();
+                    // TODO: Read tags from ObjectMetadata.custom["tags"] once
+                    // the processing pipeline extracts and stores them at
+                    // ingestion time (Principle 8 — Metadata First).
+                    let path = obj.metadata.source_file.as_deref().unwrap_or("");
+                    let content = std::fs::read_to_string(path).unwrap_or_default();
                     crate::markdown::extract_tags(&content).contains(&tag.to_string())
                 } else {
                     false
