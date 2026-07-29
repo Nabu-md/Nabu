@@ -1,7 +1,6 @@
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::processing::processor::{ProcessingResult, Processor};
-use crate::native::pdf::PDFDocument;
-use objc2_foundation::{NSURL, NSString};
+use crate::native::pdf::PdfDocument;
 
 #[derive(Debug, Clone)]
 pub struct PdfMetadataProcessor;
@@ -30,42 +29,34 @@ impl Processor for PdfMetadataProcessor {
             return ProcessingResult::skipped("PDF file not found");
         }
 
-        let url = NSURL::fileURLWithPath(&NSString::from_str(source_file));
-
-        let doc = match PDFDocument::initWithURL(&url) {
+        let doc = match PdfDocument::from_path(&path) {
             Some(doc) => doc,
             None => return ProcessingResult::warning("Failed to load PDF document"),
         };
 
-        if let Some(attrs) = doc.documentAttributes() {
-            let keys = vec![
-                ("Title", "Title"),
-                ("Author", "Author"),
-                ("Subject", "Subject"),
-            ];
+        let attrs = doc.document_attributes();
+        let keys = vec![
+            ("Title", "Title"),
+            ("Author", "Author"),
+            ("Subject", "Subject"),
+        ];
 
-            let mut found = false;
-            let mut ko = knowledge_object;
-            for (key_name, map_key) in keys {
-                let ns_key = NSString::from_str(key_name);
-                if let Some(val) = attrs.objectForKey(&ns_key) {
-                    if let Some(s) = val.downcast_ref::<NSString>() {
-                        ko.metadata.custom.insert(
-                            map_key.to_string(),
-                            serde_json::Value::String(s.to_string())
-                        );
-                        found = true;
-                    }
-                }
+        let mut found = false;
+        let mut ko = knowledge_object;
+        for (key_name, map_key) in keys {
+            if let Some(val) = attrs.get(key_name) {
+                ko.metadata.custom.insert(
+                    map_key.to_string(),
+                    serde_json::Value::String(val.clone())
+                );
+                found = true;
             }
-
-            if !found {
-                return ProcessingResult::warning("No PDF metadata attributes found");
-            }
-
-            ProcessingResult::modified(ko, vec!["PDF metadata extracted".to_string()])
-        } else {
-            ProcessingResult::warning("No PDF document attributes found")
         }
+
+        if !found {
+            return ProcessingResult::warning("No PDF metadata attributes found");
+        }
+
+        ProcessingResult::modified(ko, vec!["PDF metadata extracted".to_string()])
     }
 }
