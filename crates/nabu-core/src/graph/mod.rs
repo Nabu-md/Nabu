@@ -13,6 +13,7 @@ pub mod integrity;
 pub mod persistence;
 pub mod loader;
 pub mod recovery;
+pub mod incremental;
 
 pub use version::*;
 pub use serializer::*;
@@ -20,6 +21,7 @@ pub use persistence::*;
 pub use loader::*;
 pub use integrity::*;
 pub use recovery::*;
+pub use incremental::*;
 
 use crate::event_bus::{EventBus, GraphOperation, GraphUpdatedEvent, PipelineEvent};
 use crate::event_bus::kinds::GRAPH_UPDATED;
