@@ -23,6 +23,7 @@
 //      KnowledgeObjects — never duplicates (Principle 5).
 // ---------------------------------------------------------------------------
 pub mod capture;
+pub mod content_provider;
 pub mod event_bus;
 pub mod export_engine;
 pub mod graph;
