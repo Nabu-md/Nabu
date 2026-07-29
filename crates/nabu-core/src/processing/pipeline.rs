@@ -259,7 +259,7 @@ pub fn build_standard_pipeline(event_bus: Option<EventBus<crate::event_bus::Pipe
         Arc::new(super::processors::SemanticEnricher),
         Arc::new(super::processors::AiSummariser),
         // Phase 5: Organization
-        Arc::new(super::processors::AutoFiler),
+        Arc::new(super::processors::AutoFiler::new()),
     ];
 
     for processor in processors {

@@ -1,5 +1,5 @@
 use crate::event_bus::EventBus;
-use crate::models::{CaptureSource, KnowledgeObject};
+use crate::models::{CaptureSource, KnowledgeObject, ObjectType};
 use async_trait::async_trait;
 
 /// Result of a capture operation.

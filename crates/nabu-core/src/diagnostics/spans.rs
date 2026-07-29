@@ -42,21 +42,55 @@ pub fn make_span(
     subsystem: &'static str,
     component: &'static str,
     operation: &'static str,
-    fields: Vec<(&str, tracing::field::ValueFn)>,
+    fields: Vec<(&str, &dyn tracing::field::Value)>,
 ) -> Span {
-    // We use a macro internally to handle the variable number of fields
-    // gracefully. The public helper wraps it.
-    let span = tracing::span!(
-        level,
-        "nabu",
-        subsystem = subsystem,
-        component = component,
-        operation = operation,
-    );
+    // Use level-specific macros to satisfy tracing's static callsite requirement
+    let span = match level {
+        tracing::Level::ERROR => {
+            tracing::error_span!(
+                "nabu",
+                subsystem = subsystem,
+                component = component,
+                operation = operation,
+            )
+        }
+        tracing::Level::WARN => {
+            tracing::warn_span!(
+                "nabu",
+                subsystem = subsystem,
+                component = component,
+                operation = operation,
+            )
+        }
+        tracing::Level::INFO => {
+            tracing::info_span!(
+                "nabu",
+                subsystem = subsystem,
+                component = component,
+                operation = operation,
+            )
+        }
+        tracing::Level::DEBUG => {
+            tracing::debug_span!(
+                "nabu",
+                subsystem = subsystem,
+                component = component,
+                operation = operation,
+            )
+        }
+        tracing::Level::TRACE => {
+            tracing::trace_span!(
+                "nabu",
+                subsystem = subsystem,
+                component = component,
+                operation = operation,
+            )
+        }
+    };
 
     // Record additional fields
-    for (name, value_fn) in fields {
-        span.record(name, value_fn);
+    for (name, value) in fields {
+        span.record(name, value);
     }
 
     span
@@ -297,7 +331,7 @@ mod tests {
             "test",
             "test_component",
             "test_operation",
-            vec![("key", tracing::field::display("value"))],
+            vec![("key", &tracing::field::display("value"))],
         );
         assert_eq!(span.metadata().map(|m| m.name()), Some("nabu"));
     }

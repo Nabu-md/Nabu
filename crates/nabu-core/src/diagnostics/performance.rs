@@ -67,7 +67,7 @@ pub fn global_monitor() -> Arc<PerformanceMonitor> {
 /// Reset the global monitor (for testing).
 #[cfg(test)]
 pub fn reset_global_monitor() {
-    GLOBAL_MONITOR.take();
+    global_monitor().reset();
 }
 
 // ---------------------------------------------------------------------------
@@ -464,9 +464,9 @@ impl PerformanceMonitor {
 
     /// Reset all metrics.
     pub fn reset(&self) {
-        if let Ok(timers) = self.timers.write() { timers.clear(); }
-        if let Ok(counters) = self.counters.write() { counters.clear(); }
-        if let Ok(gauges) = self.gauges.write() { gauges.clear(); }
+        if let Ok(mut timers) = self.timers.write() { timers.clear(); }
+        if let Ok(mut counters) = self.counters.write() { counters.clear(); }
+        if let Ok(mut gauges) = self.gauges.write() { gauges.clear(); }
     }
 
     /// Total number of active metric timers.

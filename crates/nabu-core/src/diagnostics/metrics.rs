@@ -67,9 +67,10 @@ impl Timer {
             if inner.samples.len() < inner.capacity {
                 inner.samples.push(ms);
             } else {
-                let evicted = inner.samples[inner.cursor];
+                let cursor = inner.cursor;
+                let evicted = inner.samples[cursor];
                 inner.running_sum -= evicted;
-                inner.samples[inner.cursor] = ms;
+                inner.samples[cursor] = ms;
                 inner.cursor = (inner.cursor + 1) % inner.capacity;
             }
         }
@@ -220,13 +221,13 @@ struct HistogramInner {
 }
 
 impl Histogram {
-    pub fn new(buckets: &[f64]) -> Self {
-        let mut sorted = buckets.to_vec();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        Self {
-            inner: RwLock::new(HistogramInner {
-                buckets: sorted,
-                counts: vec![0u64; sorted.len() + 1],
+    pub fn new(buckets: &[f64]) -> Self {            let mut sorted = buckets.to_vec();
+            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let bucket_count = sorted.len() + 1;
+            Self {
+                inner: RwLock::new(HistogramInner {
+                    buckets: sorted,
+                    counts: vec![0u64; bucket_count],
                 total: 0, sum: 0.0,
             }),
         }

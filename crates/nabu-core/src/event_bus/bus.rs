@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
@@ -51,8 +50,16 @@ impl<Events: Clone + Send + Sync + 'static> EventBus<Events> {
                 handler: Box::new(handler),
             });
 
+        let inner_clone = self.inner.clone();
+        let unsub_event_kind = event_kind.to_string();
+        let unsub_id = id;
         Subscription {
-            bus: Arc::downgrade(&self.inner),
+            unsubscribe_fn: Box::new(move || {
+                let mut inner = inner_clone.lock().unwrap();
+                if let Some(subscribers) = inner.subscribers.get_mut(&unsub_event_kind) {
+                    subscribers.retain(|s| s.id != unsub_id);
+                }
+            }),
             event_kind: event_kind.to_string(),
             id,
         }
@@ -108,22 +115,14 @@ impl<Events: Clone + Send + Sync + 'static> Default for EventBus<Events> {
 /// A subscription handle returned by `subscribe()`.
 /// Dropping the handle does NOT unsubscribe — call `unsubscribe()` explicitly.
 pub struct Subscription {
-    bus: Weak<Mutex<BusInner<EventsGlobalDummy>>>,
+    unsubscribe_fn: Box<dyn Fn() + Send + Sync>,
     event_kind: String,
     id: SubscriberId,
 }
 
-// Dummy type because Weak needs a concrete type, but we only use unsubscribe via the bus
-type EventsGlobalDummy = String;
-
 impl Subscription {
     /// Unsubscribe this subscription from the event bus.
     pub fn unsubscribe(&self) {
-        if let Some(bus) = self.bus.upgrade() {
-            let mut inner = bus.lock().unwrap();
-            if let Some(subscribers) = inner.subscribers.get_mut(&self.event_kind) {
-                subscribers.retain(|s| s.id != self.id);
-            }
-        }
+        (self.unsubscribe_fn)();
     }
 }

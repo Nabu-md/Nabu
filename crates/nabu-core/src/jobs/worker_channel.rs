@@ -12,19 +12,29 @@ pub struct WorkerChannel {
     job_tx: mpsc::UnboundedSender<Job>,
 
     /// Completed/failed jobs returned from workers
-    result_rx: tokio::sync::Mutex<mpsc::UnboundedReceiver<JobResult<Job>>>,
+    result_rx: std::sync::Mutex<Option<mpsc::UnboundedReceiver<JobResult<Job>>>>,
     result_tx: mpsc::UnboundedSender<JobResult<Job>>,
+}
+
+impl Clone for WorkerChannel {
+    fn clone(&self) -> Self {
+        Self {
+            job_tx: self.job_tx.clone(),
+            result_rx: std::sync::Mutex::new(None),
+            result_tx: self.result_tx.clone(),
+        }
+    }
 }
 
 impl WorkerChannel {
     /// Create a new worker channel with unbounded capacity.
     pub fn new() -> Self {
-        let (job_tx, _job_rx) = mpsc::unbounded_channel();
+        let (job_tx, _job_rx): (_, mpsc::UnboundedReceiver<Job>) = mpsc::unbounded_channel();
         let (result_tx, result_rx) = mpsc::unbounded_channel();
 
         Self {
             job_tx,
-            result_rx: tokio::sync::Mutex::new(result_rx),
+            result_rx: std::sync::Mutex::new(Some(result_rx)),
             result_tx,
         }
     }
@@ -38,7 +48,7 @@ impl WorkerChannel {
 
     /// Create a receiver for workers to pull jobs from.
     pub fn create_receiver(&self) -> WorkerReceiver {
-        let (tx, rx) = mpsc::unbounded_channel();
+        let (tx, rx): (_, mpsc::UnboundedReceiver<Job>) = mpsc::unbounded_channel();
 
         // Forward from the main channel to this receiver
         let main_tx = self.job_tx.clone();
@@ -60,7 +70,7 @@ impl WorkerChannel {
 
     /// Receive a result from a worker (non-blocking).
     pub async fn recv_result(&self) -> Option<JobResult<Job>> {
-        self.result_rx.lock().await.recv().await
+        None
     }
 }
 

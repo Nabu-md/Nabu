@@ -5,10 +5,19 @@ const PROGRESS_DENOM: u32 = 1000;
 
 /// A progress reporter that can be cloned and shared across threads.
 /// Jobs report progress as a value between 0 and 1000 (permille).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ProgressReporter {
     permille: Arc<AtomicU32>,
     on_update: Arc<dyn Fn(f64) + Send + Sync>,
+}
+
+impl std::fmt::Debug for ProgressReporter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProgressReporter")
+            .field("permille", &self.permille)
+            .field("progress", &self.progress())
+            .finish()
+    }
 }
 
 impl ProgressReporter {

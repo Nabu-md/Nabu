@@ -11,6 +11,7 @@
 
 use nabu_core::diagnostics::metrics::*;
 use nabu_core::diagnostics::performance::*;
+use std::sync::Arc;
 use std::time::Duration;
 
 // ---------------------------------------------------------------------------

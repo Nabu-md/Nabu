@@ -27,7 +27,7 @@ pub struct Permission {
 }
 
 /// Risk level for a permission — helps users understand the implications.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RiskLevel {
     /// No risk — purely informational.
     None,

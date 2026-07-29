@@ -85,7 +85,7 @@ impl GraphStore {
             .write_all(meta_json.as_bytes())
             .map_err(|e| format!("Failed to write metadata file: {}", e))?;
 
-        log::info!(
+        tracing::info!(
             "Graph saved: {} nodes, {} edges, checksum: {}",
             snapshot.nodes.len(),
             snapshot.edges.len(),

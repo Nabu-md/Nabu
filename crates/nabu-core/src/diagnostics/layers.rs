@@ -12,6 +12,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::fmt::Layer as FmtLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::Layer;
+use tracing::Subscriber;
 
 /// Create a stderr logging layer.
 ///
@@ -23,7 +24,7 @@ use tracing_subscriber::Layer;
 /// ## Returns
 ///
 /// A boxed `Layer` suitable for combining with other layers.
-pub fn stderr_layer(pretty: bool) -> Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> {
+pub fn stderr_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(pretty: bool) -> Box<dyn Layer<S> + Send + Sync> {
     if pretty {
         Box::new(
             tracing_subscriber::fmt::layer()
@@ -66,11 +67,11 @@ pub fn stderr_layer(pretty: bool) -> Box<dyn Layer<tracing_subscriber::Registry>
 ///
 /// Returns a boxed `Layer` plus a `WorkerGuard` that must be kept alive for the
 /// lifetime of the application.
-pub fn rolling_file_layer(
+pub fn rolling_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(
     log_dir: &Path,
     app_name: &str,
     max_files: usize,
-) -> Result<(Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>, WorkerGuard), String> {
+) -> Result<(Box<dyn Layer<S> + Send + Sync>, WorkerGuard), String> {
     use tracing_appender::rolling::Rotation;
 
     // Ensure log directory exists
@@ -112,9 +113,9 @@ pub fn rolling_file_layer(
 ///
 /// Returns a boxed `Layer` plus a `WorkerGuard`.
 #[cfg(test)]
-pub fn test_file_layer(
+pub fn test_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(
     path: &Path,
-) -> Result<(Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>, WorkerGuard), String> {
+) -> Result<(Box<dyn Layer<S> + Send + Sync>, WorkerGuard), String> {
     let file = std::fs::File::create(path)
         .map_err(|e| format!("Cannot create test log file {:?}: {}", path, e))?;
 
@@ -135,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_stderr_layer_creation() {
-        let layer = stderr_layer(true);
+        let layer: Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync> = stderr_layer(true);
         // Should not panic — just verify it's constructable
         let _ = layer;
     }
@@ -143,14 +144,14 @@ mod tests {
     #[test]
     fn test_rolling_file_layer_creation() {
         let dir = tempdir().unwrap();
-        let result = rolling_file_layer(dir.path(), "test-nabu", 7);
+        let result = rolling_file_layer::<tracing_subscriber::Registry>(dir.path(), "test-nabu", 7);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_rolling_file_layer_nonexistent_dir() {
         let dir = Path::new("/nonexistent/path/that/should/not/exist");
-        let result = rolling_file_layer(dir, "test", 7);
+        let result = rolling_file_layer::<tracing_subscriber::Registry>(dir, "test", 7);
         assert!(result.is_err());
     }
 

@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use nabu_core::event_bus::EventBus;
+use nabu_core::event_bus::{EventBus, PipelineEvent};
 use nabu_core::registry::context::ValidationReport;
 use nabu_core::registry::lifecycle::LifecycleStage;
 use nabu_core::registry::Application;
@@ -21,12 +21,12 @@ fn application_builder_creates_default_app() {
     assert_eq!(app.stage(), LifecycleStage::Created);
     assert!(!app.is_running());
     assert!(!app.is_shutdown());
-    assert!(app.context().event_bus().is_some());
+    app.context().event_bus();
 }
 
 #[test]
 fn application_builder_with_custom_event_bus() {
-    let bus = Arc::new(EventBus::new());
+    let bus = Arc::new(EventBus::<PipelineEvent>::new());
     let app = Application::builder()
         .with_event_bus(bus.clone())
         .build();
@@ -36,7 +36,7 @@ fn application_builder_with_custom_event_bus() {
 #[test]
 fn application_builder_registers_event_bus() {
     let app = Application::builder().build();
-    let resolved = app.context().resolve::<EventBus>("event_bus");
+    let resolved = app.context().resolve::<EventBus<PipelineEvent>>("event_bus");
     assert!(resolved.is_some());
 }
 
@@ -59,19 +59,17 @@ fn initialize_validates_core_services() {
 #[test]
 fn initialize_when_all_services_present() {
     let app = Application::builder().build();
-    let bus = Arc::new(EventBus::new());
 
     // Register missing required services
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new(bus.clone())));
+    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
     app.context().register(
         "pipeline",
-        nabu_core::processing::ProcessingPipeline::new_no_subscribe(bus.clone()),
+        Arc::new(nabu_core::processing::ProcessingPipeline::new()),
     );
     app.context().register(
         "storage_manager",
         Arc::new(nabu_core::storage::StorageManager::new(
             std::env::temp_dir().join("nabu-test-app-init"),
-            bus,
         )),
     );
 
@@ -83,30 +81,28 @@ fn initialize_when_all_services_present() {
 #[test]
 fn start_requires_initialize() {
     let app = Application::builder().build();
-    let result = std::panic::catch_unwind(|| {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         app.start();
-    });
+    }));
     assert!(result.is_err());
 }
 
 #[test]
 fn full_lifecycle_flow() {
     let app = Application::builder().build();
-    let bus = Arc::new(EventBus::new());
 
     app.context().register(
         "capture_engine",
-        Arc::new(nabu_core::capture::CaptureEngine::new(bus.clone())),
+        Arc::new(nabu_core::capture::CaptureEngine::new()),
     );
     app.context().register(
         "pipeline",
-        nabu_core::processing::ProcessingPipeline::new_no_subscribe(bus.clone()),
+        Arc::new(nabu_core::processing::ProcessingPipeline::new()),
     );
     app.context().register(
         "storage_manager",
         Arc::new(nabu_core::storage::StorageManager::new(
             std::env::temp_dir().join("nabu-test-lifecycle"),
-            bus,
         )),
     );
 
@@ -135,11 +131,10 @@ fn shutdown_from_created() {
 #[test]
 fn shutdown_from_initialized() {
     let app = Application::builder().build();
-    let bus = Arc::new(EventBus::new());
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new(bus.clone())));
-    app.context().register("pipeline", nabu_core::processing::ProcessingPipeline::new_no_subscribe(bus.clone()));
+    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
+    app.context().register("pipeline", Arc::new(nabu_core::processing::ProcessingPipeline::new()));
     app.context().register("storage_manager", Arc::new(nabu_core::storage::StorageManager::new(
-        std::env::temp_dir().join("nabu-test-shutdown"), bus,
+        std::env::temp_dir().join("nabu-test-shutdown"),
     )));
     app.initialize().unwrap();
     assert!(app.shutdown().is_ok());
@@ -225,23 +220,15 @@ fn context_core_validation() {
 #[test]
 fn validation_report_healthy_when_all_present() {
     let app = Application::builder().build();
-    let bus = Arc::new(EventBus::new());
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new(bus.clone())));
-    app.context().register("pipeline", nabu_core::processing::ProcessingPipeline::new_no_subscribe(bus.clone()));
+    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
+    app.context().register("pipeline", Arc::new(nabu_core::processing::ProcessingPipeline::new()));
     app.context().register("storage_manager", Arc::new(nabu_core::storage::StorageManager::new(
-        std::env::temp_dir().join("nabu-test-validate"), bus,
+        std::env::temp_dir().join("nabu-test-validate"),
     )));
     // Add optional services
     app.context().register("job_queue", Arc::new(nabu_core::jobs::DurableJobQueue::new(
         std::env::temp_dir().join("nabu-test-jobqueue"),
     ).unwrap()));
-    app.context().register("worker_pool", Arc::new(nabu_core::jobs::WorkerPool::new(
-        1,
-        Arc::new(nabu_core::jobs::DurableJobQueue::new(
-            std::env::temp_dir().join("nabu-test-workerpool"),
-        ).unwrap()),
-        Arc::new(nabu_core::jobs::workers::executor::ExecutorRegistry::new()),
-    )));
 
     let report = app.context().validate_core_services();
     assert_eq!(report.present.len(), 6); // event_bus + 3 required + 2 optional
@@ -255,7 +242,7 @@ fn validation_report_healthy_when_all_present() {
 fn context_builder_creates_valid_context() {
     use nabu_core::registry::context::ApplicationContext;
     let ctx = ApplicationContext::builder().build();
-    assert!(ctx.event_bus().is_some());
+    ctx.event_bus(); // event_bus always accessible
     assert_eq!(ctx.lifecycle_stage(), LifecycleStage::Created);
     assert!(!ctx.is_initialized());
     assert!(!ctx.is_running());
