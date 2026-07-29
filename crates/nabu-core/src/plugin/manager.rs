@@ -19,8 +19,8 @@ use crate::plugin::dependency::{validate_dependencies, DependencyReport};
 use crate::plugin::features::FeatureRegistry;
 use crate::plugin::lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 use crate::plugin::manifest::{CompatibilityCheck, PluginManifest};
-use crate::plugin::permissions::{PermissionEvaluator, PermissionSet};
-use crate::plugin::version::{Version, VersionError, VersionRequirement};
+use crate::plugin::permissions::PermissionEvaluator;
+use crate::plugin::version::Version;
 
 /// The central PluginManager responsible for the plugin lifecycle.
 ///

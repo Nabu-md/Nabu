@@ -1,6 +1,6 @@
 use crate::graph::integrity::{check_integrity, compute_graph_checksum, quick_check, IntegrityReport};
 use crate::graph::serializer::GraphSnapshot;
-use crate::graph::version::{BuildSource, GraphVersion};
+use crate::graph::version::GraphVersion;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};

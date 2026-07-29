@@ -3,7 +3,7 @@ use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+
 use regex::Regex;
 
 /// Extracts dates and timestamps from content to build a processing timeline.

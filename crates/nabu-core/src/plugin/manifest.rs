@@ -3,7 +3,6 @@
 //! Every plugin MUST provide a manifest that describes its identity,
 //! dependencies, capabilities, and compatibility requirements.
 
-use crate::plugin::capability::Capability;
 use crate::plugin::version::{Version, VersionRequirement};
 
 /// Strongly typed plugin manifest with strict validation.

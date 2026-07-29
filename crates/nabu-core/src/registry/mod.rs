@@ -37,7 +37,7 @@ pub use application::Application;
 
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// A thread-safe registry for services with singleton, transient, and
 /// category-based resolution.

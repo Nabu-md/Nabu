@@ -1,9 +1,9 @@
-use crate::graph::integrity::{check_integrity, needs_rebuild, IntegrityReport, RebuildReason};
+use crate::graph::integrity::{check_integrity, RebuildReason};
 use crate::graph::loader::{load_graph, upgrade_snapshot, LoadResult};
 use crate::graph::persistence::GraphStore;
 use crate::graph::serializer::{GraphSnapshot, SerializedEdge, SerializedNode};
 use crate::graph::version::{BuildSource, GraphVersion};
-use crate::models::{KnowledgeObject, ObjectType};
+use crate::models::KnowledgeObject;
 
 /// The graph recovery coordinator.
 ///

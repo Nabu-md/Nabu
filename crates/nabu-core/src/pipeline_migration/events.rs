@@ -1,8 +1,8 @@
 use crate::event_bus::{EventBus, ItemProcessingCompletedEvent, ItemProcessingFailedEvent,
     ItemProcessingStartedEvent, PipelineEvent};
 use crate::event_bus::kinds::{ITEM_PROCESSING_COMPLETED, ITEM_PROCESSING_FAILED, ITEM_PROCESSING_STARTED};
-use crate::jobs::job::{Job, JobStatus};
-use crate::jobs::queue::Queue;
+use crate::jobs::job::Job;
+
 
 /// Wires the job queue lifecycle events to the EventBus.
 ///

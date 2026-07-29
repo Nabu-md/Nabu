@@ -1,7 +1,7 @@
 use crate::graph::serializer::{GraphSnapshot, SerializedNode};
 use crate::graph::version::GraphVersion;
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use uuid::Uuid;
 
 /// Result of a full integrity check.

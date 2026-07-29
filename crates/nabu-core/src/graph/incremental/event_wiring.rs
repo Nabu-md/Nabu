@@ -3,10 +3,10 @@ use crate::event_bus::kinds::{GRAPH_UPDATED, ITEM_STORED};
 use crate::graph::incremental::engine::IncrementalUpdateEngine;
 use crate::graph::serializer::{GraphSnapshot, SerializedNode};
 use crate::graph::{GraphOperation, GraphUpdatedEvent, VaultGraph};
-use crate::models::{KnowledgeObject, ObjectType};
-use std::collections::HashMap;
+use crate::models::KnowledgeObject;
+
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
+
 
 /// The GraphEventBridge connects the EventBus to the IncrementalUpdateEngine.
 ///

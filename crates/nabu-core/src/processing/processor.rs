@@ -95,7 +95,7 @@ pub trait Processor: Send + Sync {
     ) -> ProcessingResult;
 
     /// Whether this processor should run for the given object type.
-    fn supports(&self, object_type: &crate::models::ObjectType) -> bool {
+    fn supports(&self, _object_type: &crate::models::ObjectType) -> bool {
         // By default, processors run for all types.
         // Override in specific processors to narrow scope.
         true
