@@ -68,10 +68,14 @@
 pub mod init;
 pub mod spans;
 pub mod layers;
+pub mod metrics;
+pub mod performance;
 
 pub use init::*;
 pub use spans::*;
 pub use layers::*;
+pub use metrics::*;
+pub use performance::*;
 
 // ---------------------------------------------------------------------------
 // Subsystem identifiers — use these as the `subsystem` field in tracing calls
