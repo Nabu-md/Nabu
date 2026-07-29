@@ -77,6 +77,7 @@ pub mod queue;
 pub mod retry;
 pub mod scheduler;
 pub mod worker_channel;
+pub mod workers;
 
 // Re-exports for convenience
 pub use cancellation::CancellationToken;
