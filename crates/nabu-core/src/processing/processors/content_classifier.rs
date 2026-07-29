@@ -106,11 +106,9 @@ fn classify_content(text: &str, metadata: &ObjectMetadata) -> Option<String> {
         return Some("meeting_note".to_string());
     }
 
-    // Code snippet
-    if let ObjectContent::Markdown(_) = text.as_ref() {
-        if text.contains("```") || text.contains("function ") || text.contains("def ") {
-            return Some("code".to_string());
-        }
+    // Code snippet (heuristic: check raw text for code patterns)
+    if text.contains("```") || text.contains("function ") || text.contains("def ") {
+        return Some("code".to_string());
     }
 
     // Email

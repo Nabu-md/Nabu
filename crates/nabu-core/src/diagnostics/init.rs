@@ -28,13 +28,12 @@
 //! Must be called before any other tracing macro to capture all events.
 
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::Layer;
 
-static INITIALIZED: OnceLock<bool> = OnceLock::new();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// Default log directory relative to the vault or working directory.
 const DEFAULT_LOG_DIR: &str = ".nabu/logs";
@@ -59,7 +58,7 @@ const MAX_LOG_FILES: usize = 7;
 /// Returns `true` if initialization succeeded or was already done.
 /// Returns `false` only if initialization fails (e.g., cannot create log dir).
 pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
-    if INITIALIZED.set(true).is_err() {
+    if INITIALIZED.swap(true, Ordering::SeqCst) {
         // Already initialized — safe no-op
         return true;
     }
@@ -83,12 +82,12 @@ pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
     }
 
     // Build the file appender layer (rolling, JSON)
-    let file_layer = match crate::diagnostics::layers::rolling_file_layer(
+    let (file_layer, _file_guard) = match crate::diagnostics::layers::rolling_file_layer(
         &log_dir,
         app_name,
         MAX_LOG_FILES,
     ) {
-        Ok(layer) => layer,
+        Ok((layer, guard)) => (layer, guard),
         Err(e) => {
             eprintln!(
                 "[nabu::diagnostics] Warning: Cannot initialize file logging: {}. \
@@ -111,7 +110,7 @@ pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
         .with(stderr_layer)
         .with(file_layer);
 
-    // Suppress the "try_init" warning — we already check with OnceLock
+    // Suppress the "try_init" warning — we already check
     let _ = subscriber.try_init();
 
     tracing::info!(
@@ -181,13 +180,13 @@ fn resolve_log_dir(vault_path: Option<&std::path::Path>) -> PathBuf {
 
 /// Check whether the tracing subscriber has been initialized.
 pub fn is_initialized() -> bool {
-    INITIALIZED.get().copied().unwrap_or(false)
+    INITIALIZED.load(Ordering::SeqCst)
 }
 
 /// Reset the initialization state (for testing only).
 #[cfg(test)]
 pub fn reset_for_testing() {
-    INITIALIZED.take();
+    INITIALIZED.store(false, Ordering::SeqCst);
 }
 
 #[cfg(test)]

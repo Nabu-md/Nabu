@@ -63,8 +63,6 @@ impl IncrementalUpdateEngine {
         snapshot: &GraphSnapshot,
         store: GraphStore,
     ) -> Result<(), String> {
-        self.store = Some(store);
-
         // Build dependency tracking from snapshot
         self.build_dependencies_from_snapshot(snapshot);
 
@@ -72,8 +70,10 @@ impl IncrementalUpdateEngine {
         self.regions.discover_regions(snapshot);
 
         // Initialize change log
+        let graph_dir = store.graph_dir().to_path_buf();
+        self.store = Some(store);
         self.change_log = Some(
-            ChangeLog::new(store.graph_dir().to_path_buf())?,
+            ChangeLog::new(graph_dir)?,
         );
 
         Ok(())
@@ -293,7 +293,7 @@ impl IncrementalUpdateEngine {
                 edges: snapshot.edges.clone(),
                 generation: snapshot.version.generation,
             };
-            log.compact(|| Ok(checkpoint))?;
+            log.compact(|| Ok(checkpoint.clone()))?;
         }
         Ok(())
     }

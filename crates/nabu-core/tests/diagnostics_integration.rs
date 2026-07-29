@@ -10,6 +10,8 @@
 
 use std::path::PathBuf;
 use tempfile::tempdir;
+use tracing_subscriber::layer::Layer;
+use tracing_subscriber::Registry;
 
 /// Test that diagnostics can be initialized with a vault path.
 #[test]
@@ -119,7 +121,7 @@ fn test_traced_helper() {
 #[test]
 fn test_rolling_file_layer_creation() {
     let dir = tempdir().unwrap();
-    let result = nabu_core::diagnostics::layers::rolling_file_layer(
+    let result: Result<(Box<dyn Layer<Registry> + Send + Sync>, _), String> = nabu_core::diagnostics::layers::rolling_file_layer(
         dir.path(),
         "test-nabu",
         7,
@@ -131,10 +133,10 @@ fn test_rolling_file_layer_creation() {
 #[test]
 fn test_stderr_layer_modes() {
     // Pretty mode
-    let _pretty = nabu_core::diagnostics::layers::stderr_layer(true);
+    let _pretty: Box<dyn Layer<Registry> + Send + Sync> = nabu_core::diagnostics::layers::stderr_layer(true);
 
     // Compact mode
-    let _compact = nabu_core::diagnostics::layers::stderr_layer(false);
+    let _compact: Box<dyn Layer<Registry> + Send + Sync> = nabu_core::diagnostics::layers::stderr_layer(false);
 
     // Both should succeed without panicking
 }

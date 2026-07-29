@@ -59,18 +59,18 @@ impl Processor for OcrProcessor {
         if !simulated_text.is_empty() {
             progress.set_progress(0.7);
 
+            // Add extracted text as description if no description exists
+            if object.metadata.description.is_none() {
+                let desc: String = simulated_text.chars().take(200).collect();
+                object.metadata.description = Some(desc);
+            }
+
             object.custom_properties.insert(
                 "extracted_text".to_string(),
                 crate::models::CustomPropertyValue::Text(simulated_text),
             );
 
             object.metadata.ocr_confidence = Some(0.85);
-
-            // Add extracted text as description if no description exists
-            if object.metadata.description.is_none() {
-                let desc: String = simulated_text.chars().take(200).collect();
-                object.metadata.description = Some(desc);
-            }
         }
 
         progress.set_progress(1.0);

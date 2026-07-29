@@ -53,10 +53,18 @@ impl Processor for MetadataEnricher {
         progress.set_progress(0.5);
 
         // Infer content type if classification is present
-        if let Some(existing) = object.custom_properties.get("classification") {
-            if let crate::models::CustomPropertyValue::Text(class) = existing {
-                infer_tags(&mut object, class);
-            }
+        let classification = object
+            .custom_properties
+            .get("classification")
+            .and_then(|v| {
+                if let crate::models::CustomPropertyValue::Text(t) = v {
+                    Some(t.clone())
+                } else {
+                    None
+                }
+            });
+        if let Some(ref class) = classification {
+            infer_tags(&mut object, class);
         }
         progress.set_progress(0.7);
 

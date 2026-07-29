@@ -174,7 +174,7 @@ pub enum ObjectContent {
 }
 
 impl ObjectContent {
-    pub fn content_type_hint(&self) -> &'static str {
+    pub fn content_type_hint(&self) -> &str {
         match self {
             ObjectContent::Markdown(_) => "text/markdown",
             ObjectContent::RichHtml(_) => "text/html",

@@ -181,13 +181,6 @@ impl VaultGraph {
     fn try_load(
         store: &persistence::GraphStore,
     ) -> (bool, Option<serializer::GraphSnapshot>, u64) {
-        let recovery = recovery::GraphRecovery::new(GraphStore::new(store.graph_dir().parent()
-            .map(|p| p.parent())
-            .flatten()
-            .unwrap_or(store.graph_dir())
-            .to_path_buf()).unwrap_or_else(|_| GraphStore::new(store.graph_dir()).unwrap()));
-
-        // Reuse the existing store
         let raw_store = GraphStore::new(store.graph_dir().parent()
             .and_then(|p| p.parent())
             .map(|p| p.to_path_buf())
@@ -197,7 +190,8 @@ impl VaultGraph {
         let recovery = recovery::GraphRecovery::new(raw_store);
         match recovery.recover() {
             recovery::RecoveryResult::Recovered(snapshot) => {
-                (true, Some(snapshot), snapshot.version.generation)
+                let gen = snapshot.version.generation;
+                (true, Some(snapshot), gen)
             }
             _ => (false, None, 1),
         }
@@ -497,7 +491,7 @@ mod tests {
     #[test]
     fn test_add_and_query_node() {
         let graph = VaultGraph::new();
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Graph node".to_string()));
+        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Graph node".to_string()));
 
         graph.add_node(&obj).unwrap();
         assert_eq!(graph.node_count(), 1);
@@ -506,8 +500,8 @@ mod tests {
     #[test]
     fn test_add_edge_and_query_neighbors() {
         let graph = VaultGraph::new();
-        let obj1 = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Node A".to_string()));
-        let obj2 = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Node B".to_string()));
+        let obj1 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Node A".to_string()));
+        let obj2 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Node B".to_string()));
 
         graph.add_node(&obj1).unwrap();
         graph.add_node(&obj2).unwrap();
@@ -524,7 +518,7 @@ mod tests {
 
         assert!(!graph.loaded_from_disk());
 
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Persisted".to_string()));
+        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Persisted".to_string()));
         graph.add_node(&obj).unwrap();
         graph.persist().unwrap();
 
@@ -535,8 +529,8 @@ mod tests {
     fn test_to_snapshot_and_back() {
         let graph = VaultGraph::new();
 
-        let obj1 = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("A".to_string()));
-        let obj2 = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("B".to_string()));
+        let obj1 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("A".to_string()));
+        let obj2 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("B".to_string()));
 
         graph.add_node(&obj1).unwrap();
         graph.add_node(&obj2).unwrap();
@@ -552,8 +546,8 @@ mod tests {
         let graph = VaultGraph::new();
 
         let objs = vec![
-            KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Rebuilt A".to_string())),
-            KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Rebuilt B".to_string())),
+            KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Rebuilt A".to_string())),
+            KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Rebuilt B".to_string())),
         ];
 
         graph.rebuild_from_objects(&objs).unwrap();
@@ -563,7 +557,7 @@ mod tests {
     #[test]
     fn test_clear_graph() {
         let graph = VaultGraph::new();
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("To clear".to_string()));
+        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("To clear".to_string()));
         graph.add_node(&obj).unwrap();
         assert_eq!(graph.node_count(), 1);
 

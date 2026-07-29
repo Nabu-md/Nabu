@@ -84,8 +84,7 @@ use std::sync::Arc;
 
 use crate::capture::CaptureEngine;
 use crate::diagnostics::PerformanceMonitor;
-use crate::event_bus::EventBus;
-use crate::event_bus::events::PipelineEvent;
+use crate::event_bus::{EventBus, PipelineEvent};
 use crate::processing::ProcessingPipeline;
 use crate::registry::context::ApplicationContext;
 use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
@@ -257,7 +256,7 @@ pub struct ApplicationBuilder {
     /// The service registry (shared with ApplicationContext).
     registry: Option<Arc<std::sync::RwLock<ServiceRegistry>>>,
     /// The event bus (shared across all services).
-    event_bus: Option<Arc<EventBus>>,
+    event_bus: Option<Arc<EventBus<PipelineEvent>>>,
     /// Performance monitor (metrics aggregation).
     performance_monitor: Option<Arc<PerformanceMonitor>>,
     /// Processing pipeline.
@@ -283,7 +282,7 @@ impl ApplicationBuilder {
     ///
     /// The event bus is the communication backbone for the entire application.
     /// If not set, a default `EventBus` is created.
-    pub fn with_event_bus(mut self, bus: Arc<EventBus>) -> Self {
+    pub fn with_event_bus(mut self, bus: Arc<EventBus<PipelineEvent>>) -> Self {
         self.event_bus = Some(bus);
         self
     }
@@ -408,7 +407,8 @@ mod tests {
     fn test_application_context_is_accessible() {
         let app = Application::builder().build();
         let ctx = app.context();
-        assert!(ctx.event_bus().is_some());
+        let _ = ctx.event_bus();
+        assert!(ctx.service_count() >= 1);
     }
 
     #[test]
@@ -426,9 +426,9 @@ mod tests {
     fn test_start_requires_initialize() {
         let app = Application::builder().build();
         // Cannot start without initializing first
-        let result = std::panic::catch_unwind(|| {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             app.start();
-        });
+        }));
         assert!(result.is_err());
     }
 
@@ -445,17 +445,16 @@ mod tests {
         assert_eq!(app.stage(), LifecycleStage::Created);
 
         // Register required services before initialize
-        let bus = Arc::new(EventBus::new());
-        app.context().register("capture_engine", Arc::new(CaptureEngine::new(bus.clone())));
+        let bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
+        app.context().register("capture_engine", Arc::new(CaptureEngine::new()));
         app.context().register(
             "pipeline",
-            ProcessingPipeline::new_no_subscribe(bus.clone()),
+            Arc::new(ProcessingPipeline::new()),
         );
         app.context().register(
             "storage_manager",
             Arc::new(crate::storage::StorageManager::new(
                 std::env::temp_dir().join("nabu-test-app"),
-                bus,
             )),
         );
 

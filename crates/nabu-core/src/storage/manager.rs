@@ -94,12 +94,15 @@ impl StorageManager {
 
     /// Load all KnowledgeObjects of a given type.
     pub fn load_by_type(&self, object_type: ObjectType) -> Vec<KnowledgeObject> {
-        let store = self.store.read().ok()?;
-        store
-            .values()
-            .filter(|o| o.object_type == object_type)
-            .cloned()
-            .collect()
+        if let Ok(store) = self.store.read() {
+            store
+                .values()
+                .filter(|o| o.object_type == object_type)
+                .cloned()
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     /// Delete a KnowledgeObject by ID.

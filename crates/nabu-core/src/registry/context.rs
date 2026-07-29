@@ -44,7 +44,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use crate::event_bus::EventBus;
+use crate::event_bus::{EventBus, PipelineEvent};
 use crate::plugin::capability::{Capability, CapabilityRegistry};
 use crate::plugin::version::Version;
 use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
@@ -138,7 +138,7 @@ pub struct ApplicationContext {
     /// The service registry containing all registered services.
     pub registry: Arc<RwLock<ServiceRegistry>>,
     /// The central event bus for publish/subscribe communication.
-    pub event_bus: Arc<EventBus>,
+    pub event_bus: Arc<EventBus<PipelineEvent>>,
     /// Plugin capability registry — describes what the system can do.
     pub capability_registry: CapabilityRegistry,
     /// Manages service lifecycle (init → start → shutdown).
@@ -151,7 +151,7 @@ impl ApplicationContext {
     /// Prefer using [`ApplicationContext::builder`] for most use cases.
     pub fn new(
         registry: Arc<RwLock<ServiceRegistry>>,
-        event_bus: Arc<EventBus>,
+        event_bus: Arc<EventBus<PipelineEvent>>,
         capability_registry: CapabilityRegistry,
     ) -> Self {
         Self {
@@ -177,7 +177,7 @@ impl ApplicationContext {
     }
 
     /// Returns a reference to the event bus.
-    pub fn event_bus(&self) -> &Arc<EventBus> {
+    pub fn event_bus(&self) -> &Arc<EventBus<PipelineEvent>> {
         &self.event_bus
     }
 
@@ -447,7 +447,7 @@ impl ApplicationContext {
 
 /// Builder for constructing an [`ApplicationContext`].
 pub struct ApplicationContextBuilder {
-    event_bus: Option<Arc<EventBus>>,
+    event_bus: Option<Arc<EventBus<PipelineEvent>>>,
     registry: Option<Arc<RwLock<ServiceRegistry>>>,
     capability_registry: Option<CapabilityRegistry>,
 }
@@ -463,7 +463,7 @@ impl ApplicationContextBuilder {
     }
 
     /// Sets the event bus for the context.
-    pub fn with_event_bus(mut self, bus: Arc<EventBus>) -> Self {
+    pub fn with_event_bus(mut self, bus: Arc<EventBus<PipelineEvent>>) -> Self {
         self.event_bus = Some(bus);
         self
     }
@@ -526,8 +526,7 @@ pub fn build_standard_application_context() -> ApplicationContext {
     let mut capability_registry = CapabilityRegistry::new();
 
     // Register built-in capabilities
-    let nabu_version = Version::new(0, 1, 0);
-    register_builtin_capabilities(&mut capability_registry, &nabu_version);
+    capability_registry.register_builtin();
 
     let ctx = ApplicationContext::new(registry, event_bus, capability_registry);
 
@@ -564,15 +563,14 @@ mod tests {
         assert_eq!(ctx.lifecycle_stage(), LifecycleStage::Created);
 
         // Register required services so initialization succeeds
-        ctx.register("capture_engine", Arc::new(crate::capture::CaptureEngine::new(Arc::new(EventBus::new()))));
-        ctx.register("pipeline", crate::processing::ProcessingPipeline::new_no_subscribe(Arc::new(EventBus::new())));
+        ctx.register("capture_engine", Arc::new(crate::capture::CaptureEngine::new()));
+        ctx.register("pipeline", Arc::new(crate::processing::ProcessingPipeline::new()));
 
         // StorageManager requires a vault path, so use a mock
         use crate::storage::StorageManager;
         let temp_dir = std::env::temp_dir().join("nabu-test-context");
         let _ = std::fs::create_dir_all(&temp_dir);
-        let bus = Arc::new(crate::event_bus::EventBus::new());
-        let sm = StorageManager::new(temp_dir.clone(), bus);
+        let sm = Arc::new(StorageManager::new(temp_dir.clone()));
         ctx.register("storage_manager", sm);
         let _ = std::fs::remove_dir_all(&temp_dir);
 

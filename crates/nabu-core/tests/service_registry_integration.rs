@@ -20,7 +20,7 @@ fn register_and_resolve_singleton() {
     let mut registry = ServiceRegistry::new();
     registry.register("my_service", Arc::new(42i32));
     let resolved: Option<Arc<i32>> = registry.resolve("my_service");
-    assert_eq!(**resolved.unwrap(), 42);
+    assert_eq!(*resolved.unwrap(), 42);
 }
 
 #[test]

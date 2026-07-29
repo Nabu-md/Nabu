@@ -116,7 +116,7 @@ impl UpdateTracker {
         if self.removed_edges.remove(&edge) {
             // Was removed then re-added — cancel out
         } else {
-            self.added_edges.insert(edge);
+            self.added_edges.insert(edge.clone());
         }
         self.relationship_changed.insert(edge.source);
         self.relationship_changed.insert(edge.target);
@@ -129,7 +129,7 @@ impl UpdateTracker {
         if self.added_edges.remove(&edge) {
             // Was added then removed — cancel out
         } else {
-            self.removed_edges.insert(edge);
+            self.removed_edges.insert(edge.clone());
         }
         self.relationship_changed.insert(edge.source);
         self.relationship_changed.insert(edge.target);

@@ -116,10 +116,11 @@ impl CapabilityRegistry {
     /// Register a set of built-in capabilities.
     pub fn register_builtin(&mut self) {
         for cap in builtin_capabilities() {
+            let cap_name = cap.name.clone();
             let id = cap.id();
             self.capabilities.insert(id.clone(), cap);
             self.providers.insert(id, "nabu".to_string());
-            self.enable(&format!("{}:{}", "nabu", cap.name));
+            self.enable(&format!("{}:{}", "nabu", cap_name));
         }
     }
 

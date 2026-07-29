@@ -83,7 +83,7 @@ impl Processor for DuplicateDetector {
             );
             object.custom_properties.insert(
                 "duplicate_hash".to_string(),
-                crate::models::CustomPropertyValue::Text(hash),
+                crate::models::CustomPropertyValue::Text(hash.clone()),
             );
         }
 

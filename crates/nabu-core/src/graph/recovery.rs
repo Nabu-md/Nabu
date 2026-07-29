@@ -30,12 +30,12 @@ impl GraphRecovery {
 
         match load_result {
             LoadResult::Loaded(snapshot) => {
-                log::info!("Graph loaded successfully from disk");
+                tracing::info!("Graph loaded successfully from disk");
                 RecoveryResult::Recovered(snapshot)
             }
 
             LoadResult::NotFound => {
-                log::info!("No persisted graph found — ready for fresh build");
+                tracing::info!("No persisted graph found — ready for fresh build");
                 RecoveryResult::NeedsRebuild(RebuildReason::Manual)
             }
 
@@ -52,7 +52,7 @@ impl GraphRecovery {
 
                 match upgrade_snapshot(&mut snapshot, from_version) {
                     Ok(()) => {
-                        log::info!(
+                        tracing::info!(
                             "Graph upgraded from schema v{} to v{}",
                             from_version,
                             crate::graph::version::CURRENT_GRAPH_SCHEMA_VERSION
@@ -62,7 +62,7 @@ impl GraphRecovery {
                         RecoveryResult::Recovered(snapshot)
                     }
                     Err(e) => {
-                        log::warn!("Graph upgrade failed: {} — will rebuild", e);
+                        tracing::warn!("Graph upgrade failed: {} — will rebuild", e);
                         RecoveryResult::NeedsRebuild(RebuildReason::SchemaUpgrade {
                             from: from_version,
                             to: crate::graph::version::CURRENT_GRAPH_SCHEMA_VERSION,
@@ -72,16 +72,16 @@ impl GraphRecovery {
             }
 
             LoadResult::Corrupted { reason, report } => {
-                log::warn!("Graph corruption detected: {} — will rebuild", reason);
+                tracing::warn!("Graph corruption detected: {} — will rebuild", reason);
                 // Try to save corrupted file for debugging
                 if let Err(e) = self.store.delete() {
-                    log::error!("Failed to delete corrupted graph: {}", e);
+                    tracing::error!("Failed to delete corrupted graph: {}", e);
                 }
                 RecoveryResult::NeedsRebuild(RebuildReason::CorruptionDetected(reason))
             }
 
             LoadResult::FutureVersion { version } => {
-                log::warn!(
+                tracing::warn!(
                     "Graph is from future version (schema v{}) — must rebuild",
                     version.schema_version
                 );
@@ -104,7 +104,7 @@ impl GraphRecovery {
         rebuild_fn: impl FnOnce() -> Result<(Vec<SerializedNode>, Vec<SerializedEdge>), String>,
         build_source: BuildSource,
     ) -> Result<GraphSnapshot, String> {
-        log::info!("Starting graph rebuild from canonical sources...");
+        tracing::info!("Starting graph rebuild from canonical sources...");
 
         // Delete any existing graph state
         let _ = self.store.delete();
@@ -136,7 +136,7 @@ impl GraphRecovery {
         // Persist
         self.store.save(&snapshot)?;
 
-        log::info!(
+        tracing::info!(
             "Graph rebuilt: {} nodes, {} edges",
             snapshot.node_count(),
             snapshot.edge_count()

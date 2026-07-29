@@ -64,6 +64,10 @@ impl Ord for Priority {
 }
 
 impl Priority {
+    pub fn name(&self) -> &'static str {
+        self.label()
+    }
+
     pub fn value(&self) -> u8 {
         match self {
             Priority::Critical => 0,
@@ -93,13 +97,13 @@ impl<T> PriorityItem<T> {
     }
 }
 
-impl<T: PartialEq> PartialOrd for PriorityItem<T> {
+impl<T: PartialEq + Eq> PartialOrd for PriorityItem<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T: PartialEq> Ord for PriorityItem<T> {
+impl<T: PartialEq + Eq> Ord for PriorityItem<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         // Higher priority first, then FIFO by created_at
         match self.priority.cmp(&other.priority) {

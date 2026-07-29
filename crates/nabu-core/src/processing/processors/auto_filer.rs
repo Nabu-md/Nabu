@@ -93,12 +93,7 @@ impl Processor for AutoFiler {
 
         progress.set_progress(0.6);
 
-        if let Some(folder) = suggested_folder {
-            object.custom_properties.insert(
-                "suggested_folder".to_string(),
-                crate::models::CustomPropertyValue::Text(folder),
-            );
-
+        if let Some(ref folder) = suggested_folder {
             // Compute suggested vault path
             let filename = object
                 .metadata
@@ -109,6 +104,11 @@ impl Processor for AutoFiler {
 
             let vault_path = format!("{}/{}.md", folder, filename);
             object.metadata.vault_path = Some(vault_path);
+
+            object.custom_properties.insert(
+                "suggested_folder".to_string(),
+                crate::models::CustomPropertyValue::Text(folder.clone()),
+            );
         }
 
         progress.set_progress(1.0);

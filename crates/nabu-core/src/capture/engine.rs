@@ -86,7 +86,7 @@ impl CaptureEngine {
                     "source_url": result.object.metadata.source_url,
                 });
 
-                let mut job = Job::new(job_type, payload, format!("{}_processor", job_type.name()))
+                let mut job = Job::new(job_type.clone(), payload, format!("{}_processor", job_type.name()))
                     .with_object_id(result.object.id)
                     .with_tag("capture");
 
@@ -194,7 +194,7 @@ mod tests {
         let mut engine = CaptureEngine::new();
         engine.set_queue(queue);
 
-        engine.register(Arc::new(handler::ClipboardHandler));
+        engine.register(Arc::new(crate::capture::handler::ClipboardHandler));
 
         let request = CaptureRequest::new(CaptureData::Text("Queued content".to_string()));
         let result = engine.ingest(request).await.unwrap();
