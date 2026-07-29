@@ -121,13 +121,13 @@ impl OcrEngine {
     pub fn extract_text_from_pdf(&self, pdf_path: &str) -> Result<OcrResult> {
         let mut all_regions = Vec::new();
 
-        let url = NSURL::fileURLWithPath(&NSString::from_str(pdf_path));
-        let doc = crate::native::pdf::PDFDocument::initWithURL(&url)
-            .context("Failed to load PDF for OCR")?;
+        let doc =
+            crate::native::pdf::PdfDocument::from_path(&std::path::PathBuf::from(pdf_path))
+                .context("Failed to load PDF for OCR")?;
 
-        let page_count = doc.pageCount();
+        let page_count = doc.page_count();
         for page_idx in 0..page_count {
-            if let Some(page) = doc.pageAtIndex(page_idx) {
+            if let Some(page) = doc.page(page_idx) {
                 if let Some(image_data) = render_page_to_image_data(&page) {
                     let page_result = self.recognize_text_in_data(&image_data)?;
                     all_regions.extend(page_result.regions);
@@ -246,12 +246,13 @@ impl OcrEngine {
     }
 }
 
-/// Render a PDFPage to image data for OCR processing.
-fn render_page_to_image_data(page: &crate::native::pdf::PDFPage) -> Option<Vec<u8>> {
-    // SAFETY: `page` is a valid `PDFPage`.
+/// Render a PdfPage to image data for OCR processing.
+fn render_page_to_image_data(page: &crate::native::pdf::PdfPage) -> Option<Vec<u8>> {
+    let inner = page.inner();
+    // SAFETY: `inner` is a valid `PDFPage`.
     unsafe {
         let image: Option<Retained<objc2_foundation::NSObject>> =
-            msg_send![&*page, pageImage];
+            msg_send![&*inner, pageImage];
 
         image.and_then(|img| {
             let tiff_data: Option<Retained<NSData>> = msg_send![&*img, TIFFRepresentation];

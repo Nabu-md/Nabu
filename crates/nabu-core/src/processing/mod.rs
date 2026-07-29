@@ -44,8 +44,11 @@ mod duplicate_detector;
 mod timeline_extractor;
 mod ocr_processor;
 mod metadata_extractor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 mod pdf_text_processor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 mod pdf_metadata_processor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 mod pdf_annotation_processor;
 mod content_classifier;
 mod auto_filer;
@@ -58,8 +61,11 @@ pub use duplicate_detector::{DuplicateConfidence, DuplicateDetector, DuplicateIn
 pub use timeline_extractor::{TimelineExtractor, TimelineInfo};
 pub use ocr_processor::{OcrInfo, OcrProcessor};
 pub use metadata_extractor::MetadataExtractor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub use pdf_text_processor::PdfTextProcessor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub use pdf_metadata_processor::PdfMetadataProcessor;
+#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
 pub use pdf_annotation_processor::PdfAnnotationProcessor;
 pub use content_classifier::{ClassificationResult, ContentClassifier};
 pub use auto_filer::{AutoFileSuggestions, AutoFiler};
