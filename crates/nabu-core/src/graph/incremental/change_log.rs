@@ -1,4 +1,4 @@
-use crate::graph::serializer::{EdgeDirection, SerializedEdge, SerializedNode};
+use crate::graph::serializer::{SerializedEdge, SerializedNode};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};

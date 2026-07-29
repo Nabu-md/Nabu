@@ -4,7 +4,7 @@ use crate::graph::incremental::region::RegionEngine;
 use crate::graph::incremental::update_tracker::{EdgeKey, UpdateTracker};
 use crate::graph::persistence::GraphStore;
 use crate::graph::serializer::{GraphSnapshot, SerializedEdge, SerializedNode};
-use crate::graph::version::{BuildSource, GraphVersion};
+
 use crate::models::KnowledgeObject;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;

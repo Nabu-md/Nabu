@@ -9,7 +9,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::plugin::manifest::{PluginDependency, PluginManifest};
+use crate::plugin::manifest::PluginManifest;
 use crate::plugin::version::Version;
 
 /// A resolved dependency graph for plugins.

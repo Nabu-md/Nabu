@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
+use crate::models::{ObjectContent, ObjectMetadata, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 use regex::Regex;

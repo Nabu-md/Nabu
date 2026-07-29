@@ -1,6 +1,6 @@
 use crate::graph::integrity::{check_integrity, needs_rebuild, IntegrityReport, RebuildReason};
 use crate::graph::persistence::GraphStore;
-use crate::graph::serializer::{EdgeDirection, GraphSnapshot, SerializedEdge, SerializedNode};
+use crate::graph::serializer::GraphSnapshot;
 use crate::graph::version::{check_compatibility, BuildSource, GraphVersion, VersionCompatibility};
 
 /// Result of loading a graph.

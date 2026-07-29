@@ -4,7 +4,7 @@ use crate::event_bus::kinds::ITEM_CAPTURED;
 use crate::jobs::errors::JobResult;
 use crate::jobs::job::{Job, JobType};
 use crate::jobs::queue::{DurableJobQueue, Queue};
-use crate::models::{CaptureSource, KnowledgeObject, ObjectType};
+use crate::models::ObjectType;
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -45,8 +45,8 @@
 use std::sync::{Arc, RwLock};
 
 use crate::event_bus::{EventBus, PipelineEvent};
-use crate::plugin::capability::{Capability, CapabilityRegistry};
-use crate::plugin::version::Version;
+use crate::plugin::capability::CapabilityRegistry;
+
 use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
