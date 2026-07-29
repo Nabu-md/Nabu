@@ -1,93 +1,146 @@
-//! Version management for the plugin architecture.
+//! Version negotiation for plugins.
 //!
-//! Provides semantic versioning ([`Version`]), version requirements
-//! ([`VersionReq`]), and compatibility negotiation for future plugins.
-//! This is metadata-only — no plugin loading occurs.
+//! Supports semantic versioning, minimum supported versions, API compatibility
+//! checks, and future migration planning.
 
+use std::cmp::Ordering;
 use std::fmt;
-use std::str::FromStr;
 
-/// Error returned when parsing a version string fails.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VersionParseError {
-    input: String,
-    message: String,
-}
-
-impl fmt::Display for VersionParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Failed to parse version '{}': {}", self.input, self.message)
-    }
-}
-
-impl std::error::Error for VersionParseError {}
-
-/// A semantic version following the MAJOR.MINOR.PATCH format.
+/// A semantic version (major.minor.patch).
 ///
-/// Used by [`PluginManifest`](super::PluginManifest) and compatibility
-/// validation to negotiate version requirements.
-///
-/// # Format
-///
-/// `MAJOR.MINOR.PATCH[-PRERELEASE]`
-///
-/// - MAJOR: incompatible API changes
-/// - MINOR: backward-compatible functionality additions
-/// - PATCH: backward-compatible bug fixes
-/// - PRERELEASE: optional pre-release identifier (e.g., "alpha", "beta.1")
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+/// Versions are comparable and support compatibility checks according to
+/// semantic versioning rules:
+/// - Major version 0: unstable API, breaking changes allowed
+/// - Same major version with same minor: compatible
+/// - Same major version: compatible with MINOR-version checks
+/// - Different major version: incompatible (unless explicitly declared)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Version {
-    /// Major version — incremented on incompatible API changes.
     pub major: u64,
-    /// Minor version — incremented on backward-compatible additions.
     pub minor: u64,
-    /// Patch version — incremented on backward-compatible bug fixes.
     pub patch: u64,
-    /// Optional pre-release identifier (e.g., "alpha", "rc.1").
+    /// Optional pre-release tag (e.g., "alpha", "beta.1").
     pub pre: Option<String>,
+    /// Optional build metadata (e.g., "20260729").
+    pub build: Option<String>,
 }
 
 impl Version {
-    /// Creates a new version from major, minor, and patch components.
+    /// Create a new version.
     pub const fn new(major: u64, minor: u64, patch: u64) -> Self {
         Self {
             major,
             minor,
             patch,
             pre: None,
+            build: None,
         }
     }
 
-    /// Creates a new pre-release version.
-    pub fn with_pre(major: u64, minor: u64, patch: u64, pre: impl Into<String>) -> Self {
+    /// Create a version with pre-release tag.
+    pub fn with_pre(major: u64, minor: u64, patch: u64, pre: &str) -> Self {
         Self {
             major,
             minor,
             patch,
-            pre: Some(pre.into()),
+            pre: Some(pre.to_string()),
+            build: None,
         }
     }
 
-    /// Returns `true` if this is a pre-release version.
-    pub fn is_pre_release(&self) -> bool {
-        self.pre.is_some()
+    /// Parse a version string ("1.2.3" or "1.2.3-alpha.1+build123").
+    pub fn parse(s: &str) -> Result<Self, VersionError> {
+        let s = s.trim();
+
+        // Split off build metadata
+        let (base, build) = match s.find('+') {
+            Some(pos) => (&s[..pos], Some(s[pos + 1..].to_string())),
+            None => (s, None),
+        };
+
+        // Split off pre-release tag
+        let (version_str, pre) = match base.find('-') {
+            Some(pos) => (&base[..pos], Some(base[pos + 1..].to_string())),
+            None => (base, None),
+        };
+
+        let parts: Vec<&str> = version_str.split('.').collect();
+        if parts.len() != 3 {
+            return Err(VersionError::ParseError(s.to_string()));
+        }
+
+        let major = parts[0].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
+        let minor = parts[1].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
+        let patch = parts[2].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
+
+        Ok(Self {
+            major,
+            minor,
+            patch,
+            pre,
+            build,
+        })
     }
 
-    /// Returns `true` if this version is compatible with the given requirement.
+    /// Check if this version is compatible with a requirement.
     ///
     /// Compatibility rules:
-    /// - Same major version → compatible (may have higher minor/patch)
-    /// - Higher major version → incompatible
-    /// - Pre-release versions are only compatible with exact matches
-    pub fn is_compatible_with(&self, requirement: &VersionReq) -> bool {
-        requirement.matches(self)
+    /// - Major 0.x: only exact minor+patch match (unstable API)
+    /// - Same major + same minor: compatible (same API surface)
+    /// - Same major + higher minor: compatible (added functionality)
+    /// - Different major: incompatible
+    pub fn is_compatible_with(&self, requirement: &VersionRequirement) -> bool {
+        match requirement {
+            VersionRequirement::Exact(v) => self == v,
+            VersionRequirement::Compatible(v) => {
+                if self.major == 0 || v.major == 0 {
+                    // Unstable: require exact match
+                    self.major == v.major && self.minor == v.minor && self.patch == v.patch
+                } else {
+                    // Stable: same major version required
+                    self.major == v.major && self.minor >= v.minor
+                }
+            }
+            VersionRequirement::Range(min, max) => {
+                let min_ok = self.major > min.major
+                    || (self.major == min.major && self.minor > min.minor)
+                    || (self.major == min.major && self.minor == min.minor && self.patch >= min.patch);
+                let max_ok = self.major < max.major
+                    || (self.major == max.major && self.minor < max.minor)
+                    || (self.major == max.major && self.minor == max.minor && self.patch <= max.patch);
+                min_ok && max_ok
+            }
+            VersionRequirement::GreaterThan(min) => self >= min,
+        }
     }
+}
 
-    /// Checks if this version satisfies a minimum version requirement.
-    pub fn satisfies_minimum(&self, minimum: &Version) -> bool {
-        self.major > minimum.major
-            || (self.major == minimum.major && self.minor > minimum.minor)
-            || (self.major == minimum.major && self.minor == minimum.minor && self.patch >= minimum.patch)
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Version {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.major.cmp(&other.major) {
+            Ordering::Equal => match self.minor.cmp(&other.minor) {
+                Ordering::Equal => match self.patch.cmp(&other.patch) {
+                    Ordering::Equal => {
+                        // Pre-release versions are less than release versions
+                        match (&self.pre, &other.pre) {
+                            (None, Some(_)) => Ordering::Greater,
+                            (Some(_), None) => Ordering::Less,
+                            (None, None) => Ordering::Equal,
+                            (Some(a), Some(b)) => a.cmp(b),
+                        }
+                    }
+                    other => other,
+                },
+                other => other,
+            },
+            other => other,
+        }
     }
 }
 
@@ -97,158 +150,85 @@ impl fmt::Display for Version {
         if let Some(pre) = &self.pre {
             write!(f, "-{}", pre)?;
         }
+        if let Some(build) = &self.build {
+            write!(f, "+{}", build)?;
+        }
         Ok(())
     }
 }
 
-impl FromStr for Version {
-    type Err = VersionParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let err = |msg: &str| VersionParseError {
-            input: s.to_string(),
-            message: msg.to_string(),
-        };
-
-        let pre_part = if let Some(idx) = s.find('-') {
-            let pre = s[idx + 1..].to_string();
-            if pre.is_empty() {
-                return Err(err("Empty pre-release identifier"));
-            }
-            Some(pre)
-        } else {
-            None
-        };
-
-        let version_part = if let Some(idx) = s.find('-') {
-            &s[..idx]
-        } else {
-            s
-        };
-
-        let parts: Vec<&str> = version_part.split('.').collect();
-        if parts.len() != 3 {
-            return Err(err("Version must have exactly three dot-separated components (MAJOR.MINOR.PATCH)"));
-        }
-
-        let major = parts[0].parse::<u64>().map_err(|_| err("Invalid major version"))?;
-        let minor = parts[1].parse::<u64>().map_err(|_| err("Invalid minor version"))?;
-        let patch = parts[2].parse::<u64>().map_err(|_| err("Invalid patch version"))?;
-
-        Ok(Version {
-            major,
-            minor,
-            patch,
-            pre: pre_part,
-        })
-    }
-}
-
-/// A version requirement that describes a range of compatible versions.
-///
-/// Supports:
-/// - Exact version: `=1.2.3`
-/// - Caret requirement: `^1.2.3` (compatible with 1.x.y where y >= 2)
-/// - Tilde requirement: `~1.2.3` (compatible with 1.2.x where x >= 3)
-/// - Minimum version: `>=1.0.0`
-/// - Any version: `*`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum VersionReq {
-    /// Any version is acceptable.
-    Any,
-    /// Exactly this version.
+/// A requirement for a version — used by plugins to declare API compatibility.
+#[derive(Debug, Clone, PartialEq)]
+pub enum VersionRequirement {
+    /// Must match exactly.
     Exact(Version),
-    /// Compatible with this version (^): allows changes in the least significant
-    /// non-zero version component. `^1.2.3` allows 1.2.3 through 1.x.x.
+    /// Must be compatible (same major, minor >= required).
     Compatible(Version),
-    /// Approximately equivalent (~): allows only patch changes.
-    /// `~1.2.3` allows 1.2.3 through 1.2.x.
-    PatchCompatible(Version),
-    /// Minimum version requirement (>=).
-    Minimum(Version),
+    /// Must be within range [min, max].
+    Range(Version, Version),
+    /// Must be greater than or equal to minimum.
+    GreaterThan(Version),
 }
 
-impl VersionReq {
-    /// Creates a requirement matching any version.
-    pub fn any() -> Self {
-        VersionReq::Any
+impl VersionRequirement {
+    /// Check if a version satisfies this requirement.
+    pub fn is_satisfied_by(&self, version: &Version) -> bool {
+        version.is_compatible_with(self)
     }
 
-    /// Creates a requirement for exactly this version.
-    pub fn exact(version: Version) -> Self {
-        VersionReq::Exact(version)
-    }
-
-    /// Creates a compatible requirement (^).
-    pub fn compatible(version: Version) -> Self {
-        VersionReq::Compatible(version)
-    }
-
-    /// Creates a patch-compatible requirement (~).
-    pub fn patch_compatible(version: Version) -> Self {
-        VersionReq::PatchCompatible(version)
-    }
-
-    /// Creates a minimum version requirement (>=).
-    pub fn minimum(version: Version) -> Self {
-        VersionReq::Minimum(version)
-    }
-
-    /// Returns `true` if the given version satisfies this requirement.
-    pub fn matches(&self, version: &Version) -> bool {
-        match self {
-            VersionReq::Any => true,
-            VersionReq::Exact(req) => version == req,
-            VersionReq::Compatible(req) => {
-                version.major == req.major
-                    && version.minor >= req.minor
-                    && version.patch >= req.patch
-            }
-            VersionReq::PatchCompatible(req) => {
-                version.major == req.major
-                    && version.minor == req.minor
-                    && version.patch >= req.patch
-            }
-            VersionReq::Minimum(req) => version.satisfies_minimum(req),
-        }
+    /// Create a ">= major.minor.patch" requirement.
+    pub fn at_least(major: u64, minor: u64, patch: u64) -> Self {
+        Self::GreaterThan(Version::new(major, minor, patch))
     }
 }
 
-impl FromStr for VersionReq {
-    type Err = VersionParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        if s == "*" {
-            return Ok(VersionReq::Any);
-        }
-        if let Some(rest) = s.strip_prefix('=') {
-            return Ok(VersionReq::Exact(rest.parse()?));
-        }
-        if let Some(rest) = s.strip_prefix('^') {
-            return Ok(VersionReq::Compatible(rest.parse()?));
-        }
-        if let Some(rest) = s.strip_prefix('~') {
-            return Ok(VersionReq::PatchCompatible(rest.parse()?));
-        }
-        if let Some(rest) = s.strip_prefix(">=") {
-            return Ok(VersionReq::Minimum(rest.parse()?));
-        }
-        // Default to compatible (caret) requirement
-        Ok(VersionReq::Compatible(s.parse()?))
-    }
-}
-
-impl fmt::Display for VersionReq {
+impl fmt::Display for VersionRequirement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VersionReq::Any => write!(f, "*"),
-            VersionReq::Exact(v) => write!(f, "={}", v),
-            VersionReq::Compatible(v) => write!(f, "^{}", v),
-            VersionReq::PatchCompatible(v) => write!(f, "~{}", v),
-            VersionReq::Minimum(v) => write!(f, ">={}", v),
+            Self::Exact(v) => write!(f, "=={}", v),
+            Self::Compatible(v) => write!(f, "~{}", v),
+            Self::Range(min, max) => write!(f, ">={}, <={}", min, max),
+            Self::GreaterThan(v) => write!(f, ">={}", v),
         }
     }
+}
+
+/// Errors that can occur during version operations.
+#[derive(Debug, Clone, PartialEq)]
+pub enum VersionError {
+    /// The version string could not be parsed.
+    ParseError(String),
+    /// An API version is too old.
+    TooOld { version: Version, minimum: Version },
+    /// An API version is too new (not tested).
+    TooNew { version: Version, maximum: Version },
+}
+
+impl fmt::Display for VersionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ParseError(s) => write!(f, "Cannot parse version string: '{}'", s),
+            Self::TooOld { version, minimum } => {
+                write!(f, "Version {} is too old. Minimum supported: {}", version, minimum)
+            }
+            Self::TooNew { version, maximum } => {
+                write!(f, "Version {} was not tested. Maximum tested: {}", version, maximum)
+            }
+        }
+    }
+}
+
+impl std::error::Error for VersionError {}
+
+/// Result of a version compatibility check.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CompatibilityResult {
+    /// Version is fully compatible.
+    Compatible,
+    /// Version is incompatible for the given reason.
+    Incompatible(VersionError),
+    /// Version is compatible but may have minor issues.
+    Warning(String),
 }
 
 #[cfg(test)]
@@ -257,104 +237,79 @@ mod tests {
 
     #[test]
     fn version_parsing() {
-        let v: Version = "1.2.3".parse().unwrap();
+        let v = Version::parse("1.2.3").unwrap();
         assert_eq!(v.major, 1);
         assert_eq!(v.minor, 2);
         assert_eq!(v.patch, 3);
-        assert!(v.pre.is_none());
     }
 
     #[test]
     fn version_with_pre_release() {
-        let v: Version = "2.0.0-alpha".parse().unwrap();
-        assert_eq!(v.major, 2);
-        assert_eq!(v.pre, Some("alpha".to_string()));
-        assert!(v.is_pre_release());
+        let v = Version::parse("1.0.0-alpha.1").unwrap();
+        assert_eq!(v.pre, Some("alpha.1".to_string()));
+    }
+
+    #[test]
+    fn version_with_build() {
+        let v = Version::parse("1.0.0+build20260729").unwrap();
+        assert_eq!(v.build, Some("build20260729".to_string()));
+    }
+
+    #[test]
+    fn version_ordering() {
+        let v1 = Version::new(1, 0, 0);
+        let v2 = Version::new(2, 0, 0);
+        assert!(v1 < v2);
+    }
+
+    #[test]
+    fn compatible_same_major() {
+        let v1 = Version::new(1, 5, 0);
+        let req = VersionRequirement::Compatible(Version::new(1, 3, 0));
+        assert!(v1.is_compatible_with(&req));
+    }
+
+    #[test]
+    fn incompatible_different_major() {
+        let v1 = Version::new(2, 0, 0);
+        let req = VersionRequirement::Compatible(Version::new(1, 0, 0));
+        assert!(!v1.is_compatible_with(&req));
+    }
+
+    #[test]
+    fn unstable_requires_exact() {
+        let v1 = Version::new(0, 2, 0);
+        let req = VersionRequirement::Compatible(Version::new(0, 1, 0));
+        assert!(!v1.is_compatible_with(&req));
+    }
+
+    #[test]
+    fn range_requirement() {
+        let v = Version::new(1, 5, 0);
+        let req = VersionRequirement::Range(
+            Version::new(1, 0, 0),
+            Version::new(2, 0, 0),
+        );
+        assert!(v.is_compatible_with(&req));
+    }
+
+    #[test]
+    fn at_least_requirement() {
+        let v = Version::new(2, 0, 0);
+        let req = VersionRequirement::at_least(1, 5, 0);
+        assert!(v.is_compatible_with(&req));
     }
 
     #[test]
     fn version_display() {
-        let v = Version::new(1, 0, 0);
-        assert_eq!(v.to_string(), "1.0.0");
-
-        let v = Version::with_pre(1, 0, 0, "rc.1");
-        assert_eq!(v.to_string(), "1.0.0-rc.1");
+        let v = Version::new(1, 2, 3);
+        assert_eq!(v.to_string(), "1.2.3");
     }
 
     #[test]
-    fn invalid_version_parsing() {
-        assert!("1.2".parse::<Version>().is_err());
-        assert!("abc".parse::<Version>().is_err());
-        assert!("1.2.3.4".parse::<Version>().is_err());
-        assert!("1.2.-1".parse::<Version>().is_err());
-    }
-
-    #[test]
-    fn satisfies_minimum() {
-        let v1 = Version::new(1, 0, 0);
-        let v2 = Version::new(1, 5, 0);
-        let v3 = Version::new(2, 0, 0);
-
-        assert!(v2.satisfies_minimum(&v1));
-        assert!(!v1.satisfies_minimum(&v2));
-        assert!(v3.satisfies_minimum(&v1));
-        assert!(v2.satisfies_minimum(&Version::new(1, 5, 0)));
-        assert!(v2.satisfies_minimum(&Version::new(1, 4, 0)));
-        assert!(!v2.satisfies_minimum(&Version::new(1, 6, 0)));
-    }
-
-    #[test]
-    fn version_req_any() {
-        let req = VersionReq::Any;
-        assert!(req.matches(&Version::new(0, 0, 0)));
-        assert!(req.matches(&Version::new(999, 999, 999)));
-    }
-
-    #[test]
-    fn version_req_exact() {
-        let req = VersionReq::exact(Version::new(1, 2, 3));
-        assert!(req.matches(&Version::new(1, 2, 3)));
-        assert!(!req.matches(&Version::new(1, 2, 4)));
-        assert!(!req.matches(&Version::new(2, 0, 0)));
-    }
-
-    #[test]
-    fn version_req_compatible() {
-        let req = VersionReq::compatible(Version::new(1, 2, 3));
-        assert!(req.matches(&Version::new(1, 2, 3)));
-        assert!(req.matches(&Version::new(1, 5, 0)));
-        assert!(!req.matches(&Version::new(2, 0, 0)));
-    }
-
-    #[test]
-    fn version_req_patch_compatible() {
-        let req = VersionReq::patch_compatible(Version::new(1, 2, 3));
-        assert!(req.matches(&Version::new(1, 2, 3)));
-        assert!(req.matches(&Version::new(1, 2, 10)));
-        assert!(!req.matches(&Version::new(1, 3, 0)));
-    }
-
-    #[test]
-    fn version_req_minimum() {
-        let req = VersionReq::minimum(Version::new(1, 5, 0));
-        assert!(req.matches(&Version::new(1, 5, 0)));
-        assert!(req.matches(&Version::new(2, 0, 0)));
-        assert!(!req.matches(&Version::new(1, 4, 0)));
-    }
-
-    #[test]
-    fn version_req_parsing() {
-        assert_eq!("*".parse::<VersionReq>().unwrap(), VersionReq::Any);
-        assert_eq!("=1.2.3".parse::<VersionReq>().unwrap(), VersionReq::Exact(Version::new(1, 2, 3)));
-        assert_eq!("^1.2.3".parse::<VersionReq>().unwrap(), VersionReq::Compatible(Version::new(1, 2, 3)));
-        assert_eq!("~1.2.3".parse::<VersionReq>().unwrap(), VersionReq::PatchCompatible(Version::new(1, 2, 3)));
-        assert_eq!(">=1.0.0".parse::<VersionReq>().unwrap(), VersionReq::Minimum(Version::new(1, 0, 0)));
-    }
-
-    #[test]
-    fn is_compatible_with() {
-        let v = Version::new(1, 5, 0);
-        assert!(v.is_compatible_with(&VersionReq::compatible(Version::new(1, 2, 0))));
-        assert!(!v.is_compatible_with(&VersionReq::compatible(Version::new(2, 0, 0))));
+    fn pre_release_less_than_release() {
+        let v1 = Version::with_pre(1, 0, 0, "alpha");
+        let v2 = Version::new(1, 0, 0);
+        assert!(v1 < v2);
     }
 }
