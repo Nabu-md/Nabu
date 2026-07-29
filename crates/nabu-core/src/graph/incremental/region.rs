@@ -153,7 +153,7 @@ impl RegionEngine {
             if let Some(neighbors) = adjacency.get(&current) {
                 for neighbor in neighbors {
                     region.add_edge(current, *neighbor, "related");
-                    if depth + 1 <= max_hops {
+                    if depth < max_hops {
                         queue.push_back((*neighbor, depth + 1));
                     } else {
                         region.mark_boundary(*neighbor);

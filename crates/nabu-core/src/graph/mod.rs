@@ -138,7 +138,7 @@ impl VaultGraph {
         let (loaded_from_disk, snapshot, generation) = Self::try_load(&store);
         let mut loaded = false;
 
-        let mut graph = Self {
+        let graph = Self {
             nodes: RwLock::new(HashMap::new()),
             edges: RwLock::new(Vec::new()),
             adjacency: RwLock::new(HashMap::new()),
