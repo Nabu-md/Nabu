@@ -26,11 +26,13 @@ use nabu_core::capture::{
     YouTubeCaptureHandler,
 };
 use nabu_core::event_bus::{
-    EVENT_ITEM_PROCESSED, EVENT_ITEM_STORED, EventBus, ItemProcessed, ItemStored,
+    EVENT_ITEM_PROCESSED, EVENT_ITEM_PROCESSING_COMPLETED, EVENT_ITEM_PROCESSING_FAILED,
+    EVENT_ITEM_PROCESSING_STARTED, EVENT_ITEM_STORED, EventBus, ItemProcessed, ItemStored,
 };
 use nabu_core::graph::VaultGraph;
 use nabu_core::indexer::Indexer;
-use nabu_core::job_queue::{BackgroundJob, JobPriority, JobQueue, JobType, WorkerPool};
+use nabu_core::jobs::cancellation::CancellationToken;
+use nabu_core::jobs::workers::progress::ProgressReporter;
 use nabu_core::processing::{
     AutoFiler, ContentClassifier, DuplicateDetector, MetadataEnricher, MetadataExtractor,
     OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor,
@@ -152,19 +154,14 @@ fn build_application_context() -> ApplicationContext {
     engine.register(Arc::new(ScreenshotHandler::default()));
 
     // ------------------------------------------------------------------
-    // 3. Build the JobQueue and WorkerPool
+    // 3. Async Processing via tokio::spawn
     // ------------------------------------------------------------------
-    let job_queue = JobQueue::new(pipeline.clone(), event_bus.clone());
-    let worker_pool = WorkerPool::new(4, job_queue.clone());
-    {
-        let mut reg = registry.write().unwrap();
-        reg.register("job_queue", job_queue.clone());
-        reg.register("worker_pool", worker_pool.clone());
-    }
-
-    // Subscribe to ItemProcessed — enqueue background jobs
-    // instead of running the pipeline inline.
-    let enqueue_jq = job_queue.clone();
+    // Items captured through the EventBus are processed asynchronously
+    // using tokio::spawn. Each captured item runs through the pipeline
+    // in a separate async task, preserving the non-blocking behaviour
+    // of the previous JobQueue-based approach.
+    let pipeline_for_processing = pipeline.clone();
+    let eb_for_processing = event_bus.clone();
     event_bus.subscribe(EVENT_ITEM_PROCESSED, move |event: &ItemProcessed| {
         if event
             .knowledge_object
@@ -175,12 +172,63 @@ fn build_application_context() -> ApplicationContext {
             return;
         }
 
-        let job = BackgroundJob::new(
-            nabu_core::job_queue::JobType::ProcessKnowledgeObject,
-            JobPriority::Normal,
-            event.knowledge_object.clone(),
-        );
-        enqueue_jq.enqueue(job);
+        let ko = event.knowledge_object.clone();
+        let pipe = pipeline_for_processing.clone();
+        let eb = eb_for_processing.clone();
+
+        tokio::spawn(async move {
+            let progress = ProgressReporter::new();
+            let cancellation = CancellationToken::new();
+
+            // Publish processing started
+            let start_event = nabu_core::event_bus::PipelineEvent::ItemProcessingStarted(
+                nabu_core::event_bus::ItemProcessingStartedEvent {
+                    object_id: ko.id,
+                    job_id: uuid::Uuid::nil(),
+                    processor_name: "pipeline".to_string(),
+                    object_type: ko.object_type.variant_name().to_string(),
+                    timestamp: chrono::Utc::now(),
+                },
+            );
+            eb.publish(EVENT_ITEM_PROCESSING_STARTED, &start_event);
+
+            // Run the processing pipeline
+            let result = pipe.run(ko, progress, cancellation).await;
+
+            // Publish completion or failure
+            if let Some(error) = &result.error {
+                let fail_event = nabu_core::event_bus::PipelineEvent::ItemProcessingFailed(
+                    nabu_core::event_bus::ItemProcessingFailedEvent {
+                        object_id: result.object.id,
+                        job_id: uuid::Uuid::nil(),
+                        processor_name: "pipeline".to_string(),
+                        error: error.clone(),
+                        retry_count: 0,
+                        will_retry: false,
+                        timestamp: chrono::Utc::now(),
+                    },
+                );
+                eb.publish(EVENT_ITEM_PROCESSING_FAILED, &fail_event);
+            } else {
+                let complete_event = nabu_core::event_bus::PipelineEvent::ItemProcessingCompleted(
+                    nabu_core::event_bus::ItemProcessingCompletedEvent {
+                        object_id: result.object.id,
+                        job_id: uuid::Uuid::nil(),
+                        processor_name: "pipeline".to_string(),
+                        timestamp: chrono::Utc::now(),
+                    },
+                );
+                eb.publish(EVENT_ITEM_PROCESSING_COMPLETED, &complete_event);
+
+                // Re-publish ItemProcessed so StorageManager can persist
+                let processed_event =
+                    nabu_core::event_bus::ItemProcessed::from_knowledge_object(
+                        &result.object,
+                        Vec::new(),
+                    );
+                eb.publish(EVENT_ITEM_PROCESSED, &processed_event);
+            }
+        });
     });
 
     // ------------------------------------------------------------------
