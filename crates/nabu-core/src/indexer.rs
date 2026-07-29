@@ -10,6 +10,7 @@
 // destroy user knowledge.
 // ---------------------------------------------------------------------------
 
+use crate::content_provider::{ContentProvider, FilesystemContentProvider};
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::search_query::{SearchQuery, Filter};
 use anyhow::Context;
@@ -23,6 +24,13 @@ use tantivy::{Index, IndexReader, IndexWriter, TantivyDocument, doc, Term};
 /// Only changed KnowledgeObjects are reindexed. Deleted objects are removed
 /// from the index. The indexer tracks indexed document IDs to avoid
 /// redundant indexing operations.
+///
+/// # Content Loading
+///
+/// The Indexer does NOT expect content to live inside the KnowledgeObject.
+/// Instead, it uses a [`ContentProvider`] to load text from the canonical
+/// Markdown file on disk at index time (Principle 1 — Markdown is canonical).
+/// The default provider is [`FilesystemContentProvider`].
 pub struct Indexer {
     index: Index,
     reader: IndexReader,
@@ -30,6 +38,8 @@ pub struct Indexer {
     schema: Schema,
     /// Set of document IDs currently in the index, used for incremental updates.
     indexed_ids: HashSet<String>,
+    /// Content provider used to load text from the canonical source (disk).
+    content_provider: Box<dyn ContentProvider>,
 }
 
 impl Indexer {
@@ -63,6 +73,7 @@ impl Indexer {
             writer,
             schema,
             indexed_ids,
+            content_provider: Box::new(FilesystemContentProvider),
         })
     }
 
@@ -89,11 +100,28 @@ impl Indexer {
         ids
     }
 
+    /// Set a custom content provider for this indexer.
+    ///
+    /// Useful for testing or for custom content resolution strategies.
+    /// By default, the indexer uses [`FilesystemContentProvider`].
+    pub fn with_content_provider(mut self, provider: Box<dyn ContentProvider>) -> Self {
+        self.content_provider = provider;
+        self
+    }
+
     /// Index a single KnowledgeObject incrementally.
     ///
     /// If the document is already indexed (same ID), it is deleted and re-added.
     /// If the document is new, it is added directly.
     /// This avoids full index rebuilds for individual document changes.
+    ///
+    /// # Content Loading
+    ///
+    /// The Indexer does NOT expect content to live in the KnowledgeObject.
+    /// Instead, it uses its [`ContentProvider`] to load text from the
+    /// canonical Markdown file on disk (Principle 1). This ensures the
+    /// Tantivy index receives full document text even though the
+    /// KnowledgeObject carries only a content descriptor.
     pub fn index_document(&mut self, ko: &KnowledgeObject) -> anyhow::Result<()> {
         let doc_id = ko.id.to_string();
 
@@ -102,11 +130,10 @@ impl Indexer {
             self.delete_document(&doc_id)?;
         }
 
-        // Extract searchable text using the KnowledgeObject's canonical text method.
-        // This ensures all content types are indexed consistently, even if the
-        // KnowledgeObject only carries content descriptors (text is read from
-        // the source file at index time).
-        let content = ko.content.as_text();
+        // Load content via ContentProvider — reads from disk for Markdown/
+        // PlainText/Html content, serialises JSON for Structured content.
+        // This is the canonical content loading path (Principle 1).
+        let content = self.content_provider.load_text(ko);
 
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();
@@ -179,12 +206,14 @@ impl Indexer {
 
     /// Build a TantivyDocument from a KnowledgeObject without adding it to the index.
     ///
-    /// Uses `KnowledgeObject::content.as_text()` as the canonical content
+    /// Uses the configured [`ContentProvider`] as the canonical content
     /// extraction path, so all indexing logic stays consistent across both
     /// single-document and batch operations.
     fn build_document(&self, ko: &KnowledgeObject) -> anyhow::Result<TantivyDocument> {
         let doc_id = ko.id.to_string();
-        let content = ko.content.as_text();
+        // Content loaded from canonical source via ContentProvider
+        // (Principle 1 — Markdown is canonical).
+        let content = self.content_provider.load_text(ko);
 
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();

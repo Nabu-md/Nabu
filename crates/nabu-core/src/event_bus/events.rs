@@ -131,8 +131,15 @@ pub struct ItemProcessingFailed {
 /// Event published when an item has been stored by the StorageManager.
 ///
 /// This event signals that a KnowledgeObject has been persisted to the
-/// metadata database. Future subscribers (Search, Graph, AI, etc.) can
-/// react to this event to update their indexes.
+/// metadata database. Subscribers (Search, Graph, AI, etc.) can react
+/// to this event to update their indexes.
+///
+/// # Architecture
+///
+/// The `knowledge_object` field carries only metadata (no content bytes).
+/// Text content is loaded on demand via [`ContentProvider`](crate::content_provider::ContentProvider)
+/// when the Indexer needs it. This preserves Principle 1 (Markdown is
+/// canonical) while giving subscribers access to the object's metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemStored {
     /// The unique identifier of the stored item.
@@ -143,6 +150,9 @@ pub struct ItemStored {
     pub object_type: String,
     /// The timestamp when storage completed.
     pub timestamp: String,
+    /// The stored knowledge object (metadata only, no content bytes).
+    /// Subscribers use this + ContentProvider to load text content on demand.
+    pub knowledge_object: KnowledgeObject,
 }
 
 /// Event map defining all available event types.
@@ -191,6 +201,7 @@ impl From<&KnowledgeObject> for ItemStored {
             vault_id: obj.vault_id.clone(),
             object_type: format!("{:?}", obj.object_type),
             timestamp: obj.modified_at.clone(),
+            knowledge_object: obj.clone(),
         }
     }
 }
