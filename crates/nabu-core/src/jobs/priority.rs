@@ -51,9 +51,7 @@ impl Priority {
 
 impl PartialOrd for Priority {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Lower numeric value = higher priority
-        // Critical(0) > High(1) > Normal(2) > Low(3) > Background(4)
-        other.value().partial_cmp(&self.value())
+        Some(self.cmp(other))
     }
 }
 

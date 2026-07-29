@@ -84,6 +84,12 @@ pub struct ProgressUpdate {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+impl Default for InMemoryProgressTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InMemoryProgressTracker {
     pub fn new() -> Self {
         Self {

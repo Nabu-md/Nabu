@@ -14,6 +14,12 @@ pub struct DuplicateDetector {
     known_hashes: Mutex<HashSet<String>>,
 }
 
+impl Default for DuplicateDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DuplicateDetector {
     pub fn new() -> Self {
         Self {
