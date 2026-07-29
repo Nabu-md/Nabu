@@ -1,6 +1,6 @@
-use crate::jobs::errors::JobResult;
-use crate::jobs::queue::{DurableJobQueue, Queue};
-use crate::jobs::workers::backpressure::{BackpressureController, BackpressureHandle};
+
+use crate::jobs::queue::Queue;
+use crate::jobs::workers::backpressure::BackpressureController;
 use crate::jobs::workers::executor::ExecutorRegistry;
 use crate::jobs::workers::shutdown::ShutdownCoordinator;
 use crate::jobs::workers::worker::Worker;

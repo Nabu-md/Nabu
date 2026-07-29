@@ -1,10 +1,9 @@
 use nabu_core::graph::incremental::engine::IncrementalUpdateEngine;
-use nabu_core::graph::incremental::update_tracker::{EdgeKey, UpdateTracker};
 use nabu_core::graph::incremental::dependency_tracker::DependencyTracker;
 use nabu_core::graph::incremental::change_log::{ChangeEntry, ChangeLog, CheckpointData};
 use nabu_core::graph::incremental::region::RegionEngine;
 use nabu_core::graph::incremental::event_wiring::GraphEventBridge;
-use nabu_core::graph::serializer::{EdgeDirection, GraphSnapshot, SerializedEdge, SerializedNode};
+use nabu_core::graph::serializer::{GraphSnapshot, SerializedEdge, SerializedNode};
 use nabu_core::graph::version::GraphVersion;
 use nabu_core::graph::VaultGraph;
 use nabu_core::models::{KnowledgeObject, ObjectContent, ObjectType};
@@ -222,7 +221,7 @@ fn test_change_log_append_replay() {
     log.append(&ChangeEntry::EdgeAdded(SerializedEdge::new(n1, n2, "references"))).unwrap();
 
     let mut count = 0u64;
-    log.replay(|entry| {
+    log.replay(|_entry| {
         count += 1;
         Ok(())
     })

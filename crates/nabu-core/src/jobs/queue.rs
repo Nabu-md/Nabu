@@ -2,7 +2,7 @@ use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::errors::{JobError, JobResult};
 use crate::jobs::job::{Job, JobStatus, JobType};
 use crate::jobs::persistence::JobStore;
-use crate::jobs::priority::{Priority, PriorityItem};
+use crate::jobs::priority::PriorityItem;
 use crate::jobs::retry::RetryPolicy;
 use crate::jobs::scheduler::{ScheduleSpec, Scheduler};
 use crate::jobs::worker_channel::{QueueHandle, WorkerChannel};
@@ -11,7 +11,7 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
+
 
 /// The Queue trait defines the interface for all queue implementations.
 /// The queue is storage-agnostic — any backend can implement this trait.
@@ -438,6 +438,7 @@ impl Queue for DurableJobQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jobs::priority::Priority;
     use crate::jobs::retry::policies;
     use tempfile::tempdir;
 

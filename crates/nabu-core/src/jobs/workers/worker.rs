@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
-use crate::jobs::errors::{JobError, JobResult};
-use crate::jobs::job::{Job, JobStatus};
+
+use crate::jobs::job::Job;
 use crate::jobs::queue::Queue;
 use crate::jobs::workers::backpressure::BackpressureHandle;
 use crate::jobs::workers::executor::ExecutorRegistry;

@@ -6,18 +6,15 @@ use nabu_core::jobs::job::{Job, JobType};
 use nabu_core::jobs::persistence::JobStore;
 use nabu_core::jobs::priority::Priority;
 use nabu_core::jobs::queue::{DurableJobQueue, Queue};
-use nabu_core::jobs::workers::executor::{ExecutorRegistry, JobExecutor};
-use nabu_core::jobs::workers::pool::WorkerPool;
+use nabu_core::jobs::workers::executor::ExecutorRegistry;
 use nabu_core::jobs::workers::progress::ProgressReporter;
 use nabu_core::jobs::cancellation::CancellationToken;
 use nabu_core::models::{CaptureSource, KnowledgeObject, ObjectContent, ObjectType};
-use nabu_core::processing::pipeline::{build_standard_pipeline, ProcessingPipeline};
-use nabu_core::processing::processor::{ProcessingContext, ProcessingResult, Processor};
+use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::pipeline_migration::executor::PipelineExecutor;
 use nabu_core::storage::manager::StorageManager;
 use nabu_core::indexer::Indexer;
 use nabu_core::graph::VaultGraph;
-use async_trait::async_trait;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tempfile::tempdir;
@@ -150,7 +147,7 @@ async fn test_job_persistence() {
 #[tokio::test]
 async fn test_processors_are_independent() {
     // Verify processors don't depend on each other by running them individually
-    let object = KnowledgeObject::new(
+    let _object = KnowledgeObject::new(
         ObjectType::Note,
         ObjectContent::Markdown("Independent processor test".to_string()),
     );
@@ -340,7 +337,7 @@ async fn test_all_event_kinds() {
 
     for kind in &event_kinds {
         let c = counter.clone();
-        let bus_clone = bus.clone();
+        let _bus_clone = bus.clone();
         bus.subscribe(kind, move |_| {
             c.fetch_add(1, Ordering::SeqCst);
         });

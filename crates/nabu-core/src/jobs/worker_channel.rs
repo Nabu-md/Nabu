@@ -1,5 +1,5 @@
 use crate::jobs::errors::{JobError, JobResult};
-use crate::jobs::job::{Job, JobStatus};
+use crate::jobs::job::Job;
 use tokio::sync::mpsc;
 
 /// The communication channel between the queue and workers.
