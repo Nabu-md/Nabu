@@ -18,7 +18,7 @@ serde_json = "1.0.139"
 anyhow = "1.0.96"
 pulldown-cmark = "0.13.4"
 petgraph = "0.7.0"
-uuid = "1.13.0"
+uuid = { version = "1.13.0", features = ["v4", "serde"] }
 walkdir = "2.5.0"
 regex = "1.11.1"
 tera = "1.20.0"

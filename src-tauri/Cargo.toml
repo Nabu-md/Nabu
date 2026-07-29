@@ -28,8 +28,6 @@ parking_lot = "0.12.3"
 thiserror = "2.0.11"
 anyhow = "1.0.96"
 walkdir = "2.5.0"
-uuid = "1.13.0"
-tantivy = "0.26.1"
 chrono = "0.4"
 rfd = "0.15"
 tokio = { version = "1.43.0", features = ["full"] }

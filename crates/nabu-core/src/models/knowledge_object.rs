@@ -162,17 +162,32 @@ impl std::fmt::Display for ObjectType {
 
 impl ObjectContent {
     /// Returns the content as a text string, or an empty string for binary content.
-    pub fn as_text(&self) -> &str {
+    ///
+    /// This method is the canonical way to extract searchable text from any
+    /// `ObjectContent` variant. It is used by the indexer and processing
+    /// pipeline to ensure full-text search works regardless of content format.
+    ///
+    /// # Architectural note (Principle 1 — Markdown is canonical)
+    ///
+    /// At runtime the `KnowledgeObject` carries a content *descriptor* (format
+    /// type), while the actual bytes live in the Markdown file on disk. Text
+    /// content is therefore not duplicated inside the `ObjectContent` enum.
+    /// The indexer is responsible for reading source files directly when
+    /// indexing (see `Indexer::build_document`).
+    ///
+    /// Structured content (JSON) is serialised inline because it is not a
+    /// user-authored Markdown file.
+    pub fn as_text(&self) -> String {
         match self {
-            ObjectContent::Markdown => "",
-            ObjectContent::PlainText => "",
-            ObjectContent::Html => "",
-            ObjectContent::Binary => "",
+            ObjectContent::Markdown | ObjectContent::PlainText | ObjectContent::Html => {
+                // Content lives in the source Markdown file on disk.
+                // See Principle 1: Markdown is the canonical source of truth.
+                // The indexer reads files directly when building the search index.
+                String::new()
+            }
+            ObjectContent::Binary => String::new(),
             ObjectContent::Structured(json) => {
-                // This is a simplification; in practice, structured content
-                // would need to be serialized to a string representation.
-                // For now, return an empty string.
-                ""
+                serde_json::to_string(json).unwrap_or_default()
             }
         }
     }

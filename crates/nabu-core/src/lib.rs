@@ -1,3 +1,27 @@
+// ---------------------------------------------------------------------------
+// Architectural note: lib.rs defines the top-level module structure for
+// the Nabu core library.
+//
+// All subsystems follow the Universal Knowledge Object architecture:
+//
+//   1. KnowledgeObject is the universal runtime model (Principle 2).
+//      No subsystem invents its own object model.
+//
+//   2. Data flows through exactly one pipeline:
+//      Capture → KnowledgeObject → Processing → Storage → EventBus → UI
+//      No feature bypasses this lifecycle (Principle 3).
+//
+//   3. Services never own canonical data (Principle 4).
+//      Markdown files on disk are the source of truth (Principle 1).
+//      Everything under .nabu/ is derived and rebuildable (Principle 9).
+//
+//   4. Tantivy is the single search engine (Principle 6).
+//      VaultGraph is the single relationship graph (Principle 7).
+//      No secondary indexes or feature-specific graphs.
+//
+//   5. Views (inbox, table, graph, etc.) are projections of
+//      KnowledgeObjects — never duplicates (Principle 5).
+// ---------------------------------------------------------------------------
 pub mod capture;
 pub mod event_bus;
 pub mod export_engine;

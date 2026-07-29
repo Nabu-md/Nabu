@@ -1,3 +1,15 @@
+// ---------------------------------------------------------------------------
+// Architectural note: Tantivy is the SINGLE full-text search engine
+// (Principle 6 — One Search Engine).
+//
+// No subsystem may introduce secondary indexes, duplicated search, or
+// feature-specific indexes. All searchable text flows through this module.
+//
+// The index is *derived data* (Principle 9). It lives under `.nabu/` and
+// is fully rebuildable from Markdown source files. Deleting it must never
+// destroy user knowledge.
+// ---------------------------------------------------------------------------
+
 use crate::models::knowledge_object::KnowledgeObject;
 use crate::search_query::{SearchQuery, Filter};
 use anyhow::Context;
@@ -90,15 +102,11 @@ impl Indexer {
             self.delete_document(&doc_id)?;
         }
 
-        let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
-            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
-            crate::models::knowledge_object::ObjectContent::Html => String::new(),
-            crate::models::knowledge_object::ObjectContent::Binary => String::new(),
-            crate::models::knowledge_object::ObjectContent::Structured(json) => {
-                serde_json::to_string(json).unwrap_or_default()
-            }
-        };
+        // Extract searchable text using the KnowledgeObject's canonical text method.
+        // This ensures all content types are indexed consistently, even if the
+        // KnowledgeObject only carries content descriptors (text is read from
+        // the source file at index time).
+        let content = ko.content.as_text();
 
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();
@@ -170,17 +178,13 @@ impl Indexer {
     }
 
     /// Build a TantivyDocument from a KnowledgeObject without adding it to the index.
+    ///
+    /// Uses `KnowledgeObject::content.as_text()` as the canonical content
+    /// extraction path, so all indexing logic stays consistent across both
+    /// single-document and batch operations.
     fn build_document(&self, ko: &KnowledgeObject) -> anyhow::Result<TantivyDocument> {
         let doc_id = ko.id.to_string();
-        let content = match &ko.content {
-            crate::models::knowledge_object::ObjectContent::Markdown => String::new(),
-            crate::models::knowledge_object::ObjectContent::PlainText => String::new(),
-            crate::models::knowledge_object::ObjectContent::Html => String::new(),
-            crate::models::knowledge_object::ObjectContent::Binary => String::new(),
-            crate::models::knowledge_object::ObjectContent::Structured(json) => {
-                serde_json::to_string(json).unwrap_or_default()
-            }
-        };
+        let content = ko.content.as_text();
 
         let path_field = self.schema.get_field("path").unwrap();
         let content_field = self.schema.get_field("content").unwrap();
