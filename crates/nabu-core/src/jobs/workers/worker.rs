@@ -1,238 +1,160 @@
-use std::sync::Arc;
-use std::time::Duration;
-
 use crate::jobs::cancellation::CancellationToken;
-use crate::jobs::job::{Job, JobId, JobStatus};
-use crate::jobs::persistence::JobStore;
-use crate::jobs::worker_channel::{QueueMessage, WorkerHandle, WorkerMessage};
+use crate::jobs::errors::{JobError, JobResult};
+use crate::jobs::job::{Job, JobStatus};
+use crate::jobs::queue::Queue;
+use crate::jobs::workers::backpressure::BackpressureHandle;
+use crate::jobs::workers::executor::ExecutorRegistry;
+use crate::jobs::workers::progress::ProgressReporter;
+use crate::jobs::workers::shutdown::ShutdownHandle;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use tokio::time::Duration;
 
-use super::backpressure::Backpressure;
-use super::errors::WorkerResult;
-use super::executor::{ExecuteContext, ExecuteResult, ExecutorRegistry};
-use super::progress::{ChannelProgressReporter, ProgressReporter};
-use super::shutdown::ShutdownCoordinator;
-
-/// A single asynchronous worker.
+/// A generic async worker that executes jobs from the queue.
 ///
-/// Each worker is a long-running tokio task that:
-/// 1. Waits for jobs from the queue via the `WorkerHandle`.
-/// 2. Looks up the executor for the job's type.
-/// 3. Executes the job, reporting progress and results.
-/// 4. Handles cancellation and shutdown signals.
-///
-/// Workers are generic — they know nothing about OCR, AI, or indexing.
-#[derive(Debug)]
+/// Workers are completely generic — they know nothing about OCR, AI, or indexing.
+/// They simply pull jobs, find the right executor, and run them.
 pub struct Worker {
-    /// Unique identifier for this worker.
-    pub id: usize,
-
-    /// Handle for receiving messages from the queue.
-    handle: WorkerHandle,
-
-    /// Registry of job type → executor mappings.
+    id: usize,
+    queue: Arc<dyn Queue>,
     executors: Arc<ExecutorRegistry>,
-
-    /// The job store for persisting state changes.
-    store: Arc<JobStore>,
-
-    /// Progress reporter for job progress.
-    progress: Arc<dyn ProgressReporter>,
-
-    /// Coordinator for shutdown.
-    shutdown: ShutdownCoordinator,
-
-    /// Backpressure tracker.
-    backpressure: Backpressure,
+    shutdown: ShutdownHandle,
+    backpressure: BackpressureHandle,
 }
 
 impl Worker {
-    /// Creates a new worker.
     pub fn new(
         id: usize,
-        handle: WorkerHandle,
+        queue: Arc<dyn Queue>,
         executors: Arc<ExecutorRegistry>,
-        store: Arc<JobStore>,
-        progress: Arc<dyn ProgressReporter>,
-        shutdown: ShutdownCoordinator,
-        backpressure: Backpressure,
+        shutdown: ShutdownHandle,
+        backpressure: BackpressureHandle,
     ) -> Self {
-        Worker {
+        Self {
             id,
-            handle,
+            queue,
             executors,
-            store,
-            progress,
             shutdown,
             backpressure,
         }
     }
 
-    /// Runs the worker loop. This blocks until a shutdown signal is received.
+    /// Run the worker loop.
     ///
-    /// The loop:
-    /// 1. Receives a message from the queue.
-    /// 2. On `NewJob(job)`: executes it, reports result, handles retry.
-    /// 3. On `JobCancelled(id)`: acknowledges cancellation.
-    /// 4. On `Shutdown`: exits the loop.
-    pub async fn run(&mut self) {
+    /// The worker continuously:
+    /// 1. Checks if shutdown was requested
+    /// 2. Tries to dequeue a job
+    /// 3. If a job is available, looks up the executor and runs it
+    /// 4. Reports completion/failure back to the queue
+    /// 5. Reports progress updates to the queue
+    pub async fn run(self) {
         log::info!("Worker {} started", self.id);
+        self.shutdown.register();
 
         loop {
-            let msg = self.handle.recv().await;
-
-            match msg {
-                Some(WorkerMessage::NewJob(job)) => {
-                    log::debug!("Worker {} received job {}", self.id, job.id);
-                    self.execute_job(job).await;
-                }
-                Some(WorkerMessage::JobCancelled(job_id)) => {
-                    log::debug!("Worker {} received cancellation for {}", self.id, job_id);
-                    self.handle_cancellation(job_id).await;
-                }
-                Some(WorkerMessage::Shutdown) => {
-                    log::info!("Worker {} received shutdown signal", self.id);
-                    break;
-                }
-                None => {
-                    // Channel closed — queue must have shut down
-                    log::info!("Worker {} channel closed, exiting", self.id);
-                    break;
-                }
+            // Check for shutdown
+            if self.shutdown.is_shutting_down() {
+                log::info!("Worker {} shutting down", self.id);
+                break;
             }
-        }
 
-        log::info!("Worker {} stopped", self.id);
-    }
-
-    /// Executes a single job.
-    async fn execute_job(&self, job: Job) {
-        self.shutdown.job_started();
-        self.backpressure.record_dispatch().ok();
-
-        // Report started
-        let _ = self.handle.report_started(job.id).await;
-
-        // Update job status in store
-        let mut job = job;
-        job.mark_running();
-
-        let cancellation = CancellationToken::new();
-
-        if let Err(e) = self.store.update(&job).await {
-            log::error!("Worker {}: failed to persist job start: {}", self.id, e);
-            self.shutdown.job_finished();
-            self.backpressure.record_completion();
-            return;
-        }
-
-        // Look up the executor
-        let executor = match self.executors.get(&job.job_type) {
-            Ok(e) => e,
-            Err(e) => {
-                log::error!(
-                    "Worker {}: no executor for job type '{}': {}",
-                    self.id,
-                    job.job_type,
-                    e
-                );
-                let _ = self.handle.report_failed(job.id, e.to_string()).await;
-                self.handle_failure(job, e.to_string()).await;
-                self.shutdown.job_finished();
-                self.backpressure.record_completion();
-                return;
-            }
-        };
-
-        // Create execution context
-        let ctx = ExecuteContext::new(job.clone(), cancellation, self.progress.clone());
-
-        // Execute
-        let result = executor.execute(&ctx);
-
-        match result {
-            ExecuteResult::Completed => {
-                log::debug!("Worker {}: job {} completed", self.id, job.id);
-                let mut job = job;
-                job.mark_completed();
-                let _ = self.handle.report_completed(job.id).await;
-
-                if let Err(e) = self.store.update(&job).await {
-                    log::error!("Worker {}: failed to persist job completion: {}", self.id, e);
+            // Try to dequeue a job
+            let job = match self.queue.dequeue() {
+                Ok(Some(job)) => job,
+                Ok(None) => {
+                    // No jobs available — wait before retrying
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    continue;
                 }
-
-                self.shutdown.job_finished();
-                self.backpressure.record_completion();
-            }
-            ExecuteResult::Failed(error) => {
-                log::warn!("Worker {}: job {} failed: {}", self.id, job.id, error);
-                let _ = self.handle.report_failed(job.id, error.clone()).await;
-                self.handle_failure(job, error).await;
-                self.shutdown.job_finished();
-                self.backpressure.record_completion();
-            }
-            ExecuteResult::Cancelled => {
-                log::info!("Worker {}: job {} was cancelled", self.id, job.id);
-                let mut job = job;
-                job.mark_cancelled();
-
-                let _ = self.handle.report_completed(job.id).await; // Signal completion
-
-                if let Err(e) = self.store.update(&job).await {
-                    log::error!("Worker {}: failed to persist job cancellation: {}", self.id, e);
+                Err(e) => {
+                    log::error!("Worker {} dequeue error: {}", self.id, e);
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
                 }
+            };
 
-                self.shutdown.job_finished();
-                self.backpressure.record_completion();
-            }
-        }
-    }
-
-    /// Handles a job failure, potentially scheduling a retry.
-    async fn handle_failure(&self, mut job: Job, error: String) {
-        let will_retry = job.mark_failed(error);
-
-        if let Err(e) = self.store.update(&job).await {
-            log::error!(
-                "Worker {}: failed to persist job failure state: {}",
-                self.id,
-                e
-            );
-        }
-
-        if will_retry {
             log::info!(
-                "Worker {}: job {} will be retried (attempt {}/{})",
+                "Worker {} picked up job {} ({})",
                 self.id,
                 job.id,
-                job.retry_count,
-                job.max_retries
+                job.processor_name
             );
-        } else {
-            log::warn!(
-                "Worker {}: job {} permanently failed after {} attempts",
-                self.id,
-                job.id,
-                job.retry_count
-            );
-        }
-    }
 
-    /// Handles a cancellation notification for a job.
-    async fn handle_cancellation(&self, job_id: JobId) {
-        // Load the job and mark it as cancelled in the store
-        if let Ok(mut job) = self.store.load(&job_id).await {
-            if job.status == JobStatus::Running || job.status == JobStatus::Queued {
-                job.mark_cancelled();
-                if let Err(e) = self.store.update(&job).await {
+            self.backpressure.job_started();
+
+            // Find the executor for this job type
+            let executor = match self.executors.get(&job.processor_name) {
+                Some(executor) => executor,
+                None => {
                     log::error!(
-                        "Worker {}: failed to persist cancellation for {}: {}",
+                        "Worker {}: no executor for '{}'",
                         self.id,
-                        job_id,
-                        e
+                        job.processor_name
+                    );
+                    let _ = self.queue.mark_failed(
+                        &job.id.to_string(),
+                        &format!("No executor for '{}'", job.processor_name),
+                    );
+                    self.backpressure.job_completed();
+                    continue;
+                }
+            };
+
+            // Create progress reporter that updates the queue
+            let queue_ref = self.queue.clone();
+            let job_id = job.id.to_string();
+            let progress = ProgressReporter::new(move |value| {
+                let _ = queue_ref.report_progress(&job_id, value, None);
+            });
+
+            // Run the executor
+            let result = executor
+                .execute(&job, progress.clone(), CancellationToken::new())
+                .await;
+
+            match result {
+                Ok(_) => {
+                    log::info!("Worker {} completed job {}", self.id, job.id);
+                    let _ = self.queue.mark_completed(&job.id.to_string());
+                }
+                Err(e) => {
+                    log::error!("Worker {} job {} failed: {}", self.id, job.id, e);
+                    let _ = self.queue.mark_failed(
+                        &job.id.to_string(),
+                        &e.to_string(),
                     );
                 }
-                self.backpressure.record_completion();
             }
+
+            progress.complete();
+            self.backpressure.job_completed();
         }
+
+        self.shutdown.unregister();
+        log::info!("Worker {} stopped", self.id);
+    }
+}
+
+/// Message sent from the queue to a worker.
+#[derive(Debug)]
+pub enum WorkerMessage {
+    /// Execute this job
+    Execute(Job),
+    /// Shut down gracefully
+    Shutdown,
+}
+
+/// A handle to send messages to a specific worker.
+pub struct WorkerHandle {
+    tx: mpsc::Sender<WorkerMessage>,
+}
+
+impl WorkerHandle {
+    pub fn new(tx: mpsc::Sender<WorkerMessage>) -> Self {
+        Self { tx }
+    }
+
+    pub async fn send(&self, msg: WorkerMessage) -> Result<(), mpsc::error::SendError<WorkerMessage>> {
+        self.tx.send(msg).await
     }
 }

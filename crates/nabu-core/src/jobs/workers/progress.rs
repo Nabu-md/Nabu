@@ -1,210 +1,139 @@
-use std::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
-use crate::jobs::job::JobId;
-use crate::jobs::worker_channel::WorkerHandle;
+const PROGRESS_DENOM: u32 = 1000;
 
-/// A snapshot of a job's progress at a point in time.
+/// A progress reporter that can be cloned and shared across threads.
+/// Jobs report progress as a value between 0 and 1000 (permille).
 #[derive(Debug, Clone)]
-pub struct ProgressSnapshot {
-    /// The job this progress relates to.
-    pub job_id: JobId,
-
-    /// Progress value from 0.0 to 1.0.
-    pub progress: f64,
-
-    /// Human-readable description of the current progress.
-    pub message: String,
-
-    /// Unix timestamp when this snapshot was recorded.
-    pub timestamp: f64,
+pub struct ProgressReporter {
+    permille: Arc<AtomicU32>,
+    on_update: Arc<dyn Fn(f64) + Send + Sync>,
 }
 
-/// The progress reporter interface.
-///
-/// Workers use this to report progress without knowing anything about
-/// how progress is tracked or delivered.
-pub trait ProgressReporter: Send + Sync {
-    /// Reports progress for a job.
-    fn report(&self, job_id: JobId, progress: f64, message: String);
-}
-
-/// A progress reporter that sends progress updates through the worker channel.
-///
-/// This is the primary implementation used in production — progress updates
-/// flow back to the queue/application through the existing IPC channel.
-#[derive(Debug, Clone)]
-pub struct ChannelProgressReporter {
-    /// Handle to the worker channel for sending progress updates.
-    handle: Arc<tokio::sync::Mutex<Option<WorkerHandle>>>,
-
-    /// How often (in milliseconds) to throttle progress updates.
-    /// Default: 250ms (4 updates per second max).
-    throttle_ms: u64,
-}
-
-impl ChannelProgressReporter {
-    /// Creates a new channel progress reporter with the given throttle interval.
-    pub fn new(throttle_ms: u64) -> Self {
-        ChannelProgressReporter {
-            handle: Arc::new(tokio::sync::Mutex::new(None)),
-            throttle_ms,
+impl ProgressReporter {
+    /// Create a new progress reporter with a callback for updates.
+    pub fn new(on_update: impl Fn(f64) + Send + Sync + 'static) -> Self {
+        Self {
+            permille: Arc::new(AtomicU32::new(0)),
+            on_update: Arc::new(on_update),
         }
     }
 
-    /// Sets the worker handle for sending updates.
-    pub async fn set_handle(&self, handle: WorkerHandle) {
-        let mut h = self.handle.lock().await;
-        *h = Some(handle);
+    /// Create a no-op progress reporter (for jobs that don't report progress).
+    pub fn noop() -> Self {
+        Self {
+            permille: Arc::new(AtomicU32::new(0)),
+            on_update: Arc::new(|_| {}),
+        }
     }
 
-    /// Returns the throttle interval in milliseconds.
-    pub fn throttle_ms(&self) -> u64 {
-        self.throttle_ms
+    /// Get the current progress as a float (0.0–1.0).
+    pub fn progress(&self) -> f64 {
+        self.permille.load(Ordering::Acquire) as f64 / PROGRESS_DENOM as f64
+    }
+
+    /// Set progress from a float (0.0–1.0).
+    pub fn set_progress(&self, value: f64) {
+        let clamped = value.clamp(0.0, 1.0);
+        let permille = (clamped * PROGRESS_DENOM as f64) as u32;
+        self.permille.store(permille.min(PROGRESS_DENOM), Ordering::Release);
+        (self.on_update)(clamped);
+    }
+
+    /// Set progress as a percentage (0–100).
+    pub fn set_percent(&self, percent: f64) {
+        self.set_progress(percent / 100.0);
+    }
+
+    /// Increment progress by a delta (0.0–1.0).
+    pub fn increment(&self, delta: f64) {
+        let current = self.progress();
+        self.set_progress(current + delta);
+    }
+
+    /// Mark progress as complete (1.0).
+    pub fn complete(&self) {
+        self.set_progress(1.0);
+    }
+
+    /// Reset progress to 0.
+    pub fn reset(&self) {
+        self.set_progress(0.0);
     }
 }
 
-impl ProgressReporter for ChannelProgressReporter {
-    fn report(&self, job_id: JobId, progress: f64, message: String) {
-        let handle = self.handle.clone();
-        let msg = message.clone();
-        tokio::spawn(async move {
-            let h = handle.lock().await;
-            if let Some(ref h) = *h {
-                let _ = h.report_progress(job_id, progress, msg).await;
-            }
-        });
-    }
-}
-
-/// An in-memory progress tracker that records the latest progress for each job.
-///
-/// Useful for testing and diagnostics without a worker channel.
-#[derive(Debug, Clone)]
+/// A progress tracker that stores progress history.
 pub struct InMemoryProgressTracker {
-    inner: Arc<std::sync::Mutex<std::collections::HashMap<String, ProgressSnapshot>>>,
+    updates: Vec<ProgressUpdate>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProgressUpdate {
+    pub progress: f64,
+    pub message: Option<String>,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 impl InMemoryProgressTracker {
-    /// Creates a new in-memory progress tracker.
     pub fn new() -> Self {
-        InMemoryProgressTracker {
-            inner: Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        Self {
+            updates: Vec::new(),
         }
     }
 
-    /// Returns the latest progress snapshot for a job, if any.
-    pub fn get_progress(&self, job_id: &JobId) -> Option<ProgressSnapshot> {
-        let map = self.inner.lock().unwrap();
-        map.get(&job_id.to_string()).cloned()
-    }
-
-    /// Returns all recorded progress snapshots.
-    pub fn all_progress(&self) -> Vec<ProgressSnapshot> {
-        let map = self.inner.lock().unwrap();
-        map.values().cloned().collect()
-    }
-
-    /// Clears all recorded progress.
-    pub fn clear(&self) {
-        let mut map = self.inner.lock().unwrap();
-        map.clear();
-    }
-}
-
-impl ProgressReporter for InMemoryProgressTracker {
-    fn report(&self, job_id: JobId, progress: f64, message: String) {
-        let snapshot = ProgressSnapshot {
-            job_id,
-            progress: progress.clamp(0.0, 1.0),
+    pub fn record(&mut self, progress: f64, message: Option<String>) {
+        self.updates.push(ProgressUpdate {
+            progress,
             message,
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs_f64(),
-        };
-        let mut map = self.inner.lock().unwrap();
-        map.insert(job_id.to_string(), snapshot);
+            timestamp: chrono::Utc::now(),
+        });
+    }
+
+    pub fn updates(&self) -> &[ProgressUpdate] {
+        &self.updates
+    }
+
+    pub fn last_progress(&self) -> Option<f64> {
+        self.updates.last().map(|u| u.progress)
+    }
+
+    pub fn clear(&mut self) {
+        self.updates.clear();
     }
 }
 
-impl Default for InMemoryProgressTracker {
-    fn default() -> Self {
-        Self::new()
-    }
+/// Progress threshold for throttling updates.
+/// Ensures we don't emit too many progress events.
+pub struct ProgressThrottle {
+    last_reported: Arc<AtomicU32>,
+    threshold_permille: u32,
 }
 
-/// Config for progress reporting.
-#[derive(Debug, Clone)]
-pub struct ProgressConfig {
-    /// How often (in milliseconds) to throttle progress updates.
-    /// 0 means no throttling (every update is sent).
-    pub throttle_ms: u64,
-
-    /// Whether to include timestamps in progress reports.
-    pub include_timestamps: bool,
-}
-
-impl Default for ProgressConfig {
-    fn default() -> Self {
-        ProgressConfig {
-            throttle_ms: 250,
-            include_timestamps: true,
+impl ProgressThrottle {
+    pub fn new(threshold_percent: f64) -> Self {
+        Self {
+            last_reported: Arc::new(AtomicU32::new(0)),
+            threshold_permille: (threshold_percent / 100.0 * PROGRESS_DENOM as f64) as u32,
         }
     }
+
+    /// Check if the current progress should be reported based on the threshold.
+    pub fn should_report(&self, progress: f64) -> bool {
+        let current_permille = (progress * PROGRESS_DENOM as f64) as u32;
+        let last = self.last_reported.load(Ordering::Acquire);
+        current_permille >= last + self.threshold_permille
+    }
+
+    /// Mark progress as reported.
+    pub fn mark_reported(&self, progress: f64) {
+        let permille = (progress * PROGRESS_DENOM as f64) as u32;
+        self.last_reported.store(permille, Ordering::Release);
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::jobs::JobPayload;
-
-    #[test]
-    fn test_in_memory_tracker() {
-        let tracker = InMemoryProgressTracker::new();
-        let job_id = JobId::new();
-
-        tracker.report(job_id, 0.5, "halfway".into());
-
-        let snapshot = tracker.get_progress(&job_id).unwrap();
-        assert!((snapshot.progress - 0.5).abs() < f64::EPSILON);
-        assert_eq!(snapshot.message, "halfway");
-    }
-
-    #[test]
-    fn test_progress_clamped() {
-        let tracker = InMemoryProgressTracker::new();
-        let job_id = JobId::new();
-
-        tracker.report(job_id, 1.5, "over".into());
-        let snapshot = tracker.get_progress(&job_id).unwrap();
-        assert!((snapshot.progress - 1.0).abs() < f64::EPSILON);
-
-        tracker.report(job_id, -0.5, "under".into());
-        let snapshot = tracker.get_progress(&job_id).unwrap();
-        assert!((snapshot.progress - 0.0).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn test_all_progress() {
-        let tracker = InMemoryProgressTracker::new();
-        let id1 = JobId::new();
-        let id2 = JobId::new();
-
-        tracker.report(id1, 0.3, "first".into());
-        tracker.report(id2, 0.7, "second".into());
-
-        let all = tracker.all_progress();
-        assert_eq!(all.len(), 2);
-    }
-
-    #[test]
-    fn test_clear() {
-        let tracker = InMemoryProgressTracker::new();
-        tracker.report(JobId::new(), 1.0, "done".into());
-        assert_eq!(tracker.all_progress().len(), 1);
-        tracker.clear();
-        assert_eq!(tracker.all_progress().len(), 0);
+impl Default for ProgressThrottle {
+    fn default() -> Self {
+        Self::new(5.0) // 5% threshold by default
     }
 }

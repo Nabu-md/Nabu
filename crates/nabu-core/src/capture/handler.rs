@@ -1,173 +1,337 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt::Debug;
+use crate::event_bus::EventBus;
+use crate::models::{CaptureSource, KnowledgeObject};
+use async_trait::async_trait;
 
-/// The result of capturing content from a source.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Result of a capture operation.
+#[derive(Debug, Clone)]
 pub struct CaptureResult {
-    /// Whether the capture was successful.
-    pub success: bool,
-    /// The type of content captured (e.g., "article", "image", "pdf").
-    pub content_type: String,
-    /// The raw content bytes, serialized as a base64 string for portability.
-    pub content: Vec<u8>,
-    /// Metadata extracted by the capture handler.
-    pub metadata: HashMap<String, String>,
-    /// Error message if capture failed.
-    pub error: Option<String>,
+    /// The captured KnowledgeObject
+    pub object: KnowledgeObject,
+    /// Source of the capture
+    pub source: CaptureSource,
+    /// Whether this should be enqueued for async processing
+    pub enqueue: bool,
 }
 
 impl CaptureResult {
-    /// Creates a successful capture result.
-    pub fn success(content_type: impl Into<String>, content: Vec<u8>) -> Self {
-        CaptureResult {
-            success: true,
-            content_type: content_type.into(),
-            content,
-            metadata: HashMap::new(),
-            error: None,
+    pub fn new(object: KnowledgeObject, source: CaptureSource) -> Self {
+        Self {
+            object,
+            source,
+            enqueue: true,
         }
     }
 
-    /// Creates a failed capture result.
-    pub fn failure(error: impl Into<String>) -> Self {
-        CaptureResult {
-            success: false,
-            content_type: String::new(),
-            content: Vec::new(),
-            metadata: HashMap::new(),
-            error: Some(error.into()),
-        }
-    }
-
-    /// Adds metadata to this result.
-    pub fn with_metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata.insert(key.into(), value.into());
+    pub fn with_no_enqueue(mut self) -> Self {
+        self.enqueue = false;
         self
     }
 }
 
-/// The `CaptureHandler` trait — implemented by all capture sources.
+/// The CaptureHandler trait — implemented by all capture sources.
 ///
-/// Each handler knows how to capture content from a specific source
-/// (browser, clipboard, screenshot, file, etc.) and return it as a
-/// structured `CaptureResult`.
-///
-/// Handlers do NOT process or store the captured content — they only
-/// extract it. Processing is handled by the `ProcessingPipeline` running
-/// inside workers.
-pub trait CaptureHandler: Debug + Send + Sync {
-    /// Returns a unique identifier for this handler (e.g., "browser", "clipboard").
-    fn source_type(&self) -> &str;
+/// Each handler knows how to create a KnowledgeObject from its source data.
+/// Handlers do NOT process, store, or index — they only produce KnowledgeObjects.
+/// Processing is handled by the ProcessingPipeline via the Job Queue.
+#[async_trait]
+pub trait CaptureHandler: Send + Sync {
+    /// The name identifier of this handler
+    fn name(&self) -> &'static str;
 
-    /// Returns the job type string used when enqueuing captured content.
-    /// This maps to a registered executor in the `ExecutorRegistry`.
-    fn job_type(&self) -> &str {
-        &format!("capture:{}", self.source_type())
+    /// The capture source type
+    fn source(&self) -> CaptureSource;
+
+    /// Capture content and return a KnowledgeObject.
+    /// Returns None if this handler cannot handle the given request.
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult>;
+}
+
+/// A request to capture content from a source.
+#[derive(Debug, Clone)]
+pub struct CaptureRequest {
+    /// Raw data from the source
+    pub data: CaptureData,
+    /// Optional metadata hint
+    pub title: Option<String>,
+    /// Optional source URL
+    pub source_url: Option<String>,
+    /// Optional content type hint
+    pub mime_type: Option<String>,
+}
+
+impl CaptureRequest {
+    pub fn new(data: CaptureData) -> Self {
+        Self {
+            data,
+            title: None,
+            source_url: None,
+            mime_type: None,
+        }
     }
 
-    /// Captures content from the given request.
-    ///
-    /// The `request` is a generic key-value map interpreted by each handler.
-    fn capture(&self, request: HashMap<String, String>) -> CaptureResult;
+    pub fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn with_url(mut self, url: impl Into<String>) -> Self {
+        self.source_url = Some(url.into());
+        self
+    }
 }
 
-/// A test handler that returns fixed content.
-#[derive(Debug)]
-pub struct TestCaptureHandler {
-    pub source: String,
-    pub content_type: String,
-    pub content: Vec<u8>,
+/// Raw data from a capture source.
+#[derive(Debug, Clone)]
+pub enum CaptureData {
+    /// Text content (Markdown, plain text, HTML)
+    Text(String),
+    /// URL reference
+    Uri(String),
+    /// Binary data (images, audio, PDFs)
+    Binary { mime_type: String, data: Vec<u8>, filename: Option<String> },
+    /// Existing file path
+    File(String),
 }
 
-impl TestCaptureHandler {
-    pub fn new(source: impl Into<String>, content_type: impl Into<String>, content: Vec<u8>) -> Self {
-        TestCaptureHandler {
-            source: source.into(),
-            content_type: content_type.into(),
-            content,
+/// Handles browser capture (pages, articles, YouTube, GitHub).
+pub struct BrowserCaptureHandler;
+
+#[async_trait]
+impl CaptureHandler for BrowserCaptureHandler {
+    fn name(&self) -> &'static str {
+        "browser"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::Browser
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_text_object(request, ObjectType::Article)?;
+        Some(CaptureResult::new(object, CaptureSource::Browser))
+    }
+}
+
+/// Handles clipboard capture (text, URLs, images).
+pub struct ClipboardHandler;
+
+#[async_trait]
+impl CaptureHandler for ClipboardHandler {
+    fn name(&self) -> &'static str {
+        "clipboard"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::Clipboard
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_text_object(request, ObjectType::Note)?;
+        Some(CaptureResult::new(object, CaptureSource::Clipboard))
+    }
+}
+
+/// Handles screenshot capture.
+pub struct ScreenshotHandler;
+
+#[async_trait]
+impl CaptureHandler for ScreenshotHandler {
+    fn name(&self) -> &'static str {
+        "screenshot"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::Screenshot
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_binary_object(request, "image/png", ObjectType::Screenshot)?;
+        Some(CaptureResult::new(object, CaptureSource::Screenshot))
+    }
+}
+
+/// Handles file drop capture.
+pub struct FileDropHandler;
+
+#[async_trait]
+impl CaptureHandler for FileDropHandler {
+    fn name(&self) -> &'static str {
+        "file_drop"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::FileDrop
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_binary_object(request, "application/octet-stream", ObjectType::Attachment)?;
+        Some(CaptureResult::new(object, CaptureSource::FileDrop))
+    }
+}
+
+/// Handles watch folder capture.
+pub struct WatchFolderHandler;
+
+#[async_trait]
+impl CaptureHandler for WatchFolderHandler {
+    fn name(&self) -> &'static str {
+        "watch_folder"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::WatchFolder
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_text_object(request, ObjectType::Note)?;
+        Some(CaptureResult::new(object, CaptureSource::WatchFolder))
+    }
+}
+
+/// Handles Safari Reader capture.
+pub struct SafariReaderHandler;
+
+#[async_trait]
+impl CaptureHandler for SafariReaderHandler {
+    fn name(&self) -> &'static str {
+        "safari_reader"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::SafariReader
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        let object = create_text_object(request, ObjectType::Article)?;
+        Some(CaptureResult::new(object, CaptureSource::SafariReader))
+    }
+}
+
+/// Handles YouTube capture.
+pub struct YouTubeCaptureHandler;
+
+#[async_trait]
+impl CaptureHandler for YouTubeCaptureHandler {
+    fn name(&self) -> &'static str {
+        "youtube"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::YouTube
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        match &request.data {
+            CaptureData::Uri(url) => {
+                let mut object = KnowledgeObject::new(
+                    ObjectType::YouTubeVideo,
+                    crate::models::ObjectContent::Uri(url.clone()),
+                );
+                object.metadata.title = request.title.clone();
+                object.metadata.source_url = Some(url.clone());
+                Some(CaptureResult::new(object, CaptureSource::YouTube))
+            }
+            _ => None,
         }
     }
 }
 
-impl CaptureHandler for TestCaptureHandler {
-    fn source_type(&self) -> &str {
-        &self.source
+/// Handles GitHub repository capture.
+pub struct GitHubRepositoryHandler;
+
+#[async_trait]
+impl CaptureHandler for GitHubRepositoryHandler {
+    fn name(&self) -> &'static str {
+        "github"
     }
 
-    fn capture(&self, _request: HashMap<String, String>) -> CaptureResult {
-        CaptureResult::success(&self.content_type, self.content.clone())
+    fn source(&self) -> CaptureSource {
+        CaptureSource::GitHub
     }
-}
 
-/// A handler that always fails — useful for testing error paths.
-#[derive(Debug)]
-pub struct FailingCaptureHandler {
-    pub source: String,
-}
-
-impl FailingCaptureHandler {
-    pub fn new(source: impl Into<String>) -> Self {
-        FailingCaptureHandler {
-            source: source.into(),
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        match &request.data {
+            CaptureData::Uri(url) => {
+                let mut object = KnowledgeObject::new(
+                    ObjectType::Repository,
+                    crate::models::ObjectContent::Uri(url.clone()),
+                );
+                object.metadata.title = request.title.clone();
+                object.metadata.source_url = Some(url.clone());
+                Some(CaptureResult::new(object, CaptureSource::GitHub))
+            }
+            _ => None,
         }
     }
 }
 
-impl CaptureHandler for FailingCaptureHandler {
-    fn source_type(&self) -> &str {
-        &self.source
-    }
+// Helper functions
 
-    fn capture(&self, _request: HashMap<String, String>) -> CaptureResult {
-        CaptureResult::failure(format!("{} capture failed", self.source))
+fn create_text_object(request: &CaptureRequest, object_type: ObjectType) -> Option<KnowledgeObject> {
+    match &request.data {
+        CaptureData::Text(text) => {
+            let content = if text.contains("```") || text.starts_with('#') {
+                crate::models::ObjectContent::Markdown(text.clone())
+            } else if text.starts_with("<!DOCTYPE") || text.starts_with("<html") {
+                crate::models::ObjectContent::RichHtml(text.clone())
+            } else {
+                crate::models::ObjectContent::PlainText(text.clone())
+            };
+
+            let mut object = KnowledgeObject::new(object_type, content);
+            object.metadata.title = request.title.clone();
+            object.metadata.source_url = request.source_url.clone();
+            object.metadata.mime_type = request.mime_type.clone();
+            Some(object)
+        }
+        CaptureData::Uri(url) => {
+            let mut object = KnowledgeObject::new(object_type, crate::models::ObjectContent::Uri(url.clone()));
+            object.metadata.title = request.title.clone();
+            object.metadata.source_url = request.source_url.clone();
+            Some(object)
+        }
+        _ => None,
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_capture_result_success() {
-        let result = CaptureResult::success("article", b"hello".to_vec());
-        assert!(result.success);
-        assert_eq!(result.content_type, "article");
-        assert_eq!(result.content, b"hello");
-        assert!(result.error.is_none());
-    }
-
-    #[test]
-    fn test_capture_result_failure() {
-        let result = CaptureResult::failure("something broke");
-        assert!(!result.success);
-        assert!(result.error.is_some());
-    }
-
-    #[test]
-    fn test_capture_result_with_metadata() {
-        let result = CaptureResult::success("test", Vec::new())
-            .with_metadata("url", "https://example.com")
-            .with_metadata("title", "Example");
-        assert_eq!(result.metadata.get("url"), Some(&"https://example.com".to_string()));
-        assert_eq!(result.metadata.get("title"), Some(&"Example".to_string()));
-    }
-
-    #[test]
-    fn test_test_handler() {
-        let handler = TestCaptureHandler::new("test", "text/plain", b"data".to_vec());
-        assert_eq!(handler.source_type(), "test");
-
-        let result = handler.capture(HashMap::new());
-        assert!(result.success);
-        assert_eq!(result.content, b"data");
-    }
-
-    #[test]
-    fn test_failing_handler() {
-        let handler = FailingCaptureHandler::new("broken");
-        let result = handler.capture(HashMap::new());
-        assert!(!result.success);
-        assert_eq!(result.error, Some("broken capture failed".into()));
+fn create_binary_object(
+    request: &CaptureRequest,
+    default_mime: &str,
+    object_type: ObjectType,
+) -> Option<KnowledgeObject> {
+    match &request.data {
+        CaptureData::Binary { mime_type, data, filename } => {
+            let mut object = KnowledgeObject::new(
+                object_type,
+                crate::models::ObjectContent::Binary {
+                    mime_type: mime_type.clone(),
+                    data: data.clone(),
+                    filename: filename.clone(),
+                },
+            );
+            object.metadata.title = request.title.clone();
+            object.metadata.source_url = request.source_url.clone();
+            object.metadata.mime_type = Some(mime_type.clone());
+            object.metadata.original_filename = filename.clone();
+            Some(object)
+        }
+        CaptureData::File(path) => {
+            let filename = std::path::Path::new(path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(|s| s.to_string());
+            let mut object = KnowledgeObject::new(
+                object_type,
+                crate::models::ObjectContent::Binary {
+                    mime_type: default_mime.to_string(),
+                    data: Vec::new(),
+                    filename: filename.clone(),
+                },
+            );
+            object.metadata.title = request.title.clone();
+            object.metadata.original_filename = filename;
+            Some(object)
+        }
+        _ => None,
     }
 }

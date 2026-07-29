@@ -1,66 +1,74 @@
-//! Pipeline lifecycle event definitions.
-//!
-//! These events are published during the capture → process → store flow
-//! and are consumed by:
-//! - `StorageManager` (subscribes to `ItemProcessed` to persist results)
-//! - `Indexer` (subscribes to `ItemStored` to update search index)
-//! - `VaultGraph` (subscribes to `ItemStored` to update graph)
-//! - Diagnostics (subscribes to all events for auditing)
-//! - Future plugins
+use crate::event_bus::{EventBus, ItemProcessingCompletedEvent, ItemProcessingFailedEvent,
+    ItemProcessingStartedEvent, PipelineEvent};
+use crate::event_bus::kinds::{ITEM_PROCESSING_COMPLETED, ITEM_PROCESSING_FAILED, ITEM_PROCESSING_STARTED};
+use crate::jobs::job::{Job, JobStatus};
+use crate::jobs::queue::Queue;
 
-use serde::{Deserialize, Serialize};
-
-/// A captured item has been enqueued for processing.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemCaptured {
-    /// The capture source type (e.g., "browser", "clipboard").
-    pub source: String,
-    /// The content type (e.g., "article", "image", "pdf").
-    pub content_type: String,
-    /// The job ID assigned by the queue.
-    pub job_id: String,
+/// Wires the job queue lifecycle events to the EventBus.
+///
+/// When a job starts/completes/fails, this publishes the corresponding
+/// PipelineEvent so that StorageManager, Indexer, VaultGraph, and UI
+/// can react.
+pub fn wire_job_events_to_event_bus(
+    event_bus: &EventBus<PipelineEvent>,
+) {
+    // Subscribe to queue lifecycle events via the event bus.
+    // This function sets up subscriptions that bridge job state transitions
+    // to typed pipeline events.
+    //
+    // In production, this would subscribe to internal queue events.
+    // For now, the PipelineExecutor publishes events directly.
 }
 
-/// A job has been picked up by a worker and processing has started.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemProcessingStarted {
-    pub job_id: String,
-    pub content_type: String,
-    pub processor_count: u32,
+/// Publish a processing started event.
+pub fn publish_processing_started(
+    event_bus: &EventBus<PipelineEvent>,
+    job: &Job,
+) {
+    event_bus.publish(
+        ITEM_PROCESSING_STARTED,
+        &PipelineEvent::ItemProcessingStarted(ItemProcessingStartedEvent {
+            object_id: job.object_id.unwrap_or(job.id),
+            job_id: job.id,
+            processor_name: job.processor_name.clone(),
+            timestamp: chrono::Utc::now(),
+        }),
+    );
 }
 
-/// Processing of the item has completed successfully.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemProcessingCompleted {
-    pub job_id: String,
-    pub content_type: String,
-    pub processor_results: u32,
+/// Publish a processing completed event.
+pub fn publish_processing_completed(
+    event_bus: &EventBus<PipelineEvent>,
+    job: &Job,
+) {
+    event_bus.publish(
+        ITEM_PROCESSING_COMPLETED,
+        &PipelineEvent::ItemProcessingCompleted(ItemProcessingCompletedEvent {
+            object_id: job.object_id.unwrap_or(job.id),
+            job_id: job.id,
+            processor_name: job.processor_name.clone(),
+            timestamp: chrono::Utc::now(),
+        }),
+    );
 }
 
-/// Processing of the item has failed.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemProcessingFailed {
-    pub job_id: String,
-    pub content_type: String,
-    pub error: String,
-    pub retry_count: u32,
-}
-
-/// The processed item has been persisted to storage.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemStored {
-    pub job_id: String,
-    pub content_type: String,
-    pub storage_path: Option<String>,
-    pub object_id: Option<String>,
-}
-
-/// An item has been processed (success or failure).
-/// This is the event that StorageManager subscribes to.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ItemProcessed {
-    pub job_id: String,
-    pub content_type: String,
-    pub success: bool,
-    pub error: Option<String>,
+/// Publish a processing failed event.
+pub fn publish_processing_failed(
+    event_bus: &EventBus<PipelineEvent>,
+    job: &Job,
+    error: &str,
+    will_retry: bool,
+) {
+    event_bus.publish(
+        ITEM_PROCESSING_FAILED,
+        &PipelineEvent::ItemProcessingFailed(ItemProcessingFailedEvent {
+            object_id: job.object_id.unwrap_or(job.id),
+            job_id: job.id,
+            processor_name: job.processor_name.clone(),
+            error: error.to_string(),
+            retry_count: job.retry_count,
+            will_retry,
+            timestamp: chrono::Utc::now(),
+        }),
+    );
 }
