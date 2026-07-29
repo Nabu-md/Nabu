@@ -36,6 +36,7 @@ pub mod storage;
 pub mod indexer;
 pub mod graph;
 pub mod registry;
+pub mod plugin;
 
 // Re-export key types for convenient access
 pub use event_bus::*;
@@ -48,3 +49,4 @@ pub use storage::*;
 pub use indexer::*;
 pub use graph::*;
 pub use registry::*;
+pub use plugin::*;

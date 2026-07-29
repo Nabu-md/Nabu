@@ -1,592 +1,264 @@
-//! Plugin manifest and metadata types.
+//! Plugin Manifest — strongly typed metadata for plugin discovery and validation.
 //!
-//! Defines [`PluginManifest`], [`PluginMetadata`], and compatibility
-//! validation that describe what a plugin (or built-in component) is,
-//! what it requires, and what it provides.
-//!
-//! This is **metadata only** — no plugin loading occurs.
+//! Every plugin MUST provide a manifest that describes its identity,
+//! dependencies, capabilities, and compatibility requirements.
 
-use std::collections::HashSet;
-use std::fmt;
+use crate::plugin::capability::Capability;
+use crate::plugin::version::{Version, VersionRequirement};
 
-use crate::plugin::capabilities;
-use crate::plugin::version::{Version, VersionReq};
-
-use super::Permission;
-use super::PluginId;
-
-/// Unique identifier for standard capability categories.
-pub type CapabilityId = String;
-
-/// Error returned when a manifest validation check fails.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ManifestError {
-    /// The plugin ID is empty or invalid.
-    InvalidId(String),
-    /// The version string could not be parsed.
-    InvalidVersion(String),
-    /// A required dependency is missing.
-    MissingDependency(String),
-    /// Incompatible version for a dependency.
-    VersionMismatch { dependency: String, required: VersionReq, actual: Version },
-    /// An unknown capability was declared.
-    UnknownCapability(String),
-    /// The manifest references another manifest that does not exist.
-    MissingReference(String),
-    /// A required field is missing.
-    MissingField(String),
+/// Strongly typed plugin manifest with strict validation.
+///
+/// Plugins declare everything they need through this manifest.
+/// No third-party code is executed during validation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginManifest {
+    /// Unique plugin identifier (reverse domain notation: "com.example.my-plugin").
+    pub id: String,
+    /// Human-readable name.
+    pub name: String,
+    /// Plugin version.
+    pub version: Version,
+    /// Author or organization.
+    pub author: String,
+    /// Brief description.
+    pub description: String,
+    /// Minimum supported Nabu API version.
+    pub min_nabu_version: Version,
+    /// Maximum Nabu version this plugin has been tested against.
+    pub max_tested_version: Option<Version>,
+    /// Plugin API version this manifest conforms to.
+    pub manifest_version: u32,
+    /// Capabilities this plugin provides.
+    pub capabilities: Vec<PluginCapability>,
+    /// Required dependencies — plugin IDs that must be present.
+    pub dependencies: Vec<PluginDependency>,
+    /// Optional dependencies — plugin IDs that may be present.
+    pub optional_dependencies: Vec<PluginDependency>,
+    /// Feature flags this plugin requires or supports.
+    pub feature_flags: Vec<PluginFeatureFlag>,
+    /// Required permissions for this plugin.
+    pub permissions: Vec<PluginPermission>,
+    /// Entry point type (future: "wasm", "lua", "native", etc.).
+    pub entry_type: PluginEntryType,
 }
 
-impl fmt::Display for ManifestError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ManifestError::InvalidId(id) => write!(f, "Invalid plugin ID: '{}'", id),
-            ManifestError::InvalidVersion(v) => write!(f, "Invalid version string: '{}'", v),
-            ManifestError::MissingDependency(dep) => write!(f, "Missing required dependency: '{}'", dep),
-            ManifestError::VersionMismatch { dependency, required, actual } => {
-                write!(f, "Version mismatch for '{}': required {} but found {}", dependency, required, actual)
+impl PluginManifest {
+    /// Validate the manifest for structural correctness.
+    ///
+    /// Returns a list of validation errors. An empty list means valid.
+    pub fn validate(&self) -> Vec<ManifestError> {
+        let mut errors = Vec::new();
+
+        if self.id.is_empty() {
+            errors.push(ManifestError::EmptyField("id"));
+        }
+        if self.name.is_empty() {
+            errors.push(ManifestError::EmptyField("name"));
+        }
+        if self.author.is_empty() {
+            errors.push(ManifestError::EmptyField("author"));
+        }
+        if self.description.is_empty() {
+            errors.push(ManifestError::EmptyField("description"));
+        }
+        if self.manifest_version == 0 {
+            errors.push(ManifestError::InvalidManifestVersion(self.manifest_version));
+        }
+
+        // Check dependency IDs are not empty
+        for dep in &self.dependencies {
+            if dep.plugin_id.is_empty() {
+                errors.push(ManifestError::EmptyDependencyId);
             }
-            ManifestError::UnknownCapability(cap) => write!(f, "Unknown capability: '{}'", cap),
-            ManifestError::MissingReference(ref_id) => write!(f, "Missing reference: '{}'", ref_id),
-            ManifestError::MissingField(field) => write!(f, "Missing required field: '{}'", field),
+        }
+        for dep in &self.optional_dependencies {
+            if dep.plugin_id.is_empty() {
+                errors.push(ManifestError::EmptyDependencyId);
+            }
+        }
+
+        errors
+    }
+
+    /// Check if this manifest is compatible with the current Nabu version.
+    pub fn check_nabu_compatibility(&self, nabu_version: &Version) -> CompatibilityCheck {
+        // Check minimum version
+        if self.min_nabu_version > *nabu_version {
+            return CompatibilityCheck::Incompatible {
+                reason: format!(
+                    "Plugin '{}' requires Nabu >= {}. Current: {}",
+                    self.id, self.min_nabu_version, nabu_version
+                ),
+            };
+        }
+
+        // Check maximum tested version (warning only)
+        if let Some(max_tested) = &self.max_tested_version {
+            if nabu_version > max_tested && nabu_version.major > max_tested.major {
+                return CompatibilityCheck::Untested {
+                    reason: format!(
+                        "Plugin '{}' was tested up to Nabu {}. Current: {}. May still work.",
+                        self.id, max_tested, nabu_version
+                    ),
+                };
+            }
+        }
+
+        CompatibilityCheck::Compatible
+    }
+}
+
+/// A capability that a plugin provides.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginCapability {
+    pub id: String,
+    pub description: String,
+    pub version: Version,
+}
+
+/// A dependency on another plugin.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginDependency {
+    pub plugin_id: String,
+    pub version_requirement: VersionRequirement,
+    pub optional: bool,
+}
+
+/// A feature flag for a plugin.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginFeatureFlag {
+    pub name: String,
+    pub enabled_by_default: bool,
+    pub description: String,
+}
+
+/// A permission that a plugin requests.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PluginPermission {
+    pub name: String,
+    pub description: String,
+    pub required: bool,
+}
+
+/// The type of plugin entry point.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PluginEntryType {
+    /// Native Rust shared library (.dylib/.so/.dll).
+    Native,
+    /// WebAssembly module.
+    Wasm,
+    /// Lua script.
+    Lua,
+    /// Python script (future).
+    Python,
+    /// External process communicating via IPC.
+    External,
+}
+
+impl Default for PluginEntryType {
+    fn default() -> Self {
+        Self::Wasm
+    }
+}
+
+/// Result of a Nabu version compatibility check.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CompatibilityCheck {
+    /// Plugin is fully compatible.
+    Compatible,
+    /// Plugin is incompatible with the current Nabu version.
+    Incompatible { reason: String },
+    /// Plugin has not been tested with this version but may work.
+    Untested { reason: String },
+}
+
+/// Validation errors for plugin manifests.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ManifestError {
+    EmptyField(&'static str),
+    InvalidManifestVersion(u32),
+    EmptyDependencyId,
+}
+
+impl std::fmt::Display for ManifestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::EmptyField(name) => write!(f, "Field '{}' must not be empty", name),
+            Self::InvalidManifestVersion(v) => write!(f, "Invalid manifest version: {}", v),
+            Self::EmptyDependencyId => write!(f, "Dependency plugin_id must not be empty"),
         }
     }
 }
 
 impl std::error::Error for ManifestError {}
 
-/// Metadata about a plugin's author and origin.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct PluginMetadata {
-    /// Human-readable name.
-    pub name: String,
-    /// Short description of what the plugin does.
-    pub description: String,
-    /// Author name or organization.
-    pub author: Option<String>,
-    /// URL to the plugin's homepage or repository.
-    pub homepage: Option<String>,
-    /// URL to the plugin's issue tracker.
-    pub issues_url: Option<String>,
-    /// License identifier (e.g., "MIT", "Apache-2.0").
-    pub license: Option<String>,
-    /// Arbitrary tags/categories for discovery.
-    pub tags: Vec<String>,
-}
-
-impl PluginMetadata {
-    /// Creates new metadata with only the required fields.
-    pub fn new(name: impl Into<String>, description: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            description: description.into(),
-            author: None,
-            homepage: None,
-            issues_url: None,
-            license: None,
-            tags: Vec::new(),
-        }
-    }
-}
-
-/// Describes a dependency on another plugin or built-in service.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct PluginDependency {
-    /// The PluginId or CapabilityId being depended on.
-    pub id: String,
-    /// Version requirement for this dependency.
-    pub version_req: VersionReq,
-    /// Whether this dependency is optional.
-    pub optional: bool,
-}
-
-impl PluginDependency {
-    /// Creates a new required dependency.
-    pub fn required(id: impl Into<String>, version_req: VersionReq) -> Self {
-        Self {
-            id: id.into(),
-            version_req,
-            optional: false,
-        }
-    }
-
-    /// Creates a new optional dependency.
-    pub fn optional(id: impl Into<String>, version_req: VersionReq) -> Self {
-        Self {
-            id: id.into(),
-            version_req,
-            optional: true,
-        }
-    }
-}
-
-/// Compatibility validation result for a manifest.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Compatibility {
-    /// Fully compatible — no issues found.
-    Compatible,
-    /// Compatible with warnings.
-    CompatibleWithWarnings(Vec<String>),
-    /// Incompatible — contains blocking errors.
-    Incompatible(Vec<ManifestError>),
-}
-
-impl Compatibility {
-    /// Returns `true` if this result is not `Compatible`.
-    pub fn has_issues(&self) -> bool {
-        matches!(self, Compatibility::CompatibleWithWarnings(_) | Compatibility::Incompatible(_))
-    }
-
-    /// Returns `true` if this result is `Incompatible`.
-    pub fn is_blocking(&self) -> bool {
-        matches!(self, Compatibility::Incompatible(_))
-    }
-
-    /// Merges two compatibility results together.
-    pub fn merge(self, other: Compatibility) -> Compatibility {
-        match (self, other) {
-            (Compatibility::Compatible, other) => other,
-            (Compatibility::CompatibleWithWarnings(mut w), Compatibility::CompatibleWithWarnings(w2)) => {
-                w.extend(w2);
-                Compatibility::CompatibleWithWarnings(w)
-            }
-            (Compatibility::CompatibleWithWarnings(w), Compatibility::Compatible) => {
-                Compatibility::CompatibleWithWarnings(w)
-            }
-            (Compatibility::CompatibleWithWarnings(mut w), Compatibility::Incompatible(mut e)) => {
-                w.extend(e.drain(..).map(|e| e.to_string()));
-                Compatibility::CompatibleWithWarnings(w)
-            }
-            (Compatibility::Incompatible(mut e), Compatibility::Incompatible(e2)) => {
-                e.extend(e2);
-                Compatibility::Incompatible(e)
-            }
-            (Compatibility::Incompatible(e), _) => Compatibility::Incompatible(e),
-        }
-    }
-}
-
-/// Full plugin manifest describing identity, capabilities, dependencies, and requirements.
-///
-/// This is the canonical description of what a plugin is and what it does.
-/// Built-in components also define manifests so that the system has a uniform
-/// view of all capabilities regardless of origin.
-///
-/// # Examples
-///
-/// ```
-/// use nabu_core::plugin::manifest::PluginManifest;
-/// use nabu_core::plugin::PluginMetadata;
-/// use nabu_core::plugin::version::{Version, VersionReq};
-/// use nabu_core::plugin::capabilities;
-///
-/// let manifest = PluginManifest::new(
-///     "my-ocr-engine",
-///     PluginMetadata::new("My OCR Engine", "Provides OCR capabilities"),
-///     Version::new(1, 0, 0),
-///     Version::new(0, 1, 0), // min Nabu version
-/// )
-/// .with_capability(capabilities::OCR)
-/// .with_dependency(PluginDependency::required(capabilities::STORAGE, VersionReq::any()));
-/// ```
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PluginManifest {
-    /// Unique identifier for this plugin (e.g., "my-ocr-engine").
-    pub id: PluginId,
-    /// Human-readable metadata.
-    pub metadata: PluginMetadata,
-    /// Current version of this plugin.
-    pub version: Version,
-    /// Minimum version of Nabu required to run this plugin.
-    pub min_nabu_version: Version,
-    /// Capabilities this plugin provides (e.g., "nabu:ocr", "nabu:llm").
-    pub capabilities: HashSet<CapabilityId>,
-    /// Dependencies on other plugins or built-in capabilities.
-    pub dependencies: Vec<PluginDependency>,
-    /// Permissions this plugin requests at runtime.
-    pub permissions: HashSet<Permission>,
-    /// Features that can be toggled on/off.
-    pub features: Vec<PluginFeature>,
-    /// Whether this plugin is enabled by default.
-    pub enabled_by_default: bool,
-    /// Compatibility notes for future automated migration.
-    pub compatibility_notes: Vec<String>,
-}
-
-/// An optional feature that a plugin provides.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PluginFeature {
-    /// Feature identifier.
-    pub id: String,
-    /// Human-readable description.
-    pub description: String,
-    /// Whether this feature is enabled by default.
-    pub default: bool,
-}
-
-impl PluginManifest {
-    /// Creates a new plugin manifest with the minimum required fields.
-    pub fn new(
-        id: impl Into<String>,
-        metadata: PluginMetadata,
-        version: Version,
-        min_nabu_version: Version,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            metadata,
-            version,
-            min_nabu_version,
-            capabilities: HashSet::new(),
-            dependencies: Vec::new(),
-            permissions: HashSet::new(),
-            features: Vec::new(),
-            enabled_by_default: true,
-            compatibility_notes: Vec::new(),
-        }
-    }
-
-    /// Adds a capability to this manifest.
-    pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
-        self.capabilities.insert(capability.into());
-        self
-    }
-
-    /// Adds a dependency to this manifest.
-    pub fn with_dependency(mut self, dependency: PluginDependency) -> Self {
-        self.dependencies.push(dependency);
-        self
-    }
-
-    /// Adds a permission to this manifest.
-    pub fn with_permission(mut self, permission: impl Into<String>) -> Self {
-        self.permissions.insert(permission.into());
-        self
-    }
-
-    /// Adds a feature to this manifest.
-    pub fn with_feature(mut self, feature: PluginFeature) -> Self {
-        self.features.push(feature);
-        self
-    }
-
-    /// Validates the manifest structure and internal consistency.
-    pub fn validate(&self) -> Result<(), Vec<ManifestError>> {
-        let mut errors = Vec::new();
-
-        if self.id.is_empty() {
-            errors.push(ManifestError::InvalidId("Plugin ID cannot be empty".into()));
-        }
-
-        // Validate capability IDs follow "nabu:*" pattern
-        for cap in &self.capabilities {
-            if !cap.starts_with("nabu:") {
-                errors.push(ManifestError::UnknownCapability(cap.clone()));
-            }
-        }
-
-        if let Some(nabu_min_feature) = self.features.iter().find(|f| f.id == "min_nabu_version") {
-            // Could add version negotiation here
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-
-    /// Checks compatibility with the current Nabu version.
-    ///
-    /// Returns `Compatible` if the manifest is compatible with the
-    /// given Nabu version, or lists the issues found.
-    pub fn check_compatibility(&self, nabu_version: &Version) -> Compatibility {
-        let mut warnings = Vec::new();
-        let mut errors = Vec::new();
-
-        // Check minimum Nabu version
-        if !nabu_version.satisfies_minimum(&self.min_nabu_version) {
-            errors.push(ManifestError::VersionMismatch {
-                dependency: "nabu".into(),
-                required: VersionReq::minimum(self.min_nabu_version.clone()),
-                actual: nabu_version.clone(),
-            });
-        }
-
-        // Check pre-release compatibility
-        if self.version.is_pre_release() && nabu_version.is_pre_release() {
-            warnings.push(format!(
-                "Both plugin ({}) and Nabu ({}) are pre-release versions",
-                self.version, nabu_version
-            ));
-        }
-
-        // Warn about deprecated capabilities
-        for cap in &self.capabilities {
-            match cap.as_str() {
-                c if c.starts_with("nabu:") => {
-                    if !VALID_CAPABILITIES.contains(&c) && !deprecated_capabilities().contains(&c) {
-                        warnings.push(format!("Unknown capability '{}' — may not be recognized", c));
-                    }
-                    if deprecated_capabilities().contains(&c) {
-                        warnings.push(format!("Capability '{}' is deprecated", c));
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        if !errors.is_empty() {
-            Compatibility::Incompatible(errors)
-        } else if !warnings.is_empty() {
-            Compatibility::CompatibleWithWarnings(warnings)
-        } else {
-            Compatibility::Compatible
-        }
-    }
-
-    /// Returns the `PluginDependency` entries that are required (not optional).
-    pub fn required_dependencies(&self) -> impl Iterator<Item = &PluginDependency> {
-        self.dependencies.iter().filter(|d| !d.optional)
-    }
-
-    /// Returns the `PluginDependency` entries that are optional.
-    pub fn optional_dependencies(&self) -> impl Iterator<Item = &PluginDependency> {
-        self.dependencies.iter().filter(|d| d.optional)
-    }
-}
-
-/// Capability IDs that are recognized by the current Nabu version.
-const VALID_CAPABILITIES: &[&str] = &[
-    "nabu:search",
-    "nabu:embeddings",
-    "nabu:llm",
-    "nabu:ocr",
-    "nabu:stt",
-    "nabu:export",
-    "nabu:import",
-    "nabu:capture",
-    "nabu:processor",
-    "nabu:graph",
-    "nabu:storage",
-    "nabu:event_bus",
-    "nabu:theme",
-    "nabu:content_provider",
-    "nabu:workflow",
-    "nabu:view",
-];
-
-/// Returns the set of currently deprecated capabilities.
-pub fn deprecated_capabilities() -> &'static [&'static str] {
-    &[]
-}
-
-/// Builder for constructing a [`PluginManifest`] incrementally.
-#[derive(Debug, Default)]
-pub struct PluginManifestBuilder {
-    id: Option<String>,
-    metadata: Option<PluginMetadata>,
-    version: Option<Version>,
-    min_nabu_version: Option<Version>,
-    capabilities: HashSet<CapabilityId>,
-    dependencies: Vec<PluginDependency>,
-    permissions: HashSet<Permission>,
-    features: Vec<PluginFeature>,
-    enabled_by_default: bool,
-    compatibility_notes: Vec<String>,
-}
-
-impl PluginManifestBuilder {
-    /// Creates a new empty builder.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Sets the plugin ID.
-    pub fn id(mut self, id: impl Into<String>) -> Self {
-        self.id = Some(id.into());
-        self
-    }
-
-    /// Sets the plugin metadata.
-    pub fn metadata(mut self, metadata: PluginMetadata) -> Self {
-        self.metadata = Some(metadata);
-        self
-    }
-
-    /// Sets the plugin version.
-    pub fn version(mut self, version: Version) -> Self {
-        self.version = Some(version);
-        self
-    }
-
-    /// Sets the minimum Nabu version.
-    pub fn min_nabu_version(mut self, version: Version) -> Self {
-        self.min_nabu_version = Some(version);
-        self
-    }
-
-    /// Adds a capability.
-    pub fn capability(mut self, cap: impl Into<String>) -> Self {
-        self.capabilities.insert(cap.into());
-        self
-    }
-
-    /// Adds a dependency.
-    pub fn dependency(mut self, dep: PluginDependency) -> Self {
-        self.dependencies.push(dep);
-        self
-    }
-
-    /// Adds a permission.
-    pub fn permission(mut self, perm: impl Into<String>) -> Self {
-        self.permissions.insert(perm.into());
-        self
-    }
-
-    /// Adds a feature.
-    pub fn feature(mut self, feature: PluginFeature) -> Self {
-        self.features.push(feature);
-        self
-    }
-
-    /// Builds the manifest, or returns a list of validation errors.
-    pub fn build(self) -> Result<PluginManifest, Vec<ManifestError>> {
-        let mut errors: Vec<ManifestError> = Vec::new();
-
-        let id = self.id.ok_or_else(|| vec![ManifestError::MissingField("id".into())])?;
-        let metadata = self.metadata.ok_or_else(|| vec![ManifestError::MissingField("metadata".into())])?;
-        let version = self.version.ok_or_else(|| vec![ManifestError::MissingField("version".into())])?;
-        let min_nabu_version = self.min_nabu_version.unwrap_or_else(|| Version::new(0, 1, 0));
-
-        if !errors.is_empty() {
-            return Err(errors);
-        }
-
-        let manifest = PluginManifest {
-            id,
-            metadata,
-            version,
-            min_nabu_version,
-            capabilities: self.capabilities,
-            dependencies: self.dependencies,
-            permissions: self.permissions,
-            features: self.features,
-            enabled_by_default: self.enabled_by_default,
-            compatibility_notes: self.compatibility_notes,
-        };
-
-        manifest.validate()?;
-
-        Ok(manifest)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plugin::capabilities;
 
-    fn test_manifest() -> PluginManifest {
-        PluginManifest::new(
-            "test-plugin",
-            PluginMetadata::new("Test Plugin", "A test plugin"),
-            Version::new(1, 0, 0),
-            Version::new(0, 1, 0),
-        )
-        .with_capability(capabilities::OCR)
-        .with_capability(capabilities::EXPORT)
+    fn valid_manifest() -> PluginManifest {
+        PluginManifest {
+            id: "com.example.my-plugin".to_string(),
+            name: "My Plugin".to_string(),
+            version: Version::new(1, 0, 0),
+            author: "Example Author".to_string(),
+            description: "A test plugin".to_string(),
+            min_nabu_version: Version::new(0, 1, 0),
+            max_tested_version: None,
+            manifest_version: 1,
+            capabilities: vec![],
+            dependencies: vec![],
+            optional_dependencies: vec![],
+            feature_flags: vec![],
+            permissions: vec![],
+            entry_type: PluginEntryType::Wasm,
+        }
     }
 
     #[test]
-    fn manifest_creation() {
-        let m = test_manifest();
-        assert_eq!(m.id, "test-plugin");
-        assert_eq!(m.metadata.name, "Test Plugin");
-        assert_eq!(m.version, Version::new(1, 0, 0));
-        assert!(m.capabilities.contains(capabilities::OCR));
-        assert!(m.capabilities.contains(capabilities::EXPORT));
-        assert!(m.enabled_by_default);
+    fn valid_manifest_passes_validation() {
+        let manifest = valid_manifest();
+        assert!(manifest.validate().is_empty());
     }
 
     #[test]
-    fn manifest_validation_passes() {
-        let m = test_manifest();
-        assert!(m.validate().is_ok());
+    fn empty_id_fails_validation() {
+        let manifest = PluginManifest { id: String::new(), ..valid_manifest() };
+        let errors = manifest.validate();
+        assert!(errors.contains(&ManifestError::EmptyField("id")));
     }
 
     #[test]
-    fn manifest_validation_fails_empty_id() {
-        let m = PluginManifest::new(
-            "",
-            PluginMetadata::new("Bad Plugin", "No ID"),
-            Version::new(1, 0, 0),
-            Version::new(0, 1, 0),
-        );
-        assert!(m.validate().is_err());
+    fn zero_manifest_version_fails() {
+        let manifest = PluginManifest { manifest_version: 0, ..valid_manifest() };
+        let errors = manifest.validate();
+        assert!(errors.contains(&ManifestError::InvalidManifestVersion(0)));
     }
 
     #[test]
-    fn compatibility_check_passes() {
-        let m = test_manifest();
-        let nabu_version = Version::new(0, 1, 0);
-        let compat = m.check_compatibility(&nabu_version);
-        assert_eq!(compat, Compatibility::Compatible);
+    fn compatibility_requires_min_version() {
+        let manifest = valid_manifest();
+        let nabu = Version::new(0, 0, 5);
+        let result = manifest.check_nabu_compatibility(&nabu);
+        assert!(matches!(result, CompatibilityCheck::Incompatible { .. }));
     }
 
     #[test]
-    fn compatibility_check_fails_low_nabu_version() {
-        let m = test_manifest();
-        let nabu_version = Version::new(0, 0, 1);
-        let compat = m.check_compatibility(&nabu_version);
-        assert!(compat.is_blocking());
+    fn compatibility_ok_when_version_met() {
+        let manifest = valid_manifest();
+        let nabu = Version::new(1, 0, 0);
+        let result = manifest.check_nabu_compatibility(&nabu);
+        assert_eq!(result, CompatibilityCheck::Compatible);
     }
 
     #[test]
-    fn compatibility_warnings_for_unknown_capability() {
-        let m = PluginManifest::new(
-            "test",
-            PluginMetadata::new("Test", "Unknown cap"),
-            Version::new(1, 0, 0),
-            Version::new(0, 1, 0),
-        )
-        .with_capability("nabu:unknown_capability");
-        let nabu_version = Version::new(0, 1, 0);
-        let compat = m.check_compatibility(&nabu_version);
-        assert!(!compat.is_blocking()); // unknown cap is a warning, not error
-    }
-
-    #[test]
-    fn builder_pattern() {
-        let manifest = PluginManifestBuilder::new()
-            .id("builder-test")
-            .metadata(PluginMetadata::new("Builder Test", "Built via builder"))
-            .version(Version::new(2, 0, 0))
-            .min_nabu_version(Version::new(1, 0, 0))
-            .capability(capabilities::LLM)
-            .capability(capabilities::EMBEDDINGS)
-            .dependency(PluginDependency::required(capabilities::STORAGE, VersionReq::any()))
-            .build()
-            .unwrap();
-
-        assert_eq!(manifest.id, "builder-test");
-        assert_eq!(manifest.version, Version::new(2, 0, 0));
-        assert!(manifest.capabilities.contains(capabilities::LLM));
-        assert_eq!(manifest.dependencies.len(), 1);
-    }
-
-    #[test]
-    fn builder_missing_fields() {
-        let result = PluginManifestBuilder::new().build();
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn dependency_required_vs_optional() {
-        let dep_required = PluginDependency::required("nabu:storage", VersionReq::any());
-        let dep_optional = PluginDependency::optional("nabu:llm", VersionReq::any());
-
-        assert!(!dep_required.optional);
-        assert!(dep_optional.optional);
+    fn untested_warning_when_beyond_max() {
+        let manifest = PluginManifest {
+            max_tested_version: Some(Version::new(1, 0, 0)),
+            ..valid_manifest()
+        };
+        let nabu = Version::new(2, 0, 0);
+        let result = manifest.check_nabu_compatibility(&nabu);
+        assert!(matches!(result, CompatibilityCheck::Untested { .. }));
     }
 }
