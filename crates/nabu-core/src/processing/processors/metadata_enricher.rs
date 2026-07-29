@@ -158,6 +158,7 @@ fn add_tag(object: &mut KnowledgeObject, tag: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{KnowledgeObject, ObjectContent};
 
     #[tokio::test]
     async fn test_normalize_title() {

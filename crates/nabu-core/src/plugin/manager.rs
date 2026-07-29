@@ -466,6 +466,7 @@ impl std::error::Error for ManagerError {}
 mod tests {
     use super::*;
     use crate::plugin::manifest::{PluginDependency, PluginEntryType, PluginFeatureFlag, PluginPermission};
+    use uuid::Uuid;
 
     fn test_manifest(id: &str) -> PluginManifest {
         PluginManifest {

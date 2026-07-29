@@ -227,6 +227,7 @@ mod tests {
     use crate::graph::persistence::GraphStore;
     use crate::graph::serializer::{SerializedEdge, SerializedNode};
     use tempfile::tempdir;
+    use crate::models::ObjectType;
 
     #[test]
     fn test_recovery_empty_store() {

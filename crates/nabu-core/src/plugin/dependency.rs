@@ -264,7 +264,7 @@ impl DependencyReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plugin::manifest::PluginManifest;
+    use crate::plugin::manifest::{PluginDependency, PluginManifest};
     use crate::plugin::version::Version;
 
     fn make_plugin(id: &str, deps: Vec<&str>) -> PluginManifest {
