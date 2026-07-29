@@ -22,6 +22,7 @@
 //! let service: Option<Arc<MyService>> = registry.resolve("my_service");
 //! ```
 
+pub mod application;
 pub mod context;
 pub mod lifecycle;
 
@@ -31,6 +32,8 @@ pub mod lifecycle;
 /// constructing `ApplicationContext` instances with mock services.
 #[cfg(feature = "test-utils")]
 pub mod test_utils;
+
+pub use application::Application;
 
 use std::any::Any;
 use std::collections::HashMap;
