@@ -15,3 +15,4 @@ dist/
 # Mise local overrides
 .mise.local.toml
 .mise/*.env
+core

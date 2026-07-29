@@ -139,6 +139,18 @@ impl ProcessingPipeline {
         pipeline
     }
 
+    /// Creates a new processing pipeline WITHOUT subscribing to the event bus.
+    ///
+    /// Use this when the pipeline is managed by a background job queue
+    /// instead of running inline. Processors must still be registered,
+    /// and [`run()`](Self::run) must be called explicitly.
+    pub fn new_no_subscribe(event_bus: Arc<EventBus>) -> Arc<Self> {
+        Arc::new(Self {
+            event_bus: event_bus.clone(),
+            processors: Arc::new(RwLock::new(Vec::new())),
+        })
+    }
+
     /// Registers a processor in the chain.
     ///
     /// Processors execute in the order they are registered.
