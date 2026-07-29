@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::ObjectType;
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 
@@ -81,6 +81,7 @@ impl Processor for WhisperProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{KnowledgeObject, ObjectContent};
 
     #[tokio::test]
     async fn test_whisper_transcription() {

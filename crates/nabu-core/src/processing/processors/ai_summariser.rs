@@ -1,6 +1,6 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::{ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 
@@ -107,7 +107,7 @@ impl Processor for AiSummariser {
 /// Picks sentences from the beginning, middle, and end for coverage.
 fn extractive_summarize(text: &str, num_sentences: usize) -> String {
     let sentences: Vec<&str> = text
-        .split(|c: char| c == '.' || c == '!' || c == '?')
+        .split(['.', '!', '?'])
         .map(|s| s.trim())
         .filter(|s| !s.is_empty() && s.len() > 20)
         .collect();
@@ -159,6 +159,7 @@ fn strip_html_for_summary(html: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::KnowledgeObject;
 
     #[tokio::test]
     async fn test_summarise_article() {

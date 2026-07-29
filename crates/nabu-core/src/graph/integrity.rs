@@ -127,7 +127,7 @@ pub fn compute_graph_checksum(snapshot: &GraphSnapshot) -> String {
 
     // Hash nodes in sorted order for determinism
     let mut sorted_nodes: Vec<&SerializedNode> = snapshot.nodes.iter().collect();
-    sorted_nodes.sort_by(|a, b| a.id.cmp(&b.id));
+    sorted_nodes.sort_by_key(|a| a.id);
 
     for node in &sorted_nodes {
         hasher.update(node.id.to_string().as_bytes());
