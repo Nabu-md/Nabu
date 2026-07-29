@@ -1,39 +1,17 @@
-//! Event bus module for decoupled service communication.
+//! # Nabu Event Bus
 //!
-//! This module provides a typed publish/subscribe event system for the Rust services.
-//! Services communicate through events rather than direct imports, enabling future
-//! subscribers (AI, Search, Graph, Automation, Plugins, Sync, Analytics) to react
-//! to lifecycle events without modifying existing services.
+//! A typed publish/subscribe event bus for decoupled service communication.
+//! This is the platform's internal communication layer — services publish events
+//! and subscribers react without direct coupling.
 //!
-//! # Architecture
+//! The EventBus is used by the pipeline migration to broadcast lifecycle events:
+//! - `ItemCaptured` — when a capture source ingests new content
+//! - `ItemProcessingStarted` — when a worker begins processing
+//! - `ItemProcessingCompleted` — when processing finishes successfully
+//! - `ItemProcessingFailed` — when processing fails
+//! - `ItemStored` — when the StorageManager has persisted the result
 //!
-//! The event bus follows the same patterns as the TypeScript event bus in the main
-//! Tauri application. It is platform-independent and has no dependencies on
-//! Electron, Tauri, or any UI framework.
-//!
-//! # Event Flow
-//!
-//! ```text
-//! CaptureEngine
-//!     ↓
-//! ItemCaptured
-//!     ↓
-//! ProcessingPipeline
-//!     ↓
-//! ItemProcessed
-//!     ↓
-//! StorageManager
-//!     ↓
-//! ItemStored
-//! ```
+//! See pipeine_migration::events for the full event registry.
 
 mod bus;
-mod events;
-
-pub use bus::{EventBus, Subscription};
-pub use events::{
-    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EVENT_ITEM_PROCESSING_COMPLETED,
-    EVENT_ITEM_PROCESSING_FAILED, EVENT_ITEM_PROCESSING_STARTED, EVENT_ITEM_STORED, ItemCaptured,
-    ItemProcessed, ItemProcessingCompleted, ItemProcessingFailed, ItemProcessingStarted,
-    ItemStored, KnowledgeEvents,
-};
+pub use bus::*;

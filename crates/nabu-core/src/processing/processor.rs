@@ -1,244 +1,224 @@
-//! Processor trait and result types for the processing pipeline.
-//!
-//! This module defines the [`Processor`] trait, which represents a single
-//! processing step in the processing pipeline. Each processor inspects and
-//! optionally modifies a [`KnowledgeObject`], returning a structured
-//! [`ProcessingResult`].
-//!
-//! # Constraints
-//!
-//! - Processors must NOT directly write to SQLite.
-//! - Processors must NOT emit UI events.
-//! - Processors must be composable and stateless where possible.
-//! - Processors must never block asynchronously.
-
 use std::fmt::Debug;
 
-use crate::models::knowledge_object::KnowledgeObject;
-
-/// The result of executing a single processor on a knowledge object.
+/// The context passed to each processor during pipeline execution.
 ///
-/// A processor returns this result to indicate whether processing should
-/// continue, whether the object was modified, and to attach warnings or
-/// errors.
-#[derive(Debug, Clone, PartialEq)]
-pub enum ProcessingDecision {
-    /// Processing completed successfully; continue to the next processor.
-    Continue,
-    /// Processing completed successfully but the object should not be stored.
-    /// The pipeline will record the rejection in history and stop.
-    Reject(String),
+/// Contains the current state of the item being processed, including
+/// the inbound content, extracted metadata, and processing history.
+/// Each processor can read and modify this context.
+#[derive(Debug, Clone)]
+pub struct ProcessingContext {
+    /// The type of content being processed (e.g., "article", "image", "pdf").
+    pub content_type: String,
+
+    /// Raw content bytes from the capture source.
+    pub content: Vec<u8>,
+
+    /// Content metadata extracted by the capture handler.
+    pub metadata: std::collections::HashMap<String, String>,
+
+    /// Results from processor execution, keyed by processor name.
+    pub processor_results: std::collections::HashMap<String, serde_json::Value>,
+
+    /// Validation and warning messages accumulated during processing.
+    pub messages: Vec<ProcessingMessage>,
+
+    /// Whether processing should continue. A processor can set this to `true`
+    /// to abort remaining processors (e.g., if a duplicate is detected).
+    pub abort: bool,
 }
 
-/// Structured result returned by a processor after execution.
-///
-/// The processing pipeline collects these results to build a complete
-/// processing history and determine whether to proceed to storage.
+impl ProcessingContext {
+    /// Creates a new processing context with the given content.
+    pub fn new(content_type: impl Into<String>, content: Vec<u8>) -> Self {
+        ProcessingContext {
+            content_type: content_type.into(),
+            content,
+            metadata: std::collections::HashMap::new(),
+            processor_results: std::collections::HashMap::new(),
+            messages: Vec::new(),
+            abort: false,
+        }
+    }
+
+    /// Adds a metadata key-value pair.
+    pub fn add_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.metadata.insert(key.into(), value.into());
+    }
+
+    /// Stores a processor result.
+    pub fn add_result(&mut self, processor: impl Into<String>, value: serde_json::Value) {
+        self.processor_results.insert(processor.into(), value);
+    }
+
+    /// Adds a processing message.
+    pub fn add_message(&mut self, level: MessageLevel, message: impl Into<String>) {
+        self.messages.push(ProcessingMessage {
+            level,
+            text: message.into(),
+        });
+    }
+}
+
+/// A message produced during processing (info, warning, or error).
+#[derive(Debug, Clone)]
+pub struct ProcessingMessage {
+    pub level: MessageLevel,
+    pub text: String,
+}
+
+/// The severity level of a processing message.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MessageLevel {
+    Info,
+    Warning,
+    Error,
+}
+
+/// The result of processing a single item through the pipeline.
 #[derive(Debug, Clone)]
 pub struct ProcessingResult {
-    /// The (possibly modified) knowledge object.
-    pub knowledge_object: KnowledgeObject,
-    /// Whether to continue or reject.
-    pub decision: ProcessingDecision,
-    /// Non-fatal warnings produced during processing.
-    pub warnings: Vec<String>,
-    /// Whether the processor modified the object's metadata or content.
-    pub modified: bool,
+    /// The final processing context after all processors have run.
+    pub context: ProcessingContext,
+
+    /// Whether the processing completed successfully.
+    pub success: bool,
+
+    /// Error message if processing failed.
+    pub error: Option<String>,
 }
 
 impl ProcessingResult {
-    /// Creates a successful processing result with no modifications.
-    pub fn unchanged(knowledge_object: KnowledgeObject) -> Self {
-        Self {
-            knowledge_object,
-            decision: ProcessingDecision::Continue,
-            warnings: Vec::new(),
-            modified: false,
+    /// Creates a successful processing result.
+    pub fn success(context: ProcessingContext) -> Self {
+        ProcessingResult {
+            context,
+            success: true,
+            error: None,
         }
     }
 
-    /// Creates a successful processing result with metadata modifications.
-    pub fn modified(knowledge_object: KnowledgeObject, warnings: Vec<String>) -> Self {
-        Self {
-            knowledge_object,
-            decision: ProcessingDecision::Continue,
-            warnings,
-            modified: true,
+    /// Creates a failed processing result.
+    pub fn failure(context: ProcessingContext, error: impl Into<String>) -> Self {
+        ProcessingResult {
+            context,
+            success: false,
+            error: Some(error.into()),
         }
-    }
-
-    /// Creates a result that rejects the object from further processing.
-    pub fn rejected(knowledge_object: KnowledgeObject, reason: String) -> Self {
-        Self {
-            knowledge_object,
-            decision: ProcessingDecision::Reject(reason),
-            warnings: Vec::new(),
-            modified: false,
-        }
-    }
-
-    /// Creates a successful processing result with a single warning message.
-    pub fn success(message: impl Into<String>) -> Self {
-        Self {
-            knowledge_object: KnowledgeObject::default(),
-            decision: ProcessingDecision::Continue,
-            warnings: vec![message.into()],
-            modified: false,
-        }
-    }
-
-    /// Creates a processing result with a warning and no modification.
-    pub fn warning(message: impl Into<String>) -> Self {
-        Self {
-            knowledge_object: KnowledgeObject::default(),
-            decision: ProcessingDecision::Continue,
-            warnings: vec![message.into()],
-            modified: false,
-        }
-    }
-
-    /// Creates a processing result indicating the object was skipped.
-    pub fn skipped(reason: impl Into<String>) -> Self {
-        Self {
-            knowledge_object: KnowledgeObject::default(),
-            decision: ProcessingDecision::Continue,
-            warnings: vec![reason.into()],
-            modified: false,
-        }
-    }
-
-    /// Returns whether processing succeeded (Continue decision).
-    pub fn success_flag(&self) -> bool {
-        matches!(self.decision, ProcessingDecision::Continue)
-    }
-
-    /// Returns the first warning message, if any.
-    pub fn warning_msg(&self) -> Option<&str> {
-        self.warnings.first().map(|s| s.as_str())
-    }
-
-    /// Returns whether processing was skipped (e.g., object type was not generic).
-    pub fn skipped_flag(&self) -> bool {
-        !self.modified && self.warnings.is_empty()
     }
 }
 
-/// A single processing step in the processing pipeline.
+/// The `Processor` trait — implemented by all pipeline processors.
 ///
-/// Implementors inspect a [`KnowledgeObject`], optionally modify its metadata,
-/// optionally attach warnings, and optionally reject processing.
+/// Each processor performs a single transformation on the processing context.
+/// Processors are chained together in the `ProcessingPipeline` and run in order.
 ///
-/// # Contract
+/// ## Existing Processor Types (documented in architecture docs)
 ///
-/// - Implementors must NOT write to SQLite or any persistent storage.
-/// - Implementors must NOT emit UI events.
-/// - Implementors should be stateless or thread-safe.
-/// - Implementors must NOT perform async blocking operations.
-///
-/// # Type Parameters
-///
-/// `E` is the error type used by the pipeline. It must implement
-/// [`std::error::Error`] and be `Send + Sync + 'static`.
+/// | Processor | Responsibility |
+/// |-----------|---------------|
+/// | `ContentClassifier` | Detects content type (invoice, receipt, meeting, etc.) |
+/// | `DuplicateDetector` | SHA-256 content hash + filename similarity check |
+/// | `TimelineExtractor` | Extracts dates from content/metadata |
+/// | `MetadataExtractor` | Extracts title, author, publication date, etc. |
+/// | `MetadataEnricher` | Enriches metadata with derived information |
+/// | `AutoFiler` | Suggests destination folder based on content classification |
+/// | `OcrProcessor` | Optical character recognition for images/scanned PDFs |
+/// | `PdfTextProcessor` | Text extraction from born-digital PDFs |
+/// | `PdfMetadataProcessor` | PDF metadata extraction (title, author, pages) |
+/// | `PdfAnnotationProcessor` | PDF annotation extraction as graph edges |
 pub trait Processor: Debug + Send + Sync {
-    /// Returns the human-readable name of this processor.
-    ///
-    /// Used for logging and storing processing history entries.
-    fn name(&self) -> &'static str;
+    /// Returns the name of this processor (used for logging and result lookups).
+    fn name(&self) -> &str;
 
-    /// Processes a knowledge object and returns a [`ProcessingResult`].
+    /// Processes the given context and returns a (potentially modified) context.
     ///
-    /// # Arguments
-    ///
-    /// * `knowledge_object` - The object to process. The processor may
-    ///   inspect or clone it, but should return the (possibly modified)
-    ///   object in the result.
-    ///
-    /// # Returns
-    ///
-    /// A [`ProcessingResult`] indicating whether processing succeeded,
-    /// whether the object was modified, and any warnings or rejection
-    /// reason.
-    fn process(&self, knowledge_object: KnowledgeObject) -> ProcessingResult;
+    /// If the processor detects an issue that should abort remaining processing,
+    /// it should set `ctx.abort = true` before returning.
+    fn process(&self, ctx: &mut ProcessingContext);
+}
+
+/// A no-op processor used as a placeholder during testing.
+#[derive(Debug)]
+pub struct NoopProcessor;
+
+impl Processor for NoopProcessor {
+    fn name(&self) -> &str {
+        "noop"
+    }
+
+    fn process(&self, _ctx: &mut ProcessingContext) {
+        // Does nothing
+    }
+}
+
+/// A test processor that counts how many times it was invoked.
+#[derive(Debug)]
+pub struct CountingProcessor {
+    pub name: String,
+    pub count: std::sync::atomic::AtomicUsize,
+}
+
+impl CountingProcessor {
+    pub fn new(name: impl Into<String>) -> Self {
+        CountingProcessor {
+            name: name.into(),
+            count: std::sync::atomic::AtomicUsize::new(0),
+        }
+    }
+}
+
+impl Processor for CountingProcessor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn process(&self, ctx: &mut ProcessingContext) {
+        self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        ctx.add_message(MessageLevel::Info, format!("{} ran", self.name));
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::knowledge_object::{ObjectContent, ObjectMetadata, ObjectType};
-    use uuid::Uuid;
 
-    fn create_test_object() -> KnowledgeObject {
-        KnowledgeObject {
-            id: Uuid::new_v4(),
-            object_type: ObjectType::Note,
-            vault_id: "test-vault".to_string(),
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-            modified_at: "2024-06-01T00:00:00Z".to_string(),
-            content: ObjectContent::PlainText,
-            metadata: ObjectMetadata::default(),
-        }
+    #[test]
+    fn test_processor_context_creation() {
+        let ctx = ProcessingContext::new("article", b"hello world".to_vec());
+        assert_eq!(ctx.content_type, "article");
+        assert_eq!(ctx.content, b"hello world");
+        assert!(!ctx.abort);
     }
 
     #[test]
-    fn unchanged_result_does_not_mark_modified() {
-        let obj = create_test_object();
-        let result = ProcessingResult::unchanged(obj.clone());
-        assert!(!result.modified);
-        assert_eq!(result.decision, ProcessingDecision::Continue);
-        assert!(result.warnings.is_empty());
-        assert_eq!(result.knowledge_object, obj);
-    }
-
-    #[test]
-    fn modified_result_marks_modified() {
-        let obj = create_test_object();
-        let result = ProcessingResult::modified(
-            obj.clone(),
-            vec!["Low quality scan".to_string()],
-        );
-        assert!(result.modified);
-        assert_eq!(result.decision, ProcessingDecision::Continue);
-        assert_eq!(result.warnings.len(), 1);
-    }
-
-    #[test]
-    fn rejected_result_provides_reason() {
-        let obj = create_test_object();
-        let result = ProcessingResult::rejected(obj.clone(), "Duplicate content".to_string());
-        assert!(!result.modified);
+    fn test_processor_context_metadata() {
+        let mut ctx = ProcessingContext::new("test", Vec::new());
+        ctx.add_metadata("title", "Test Title");
         assert_eq!(
-            result.decision,
-            ProcessingDecision::Reject("Duplicate content".to_string())
+            ctx.metadata.get("title"),
+            Some(&"Test Title".to_string())
         );
     }
 
     #[test]
-    fn default_processor_trait_is_object_safe() {
-        // This test verifies that Processor is object-safe by using
-        // Box<dyn Processor>.
-        let _processor: Box<dyn Processor> = Box::new(NoOpProcessor);
-    }
+    fn test_counting_processor() {
+        let processor = CountingProcessor::new("counter");
+        let mut ctx = ProcessingContext::new("test", Vec::new());
 
-    /// A processor that does nothing — used to verify trait object safety.
-    #[derive(Debug)]
-    struct NoOpProcessor;
+        processor.process(&mut ctx);
+        assert_eq!(processor.count.load(std::sync::atomic::Ordering::SeqCst), 1);
 
-    impl Processor for NoOpProcessor {
-        fn name(&self) -> &'static str {
-            "noop"
-        }
-
-        fn process(&self, knowledge_object: KnowledgeObject) -> ProcessingResult {
-            ProcessingResult::unchanged(knowledge_object)
-        }
+        processor.process(&mut ctx);
+        assert_eq!(processor.count.load(std::sync::atomic::Ordering::SeqCst), 2);
     }
 
     #[test]
-    fn noop_processor_returns_unchanged() {
-        let processor = NoOpProcessor;
-        let obj = create_test_object();
-        let result = processor.process(obj);
-        assert!(!result.modified);
-        assert_eq!(result.decision, ProcessingDecision::Continue);
+    fn test_noop_processor() {
+        let processor = NoopProcessor;
+        assert_eq!(processor.name(), "noop");
+
+        let mut ctx = ProcessingContext::new("test", Vec::new());
+        processor.process(&mut ctx);
+        // No panic = pass
     }
 }

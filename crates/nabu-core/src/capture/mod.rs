@@ -1,43 +1,36 @@
-pub mod browser;
-pub mod clipboard_config;
-#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
-pub mod clipboard_handler;
-#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
-pub mod clipboard_monitor;
-pub mod engine;
-pub mod file_drop_handler;
-pub mod handler;
-pub mod ingestion_request;
-pub mod ingestion_result;
-pub mod normaliser;
-pub mod pipeline;
-pub mod rich_browser;
-pub mod screenshot_handler;
-pub mod types;
-pub mod utils;
-pub mod watch_folder;
-pub mod watch_folder_config;
+//! # Nabu Capture Engine
+//!
+//! The Capture Engine is the entry point for all content entering Nabu.
+//! It provides a registry of `CaptureHandler` implementations and routes
+//! incoming content to the appropriate handler.
+//!
+//! ## Migration to Async
+//!
+//! With Prompt 37, the Capture Engine no longer processes synchronously.
+//! Instead:
+//!
+//! 1. The capture handler creates a `JobPayload` with the captured content.
+//! 2. The `CaptureEngine` enqueues the job via the `DurableJobQueue`.
+//! 3. The worker pool picks up the job, looks up the `PipelineExecutor`,
+//!    and runs the `ProcessingPipeline` asynchronously.
+//! 4. The capture call returns immediately — no blocking.
+//!
+//! ## Supported Sources (from architecture docs)
+//!
+//! | Source | Handler | Job Type |
+//! |--------|---------|----------|
+//! | Browser capture | `BrowserCaptureHandler` | `capture:browser` |
+//! | Article (Readability) | `ArticleCaptureHandler` | `capture:article` |
+//! | YouTube metadata | `YouTubeCaptureHandler` | `capture:youtube` |
+//! | GitHub repository | `GitHubRepositoryHandler` | `capture:github` |
+//! | Clipboard | `ClipboardHandler` | `capture:clipboard` |
+//! | Screenshot | `ScreenshotHandler` | `capture:screenshot` |
+//! | File drop | `FileDropHandler` | `capture:file_drop` |
+//! | Watch folder | `WatchFolderHandler` | `capture:watch_folder` |
+//! | Safari Reader | (via Safari extension) | `capture:safari_reader` |
 
-#[cfg(feature = "native")]
-pub mod watch_folder_service;
+mod engine;
+mod handler;
 
-pub use browser::BrowserCaptureHandler;
-pub use clipboard_config::{ClipboardMonitorConfig, ClipboardMonitorMode};
-#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
-pub use clipboard_handler::ClipboardHandler;
-#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
-pub use clipboard_monitor::ClipboardMonitor;
-pub use engine::CaptureEngine;
-pub use file_drop_handler::FileDropHandler;
-pub use handler::CaptureHandler;
-pub use ingestion_request::{IngestionOptions, IngestionRequest};
-pub use ingestion_result::{IngestionResult, IngestionStatus};
-pub use normaliser::Normaliser;
-pub use pipeline::IngestionPipeline;
-pub use rich_browser::{ArticleCaptureHandler, GitHubRepositoryHandler, YouTubeCaptureHandler};
-pub use screenshot_handler::{ScreenshotHandler, ScreenshotMode};
-pub use types::{CaptureError, CaptureRequest, CaptureResult};
-pub use watch_folder::WatchFolderHandler;
-pub use watch_folder_config::{ImportFolder, WatchFolderConfig};
-#[cfg(feature = "native")]
-pub use watch_folder_service::WatchFolderService;
+pub use engine::*;
+pub use handler::*;
