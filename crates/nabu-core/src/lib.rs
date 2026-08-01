@@ -1,31 +1,65 @@
-pub mod capture;
+//! # Nabu Core Library
+//!
+//! The core library for the Nabu knowledge management platform.
+//!
+//! ## Architecture
+//!
+//! Every subsystem flows through the canonical pipeline:
+//!
+//! ```text
+//! CaptureSource
+//!     │  CaptureEngine.ingest()
+//!     ▼
+//! CaptureEvent (published to EventBus)
+//!     │
+//!     ▼
+//! Job Queue (DurableJobQueue)
+//!     │  WorkerPool dequeue → PipelineExecutor.execute()
+//!     ▼
+//! ProcessingPipeline
+//!     │  All 14 processors execute in order
+//!     ▼
+//! StorageManager.save()
+//!     │
+//!     ├── Indexer.index_document()
+//!     └── VaultGraph.update_node()
+//! ```
+
+pub mod diagnostics;
 pub mod event_bus;
-pub mod export_engine;
-pub mod graph;
 pub mod models;
-pub mod markdown;
+pub mod jobs;
 pub mod processing;
+pub mod capture;
+pub mod pipeline_migration;
 pub mod storage;
-pub mod template_manager;
-pub mod reading_queue;
-pub mod theme_manager;
-pub mod vault_config;
-
-#[cfg(feature = "native")]
-pub mod registry;
-
-#[cfg(feature = "native")]
-pub mod view_state;
-
-#[cfg(feature = "native")]
 pub mod indexer;
+pub mod graph;
+pub mod registry;
+pub mod plugin;
 
-#[cfg(feature = "native")]
-pub mod vault;
-
-#[cfg(feature = "native")]
-pub mod watcher;
-
-#[cfg(all(feature = "native", any(target_os = "macos", target_os = "ios")))]
-pub mod native;
-pub mod search_query;
+// Re-export key types for convenient access
+// Ambiguous glob re-exports are intentional — all public API types should
+// be available at the crate root for ergonomic use by consumers.
+#[allow(ambiguous_glob_reexports)]
+pub use event_bus::*;
+#[allow(ambiguous_glob_reexports)]
+pub use models::*;
+#[allow(ambiguous_glob_reexports)]
+pub use jobs::*;
+#[allow(ambiguous_glob_reexports)]
+pub use processing::*;
+#[allow(ambiguous_glob_reexports)]
+pub use capture::*;
+#[allow(ambiguous_glob_reexports)]
+pub use pipeline_migration::*;
+#[allow(ambiguous_glob_reexports)]
+pub use storage::*;
+#[allow(ambiguous_glob_reexports)]
+pub use indexer::*;
+#[allow(ambiguous_glob_reexports)]
+pub use graph::*;
+#[allow(ambiguous_glob_reexports)]
+pub use registry::*;
+#[allow(ambiguous_glob_reexports)]
+pub use plugin::*;

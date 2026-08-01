@@ -1,45 +1,24 @@
 [package]
 name = "nabu-core"
-version = "0.1.0"
-edition = "2024"
-
-[features]
-default = ["native"]
-native = [
-    "dep:notify",
-    "dep:tantivy",
-    "dep:whisper-rs",
-    "dep:tokio",
-]
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
-serde = { version = "1.0.218", features = ["derive"] }
-serde_json = "1.0.139"
-anyhow = "1.0.96"
-pulldown-cmark = "0.13.4"
-petgraph = "0.7.0"
-uuid = "1.13.0"
-walkdir = "2.5.0"
-regex = "1.11.1"
-tera = "1.20.0"
-rusqlite = { version = "0.31", features = ["bundled"] }
-chrono = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "time", "rt", "macros"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
 sha2 = "0.10"
-scraper = "0.19"
-serde_yaml = "0.9"
+hex = "0.4"
+async-trait = "0.1"
+regex = "1"
 
-# Optional native dependencies
-tokio = { version = "1.43.0", features = ["full"], optional = true }
-notify = { version = "8.0.0", optional = true }
-tantivy = { version = "0.26.1", optional = true }
-whisper-rs = { version = "0.14.0", optional = true }
+tracing = { version = "0.1", features = ["attributes"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
 
 [dev-dependencies]
-tempfile = "3.10"
-
-[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
-objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSString", "NSArray", "NSDictionary", "NSObject", "NSURL", "NSData", "NSError"] }
-objc2-vision = { version = "0.3", features = ["VNObservation", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler", "VNTypes"] }
-core-graphics = "0.22"
-image = "0.25"
+tempfile = "3"
+tokio = { version = "1", features = ["sync", "time", "rt", "macros", "test-util"] }

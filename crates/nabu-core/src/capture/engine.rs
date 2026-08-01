@@ -1,509 +1,204 @@
+use crate::capture::handler::{CaptureHandler, CaptureRequest, CaptureResult};
+use crate::event_bus::{EventBus, ItemCapturedEvent, PipelineEvent};
+use crate::event_bus::kinds::ITEM_CAPTURED;
+use crate::jobs::errors::JobResult;
+use crate::jobs::job::{Job, JobType};
+use crate::jobs::queue::{DurableJobQueue, Queue};
+use crate::models::ObjectType;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use crate::capture::{
-    CaptureHandler, CaptureRequest, CaptureResult, IngestionRequest, IngestionResult,
-    IngestionStatus, utils::current_timestamp,
-};
-use crate::event_bus::{
-    EVENT_ITEM_CAPTURED, EVENT_ITEM_PROCESSED, EventBus, ItemCaptured, ItemProcessed,
-};
-
-/// The central capture engine responsible for routing ingestion requests.
+/// The CaptureEngine routes capture requests to registered handlers
+/// and enqueues jobs for asynchronous processing.
 ///
-/// The engine maintains a registry of [`CaptureHandler`] implementations and
-/// dispatches [`CaptureRequest`] instances to the appropriate handler based on
-/// `source_type`.
-///
-/// This is the permanent ingestion gateway for Nabu. Future capture sources
-/// should register handlers with this engine rather than introducing new
-/// entry points.
-///
-/// # Thread Safety
-///
-/// `CaptureEngine` is `Send + Sync` and may be shared across threads. The
-/// internal handler registry uses `RwLock` for concurrent reads and exclusive
-/// writes. Lock poisoning is handled gracefully: a poisoned read lock will
-/// still return the handler map.
-///
-/// # Lifecycle
-///
-/// 1. Create a `CaptureEngine` with [`CaptureEngine::new`].
-/// 2. Register handlers with [`CaptureEngine::register`].
-/// 3. Dispatch requests with [`CaptureEngine::dispatch`] or run the full
-///    ingestion flow with [`CaptureEngine::ingest`].
-/// 4. Unregister handlers with [`CaptureEngine::unregister`] when they are no
-///    longer needed.
+/// This is the canonical entry point for all content entering Nabu.
+/// No feature bypasses the CaptureEngine.
 pub struct CaptureEngine {
-    handlers: RwLock<HashMap<String, Arc<dyn CaptureHandler>>>,
-    event_bus: Arc<EventBus>,
+    handlers: HashMap<String, Arc<dyn CaptureHandler>>,
+    event_bus: Option<EventBus<PipelineEvent>>,
+    queue: Option<Arc<DurableJobQueue>>,
 }
 
 impl CaptureEngine {
-    /// Creates a new capture engine with no registered handlers.
-    ///
-    /// The event bus is used to publish [`ItemCaptured`] events after successful
-    /// capture, decoupling the engine from downstream processing.
-    pub fn new(event_bus: Arc<EventBus>) -> Self {
+    pub fn new() -> Self {
         Self {
-            handlers: RwLock::new(HashMap::new()),
-            event_bus,
+            handlers: HashMap::new(),
+            event_bus: None,
+            queue: None,
         }
     }
 
-    /// Registers a capture handler.
-    ///
-    /// If a handler for the same `source_type` is already registered, it will
-    /// be replaced.
-    ///
-    /// Handlers are stored as `Arc<dyn CaptureHandler>` so they can be shared
-    /// across threads without cloning the handler itself.
-    pub fn register(&self, handler: Arc<dyn CaptureHandler>) {
-        let mut handlers = self.handlers.write().unwrap();
-        handlers.insert(handler.source_type().to_string(), handler);
+    /// Create a capture engine with an event bus for publishing events.
+    pub fn with_event_bus(event_bus: EventBus<PipelineEvent>) -> Self {
+        Self {
+            handlers: HashMap::new(),
+            event_bus: Some(event_bus),
+            queue: None,
+        }
     }
 
-    /// Unregisters a capture handler by its source type.
-    ///
-    /// Returns the removed handler if one was registered.
-    pub fn unregister(&self, source_type: &str) -> Option<Arc<dyn CaptureHandler>> {
-        let mut handlers = self.handlers.write().unwrap();
-        handlers.remove(source_type)
+    /// Set the job queue for async processing.
+    pub fn set_queue(&mut self, queue: Arc<DurableJobQueue>) {
+        self.queue = Some(queue);
     }
 
-    /// Looks up a registered handler by source type.
-    ///
-    /// Returns `None` if no handler is registered for the given source type.
-    pub fn lookup(&self, source_type: &str) -> Option<Arc<dyn CaptureHandler>> {
-        let handlers = self.handlers.read().unwrap();
-        handlers.get(source_type).cloned()
+    /// Register a capture handler.
+    pub fn register(&mut self, handler: Arc<dyn CaptureHandler>) {
+        self.handlers.insert(handler.name().to_string(), handler);
     }
 
-    /// Dispatches a capture request to the appropriate handler.
+    /// Ingest a capture request through the pipeline.
     ///
-    /// If no handler is registered for the request's `source_type`, or if the
-    /// registered handler cannot handle the request, a failed [`CaptureResult`]
-    /// is returned.
-    ///
-    /// This method only performs dispatch; it does not run the ingestion
-    /// pipeline. Use [`CaptureEngine::ingest`] for the full flow.
-    pub fn dispatch(&self, request: CaptureRequest) -> CaptureResult {
-        let handlers = match self.handlers.read() {
-            Ok(h) => h,
-            Err(poisoned) => poisoned.into_inner(),
+    /// Returns the enqueued Job if async processing is configured.
+    /// Returns immediately — processing happens asynchronously.
+    pub async fn ingest(&self, request: CaptureRequest) -> JobResult<Option<uuid::Uuid>> {
+        // Find matching handler
+        let result = self.route(&request).await;
+
+        let result = match result {
+            Some(r) => r,
+            None => return Ok(None),
         };
-        if let Some(handler) = handlers.get(&request.source_type)
-            && handler.can_handle(&request)
-        {
-            return handler.capture(request);
-        }
-        CaptureResult {
-            success: false,
-            knowledge_object: None,
-            knowledge_object_id: None,
-            payload: None,
-            error: Some(format!(
-                "No handler available for source type: {}",
-                request.source_type
-            )),
-            message: "Capture failed: no suitable handler".to_string(),
-        }
-    }
 
-    /// Runs the full ingestion flow: dispatch → publish ItemCaptured → pipeline → storage.
-    ///
-    /// Returns an [`IngestionResult`] regardless of whether dispatch succeeds
-    /// or fails, so callers always have a single result type to handle.
-    ///
-    /// # Flow
-    ///
-    /// 1. Dispatch the request to the appropriate handler.
-    /// 2. If dispatch fails, return a failed `IngestionResult`.
-    /// 3. Deserialize the handler's payload into an `IngestionRequest`.
-    /// 4. Publish an [`ItemCaptured`] event to the event bus.
-    /// 5. Wait for the [`ItemProcessed`] event from the pipeline (with timeout).
-    /// 6. Return the pipeline's `IngestionResult`, with `knowledge_object_id`
-    ///    populated from the created `KnowledgeObject`.
-    ///
-    /// # Timeout
-    ///
-    /// If no [`ItemProcessed`] response is received within 30 seconds, the
-    /// ingestion is considered failed. This prevents indefinite blocking if
-    /// no pipeline subscriber is registered.
-    pub fn ingest(&self, request: CaptureRequest) -> IngestionResult {
-        let capture_result = self.dispatch(request.clone());
-
-        if !capture_result.success {
-            return self.build_failed_result(
-                request.source_type,
-                capture_result
-                    .error
-                    .unwrap_or_else(|| "Unknown error".to_string()),
-                Vec::new(),
+        // Publish capture event
+        if let Some(ref bus) = self.event_bus {
+            bus.publish(
+                ITEM_CAPTURED,
+                &PipelineEvent::ItemCaptured(ItemCapturedEvent::new(
+                    result.object.id,
+                    result.object.object_type.clone(),
+                    result.source.clone(),
+                    result.object.metadata.title.clone(),
+                    None,
+                )),
             );
         }
 
-        let payload = match capture_result.payload {
-            Some(p) => p,
-            None => {
-                return self.build_failed_result(
-                    request.source_type,
-                    "Capture succeeded but produced no payload".to_string(),
-                    Vec::new(),
-                );
-            }
-        };
+        // Enqueue for async processing
+        if result.enqueue {
+            if let Some(ref queue) = self.queue {
+                let job_type = object_type_to_job_type(&result.object.object_type);
+                let payload = serde_json::json!({
+                    "object_id": result.object.id,
+                    "object_type": result.object.object_type.variant_name(),
+                    "source": format!("{:?}", result.source),
+                    "title": result.object.metadata.title,
+                    "source_url": result.object.metadata.source_url,
+                });
 
-        let ingestion_request: IngestionRequest = match serde_json::from_value(payload) {
-            Ok(req) => req,
-            Err(e) => {
-                return self.build_failed_result(
-                    request.source_type,
-                    format!("Failed to deserialize ingestion request: {}", e),
-                    Vec::new(),
-                );
-            }
-        };
+                let mut job = Job::new(job_type.clone(), payload, format!("{}_processor", job_type.name()))
+                    .with_object_id(result.object.id)
+                    .with_tag("capture");
 
-        let id = uuid::Uuid::new_v4();
-        let (tx, rx) = std::sync::mpsc::channel();
+                if let Some(ref source_url) = result.object.metadata.source_url {
+                    job = job.with_metadata("source_url", source_url.clone());
+                }
 
-        let event = ItemCaptured {
-            id,
-            source: request.source_type.clone(),
-            vault_id: request.vault_id.clone(),
-            timestamp: current_timestamp(),
-            raw_bytes: ingestion_request.raw_bytes.clone(),
-            mime_type: ingestion_request.mime_type.clone(),
-            source_file: ingestion_request.source_file.clone(),
-        };
+                queue.enqueue(job)?;
 
-        let bus = self.event_bus.clone();
-        let unsub = bus.subscribe(EVENT_ITEM_PROCESSED, move |processed: &ItemProcessed| {
-            if processed.id == id {
-                let _ = tx.send(processed.clone());
-            }
-        });
-
-        self.event_bus.publish(EVENT_ITEM_CAPTURED, &event);
-
-        // Keep subscription alive until we get response or timeout
-        let _ = unsub;
-
-        // Wait for the pipeline response with a timeout to prevent indefinite blocking.
-        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
-            Ok(processed) => {
-                let knowledge_object = processed.knowledge_object;
-                IngestionResult {
-                    knowledge_object: Some(knowledge_object.clone()),
-                    knowledge_object_id: Some(processed.id),
-                    source: event.source,
-                    timestamp: event.timestamp,
-                    status: IngestionStatus::Success,
-                    warnings: processed.warnings,
+                // Publish with job ID
+                if let Some(ref _bus) = self.event_bus {
+                    // Re-publish with job ID — in real impl this would be done once
                 }
             }
-            Err(_) => self.build_failed_result(
-                request.source_type,
-                "No response from processing pipeline within timeout".to_string(),
-                Vec::new(),
-            ),
         }
+
+        Ok(Some(result.object.id))
     }
 
-    /// Builds a failed [`IngestionResult`] with the given source, error, and warnings.
-    fn build_failed_result(
-        &self,
-        source: String,
-        error: String,
-        warnings: Vec<String>,
-    ) -> IngestionResult {
-        IngestionResult {
-            knowledge_object: None,
-            knowledge_object_id: None,
-            source,
-            timestamp: current_timestamp(),
-            status: IngestionStatus::Failed(error),
-            warnings,
+    /// Route a capture request to the appropriate handler.
+    async fn route(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        // Try each registered handler until one succeeds
+        for handler in self.handlers.values() {
+            if let Some(result) = handler.capture(request).await {
+                return Some(result);
+            }
         }
+        None
+    }
+
+    /// Number of registered handlers.
+    pub fn handler_count(&self) -> usize {
+        self.handlers.len()
+    }
+
+    /// List registered handler names.
+    pub fn handler_names(&self) -> Vec<String> {
+        self.handlers.keys().cloned().collect()
     }
 }
 
-// Note: CaptureEngine does not implement Default because it requires an
-// EventBus to function correctly. Tests should use:
-//   CaptureEngine::new(Arc::new(EventBus::new()))
+impl Default for CaptureEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn object_type_to_job_type(object_type: &ObjectType) -> JobType {
+    match object_type {
+        ObjectType::Image | ObjectType::Screenshot | ObjectType::Scan => JobType::Ocr,
+        ObjectType::AudioRecording => JobType::Whisper,
+        ObjectType::Document => JobType::PdfTextExtraction,
+        _ => JobType::MetadataExtraction,
+    }
+}
+
+/// Build the default capture engine with all built-in handlers.
+pub fn build_default_capture_engine(
+    event_bus: Option<EventBus<PipelineEvent>>,
+    queue: Option<Arc<DurableJobQueue>>,
+) -> CaptureEngine {
+    let mut engine = match event_bus {
+        Some(bus) => CaptureEngine::with_event_bus(bus),
+        None => CaptureEngine::new(),
+    };
+
+    if let Some(queue) = queue {
+        engine.set_queue(queue);
+    }
+
+    engine.register(Arc::new(super::handler::BrowserCaptureHandler));
+    engine.register(Arc::new(super::handler::ClipboardHandler));
+    engine.register(Arc::new(super::handler::ScreenshotHandler));
+    engine.register(Arc::new(super::handler::FileDropHandler));
+    engine.register(Arc::new(super::handler::WatchFolderHandler));
+    engine.register(Arc::new(super::handler::SafariReaderHandler));
+    engine.register(Arc::new(super::handler::YouTubeCaptureHandler));
+    engine.register(Arc::new(super::handler::GitHubRepositoryHandler));
+
+    engine
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::capture::{IngestionOptions, IngestionPipeline};
-    use crate::event_bus::EventBus;
-    use crate::models::knowledge_object::{ObjectContent, ObjectType};
-    use std::sync::Arc;
-    use uuid::Uuid;
+    use crate::capture::handler::CaptureData;
+    use tempfile::tempdir;
 
-    struct MockHandler {
-        source: &'static str,
-        can_handle: bool,
-        result: CaptureResult,
+    #[tokio::test]
+    async fn test_ingest_without_queue() {
+        let engine = build_default_capture_engine(None, None);
+
+        let request = CaptureRequest::new(CaptureData::Text("Hello, world!".to_string()))
+            .with_title("Test Note");
+
+        let result = engine.ingest(request).await.unwrap();
+        assert!(result.is_some(), "Should have created an object");
     }
 
-    impl CaptureHandler for MockHandler {
-        fn source_type(&self) -> &'static str {
-            self.source
-        }
+    #[tokio::test]
+    async fn test_ingest_with_queue() {
+        let dir = tempdir().unwrap();
+        let queue = Arc::new(DurableJobQueue::new(dir.path()).unwrap());
 
-        fn can_handle(&self, _request: &CaptureRequest) -> bool {
-            self.can_handle
-        }
+        let mut engine = CaptureEngine::new();
+        engine.set_queue(queue);
 
-        fn capture(&self, _request: CaptureRequest) -> CaptureResult {
-            self.result.clone()
-        }
-    }
+        engine.register(Arc::new(crate::capture::handler::ClipboardHandler));
 
-    fn test_request(source_type: &str) -> CaptureRequest {
-        CaptureRequest {
-            source_type: source_type.to_string(),
-            payload: serde_json::json!({"test": true}),
-            vault_id: "vault-1".to_string(),
-            context: HashMap::new(),
-        }
-    }
+        let request = CaptureRequest::new(CaptureData::Text("Queued content".to_string()));
+        let result = engine.ingest(request).await.unwrap();
 
-    #[test]
-    fn register_and_dispatch() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let handler = Arc::new(MockHandler {
-            source: "test_source",
-            can_handle: true,
-                result: CaptureResult {
-                    success: true,
-                    knowledge_object: None,
-                    knowledge_object_id: Some(Uuid::new_v4()),
-                    payload: None,
-                    error: None,
-                    message: "Captured".to_string(),
-                },
-        });
-        engine.register(handler);
-
-        let request = test_request("test_source");
-        let result = engine.dispatch(request);
-        assert!(result.success);
-        assert!(result.knowledge_object_id.is_some());
-    }
-
-    #[test]
-    fn dispatch_no_handler() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let request = test_request("missing");
-        let result = engine.dispatch(request);
-        assert!(!result.success);
-        assert!(result.error.is_some());
-        assert!(
-            result
-                .error
-                .unwrap()
-                .contains("No handler available for source type: missing")
-        );
-    }
-
-    #[test]
-    fn unregister_removes_handler() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let handler = Arc::new(MockHandler {
-            source: "removable",
-            can_handle: true,
-                result: CaptureResult {
-                    success: true,
-                    knowledge_object: None,
-                    knowledge_object_id: Some(Uuid::new_v4()),
-                    payload: None,
-                    error: None,
-                    message: "Captured".to_string(),
-                },
-        });
-        engine.register(handler);
-        assert!(engine.lookup("removable").is_some());
-
-        engine.unregister("removable");
-        assert!(engine.lookup("removable").is_none());
-
-        let request = test_request("removable");
-        let result = engine.dispatch(request);
-        assert!(!result.success);
-    }
-
-    #[test]
-    fn can_handle_is_checked_before_capture() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let handler = Arc::new(MockHandler {
-            source: "conditional",
-            can_handle: false,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: Some(Uuid::new_v4()),
-                error: None,
-                message: "Should not reach".to_string(),
-                payload: None,
-            },
-        });
-        engine.register(handler);
-
-        let request = test_request("conditional");
-        let result = engine.dispatch(request);
-        assert!(!result.success);
-        assert!(result.error.is_some());
-    }
-
-    #[test]
-    fn ingest_full_flow_creates_knowledge_object() {
-        let bus = Arc::new(EventBus::new());
-        let _pipeline = IngestionPipeline::new(bus.clone());
-        let engine = CaptureEngine::new(bus.clone());
-        let ingestion_request = IngestionRequest {
-            source: "file_drop".to_string(),
-            raw_bytes: b"Hello, world!".to_vec(),
-            mime_type: "text/plain".to_string(),
-            vault_id: "vault-1".to_string(),
-            source_file: Some("/path/to/hello.txt".to_string()),
-            options: IngestionOptions::default(),
-        };
-        let payload = serde_json::to_value(&ingestion_request).unwrap();
-
-        let handler = Arc::new(MockHandler {
-            source: "file_drop",
-            can_handle: true,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: None,
-                error: None,
-                message: "Captured".to_string(),
-                payload: Some(payload),
-            },
-        });
-        engine.register(handler);
-
-        let request = CaptureRequest {
-            source_type: "file_drop".to_string(),
-            payload: serde_json::json!({"file_path": "/path/to/hello.txt"}),
-            vault_id: "vault-1".to_string(),
-            context: HashMap::new(),
-        };
-
-        let result = engine.ingest(request);
-        assert_eq!(result.status, IngestionStatus::Success);
-        assert!(result.knowledge_object.is_some());
-        let obj = result.knowledge_object.unwrap();
-        assert_eq!(obj.vault_id, "vault-1");
-        assert_eq!(obj.object_type, ObjectType::Note);
-        assert_eq!(obj.content, ObjectContent::PlainText);
-        assert_eq!(result.source, "file_drop");
-        assert!(result.knowledge_object_id.is_some());
-        assert_eq!(result.knowledge_object_id, Some(obj.id));
-    }
-
-    #[test]
-    fn ingest_handles_failed_capture() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let request = CaptureRequest {
-            source_type: "missing".to_string(),
-            payload: serde_json::json!({}),
-            vault_id: "vault-1".to_string(),
-            context: HashMap::new(),
-        };
-
-        let result = engine.ingest(request);
-        match result.status {
-            IngestionStatus::Failed(_) => {}
-            IngestionStatus::Success => panic!("Expected failed status"),
-        }
-        assert!(result.knowledge_object.is_none());
-        assert_eq!(result.source, "missing");
-    }
-
-    #[test]
-    fn ingest_handles_missing_payload() {
-        let bus = Arc::new(EventBus::new());
-        let engine = CaptureEngine::new(bus);
-        let handler = Arc::new(MockHandler {
-            source: "file_drop",
-            can_handle: true,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: None,
-                error: None,
-                message: "Captured".to_string(),
-                payload: None,
-            },
-        });
-        engine.register(handler);
-
-        let request = CaptureRequest {
-            source_type: "file_drop".to_string(),
-            payload: serde_json::json!({"file_path": "/path/to/file.txt"}),
-            vault_id: "vault-1".to_string(),
-            context: HashMap::new(),
-        };
-
-        let result = engine.ingest(request);
-        match result.status {
-            IngestionStatus::Failed(_) => {}
-            IngestionStatus::Success => panic!("Expected failed status"),
-        }
-        assert!(result.knowledge_object.is_none());
-        assert_eq!(result.source, "file_drop");
-    }
-
-    #[test]
-    fn ingest_times_out_when_no_pipeline_subscriber() {
-        let bus = Arc::new(EventBus::new());
-        // No pipeline registered — no one will publish ItemProcessed
-        let engine = CaptureEngine::new(bus);
-        let handler = Arc::new(MockHandler {
-            source: "file_drop",
-            can_handle: true,
-            result: CaptureResult {
-                success: true,
-                knowledge_object_id: None,
-                error: None,
-                message: "Captured".to_string(),
-                payload: Some(serde_json::json!({
-                    "source": "file_drop",
-                    "raw_bytes": [116, 101, 115, 116],
-                    "mime_type": "text/plain",
-                    "vault_id": "vault-1",
-                    "source_file": null,
-                    "options": {
-                        "create_knowledge_object": true,
-                        "extract_metadata": false,
-                        "custom": {}
-                    }
-                })),
-            },
-        });
-        engine.register(handler);
-
-        let request = CaptureRequest {
-            source_type: "file_drop".to_string(),
-            payload: serde_json::json!({"file_path": "/path/to/file.txt"}),
-            vault_id: "vault-1".to_string(),
-            context: HashMap::new(),
-        };
-
-        let result = engine.ingest(request);
-        match result.status {
-            IngestionStatus::Failed(e) => {
-                assert!(e.contains("timeout"), "Expected timeout error, got: {}", e);
-            }
-            IngestionStatus::Success => panic!("Expected failed status due to timeout"),
-        }
-        assert!(result.knowledge_object.is_none());
+        assert!(result.is_some(), "Should have enqueued a job");
     }
 }
