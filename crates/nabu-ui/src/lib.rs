@@ -11,7 +11,21 @@ pub mod tree;
 #[wasm_bindgen(start)]
 pub fn start() {
     console_error_panic_hook::set_once();
+    remove_boot_splash();
     mount_to_body(|| view! { <App /> });
+}
+
+/// Removes the static boot splash element from `index.html` once the app is
+/// about to mount. The splash (dark background + spinner) paints instantly on
+/// launch so the window never shows a white flash while the wasm loads.
+fn remove_boot_splash() {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            if let Some(splash) = document.get_element_by_id("boot-splash") {
+                splash.remove();
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy)]

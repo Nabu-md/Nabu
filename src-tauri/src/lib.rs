@@ -281,7 +281,34 @@ pub fn run() {
                 }
             });
 
+            // Safety net: the main window starts hidden (visible: false) and is
+            // shown by on_page_load once the webview finishes painting. If the
+            // page never finishes loading (e.g. dev-server hiccup or a wasm
+            // fetch failure), force-show the window after a short delay so the
+            // app is never left with no visible window at all.
+            if let Some(main_window) = app.get_webview_window("main") {
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+                    if !main_window.is_visible().unwrap_or(false) {
+                        let _ = main_window.show();
+                        let _ = main_window.set_focus();
+                    }
+                });
+            }
+
             Ok(())
+        })
+        // The main window is created with `visible: false` (see tauri.conf.json)
+        // so the webview is never shown mid-paint. Show it only once the page
+        // has finished loading — otherwise macOS paints an opaque white
+        // webview before any HTML renders, causing a white startup flash.
+        .on_page_load(|window, payload| {
+            if window.label() == "main"
+                && payload.event() == tauri::webview::PageLoadEvent::Finished
+            {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
