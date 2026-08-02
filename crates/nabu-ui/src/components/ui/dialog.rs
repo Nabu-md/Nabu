@@ -105,6 +105,11 @@ pub fn ConfirmDialog(
     title: String,
     /// Message body.
     message: String,
+    /// Reactive message body — overrides `message` when provided, so callers
+    /// can keep the dialog copy fresh (e.g. item counts that change as the
+    /// selection does) without re-creating the component.
+    #[prop(optional)]
+    message_signal: Option<Memo<String>>,
     /// Confirm button label.
     #[prop(optional)]
     confirm_label: Option<&'static str>,
@@ -158,7 +163,9 @@ pub fn ConfirmDialog(
                         <div class="dialog-header">
                             <h2 class="dialog-title">{title.clone()}</h2>
                         </div>
-                        <div class="dialog-body">{message.clone()}</div>
+                        <div class="dialog-body">
+                            {message_signal.map(|m| m.get()).unwrap_or_else(|| message.clone())}
+                        </div>
                         <div class="dialog-footer">
                             <Button
                                 variant=ButtonVariant::Ghost

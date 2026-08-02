@@ -16,10 +16,15 @@ leptos = { version = "0.7.8", features = ["csr"] }
 serde = { version = "1.0.218", features = ["derive"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 nabu-core = { path = "../nabu-core", default-features = false }
-web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "Window"] }
+web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "CustomEvent", "Document", "Element", "HtmlCanvasElement", "Window"] }
+js-sys = "0.3.77"
 wasm-bindgen = "0.2.100"
 serde_json = "1.0.139"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen-futures = "0.4.50"
+# No `clock` feature: `chrono::Utc::now()` panics on wasm32-unknown-unknown
+# without the `wasmbind` feature. Trash relative times use `js_sys::Date::now()`
+# instead; chrono is only used for RFC 3339 parsing (no clock needed).
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 getrandom = { version = "0.2", features = ["js"] }
 console_error_panic_hook = "0.1.7"

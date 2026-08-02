@@ -50,6 +50,25 @@ pub struct ToastItem {
     pub kind: ToastKind,
     pub title: String,
     pub message: Option<String>,
+    /// Optional clickable action rendered as a button inside the toast
+    /// (e.g. an "Undo" button after an item is moved to trash).
+    pub action: Option<ToastAction>,
+}
+
+/// A clickable action attached to a toast.
+#[derive(Clone)]
+pub struct ToastAction {
+    pub label: String,
+    pub on_click: Callback<()>,
+}
+
+impl ToastAction {
+    pub fn new(label: impl Into<String>, on_click: Callback<()>) -> Self {
+        Self {
+            label: label.into(),
+            on_click,
+        }
+    }
 }
 
 /// Shared toast store, provided via [`ToastProvider`].
@@ -66,6 +85,29 @@ impl ToastContext {
         title: impl Into<String>,
         message: impl Into<String>,
     ) {
+        self.push_with_duration(kind, title, message, None, 5000);
+    }
+
+    /// Pushes a toast with a clickable action button and a longer lifetime so
+    /// the user has time to act on it.
+    pub fn push_with_action(
+        self,
+        kind: ToastKind,
+        title: impl Into<String>,
+        message: impl Into<String>,
+        action: ToastAction,
+    ) {
+        self.push_with_duration(kind, title, message, Some(action), 10_000);
+    }
+
+    fn push_with_duration(
+        self,
+        kind: ToastKind,
+        title: impl Into<String>,
+        message: impl Into<String>,
+        action: Option<ToastAction>,
+        duration_ms: u64,
+    ) {
         let id = uuid::Uuid::new_v4().to_string();
         let title = title.into();
         let message_str = message.into();
@@ -76,11 +118,12 @@ impl ToastContext {
                 kind,
                 title,
                 message: (!message_str.is_empty()).then_some(message_str),
+                action,
             });
         });
         set_timeout(
             move || toasts.update(|list| list.retain(|t| t.id != id)),
-            Duration::from_millis(5000),
+            Duration::from_millis(duration_ms),
         );
     }
 
@@ -123,6 +166,7 @@ pub fn ToastRegion() -> impl IntoView {
                 let kind = toast.kind;
                 let title = toast.title.clone();
                 let message = toast.message.clone();
+                let action = toast.action.clone();
                 let toasts = context.toasts;
                 view! {
                     <div class=format!("toast {}", kind.toast_class()) role="status">
@@ -131,6 +175,19 @@ pub fn ToastRegion() -> impl IntoView {
                             <div class="text-sm font-medium text-gray-100">{title}</div>
                             {message.map(|m| view! { <div class="text-xs text-gray-400">{m}</div> }.into_any())}
                         </div>
+                        {action.map(|a| {
+                            let label = a.label;
+                            let on_click = a.on_click;
+                            view! {
+                                <button
+                                    type="button"
+                                    class="toast-action"
+                                    on:click=move |_| on_click.run(())
+                                >
+                                    {label}
+                                </button>
+                            }.into_any()
+                        })}
                         <button
                             type="button"
                             class="toast-close"

@@ -291,6 +291,10 @@ pub fn check_vault_exists(store: State<'_, SettingsStore>) -> Result<Option<Stri
     let settings = store.get();
     let path = settings.last_vault_path.trim();
     if !path.is_empty() && Path::new(path).exists() {
+        // Retention runs at app startup with a previously-configured vault, so
+        // expired trashed items are purged even if the Trash screen is never
+        // opened (matches `trash_purge_expired`'s "on vault load" contract).
+        let _ = crate::history::trash_purge_expired(store.clone());
         Ok(Some(path.to_string()))
     } else {
         Ok(None)
@@ -321,6 +325,9 @@ pub fn select_vault_dialog(store: State<'_, SettingsStore>) -> Result<Option<Str
                 crate::settings::update_recent_vaults(s, path_str.clone(), name);
             })
             .map_err(|e| e.to_string())?;
+        // Retention runs as soon as a vault becomes active, so expired trashed
+        // items are purged even if the user never opens the Trash screen.
+        let _ = crate::history::trash_purge_expired(store.clone());
         Ok(Some(path_str))
     } else {
         Ok(None)
@@ -347,6 +354,7 @@ pub fn create_vault_dialog(store: State<'_, SettingsStore>) -> Result<Option<Str
                 crate::settings::update_recent_vaults(s, path_str.clone(), name);
             })
             .map_err(|e| e.to_string())?;
+        let _ = crate::history::trash_purge_expired(store.clone());
         Ok(Some(path_str))
     } else {
         Ok(None)

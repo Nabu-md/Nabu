@@ -8,6 +8,7 @@ use crate::components::note_editor::NoteEditor;
 use crate::components::reading_queue::ReadingQueue;
 use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::template_editor::TemplateEditor;
+use crate::components::trash::Trash;
 use crate::components::vault_setup_wizard::VaultSetupWizard;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -27,6 +28,7 @@ pub enum ViewMode {
     ReadingQueue,
     Templates,
     Settings,
+    Trash,
 }
 
 #[component]
@@ -159,6 +161,13 @@ pub fn App() -> impl IntoView {
                             >
                                 "📋 Templates"
                             </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Trash { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Trash)
+                                title="Trash (deleted items)"
+                            >
+                                "🗑️ Trash"
+                            </button>
 
                             <div class="flex-1"></div>
 
@@ -235,6 +244,11 @@ pub fn App() -> impl IntoView {
                                             on_assign=Callback::new(|_| {})
                                             on_unassign=Callback::new(|_| {})
                                         />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Trash => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <Trash />
                                     </div>
                                 }.into_any(),
                             }}

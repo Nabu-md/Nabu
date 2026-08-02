@@ -79,7 +79,7 @@ impl Default for AppSettings {
             auto_format_filler_words: true,
             pill_hover_boost_opacity: true,
             default_new_note_path: "Vault Root".to_string(),
-            trash_retention_policy: "Move to System Trash".to_string(),
+            trash_retention_policy: "30 Days".to_string(),
             force_sandbox_for_web_snippets: true,
             include_folders_in_graph: true,
             folder_click_behavior: "Open Folder Table View".to_string(),
@@ -232,8 +232,18 @@ fn validate_path(path: &Path) -> Result<(), SettingsError> {
 
 fn read_settings(path: &Path) -> Result<AppSettings, SettingsError> {
     let payload = std::fs::read_to_string(path).map_err(SettingsError::write)?;
-    let settings: AppSettings =
+    let mut settings: AppSettings =
         serde_json::from_str(&payload).map_err(|err| SettingsError::Malformed(err.to_string()))?;
+    // Phase 11.2: the trash retention policy changed from legacy values
+    // ("Move to System Trash" / ".trash Vault Folder" / "Permanently Delete")
+    // to retention periods. Normalize old values so the settings UI shows a
+    // valid option and retention stays safe (never auto-purge by default).
+    if !matches!(
+        settings.trash_retention_policy.as_str(),
+        "7 Days" | "30 Days" | "90 Days" | "Never"
+    ) {
+        settings.trash_retention_policy = "Never".to_string();
+    }
     Ok(settings)
 }
 

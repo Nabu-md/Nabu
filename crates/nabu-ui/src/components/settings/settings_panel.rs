@@ -61,7 +61,7 @@ pub fn SettingsPanel() -> impl IntoView {
 
     spawn_local(async move {
         let result = crate::ipc::tauri_invoke(
-            "settings_get_all",
+            "get_settings",
             serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
         )
         .await;
@@ -347,9 +347,10 @@ fn FileSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>
             <Select
                 label="Trash Retention"
                 options=vec![
-                    SelectOption::new("Move to System Trash", "Move to System Trash"),
-                    SelectOption::new("Move to .trash Vault Folder", "Move to .trash Vault Folder"),
-                    SelectOption::new("Permanently Delete", "Permanently Delete"),
+                    SelectOption::new("7 Days", "7 Days"),
+                    SelectOption::new("30 Days", "30 Days"),
+                    SelectOption::new("90 Days", "90 Days"),
+                    SelectOption::new("Never", "Never"),
                 ]
                 value=derive_string_field(settings, |s: &AppSettings| s.trash_retention_policy.clone())
                 on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.trash_retention_policy = v)

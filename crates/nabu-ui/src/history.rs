@@ -117,7 +117,10 @@ pub fn undo(history: HistoryContext, toasts: ToastContext) {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("history_undo", empty_args).await;
         match serde_wasm_bindgen::from_value::<Option<String>>(result) {
-            Ok(Some(label)) => toasts.info("Undo", format!("Undid: {label}")),
+            Ok(Some(label)) => {
+                toasts.info("Undo", format!("Undid: {label}"));
+                notify_history_changed();
+            }
             Ok(None) => toasts.warning("Undo", "Nothing to undo"),
             Err(_) => toasts.error("Undo", "Could not undo that action"),
         }
@@ -131,12 +134,29 @@ pub fn redo(history: HistoryContext, toasts: ToastContext) {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("history_redo", empty_args).await;
         match serde_wasm_bindgen::from_value::<Option<String>>(result) {
-            Ok(Some(label)) => toasts.info("Redo", format!("Redid: {label}")),
+            Ok(Some(label)) => {
+                toasts.info("Redo", format!("Redid: {label}"));
+                notify_history_changed();
+            }
             Ok(None) => toasts.warning("Redo", "Nothing to redo"),
             Err(_) => toasts.error("Redo", "Could not redo that action"),
         }
         refresh_history_state(history);
     });
+}
+
+/// Dispatches a window-level custom event after the vault changed via undo /
+/// redo. Screens that display derived filesystem state (e.g. the Trash screen)
+/// listen for `nabu:history-changed` and refresh, so an undo of a restore or
+/// delete is reflected immediately instead of only after a remount.
+fn notify_history_changed() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let Ok(event) = web_sys::CustomEvent::new("nabu:history-changed") else {
+        return;
+    };
+    let _ = window.dispatch_event(&event);
 }
 
 /// Returns `true` when keyboard focus is inside an editable element so native

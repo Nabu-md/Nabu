@@ -123,13 +123,170 @@ fn trash_dir(vault_path: &Path) -> PathBuf {
 
 /// A manifest record mapping a trashed file back to its original location.
 ///
-/// Public because it is returned to the frontend by [`trash_list`].
+/// Public because it is returned to the frontend by [`trash_list`]. New fields
+/// are `#[serde(default)]` so manifests written by older versions keep loading.
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct TrashRecord {
     /// The current location of the trashed file.
     pub trash_path: String,
     /// The original location the file should be restored to.
     pub original_path: String,
+    /// When the item was moved to trash (RFC 3339), used for retention.
+    #[serde(default)]
+    pub deleted_at: Option<String>,
+    /// True when the trashed item is a folder (restored / purged recursively).
+    #[serde(default)]
+    pub is_folder: bool,
+    /// Number of files this item represents (1 for a plain file; recursive for
+    /// folders). Shown in confirmation dialogs so users know the blast radius.
+    #[serde(default)]
+    pub file_count: usize,
+    /// A short text preview captured when the item was trashed (text files
+    /// only; `None` for binaries and folders).
+    #[serde(default)]
+    pub preview: Option<String>,
+}
+
+impl TrashRecord {
+    /// Builds a record for `src` about to be moved to `candidate`, capturing
+    /// the deletion timestamp, folder-ness, file count and a text preview.
+    fn for_move(candidate: PathBuf, src: &Path) -> Self {
+        let is_folder = src.is_dir();
+        let file_count = count_files(src);
+        let preview = if is_folder { None } else { text_preview(src) };
+        Self {
+            trash_path: candidate.display().to_string(),
+            original_path: src.display().to_string(),
+            deleted_at: Some(chrono::Utc::now().to_rfc3339()),
+            is_folder,
+            file_count,
+            preview,
+        }
+    }
+}
+
+/// Counts the number of files an item represents — 1 for a plain file, the
+/// recursive descendant count for a folder.
+fn count_files(path: &Path) -> usize {
+    if path.is_dir() {
+        let mut count = 0;
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.flatten() {
+                count += count_files(&entry.path());
+            }
+        }
+        count
+    } else {
+        1
+    }
+}
+
+/// Captures a short UTF-8 text preview (first 2 KiB) for text files. Returns
+/// `None` for folders, unreadable files and likely-binary content.
+fn text_preview(path: &Path) -> Option<String> {
+    if !path.is_file() {
+        return None;
+    }
+    let bytes = std::fs::read(path).ok()?;
+    if bytes.iter().take(1024).any(|b| *b == 0) {
+        return None;
+    }
+    let truncated = &bytes[..bytes.len().min(2048)];
+    Some(String::from_utf8_lossy(truncated).trim().to_string())
+}
+
+/// Resolves the path a trashed item should be restored to. When the original
+/// location is already occupied, appends a numeric suffix (`name (1).md`) so
+/// restoring never overwrites an existing file.
+fn resolve_restore_path(original: &Path) -> PathBuf {
+    if !original.exists() {
+        return original.to_path_buf();
+    }
+    let parent = original
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let stem = original
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "item".to_string());
+    let ext = original
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
+    let mut i = 1;
+    loop {
+        let candidate = parent.join(format!("{} ({}){}", stem, i, ext));
+        if !candidate.exists() {
+            return candidate;
+        }
+        i += 1;
+    }
+}
+
+/// Permanently removes a trashed item (recursively for folders) and drops its
+/// manifest record. This is irreversible — callers must confirm with the user.
+fn delete_from_trash(vault_path: &Path, trash_path: &Path) -> Result<(), String> {
+    let path = trash_path.to_path_buf();
+    if path.is_dir() {
+        std::fs::remove_dir_all(&path).map_err(|e| e.to_string())?;
+    } else {
+        let _ = std::fs::remove_file(&path); // tolerate already-missing files
+    }
+    let remaining: Vec<TrashRecord> = read_trash_manifest(vault_path)
+        .into_iter()
+        .filter(|r| Path::new(&r.trash_path) != trash_path)
+        .collect();
+    write_trash_manifest(vault_path, &remaining)?;
+    Ok(())
+}
+
+/// Number of days trashed items are retained, or `None` for "keep forever".
+/// Legacy policy strings from earlier versions map to "keep forever" so
+/// existing user data is never purged unexpectedly.
+fn retention_days(policy: &str) -> Option<i64> {
+    match policy.trim() {
+        "7 Days" | "7 days" | "7" => Some(7),
+        "30 Days" | "30 days" | "30" => Some(30),
+        "90 Days" | "90 days" | "90" => Some(90),
+        // "Never" and any legacy value ("Move to System Trash", …) keep
+        // everything until the user empties the trash manually.
+        _ => None,
+    }
+}
+
+/// Removes trashed items older than the configured retention period. Returns
+/// the number of items purged.
+fn purge_expired(vault_path: &Path, policy: &str) -> Result<usize, String> {
+    let Some(days) = retention_days(policy) else {
+        return Ok(0);
+    };
+    let cutoff = chrono::Utc::now() - chrono::Duration::days(days);
+    let mut remaining = Vec::new();
+    let mut purged = 0;
+    for record in read_trash_manifest(vault_path) {
+        let expired = record
+            .deleted_at
+            .as_deref()
+            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+            .map(|t| t.with_timezone(&chrono::Utc) < cutoff)
+            .unwrap_or(false);
+        if expired {
+            let path = PathBuf::from(&record.trash_path);
+            if path.is_dir() {
+                let _ = std::fs::remove_dir_all(&path);
+            } else {
+                let _ = std::fs::remove_file(&path);
+            }
+            purged += 1;
+        } else {
+            remaining.push(record);
+        }
+    }
+    if purged > 0 {
+        write_trash_manifest(vault_path, &remaining)?;
+    }
+    Ok(purged)
 }
 
 fn trash_manifest_path(vault_path: &Path) -> PathBuf {
@@ -178,10 +335,7 @@ fn trash_file(vault_path: &Path, src: &Path) -> Result<PathBuf, String> {
     // note appear deleted and unrecoverable). If the rename itself fails, the
     // just-written record is rolled back.
     let mut records = read_trash_manifest(vault_path);
-    records.push(TrashRecord {
-        trash_path: candidate.display().to_string(),
-        original_path: src.display().to_string(),
-    });
+    records.push(TrashRecord::for_move(candidate.clone(), src));
     write_trash_manifest(vault_path, &records)?;
 
     if let Err(e) = std::fs::rename(src, &candidate) {
@@ -205,7 +359,9 @@ fn restore_from_trash(vault_path: &Path, trash_path: &Path) -> Result<PathBuf, S
         .find(|r| Path::new(&r.trash_path) == trash_path)
         .ok_or_else(|| "Trash record not found".to_string())?;
 
-    let original = PathBuf::from(&record.original_path);
+    // Resolve conflicts gracefully — if the original location is now
+    // occupied, restore to a suffixed sibling instead of overwriting.
+    let original = resolve_restore_path(Path::new(&record.original_path));
     if let Some(parent) = original.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
@@ -222,7 +378,17 @@ fn restore_from_trash(vault_path: &Path, trash_path: &Path) -> Result<PathBuf, S
 /// Restores a trashed file by its *original* location — resolves the current
 /// trash record from the manifest so undo/redo can cycle indefinitely even
 /// though each trashing produces a fresh timestamped trash name.
-fn restore_by_original(vault_path: &Path, original_path: &Path) -> Result<(), String> {
+///
+/// ## Conflict policy
+///
+/// This variant restores to the **exact** original path and fails if that
+/// location is already occupied. It is used by the undo/redo history closures
+/// (`note_delete` undo, `note_restore` redo, `trash_restore_many` redo) where
+/// restoring to a suffixed sibling would desynchronise the paired closure: the
+/// redo would then re-trash the *occupying* file instead of the restored one.
+/// User-facing restores ([`restore_from_trash`]) still resolve conflicts
+/// gracefully via [`resolve_restore_path`].
+fn restore_by_original(vault_path: &Path, original_path: &Path) -> Result<PathBuf, String> {
     let records = read_trash_manifest(vault_path);
     let record = records
         .iter()
@@ -231,6 +397,12 @@ fn restore_by_original(vault_path: &Path, original_path: &Path) -> Result<(), St
         .ok_or_else(|| "Trash record not found for original path".to_string())?;
 
     let trash = PathBuf::from(&record.trash_path);
+    if original_path.exists() {
+        return Err(format!(
+            "Cannot restore '{}': the original location is already occupied",
+            original_path.display()
+        ));
+    }
     if let Some(parent) = original_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
@@ -241,7 +413,7 @@ fn restore_by_original(vault_path: &Path, original_path: &Path) -> Result<(), St
         .filter(|r| Path::new(&r.trash_path) != trash)
         .collect();
     write_trash_manifest(vault_path, &remaining)?;
-    Ok(())
+    Ok(original_path.to_path_buf())
 }
 
 // ── Reversible filesystem operations ──────────────────────────────────
@@ -390,15 +562,102 @@ pub fn note_restore(
     Ok(())
 }
 
-/// Lists the current contents of the vault trash.
+/// Lists the current contents of the vault trash. Expired items (per the
+/// configured retention policy) are purged first so the list always reflects
+/// the live state.
 #[tauri::command]
 pub fn trash_list(store: State<'_, SettingsStore>) -> Result<Vec<TrashRecord>, String> {
     let settings = store.get();
     let vault_path = PathBuf::from(&settings.last_vault_path);
+    let _ = purge_expired(&vault_path, &settings.trash_retention_policy);
     Ok(read_trash_manifest(&vault_path))
 }
 
-/// Permanently empties the vault trash (clears files + manifest).
+/// Permanently deletes the given trashed items (recursively for folders) and
+/// drops their manifest records. This is irreversible — the UI shows a
+/// confirmation dialog before invoking it.
+#[tauri::command]
+pub fn trash_delete(
+    trash_paths: Vec<String>,
+    store: State<'_, SettingsStore>,
+) -> Result<usize, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let mut deleted = 0;
+    for tp in &trash_paths {
+        if delete_from_trash(&vault_path, Path::new(tp)).is_ok() {
+            deleted += 1;
+        }
+    }
+    Ok(deleted)
+}
+
+/// Restores multiple trashed items at once (files and whole folders). Each
+/// item returns to its original location, resolving name conflicts.
+#[tauri::command]
+pub fn trash_restore_many(
+    trash_paths: Vec<String>,
+    ctx: State<'_, ApplicationContext>,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<String>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let mut restored_paths = Vec::new();
+    for tp in &trash_paths {
+        let trash = PathBuf::from(tp);
+        if !trash.exists() {
+            continue;
+        }
+        match restore_from_trash(&vault_path, &trash) {
+            Ok(original) => restored_paths.push(original.display().to_string()),
+            Err(e) => {
+                tracing::warn!(trash_path = %tp, error = %e, "Failed to restore trashed item");
+            }
+        }
+    }
+    if !restored_paths.is_empty() {
+        let undo_paths = restored_paths.clone();
+        let redo_paths = restored_paths.clone();
+        let undo_vault = vault_path.clone();
+        let redo_vault = vault_path.clone();
+        push_history(
+            &ctx,
+            HistoryOp::NoteRestore,
+            format!("Restore {} item(s) from Trash", restored_paths.len()),
+            trash_paths.clone(),
+            serde_json::json!({ "restored": false }),
+            serde_json::json!({ "restored": true, "paths": restored_paths }),
+            // Undo: trash the restored items again (fresh timestamped names).
+            Arc::new(move || {
+                for p in &undo_paths {
+                    let _ = trash_file(&undo_vault, Path::new(p));
+                }
+                Ok(())
+            }),
+            // Redo: restore again (resolved by original location).
+            Arc::new(move || {
+                for p in &redo_paths {
+                    let _ = restore_by_original(&redo_vault, Path::new(p));
+                }
+                Ok(())
+            }),
+        )?;
+    }
+    Ok(restored_paths)
+}
+
+/// Removes trashed items older than the configured retention period. Returns
+/// the number of items purged. Called automatically from [`trash_list`] and on
+/// vault load.
+#[tauri::command]
+pub fn trash_purge_expired(store: State<'_, SettingsStore>) -> Result<usize, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    purge_expired(&vault_path, &settings.trash_retention_policy)
+}
+
+/// Permanently empties the vault trash (clears files + manifest). This is
+/// irreversible — the UI shows a confirmation dialog before invoking it.
 #[tauri::command]
 pub fn trash_empty(store: State<'_, SettingsStore>) -> Result<usize, String> {
     let settings = store.get();
@@ -406,7 +665,12 @@ pub fn trash_empty(store: State<'_, SettingsStore>) -> Result<usize, String> {
     let records = read_trash_manifest(&vault_path);
     let count = records.len();
     for record in &records {
-        let _ = std::fs::remove_file(Path::new(&record.trash_path));
+        let path = Path::new(&record.trash_path);
+        if path.is_dir() {
+            let _ = std::fs::remove_dir_all(path);
+        } else {
+            let _ = std::fs::remove_file(path);
+        }
     }
     write_trash_manifest(&vault_path, &[])?;
     Ok(count)

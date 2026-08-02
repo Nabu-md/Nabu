@@ -948,6 +948,23 @@
   .toast-info {
     border-left-color: rgb(var(--color-info));
   }
+  .toast-action {
+    flex: none;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-panel);
+    border: 1px solid rgb(var(--color-primary) / 0.5);
+    background-color: rgb(var(--color-primary) / 0.15);
+    color: rgb(var(--color-primary));
+    font-size: var(--text-caption);
+    font-weight: 600;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
+  }
+  .toast-action:hover {
+    background-color: rgb(var(--color-primary) / 0.28);
+    color: #ffffff;
+  }
   .toast-close {
     background: none;
     border: none;

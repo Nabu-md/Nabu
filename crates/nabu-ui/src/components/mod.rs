@@ -15,5 +15,6 @@ pub mod settings;
 pub mod template_editor;
 pub mod template_picker;
 pub mod theme_toggle;
+pub mod trash;
 pub mod ui;
 pub mod vault_setup_wizard;
