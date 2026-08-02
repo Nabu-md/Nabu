@@ -16,7 +16,7 @@ leptos = { version = "0.7.8", features = ["csr"] }
 serde = { version = "1.0.218", features = ["derive"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 nabu-core = { path = "../nabu-core", default-features = false }
-web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "CustomEvent", "Document", "Element", "HtmlCanvasElement", "Window"] }
+web-sys = { version = "0.3.77", features = ["CanvasRenderingContext2d", "Clipboard", "CustomEvent", "CustomEventInit", "DataTransfer", "Document", "DragEvent", "Element", "File", "FileList", "HtmlCanvasElement", "HtmlInputElement", "HtmlTextAreaElement", "MouseEvent", "Navigator", "NodeList", "Window"] }
 js-sys = "0.3.77"
 wasm-bindgen = "0.2.100"
 serde_json = "1.0.139"

@@ -14,6 +14,7 @@ use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::template_editor::TemplateEditor;
 use crate::components::trash::Trash;
 use crate::components::vault_setup_wizard::VaultSetupWizard;
+use crate::components::workspace::{open_tab, provide_workspace};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -86,6 +87,9 @@ pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
     crate::history::provide_history();
     crate::components::recovery::save_status::provide_save_status();
+    // Capture the workspace context at render time so async tasks and raw
+    // event callbacks never call `expect_context` without a reactive owner.
+    let workspace = provide_workspace();
 
     let history = crate::history::use_history();
     let toasts = crate::components::ui::feedback::use_toast();
@@ -102,6 +106,20 @@ pub fn App() -> impl IntoView {
     // ── Phase 11.3: session persistence + crash recovery ───────────────
     // Workspace signals captured into the persisted session.
     let (active_note, set_active_note) = signal(Option::<String>::None);
+
+    // Phase 12.1: keep the editor's `active_note` in sync with the shared
+    // workspace tabs state. Clicking a tab (or opening a note from the tree)
+    // sets `workspace.active_path`; without this the editor would stay on the
+    // old note. Syncing `None` too means closing the last tab (or deleting the
+    // only open note) clears the editor instead of leaving it autosaving a
+    // trashed file back into existence. The editor's `on_active_note` guard
+    // and `open_tab` converge, so the mount loop terminates.
+    Effect::new(move |_| {
+        let path = workspace.active_path.get();
+        if active_note.get() != path {
+            set_active_note.set(path);
+        }
+    });
     let (editor_cursor, set_editor_cursor) = signal(0u32);
     let (editor_scroll, set_editor_scroll) = signal(0u32);
     let pending_recovery = RwSignal::new(None::<crate::components::recovery::session::RecoveryStatus>);
@@ -122,9 +140,11 @@ pub fn App() -> impl IntoView {
                 if let Some(mode) = session.view_mode.as_deref() {
                     set_view_mode.set(parse_view_mode(mode));
                 }
-                if let Some(note) = session.active_note.clone() {
-                    set_active_note.set(Some(note));
-                }
+            if let Some(note) = session.active_note.clone() {
+                set_active_note.set(Some(note.clone()));
+                // Open the restored note in a workspace tab too.
+                open_tab(workspace, &note);
+            }
                 if let Some(cursor) = session.cursor_pos {
                     set_editor_cursor.set(cursor);
                 }
@@ -191,7 +211,8 @@ pub fn App() -> impl IntoView {
             set_view_mode.set(parse_view_mode(mode));
         }
         if let Some(note) = session.active_note.clone() {
-            set_active_note.set(Some(note));
+            set_active_note.set(Some(note.clone()));
+            open_tab(workspace, &note);
         }
         if let Some(cursor) = session.cursor_pos {
             set_editor_cursor.set(cursor);
@@ -404,7 +425,10 @@ pub fn App() -> impl IntoView {
                                             initial_content=initial_content.get()
                                             on_active_note=Callback::new(move |p: String| {
                                                 if active_note.get().as_deref() != Some(p.as_str()) {
-                                                    set_active_note.set(Some(p));
+                                                    set_active_note.set(Some(p.clone()));
+                                                    // Opening from a session restore / editor mount
+                                                    // should surface in the tab bar.
+                                                    open_tab(workspace, &p);
                                                 }
                                             })
                                             on_cursor=Callback::new(move |c: u32| set_editor_cursor.set(c))

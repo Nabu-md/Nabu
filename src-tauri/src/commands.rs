@@ -284,6 +284,133 @@ fn custom_number(obj: &KnowledgeObject, key: &str) -> Option<f64> {
     }
 }
 
+// ── File Tree Commands ────────────────────────────────────────────
+
+/// One entry of the vault file tree returned to the frontend. `path` is
+/// vault-relative (forward slashes) so the frontend can round-trip it to the
+/// other file commands; hidden entries (`.nabu`, dotfiles) are skipped.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreeEntry {
+    pub name: String,
+    pub path: String,
+    pub is_folder: bool,
+    pub children: Vec<TreeEntry>,
+}
+
+/// Recursively scans `dir`, producing vault-relative [`TreeEntry`]s.
+/// Hidden entries (leading `.`) are skipped so metadata dirs like `.nabu`
+/// never appear in the user-facing tree.
+fn scan_tree(dir: &Path, prefix: &str) -> Vec<TreeEntry> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut items: Vec<TreeEntry> = entries
+        .flatten()
+        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .map(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let is_folder = e.file_type().map(|t| t.is_dir()).unwrap_or_else(|_| {
+                std::fs::metadata(e.path()).map(|m| m.is_dir()).unwrap_or(false)
+            });
+            let children = if is_folder {
+                scan_tree(&e.path(), &path)
+            } else {
+                Vec::new()
+            };
+            TreeEntry {
+                name,
+                path,
+                is_folder,
+                children,
+            }
+        })
+        .collect();
+    // Folders first, then notes, each alphabetically — matches Finder/Explorer.
+    items.sort_by(|a, b| {
+        b.is_folder
+            .cmp(&a.is_folder)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+    items
+}
+
+/// Returns the vault's file tree (vault-relative paths). The left sidebar
+/// renders this and drives drag-and-drop, context menus and inline rename.
+#[tauri::command]
+pub fn tree_list(store: State<'_, SettingsStore>) -> Result<Vec<TreeEntry>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    if vault_path.as_os_str().is_empty() || !vault_path.exists() {
+        return Ok(Vec::new());
+    }
+    Ok(scan_tree(&vault_path, ""))
+}
+
+/// Reveals a vault-relative path in the operating system's file manager
+/// (Finder / Explorer / the default file manager).
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub fn reveal_in_file_manager(
+    path: String,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let full = validate_path_within_vault(&vault_path, &path)?;
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&full)
+        .status()
+        .map_err(|e| format!("Could not reveal in Finder: {e}"))?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn reveal_in_file_manager(
+    path: String,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let full = validate_path_within_vault(&vault_path, &path)?;
+    std::process::Command::new("explorer")
+        .arg("/select,")
+        .arg(&full)
+        .spawn()
+        .map_err(|e| format!("Could not reveal in Explorer: {e}"))?;
+    Ok(())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+#[tauri::command]
+pub fn reveal_in_file_manager(
+    path: String,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    use std::path::Path as P;
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let full = validate_path_within_vault(&vault_path, &path)?;
+    // `xdg-open` opens the parent directory for folders; for files, open the
+    // containing directory (there is no portable "select" flag).
+    let target = if full.is_dir() {
+        full
+    } else {
+        full.parent().map(P::to_path_buf).unwrap_or(vault_path)
+    };
+    std::process::Command::new("xdg-open")
+        .arg(target)
+        .spawn()
+        .map_err(|e| format!("Could not open file manager: {e}"))?;
+    Ok(())
+}
+
 // ── Vault Commands ─────────────────────────────────────────────
 
 #[tauri::command]

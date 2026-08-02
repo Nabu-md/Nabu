@@ -722,6 +722,198 @@ pub fn folder_create(
     Ok(())
 }
 
+/// Recursively copies `src` to `dest`. `dest` must not exist.
+fn copy_tree(src: &Path, dest: &Path) -> Result<(), String> {
+    if src.is_dir() {
+        std::fs::create_dir_all(dest).map_err(|e| e.to_string())?;
+        let entries = std::fs::read_dir(src).map_err(|e| e.to_string())?;
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            copy_tree(&entry.path(), &dest.join(&name))?;
+        }
+        Ok(())
+    } else {
+        if let Some(parent) = dest.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+        }
+        std::fs::copy(src, dest).map(|_| ()).map_err(|e| e.to_string())
+    }
+}
+
+/// Recursively removes a folder or file (used only for undo of duplication,
+/// never on user data directly).
+fn remove_tree(path: &Path) -> Result<(), String> {
+    if path.is_dir() {
+        std::fs::remove_dir_all(path).map_err(|e| e.to_string())
+    } else {
+        std::fs::remove_file(path).map_err(|e| e.to_string())
+    }
+}
+
+/// Resolves a non-colliding destination path: appends ` (n)` before the
+/// extension until the path is free (same convention as trash restore).
+fn resolve_dest_path(dest: &Path) -> PathBuf {
+    if !dest.exists() {
+        return dest.to_path_buf();
+    }
+    let parent = dest
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let stem = dest
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "item".to_string());
+    let ext = dest
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
+    let mut i = 1;
+    loop {
+        let candidate = parent.join(format!("{} ({}){}", stem, i, ext));
+        if !candidate.exists() {
+            return candidate;
+        }
+        i += 1;
+    }
+}
+
+/// Duplicates a vault item (note or folder, recursively) to `dest`
+/// (vault-relative). Registers an undoable history entry; undo removes the
+/// copy, redo re-copies it.
+#[tauri::command]
+pub fn note_duplicate(
+    from: String,
+    dest: String,
+    ctx: State<'_, ApplicationContext>,
+    store: State<'_, SettingsStore>,
+) -> Result<String, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+    let from_path = validate_path_within_vault(&vault_path, &from)?;
+    if !from_path.exists() {
+        return Err(format!("Source does not exist: {}", from));
+    }
+
+    // Resolve a non-colliding absolute destination, but report the
+    // vault-relative path to the frontend so it can refresh correctly.
+    let dest_abs = validate_path_within_vault(&vault_path, &dest)?;
+    let final_abs = resolve_dest_path(&dest_abs);
+    let final_rel = final_abs
+        .strip_prefix(&vault_path)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| dest.clone());
+
+    copy_tree(&from_path, &final_abs)?;
+
+    let undo_path = final_abs.clone();
+    let redo_from = from_path;
+    let redo_dest = final_abs;
+    push_history(
+        &ctx,
+        HistoryOp::FolderCreate, // grouped with other item mutations
+        format!("Duplicate '{}'", from),
+        vec![from.clone(), final_rel.clone()],
+        serde_json::json!({ "copied": false, "from": from }),
+        serde_json::json!({ "copied": true, "from": from, "dest": final_rel }),
+        // Undo: remove the copy.
+        Arc::new(move || {
+            if undo_path.exists() {
+                remove_tree(&undo_path)?;
+            }
+            Ok(())
+        }),
+        // Redo: copy again.
+        Arc::new(move || {
+            copy_tree(&redo_from, &redo_dest)?;
+            Ok(())
+        }),
+    )?;
+    Ok(final_rel)
+}
+
+/// Moves several vault items (notes or folders) into a destination folder
+/// (vault-relative, e.g. "Archive" or ""). Registers a single undoable entry
+/// so the whole batch can be reversed at once.
+#[tauri::command]
+pub fn items_move(
+    items: Vec<String>,
+    dest_folder: String,
+    ctx: State<'_, ApplicationContext>,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<String>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(&settings.last_vault_path);
+
+    // Destination folder must exist (or be the vault root) and be a directory.
+    let dest_abs = if dest_folder.trim().is_empty() {
+        vault_path.clone()
+    } else {
+        let d = validate_path_within_vault(&vault_path, &dest_folder)?;
+        if !d.is_dir() {
+            return Err(format!("Destination is not a folder: {}", dest_folder));
+        }
+        d
+    };
+
+    let mut moved: Vec<(PathBuf, PathBuf)> = Vec::new(); // (from_abs, to_abs)
+    for item in &items {
+        let from_abs = validate_path_within_vault(&vault_path, item)?;
+        if !from_abs.exists() {
+            continue;
+        }
+        let name = from_abs
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "item".to_string());
+        let to_abs = resolve_dest_path(&dest_abs.join(&name));
+        if let Some(parent) = to_abs.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+        }
+        std::fs::rename(&from_abs, &to_abs).map_err(|e| e.to_string())?;
+        moved.push((from_abs, to_abs));
+    }
+
+    if !moved.is_empty() {
+        let undo_moved = moved.clone();
+        let redo_moved = moved.clone();
+        let mut affected: Vec<String> = items.clone();
+        affected.push(dest_folder.clone());
+        push_history(
+            &ctx,
+            HistoryOp::NoteRename,
+            format!("Move {} item(s)", moved.len()),
+            affected,
+            serde_json::json!({ "moved": false, "items": items }),
+            serde_json::json!({ "moved": true, "items": items, "dest": dest_folder }),
+            // Undo: move everything back to its original location.
+            Arc::new(move || {
+                for (from, to) in &undo_moved {
+                    if to.exists() {
+                        let _ = std::fs::rename(to, from);
+                    }
+                }
+                Ok(())
+            }),
+            // Redo: move everything forward again.
+            Arc::new(move || {
+                for (from, to) in &redo_moved {
+                    if from.exists() {
+                        let _ = std::fs::rename(from, to);
+                    }
+                }
+                Ok(())
+            }),
+        )?;
+    }
+
+    Ok(moved.iter().map(|(_, to)| to.display().to_string()).collect())
+}
+
 /// Renames a folder and registers an undoable entry.
 #[tauri::command]
 pub fn folder_rename(

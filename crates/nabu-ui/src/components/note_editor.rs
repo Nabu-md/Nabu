@@ -5,6 +5,15 @@ use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
+/// Vault-relative path of a dropped internal note (set by the file tree).
+const NABU_NOTE_MIME: &str = "application/x-nabu-note";
+
+/// File extensions treated as embeddable images.
+fn is_image(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"].iter().any(|ext| lower.ends_with(ext))
+}
+
 /// Debounce delay (ms) between the last keystroke and an autosave.
 const AUTOSAVE_DELAY_MS: u64 = 800;
 
@@ -138,13 +147,108 @@ pub fn NoteEditor(
         }
     };
 
+    // ── Phase 12.1: drag-and-drop into the editor ────────────────────────
+    // Dragging an internal note inserts a `[[wikilink]]` at the cursor;
+    // dragging an image file inserts `![name](name)` markdown; any other
+    // file inserts a `[name](name)` link; plain text is inserted verbatim.
+    let ta_ref = NodeRef::<leptos::html::Textarea>::new();
+    let (drag_hover, set_drag_hover) = signal(false);
+
+    let insert_at_cursor = move |snippet: String| {
+        let Some(ta) = ta_ref.get() else {
+            set_content.update(|c| c.push_str(&snippet));
+            return;
+        };
+        let start = ta.selection_start().ok().flatten().unwrap_or(0) as usize;
+        let end = ta.selection_end().ok().flatten().unwrap_or(start as u32) as usize;
+        let mut value = content.get_untracked();
+        value.insert_str(end, &snippet);
+        set_content.set(value.clone());
+        set_dirty.update(|v| *v = v.wrapping_add(1));
+        let new_caret = (end + snippet.len()) as u32;
+        let _ = ta.set_selection_range(new_caret, new_caret);
+    };
+
+    let on_editor_dragover = move |ev: web_sys::DragEvent| {
+        ev.prevent_default();
+        set_drag_hover.set(true);
+    };
+    let on_editor_dragleave = move |_ev: web_sys::DragEvent| set_drag_hover.set(false);
+    let on_editor_drop = move |ev: web_sys::DragEvent| {
+        ev.prevent_default();
+        set_drag_hover.set(false);
+        let Some(dt) = ev.data_transfer() else { return };
+
+        // Internal note (from the file tree)? Insert a wikilink.
+        if let Ok(nabu_path) = dt.get_data(NABU_NOTE_MIME) {
+            if !nabu_path.is_empty() {
+                let stem = nabu_path
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(&nabu_path)
+                    .trim_end_matches(".md")
+                    .to_string();
+                insert_at_cursor(format!("[[{}]]", stem));
+                return;
+            }
+        }
+
+        // External files? Insert markdown per kind.
+        if let Some(files) = dt.files() {
+            let mut snippets = Vec::new();
+            for i in 0..files.length() {
+                if let Some(file) = files.get(i) {
+                    let name = file.name();
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let snippet = if is_image(&name) {
+                        format!("![{}]({})", name, name)
+                    } else if name.to_lowercase().ends_with(".md") {
+                        format!("[[{}]]", name.trim_end_matches(".md"))
+                    } else {
+                        format!("[{}]({})", name, name)
+                    };
+                    snippets.push(snippet);
+                }
+            }
+            if !snippets.is_empty() {
+                insert_at_cursor(snippets.join("\n"));
+                return;
+            }
+        }
+
+        // Plain text (external drag of selected text).
+        if let Ok(text) = dt.get_data("text/plain") {
+            if !text.is_empty() {
+                insert_at_cursor(text);
+            }
+        }
+    };
+
     view! {
-        <div class="note-editor relative h-full flex flex-col" on:keydown=move |ev| if ev.key() == "/" { set_show_menu.set(true) }>
+        <div
+            class="note-editor relative h-full flex flex-col"
+            on:keydown=move |ev| if ev.key() == "/" { set_show_menu.set(true) }
+            on:dragover=on_editor_dragover
+            on:dragleave=on_editor_dragleave
+            on:drop=on_editor_drop
+        >
             <div class="flex items-center justify-between px-1 pb-1 text-xs text-gray-500">
                 <span class="truncate">{path.clone()}</span>
                 <span class="text-gray-600">"Markdown"</span>
             </div>
+            {move || if drag_hover.get() {
+                view! {
+                    <div class="editor-drop-overlay absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded border-2 border-dashed border-blue-500 bg-blue-500/10">
+                        <span class="text-sm font-medium text-blue-300 bg-gray-900/80 px-3 py-1 rounded">"Drop to insert link, image or text"</span>
+                    </div>
+                }.into_any()
+            } else {
+                view! {}.into_any()
+            }}
             <textarea
+                node_ref=ta_ref
                 prop:value=content
                 on:input=move |ev| {
                     let value = event_target_value(&ev);
