@@ -5,6 +5,7 @@ pub mod file_tree;
 pub mod graph_view;
 pub mod inbox;
 pub mod layout;
+pub mod navigation;
 pub mod note_editor;
 pub mod note_view;
 pub mod pdf_viewer;

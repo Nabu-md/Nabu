@@ -195,7 +195,7 @@ pub fn Segmented(
 }
 
 /// One option of a [`Select`] dropdown.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct SelectOption {
     pub value: String,
     pub label: String,

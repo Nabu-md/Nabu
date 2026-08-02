@@ -169,6 +169,38 @@ pub fn NoteEditor(
         let _ = ta.set_selection_range(new_caret, new_caret);
     };
 
+    // Wrap the current selection in markdown markers (Cmd/Ctrl+B → **bold**,
+    // Cmd/Ctrl+I → *italic*). Mirrors the ShortcutReference registry.
+    let wrap_selection = move |before: &str, after: &str| {
+        let Some(ta) = ta_ref.get() else { return };
+        let start = ta.selection_start().ok().flatten().unwrap_or(0) as usize;
+        let end = ta.selection_end().ok().flatten().unwrap_or(start as u32) as usize;
+        let mut value = content.get_untracked();
+        let selected: String = value[start..end].to_string();
+        value.replace_range(start..end, &format!("{before}{selected}{after}"));
+        set_content.set(value);
+        set_dirty.update(|v| *v = v.wrapping_add(1));
+        // Put the cursor after the closing marker.
+        let caret = (end + before.len() + after.len()) as u32;
+        let _ = ta.set_selection_range(caret, caret);
+    };
+
+    let on_editor_keydown = move |ev: web_sys::KeyboardEvent| {
+        let meta = ev.meta_key() || ev.ctrl_key();
+        if !meta {
+            return;
+        }
+        let shift = ev.shift_key();
+        let key = ev.key();
+        if !shift && key.eq_ignore_ascii_case("b") {
+            ev.prevent_default();
+            wrap_selection("**", "**");
+        } else if !shift && key.eq_ignore_ascii_case("i") {
+            ev.prevent_default();
+            wrap_selection("*", "*");
+        }
+    };
+
     let on_editor_dragover = move |ev: web_sys::DragEvent| {
         ev.prevent_default();
         set_drag_hover.set(true);
@@ -250,6 +282,7 @@ pub fn NoteEditor(
             <textarea
                 node_ref=ta_ref
                 prop:value=content
+                on:keydown=on_editor_keydown
                 on:input=move |ev| {
                     let value = event_target_value(&ev);
                     set_content.set(value);

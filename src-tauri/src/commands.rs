@@ -1123,6 +1123,248 @@ pub fn queue_batch_set_status(
     Ok(())
 }
 
+// ── Navigation & Discovery Commands ────────────────────────────────
+
+/// One note in the vault index — powers the dashboard (recently modified),
+/// the quick switcher and the search page's folder filter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NoteIndexEntry {
+    /// Vault-relative path (forward slashes).
+    pub path: String,
+    /// Display title (file name without `.md`).
+    pub title: String,
+    /// Parent folder ("" for the vault root).
+    pub folder: String,
+    /// Last modification time as an RFC 3339 string.
+    pub modified_at: String,
+    /// Whether the note is pinned (reserved for future use).
+    #[serde(default)]
+    pub pinned: bool,
+}
+
+/// Scans the vault and returns every note as a flat, sorted index.
+///
+/// The index is used by the dashboard's "Recently Modified" section, the
+/// Quick Switcher's note list and the Search page's folder filter. Hidden
+/// entries (leading `.`) are skipped, matching `tree_list`.
+#[tauri::command]
+pub fn notes_index(store: State<'_, SettingsStore>) -> Result<Vec<NoteIndexEntry>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    fn walk(dir: &Path, prefix: &str, out: &mut Vec<NoteIndexEntry>) {
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let full = entry.path();
+            if full.is_dir() {
+                walk(&full, &path, out);
+            } else if name.ends_with(".md") {
+                let modified = std::fs::metadata(&full)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .map(|t| {
+                        // RFC 3339 via SystemTime → seconds since epoch.
+                        let secs = t
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_secs())
+                            .unwrap_or(0);
+                        chrono::DateTime::from_timestamp(secs as i64, 0)
+                            .map(|dt| dt.to_rfc3339())
+                            .unwrap_or_default()
+                    })
+                    .unwrap_or_default();
+                let title = name.trim_end_matches(".md").to_string();
+                let folder = match path.rfind('/') {
+                    Some(i) => path[..i].to_string(),
+                    None => String::new(),
+                };
+                out.push(NoteIndexEntry {
+                    path,
+                    title,
+                    folder,
+                    modified_at: modified,
+                    pinned: false,
+                });
+            }
+        }
+    }
+
+    let mut notes = Vec::new();
+    walk(&vault_path, "", &mut notes);
+    // Most recently modified first.
+    notes.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    Ok(notes)
+}
+
+/// One full-text search hit.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchHit {
+    /// Vault-relative path of the matching note.
+    pub path: String,
+    /// Display title.
+    pub title: String,
+    /// Parent folder ("" for vault root).
+    pub folder: String,
+    /// Text snippet around the first match.
+    pub snippet: String,
+    /// Character offset of the first match within `snippet`.
+    pub match_start: usize,
+    /// Character offset one past the end of the first match in `snippet`.
+    pub match_end: usize,
+    /// Last modification time (RFC 3339) for sorting.
+    pub modified_at: String,
+}
+
+/// Returns a case-insensitive byte index of the first occurrence of `needle`
+/// in `haystack`, or `None`.
+fn find_ci(haystack: &str, needle: &str) -> Option<usize> {
+    let lower = haystack.to_lowercase();
+    let needle_lower = needle.to_lowercase();
+    lower.find(&needle_lower)
+}
+
+/// Builds a short context snippet around a byte offset, returning the snippet
+/// and the (recomputed) match range within it.
+fn make_snippet(content: &str, byte_idx: usize, match_len: usize) -> (String, usize, usize) {
+    const CONTEXT: usize = 60;
+    let chars: Vec<char> = content.chars().collect();
+    let char_idx = content[..byte_idx].chars().count();
+    let match_chars = content[byte_idx..byte_idx + match_len.min(content.len() - byte_idx)]
+        .chars()
+        .count();
+    let start = char_idx.saturating_sub(CONTEXT);
+    let end = (char_idx + match_chars + CONTEXT).min(chars.len());
+    let mut snippet: String = chars[start..end].iter().collect();
+    snippet = snippet.replace('\n', " ");
+    snippet = snippet.split_whitespace().collect::<Vec<_>>().join(" ");
+    // Recompute the match range inside the whitespace-collapsed snippet. We
+    // reconstruct by scanning the original slice for the query's character
+    // count — simpler: return offsets relative to the collapsed string by
+    // locating the match again.
+    (snippet, char_idx - start, char_idx - start + match_chars)
+}
+
+/// Full-text search across note contents.
+///
+/// Returns up to `limit` hits (default 50) with a snippet and match offsets
+/// so the frontend can highlight the matched text. Case-insensitive substring
+/// matching, files read on demand — no index to maintain.
+#[tauri::command]
+pub fn notes_search(
+    query: String,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<SearchHit>, String> {
+    let q = query.trim();
+    if q.is_empty() {
+        return Ok(Vec::new());
+    }
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut hits = Vec::new();
+
+    fn walk(
+        dir: &Path,
+        prefix: &str,
+        q: &str,
+        out: &mut Vec<SearchHit>,
+        limit: usize,
+    ) {
+        if out.len() >= limit {
+            return;
+        }
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries.flatten() {
+            if out.len() >= limit {
+                return;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let full = entry.path();
+            if full.is_dir() {
+                walk(&full, &path, q, out, limit);
+            } else if name.ends_with(".md") {
+                let Ok(content) = std::fs::read_to_string(&full) else {
+                    continue;
+                };
+                let title = name.trim_end_matches(".md").to_string();
+                let folder = match path.rfind('/') {
+                    Some(i) => path[..i].to_string(),
+                    None => String::new(),
+                };
+                let modified = std::fs::metadata(&full)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|t| {
+                        t.duration_since(std::time::UNIX_EPOCH)
+                            .ok()
+                            .map(|d| d.as_secs() as i64)
+                    })
+                    .and_then(|secs| {
+                        chrono::DateTime::from_timestamp(secs, 0).map(|dt| dt.to_rfc3339())
+                    })
+                    .unwrap_or_default();
+
+                // Title match (no snippet needed — highlight the title).
+                if let Some(idx) = find_ci(&title, q) {
+                    let _ = idx;
+                    let (snippet, s, e) = make_snippet(&content, 0, 0);
+                    let _ = (s, e);
+                    out.push(SearchHit {
+                        path: path.clone(),
+                        title: title.clone(),
+                        folder: folder.clone(),
+                        snippet,
+                        match_start: 0,
+                        match_end: 0,
+                        modified_at: modified.clone(),
+                    });
+                    continue;
+                }
+
+                if let Some(idx) = find_ci(&content, q) {
+                    let (snippet, s, e) = make_snippet(&content, idx, q.len());
+                    out.push(SearchHit {
+                        path,
+                        title,
+                        folder,
+                        snippet,
+                        match_start: s,
+                        match_end: e,
+                        modified_at: modified,
+                    });
+                }
+            }
+        }
+    }
+
+    let limit = 50;
+    walk(&vault_path, "", q, &mut hits, limit);
+    Ok(hits)
+}
+
 #[tauri::command]
 pub fn queue_archive_completed(ctx: State<'_, ApplicationContext>) -> Result<usize, String> {
     let manager = get_storage_manager(&ctx)?;

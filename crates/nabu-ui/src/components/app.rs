@@ -4,11 +4,20 @@ use crate::components::layout::left_sidebar::LeftSidebar;
 use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
+use crate::components::navigation::command_palette::CommandPalette;
+use crate::components::navigation::dashboard::Dashboard;
+use crate::components::navigation::home_screen::HomeScreen;
+use crate::components::navigation::navbar::NavBar;
+use crate::components::navigation::quick_switcher::QuickSwitcher;
+use crate::components::navigation::search_page::SearchPage;
+use crate::components::navigation::shortcuts::{install_global_shortcuts, ShortcutReference};
+use crate::components::navigation::state::{
+    load_all_nav_state, load_notes_index, parse_view_mode, provide_navigation, record_recent_note,
+};
 use crate::components::note_editor::NoteEditor;
 use crate::components::reading_queue::ReadingQueue;
 use crate::components::recovery::RecoveryBanner;
 use crate::components::recovery::RecoveryManager;
-use crate::components::recovery::SaveStatusIndicator;
 use crate::components::recovery::VersionHistory;
 use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::template_editor::TemplateEditor;
@@ -18,39 +27,15 @@ use crate::components::workspace::{open_tab, provide_workspace};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
+/// Canonical view-mode type — re-exported so existing `crate::components::app::ViewMode`
+/// references (e.g. the ribbon bar) keep working.
+pub use crate::components::navigation::state::ViewMode;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum AppScreen {
     Loading,
     VaultSetup,
     MainDashboard,
-}
-
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum ViewMode {
-    Editor,
-    Graph,
-    Inbox,
-    ReadingQueue,
-    Templates,
-    Settings,
-    Trash,
-    History,
-    Recovery,
-}
-
-/// Maps a persisted session view-mode string back to a [`ViewMode`].
-fn parse_view_mode(mode: &str) -> ViewMode {
-    match mode.to_lowercase().as_str() {
-        "graph" => ViewMode::Graph,
-        "inbox" => ViewMode::Inbox,
-        "readingqueue" | "reading_queue" => ViewMode::ReadingQueue,
-        "templates" => ViewMode::Templates,
-        "settings" => ViewMode::Settings,
-        "trash" => ViewMode::Trash,
-        "history" => ViewMode::History,
-        "recovery" => ViewMode::Recovery,
-        _ => ViewMode::Editor,
-    }
 }
 
 /// Renders the persisted-session form of the current workspace state.
@@ -90,15 +75,16 @@ pub fn App() -> impl IntoView {
     // Capture the workspace context at render time so async tasks and raw
     // event callbacks never call `expect_context` without a reactive owner.
     let workspace = provide_workspace();
+    let nav = provide_navigation();
+    // Load persisted discovery state (recents, favourites, searches) + the
+    // vault note index that powers the dashboard / quick switcher.
+    load_all_nav_state(nav);
+    load_notes_index(nav);
 
-    let history = crate::history::use_history();
     let toasts = crate::components::ui::feedback::use_toast();
 
     let (screen, set_screen) = signal(AppScreen::Loading);
     let (_vault_path, set_vault_path) = signal(String::new());
-    let (view_mode, set_view_mode) = signal(ViewMode::Editor);
-    let (show_left_sidebar, set_show_left_sidebar) = signal(true);
-    let (show_right_inspector, set_show_right_inspector) = signal(true);
     let (initial_content, _set_initial_content) = signal(
         "# Welcome to Nabu\n\nA powerful markdown note-taking app with graph visualization and AI dictation.\n\n- [[Graph View]]\n- [[Settings]]\n- Task: - [ ] Explore features".to_string()
     );
@@ -117,7 +103,11 @@ pub fn App() -> impl IntoView {
     Effect::new(move |_| {
         let path = workspace.active_path.get();
         if active_note.get() != path {
-            set_active_note.set(path);
+            set_active_note.set(path.clone());
+        }
+        // Record navigation history whenever a note becomes active.
+        if let Some(p) = path {
+            record_recent_note(nav, &p);
         }
     });
     let (editor_cursor, set_editor_cursor) = signal(0u32);
@@ -138,13 +128,13 @@ pub fn App() -> impl IntoView {
             } else if let Some(session) = status.session {
                 // Clean shutdown with a saved session: restore automatically.
                 if let Some(mode) = session.view_mode.as_deref() {
-                    set_view_mode.set(parse_view_mode(mode));
+                    nav.view_mode.set(parse_view_mode(mode));
                 }
-            if let Some(note) = session.active_note.clone() {
-                set_active_note.set(Some(note.clone()));
-                // Open the restored note in a workspace tab too.
-                open_tab(workspace, &note);
-            }
+                if let Some(note) = session.active_note.clone() {
+                    set_active_note.set(Some(note.clone()));
+                    // Open the restored note in a workspace tab too.
+                    open_tab(workspace, &note);
+                }
                 if let Some(cursor) = session.cursor_pos {
                     set_editor_cursor.set(cursor);
                 }
@@ -152,10 +142,10 @@ pub fn App() -> impl IntoView {
                     set_editor_scroll.set(scroll);
                 }
                 if let Some(left) = session.left_sidebar {
-                    set_show_left_sidebar.set(left);
+                    nav.show_left_sidebar.set(left);
                 }
                 if let Some(right) = session.right_inspector {
-                    set_show_right_inspector.set(right);
+                    nav.show_right_inspector.set(right);
                 }
             }
         }
@@ -164,9 +154,9 @@ pub fn App() -> impl IntoView {
     // Persist the session (debounced) whenever any workspace field changes.
     let (session_dirty, set_session_dirty) = signal(0u32);
     Effect::new(move |_| {
-        let _ = view_mode.get();
-        let _ = show_left_sidebar.get();
-        let _ = show_right_inspector.get();
+        let _ = nav.view_mode.get();
+        let _ = nav.show_left_sidebar.get();
+        let _ = nav.show_right_inspector.get();
         let _ = active_note.get();
         let _ = editor_cursor.get();
         let _ = editor_scroll.get();
@@ -177,12 +167,12 @@ pub fn App() -> impl IntoView {
         set_timeout(
             move || {
                 let state = session_state_from(
-                    view_mode.get(),
+                    nav.view_mode.get(),
                     active_note.get(),
                     editor_cursor.get(),
                     editor_scroll.get(),
-                    show_left_sidebar.get(),
-                    show_right_inspector.get(),
+                    nav.show_left_sidebar.get(),
+                    nav.show_right_inspector.get(),
                 );
                 crate::components::recovery::session::session_save(&state);
             },
@@ -194,12 +184,12 @@ pub fn App() -> impl IntoView {
     // cursor / scroll position.
     let beforeunload_handle = window_event_listener_untyped("beforeunload", move |_| {
         let state = session_state_from(
-            view_mode.get(),
+            nav.view_mode.get(),
             active_note.get(),
             editor_cursor.get(),
             editor_scroll.get(),
-            show_left_sidebar.get(),
-            show_right_inspector.get(),
+            nav.show_left_sidebar.get(),
+            nav.show_right_inspector.get(),
         );
         crate::components::recovery::session::session_save(&state);
     });
@@ -208,7 +198,7 @@ pub fn App() -> impl IntoView {
     // Restore-session action from the recovery banner.
     let restore_session = Callback::new(move |session: crate::components::recovery::session::SessionState| {
         if let Some(mode) = session.view_mode.as_deref() {
-            set_view_mode.set(parse_view_mode(mode));
+            nav.view_mode.set(parse_view_mode(mode));
         }
         if let Some(note) = session.active_note.clone() {
             set_active_note.set(Some(note.clone()));
@@ -221,16 +211,16 @@ pub fn App() -> impl IntoView {
             set_editor_scroll.set(scroll);
         }
         if let Some(left) = session.left_sidebar {
-            set_show_left_sidebar.set(left);
+            nav.show_left_sidebar.set(left);
         }
         if let Some(right) = session.right_inspector {
-            set_show_right_inspector.set(right);
+            nav.show_right_inspector.set(right);
         }
         toasts.success("Session restored", "Your previous workspace is back.");
     });
 
     let inspect_recovery = Callback::new(move |_| {
-        set_view_mode.set(ViewMode::Recovery);
+        nav.view_mode.set(ViewMode::Recovery);
     });
 
     // On mount, check if a vault already exists via Tauri IPC
@@ -240,7 +230,15 @@ pub fn App() -> impl IntoView {
         if let Ok(path_val) = serde_wasm_bindgen::from_value::<Option<String>>(result) {
             if let Some(path) = path_val {
                 if !path.trim().is_empty() {
-                    set_vault_path.set(path);
+                    set_vault_path.set(path.clone());
+                    // Derive the vault display name for breadcrumbs / home.
+                    let name = path
+                        .rsplit('/')
+                        .next()
+                        .filter(|n| !n.is_empty())
+                        .unwrap_or("Vault")
+                        .to_string();
+                    nav.vault_name.set(name);
                     set_screen.set(AppScreen::MainDashboard);
                     return;
                 }
@@ -250,15 +248,27 @@ pub fn App() -> impl IntoView {
     });
 
     let handle_vault_selected = move |path: String| {
-        set_vault_path.set(path);
+        set_vault_path.set(path.clone());
+        let name = path
+            .rsplit('/')
+            .next()
+            .filter(|n| !n.is_empty())
+            .unwrap_or("Vault")
+            .to_string();
+        nav.vault_name.set(name);
         set_screen.set(AppScreen::MainDashboard);
     };
 
     // RibbonBar expects optional Arc<dyn Fn> callbacks over signals.
     let on_view_mode_change: std::sync::Arc<dyn Fn(ViewMode) + Send + Sync + 'static> =
-        std::sync::Arc::new(move |mode: ViewMode| set_view_mode.set(mode));
+        std::sync::Arc::new(move |mode: ViewMode| nav.view_mode.set(mode));
     let on_show_sidebar_change: std::sync::Arc<dyn Fn(bool) + Send + Sync + 'static> =
-        std::sync::Arc::new(move |show: bool| set_show_left_sidebar.set(show));
+        std::sync::Arc::new(move |show: bool| nav.show_left_sidebar.set(show));
+
+    // Global keyboard shortcuts (⌘K palette, ⌘P switcher, ⌘⇧F search, ⌘N new
+    // note, view switching, sidebar toggles…). Removed on cleanup.
+    let shortcut_handle = install_global_shortcuts();
+    on_cleanup(move || shortcut_handle.remove());
 
     view! {
         // Loading screen
@@ -305,7 +315,7 @@ pub fn App() -> impl IntoView {
                     </div>
 
                     // Left Sidebar (Vault File Explorer)
-                    {move || if show_left_sidebar.get() {
+                    {move || if nav.show_left_sidebar.get() {
                         view! {
                             <div class="flex-none">
                                 <LeftSidebar />
@@ -322,123 +332,53 @@ pub fn App() -> impl IntoView {
                             <TabBar />
                         </div>
 
-                        // View Mode Switcher / Navigation Controls
-                        <div class="flex items-center px-4 py-1.5 bg-gray-800/60 border-b border-gray-700/50 text-xs space-x-2">
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Editor { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Editor)
-                            >
-                                "📝 Editor"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Graph { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Graph)
-                            >
-                                "🕸️ Graph"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Settings { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Settings)
-                            >
-                                "⚙️ Settings"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::ReadingQueue { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::ReadingQueue)
-                            >
-                                "📚 Reading Queue"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Templates { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Templates)
-                            >
-                                "📋 Templates"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Trash { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Trash)
-                                title="Trash (deleted items)"
-                            >
-                                "🗑️ Trash"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::History { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::History)
-                                title="Version history"
-                            >
-                                "🕘 History"
-                            </button>
-                            <button
-                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Recovery { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
-                                on:click=move |_| set_view_mode.set(ViewMode::Recovery)
-                                title="Recovery Manager"
-                            >
-                                "🛟 Recovery"
-                            </button>
-
-                            <div class="flex-1"></div>
-
-                            <SaveStatusIndicator />
-
-                            <button
-                                class=move || format!("px-2 py-1 rounded transition-colors {}", if history.can_undo.get() { "text-gray-200 hover:bg-gray-700/50" } else { "text-gray-600 cursor-default" })
-                                on:click=move |_| crate::history::undo(history, toasts)
-                                title="Undo (Cmd/Ctrl+Z)"
-                                aria-label="Undo"
-                                disabled=move || !history.can_undo.get()
-                            >
-                                "↶"
-                            </button>
-                            <button
-                                class=move || format!("px-2 py-1 rounded transition-colors {}", if history.can_redo.get() { "text-gray-200 hover:bg-gray-700/50" } else { "text-gray-600 cursor-default" })
-                                on:click=move |_| crate::history::redo(history, toasts)
-                                title="Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)"
-                                aria-label="Redo"
-                                disabled=move || !history.can_redo.get()
-                            >
-                                "↷"
-                            </button>
-
-                            <button
-                                class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
-                                on:click=move |_| set_show_left_sidebar.update(|v| *v = !*v)
-                                title="Toggle Left Sidebar"
-                            >
-                                "📁"
-                            </button>
-                            <button
-                                class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"
-                                on:click=move |_| set_show_right_inspector.update(|v| *v = !*v)
-                                title="Toggle Right Inspector"
-                            >
-                                "📋"
-                            </button>
+                        // Navigation bar: breadcrumbs + view switcher + actions
+                        <div class="flex-none">
+                            <NavBar />
                         </div>
 
                         // Main View Container
                         <div class="flex-1 overflow-auto p-4">
-                            {move || match view_mode.get() {
+                            {move || match nav.view_mode.get() {
+                                ViewMode::Dashboard => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <Dashboard />
+                                    </div>
+                                }.into_any(),
                                 ViewMode::Editor => view! {
                                     <div class="max-w-4xl mx-auto h-full">
-                                        <NoteEditor
-                                            note_path=active_note.get().unwrap_or_default()
-                                            initial_content=initial_content.get()
-                                            on_active_note=Callback::new(move |p: String| {
-                                                if active_note.get().as_deref() != Some(p.as_str()) {
-                                                    set_active_note.set(Some(p.clone()));
-                                                    // Opening from a session restore / editor mount
-                                                    // should surface in the tab bar.
-                                                    open_tab(workspace, &p);
-                                                }
-                                            })
-                                            on_cursor=Callback::new(move |c: u32| set_editor_cursor.set(c))
-                                            on_scroll=Callback::new(move |s: u32| set_editor_scroll.set(s))
-                                        />
+                                        {move || if active_note.get().is_some() {
+                                            view! {
+                                                <NoteEditor
+                                                    note_path=active_note.get().unwrap_or_default()
+                                                    initial_content=initial_content.get()
+                                                    on_active_note=Callback::new(move |p: String| {
+                                                        if active_note.get().as_deref() != Some(p.as_str()) {
+                                                            set_active_note.set(Some(p.clone()));
+                                                            record_recent_note(nav, &p);
+                                                            // Opening from a session restore / editor mount
+                                                            // should surface in the tab bar.
+                                                            open_tab(workspace, &p);
+                                                        }
+                                                    })
+                                                    on_cursor=Callback::new(move |c: u32| set_editor_cursor.set(c))
+                                                    on_scroll=Callback::new(move |s: u32| set_editor_scroll.set(s))
+                                                />
+                                            }.into_any()
+                                        } else {
+                                            // No note selected → informative home screen.
+                                            view! { <HomeScreen /> }.into_any()
+                                        }}
                                     </div>
                                 }.into_any(),
                                 ViewMode::Graph => view! {
                                     <div class="w-full h-full flex items-center justify-center">
                                         <GraphView _mode=GraphMode::Default />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Search => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <SearchPage />
                                     </div>
                                 }.into_any(),
                                 ViewMode::Settings => view! {
@@ -488,7 +428,7 @@ pub fn App() -> impl IntoView {
                     </div>
 
                     // Right Inspector Sidebar
-                    {move || if show_right_inspector.get() {
+                    {move || if nav.show_right_inspector.get() {
                         view! {
                             <div class="flex-none">
                                 <RightInspector />
@@ -497,6 +437,11 @@ pub fn App() -> impl IntoView {
                     } else {
                         view! {}.into_any()
                     }}
+
+                    // Overlays: command palette, quick switcher, shortcuts reference
+                    <CommandPalette />
+                    <QuickSwitcher />
+                    <ShortcutReference />
                 </div>
             }).into_any()
         } else {

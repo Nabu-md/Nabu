@@ -231,6 +231,8 @@ pub fn run() {
             crate::history::items_move,
             crate::commands::tree_list,
             crate::commands::reveal_in_file_manager,
+            crate::commands::notes_index,
+            crate::commands::notes_search,
             crate::commands::get_settings,
             crate::commands::settings_get,
             crate::commands::settings_set,
