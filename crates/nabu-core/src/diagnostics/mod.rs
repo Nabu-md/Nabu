@@ -67,16 +67,16 @@
 //! | `SUBSYSTEM_PIPELINE` | Pipeline migration bridge |
 
 pub mod init;
-pub mod spans;
 pub mod layers;
 pub mod metrics;
 pub mod performance;
+pub mod spans;
 
 pub use init::*;
-pub use spans::*;
 pub use layers::*;
 pub use metrics::*;
 pub use performance::*;
+pub use spans::*;
 
 // ---------------------------------------------------------------------------
 // Subsystem identifiers — use these as the `subsystem` field in tracing calls

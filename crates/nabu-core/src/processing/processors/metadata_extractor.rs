@@ -158,7 +158,7 @@ fn extract_url_metadata(metadata: &mut ObjectMetadata, url: &str) {
     }
 
     // Use the last path segment as a potential title
-    if let Some(title) = url.split('/').last().map(|s| s.to_string()) {
+    if let Some(title) = url.split('/').next_back().map(|s| s.to_string()) {
         if metadata.title.is_none() {
             let decoded = url_decode(&title);
             metadata.title = Some(decoded);

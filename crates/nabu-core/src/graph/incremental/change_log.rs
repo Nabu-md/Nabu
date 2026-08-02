@@ -86,11 +86,10 @@ impl ChangeLog {
     pub fn append(&self, entry: &ChangeEntry) -> Result<(), String> {
         let mut file = self.file.lock().map_err(|e| e.to_string())?;
 
-        let json = serde_json::to_string(entry)
-            .map_err(|e| format!("Serialization error: {}", e))?;
+        let json =
+            serde_json::to_string(entry).map_err(|e| format!("Serialization error: {}", e))?;
 
-        writeln!(file, "{}", json)
-            .map_err(|e| format!("Write error: {}", e))?;
+        writeln!(file, "{}", json).map_err(|e| format!("Write error: {}", e))?;
 
         file.flush().map_err(|e| format!("Flush error: {}", e))?;
 
@@ -150,10 +149,11 @@ impl ChangeLog {
         let json = serde_json::to_string(&checkpoint)
             .map_err(|e| format!("Serialization error: {}", e))?;
 
-        writeln!(new_file, "{}", json)
-            .map_err(|e| format!("Write error: {}", e))?;
+        writeln!(new_file, "{}", json).map_err(|e| format!("Write error: {}", e))?;
 
-        new_file.flush().map_err(|e| format!("Flush error: {}", e))?;
+        new_file
+            .flush()
+            .map_err(|e| format!("Flush error: {}", e))?;
 
         // Atomically replace old log with new
         fs::rename(&temp_path, &self.log_path)
@@ -202,8 +202,7 @@ impl ChangeLog {
             return Ok(0);
         }
 
-        let file = fs::File::open(path)
-            .map_err(|e| format!("Failed to open change log: {}", e))?;
+        let file = fs::File::open(path).map_err(|e| format!("Failed to open change log: {}", e))?;
 
         let reader = BufReader::new(file);
         let mut count = 0u64;

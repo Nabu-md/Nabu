@@ -11,7 +11,6 @@ use std::collections::{BinaryHeap, HashMap};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-
 /// The Queue trait defines the interface for all queue implementations.
 /// The queue is storage-agnostic — any backend can implement this trait.
 pub trait Queue: Send + Sync {
@@ -106,7 +105,10 @@ impl DurableJobQueue {
     /// Get the retry policy for a job type, falling back to standard.
     pub fn get_retry_policy(&self, job_type: &JobType) -> RetryPolicy {
         let policies = self.retry_policies.lock().unwrap();
-        policies.get(job_type).cloned().unwrap_or(RetryPolicy::standard())
+        policies
+            .get(job_type)
+            .cloned()
+            .unwrap_or(RetryPolicy::standard())
     }
 
     /// Get a handle for the queue side (enqueue results).
@@ -242,11 +244,9 @@ impl Queue for DurableJobQueue {
             };
 
             // Mark as running
-            let running = self.store.move_job(
-                &job.id.to_string(),
-                JobStatus::Queued,
-                JobStatus::Running,
-            )?;
+            let running =
+                self.store
+                    .move_job(&job.id.to_string(), JobStatus::Queued, JobStatus::Running)?;
 
             tracing::debug!(
                 subsystem = "queue",
@@ -281,9 +281,9 @@ impl Queue for DurableJobQueue {
 
         match job.status {
             JobStatus::Queued | JobStatus::Scheduled => {
-                let cancelled = self
-                    .store
-                    .move_job(job_id, job.status.clone(), JobStatus::Cancelled)?;
+                let cancelled =
+                    self.store
+                        .move_job(job_id, job.status.clone(), JobStatus::Cancelled)?;
                 Ok(cancelled)
             }
             JobStatus::Running => {
@@ -335,14 +335,13 @@ impl Queue for DurableJobQueue {
     }
 
     fn reschedule(&self, job_id: &str, spec: ScheduleSpec) -> JobResult<Job> {
-        let job = self.store.load(job_id)?.ok_or_else(|| {
-            JobError::NotFound(job_id.to_string())
-        })?;
+        let job = self
+            .store
+            .load(job_id)?
+            .ok_or_else(|| JobError::NotFound(job_id.to_string()))?;
 
         match job.status {
-            JobStatus::Queued | JobStatus::Scheduled => {
-                self.scheduler.reschedule(job_id, spec)
-            }
+            JobStatus::Queued | JobStatus::Scheduled => self.scheduler.reschedule(job_id, spec),
             _ => Err(JobError::InvalidState(
                 job_id.to_string(),
                 format!("cannot reschedule {:?} job", job.status),
@@ -371,9 +370,10 @@ impl Queue for DurableJobQueue {
     }
 
     fn mark_running(&self, job_id: &str) -> JobResult<Job> {
-        let job = self.store.load(job_id)?.ok_or_else(|| {
-            JobError::NotFound(job_id.to_string())
-        })?;
+        let job = self
+            .store
+            .load(job_id)?
+            .ok_or_else(|| JobError::NotFound(job_id.to_string()))?;
 
         if job.status != JobStatus::Queued {
             return Err(JobError::InvalidState(
@@ -382,20 +382,24 @@ impl Queue for DurableJobQueue {
             ));
         }
 
-        self.store.move_job(job_id, JobStatus::Queued, JobStatus::Running)
+        self.store
+            .move_job(job_id, JobStatus::Queued, JobStatus::Running)
     }
 
     fn mark_completed(&self, job_id: &str) -> JobResult<Job> {
-        let mut job = self.store.move_job(job_id, JobStatus::Running, JobStatus::Completed)?;
+        let mut job = self
+            .store
+            .move_job(job_id, JobStatus::Running, JobStatus::Completed)?;
         job.finished_at = Some(Utc::now());
         self.store.store(&job)?;
         Ok(job)
     }
 
     fn mark_failed(&self, job_id: &str, error: &str) -> JobResult<Job> {
-        let mut job = self.store.load(job_id)?.ok_or_else(|| {
-            JobError::NotFound(job_id.to_string())
-        })?;
+        let mut job = self
+            .store
+            .load(job_id)?
+            .ok_or_else(|| JobError::NotFound(job_id.to_string()))?;
 
         let _policy = self.get_retry_policy(&job.job_type);
         job.retry_count += 1;
@@ -422,9 +426,10 @@ impl Queue for DurableJobQueue {
     }
 
     fn report_progress(&self, job_id: &str, progress: f64, message: Option<&str>) -> JobResult<()> {
-        let mut job = self.store.load(job_id)?.ok_or_else(|| {
-            JobError::NotFound(job_id.to_string())
-        })?;
+        let mut job = self
+            .store
+            .load(job_id)?
+            .ok_or_else(|| JobError::NotFound(job_id.to_string()))?;
 
         job.progress = progress.clamp(0.0, 1.0);
         job.progress_message = message.map(|s| s.to_string());
@@ -438,7 +443,6 @@ impl Queue for DurableJobQueue {
 mod tests {
     use super::*;
     use crate::jobs::priority::Priority;
-    use crate::jobs::retry::policies;
     use tempfile::tempdir;
 
     fn test_job(job_type: JobType, priority: Priority) -> Job {
@@ -468,10 +472,18 @@ mod tests {
         let dir = tempdir().unwrap();
         let queue = DurableJobQueue::new(dir.path()).unwrap();
 
-        queue.enqueue(test_job(JobType::Whisper, Priority::Low)).unwrap();
-        queue.enqueue(test_job(JobType::Ocr, Priority::Critical)).unwrap();
-        queue.enqueue(test_job(JobType::Export, Priority::Background)).unwrap();
-        queue.enqueue(test_job(JobType::Ocr, Priority::High)).unwrap();
+        queue
+            .enqueue(test_job(JobType::Whisper, Priority::Low))
+            .unwrap();
+        queue
+            .enqueue(test_job(JobType::Ocr, Priority::Critical))
+            .unwrap();
+        queue
+            .enqueue(test_job(JobType::Export, Priority::Background))
+            .unwrap();
+        queue
+            .enqueue(test_job(JobType::Ocr, Priority::High))
+            .unwrap();
 
         // Should dequeue Critical first, then High, then Low, then Background
         let first = queue.dequeue().unwrap().unwrap();
@@ -528,7 +540,13 @@ mod tests {
     fn test_retry_logic() {
         let dir = tempdir().unwrap();
         let queue = DurableJobQueue::new(dir.path()).unwrap();
-        queue.set_retry_policy(JobType::Ocr, RetryPolicy { max_retries: 2, ..Default::default() });
+        queue.set_retry_policy(
+            JobType::Ocr,
+            RetryPolicy {
+                max_retries: 2,
+                ..Default::default()
+            },
+        );
 
         let job = test_job(JobType::Ocr, Priority::Normal);
         let job_id = job.id.to_string();
@@ -544,7 +562,13 @@ mod tests {
     fn test_retry_max_retries() {
         let dir = tempdir().unwrap();
         let queue = DurableJobQueue::new(dir.path()).unwrap();
-        queue.set_retry_policy(JobType::Ocr, RetryPolicy { max_retries: 1, ..Default::default() });
+        queue.set_retry_policy(
+            JobType::Ocr,
+            RetryPolicy {
+                max_retries: 1,
+                ..Default::default()
+            },
+        );
 
         let job = test_job(JobType::Ocr, Priority::Normal);
         let job_id = job.id.to_string();

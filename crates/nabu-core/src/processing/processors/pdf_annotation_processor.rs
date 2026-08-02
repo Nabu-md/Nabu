@@ -32,9 +32,9 @@ impl Processor for PdfAnnotationProcessor {
         progress.set_progress(0.1);
 
         let pdf_data = match &context.object.content {
-            ObjectContent::Binary { mime_type, data, .. } if mime_type == "application/pdf" => {
-                data.clone()
-            }
+            ObjectContent::Binary {
+                mime_type, data, ..
+            } if mime_type == "application/pdf" => data.clone(),
             _ => return ProcessingResult::unmodified(context.object.clone()),
         };
 
@@ -102,7 +102,10 @@ mod tests {
     use crate::models::KnowledgeObject;
 
     fn fixture_pdf() -> Vec<u8> {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/pdf_fixture.pdf");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/pdf_fixture.pdf"
+        );
         std::fs::read(path).expect("pdf fixture should exist")
     }
 
@@ -138,7 +141,7 @@ mod tests {
                 Some("true")
             );
         } else {
-            assert_eq!(result.modified, false);
+            assert!(!result.modified);
         }
     }
 }

@@ -1,5 +1,3 @@
-
-
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::{ObjectContent, ObjectMetadata, ObjectType};
@@ -83,26 +81,51 @@ fn classify_content(text: &str, _metadata: &ObjectMetadata) -> Option<String> {
     let lower = text.to_lowercase();
 
     // Invoice detection
-    if contains_any(&lower, &[
-        "invoice", "invoice number", "invoice date", "total due",
-        "amount due", "payment terms", "bill to",
-    ]) {
+    if contains_any(
+        &lower,
+        &[
+            "invoice",
+            "invoice number",
+            "invoice date",
+            "total due",
+            "amount due",
+            "payment terms",
+            "bill to",
+        ],
+    ) {
         return Some("invoice".to_string());
     }
 
     // Receipt detection
-    if contains_any(&lower, &[
-        "receipt", "total", "tax", "subtotal", "payment method",
-        "card ending", "thank you for your purchase",
-    ]) && contains_any(&lower, &["$", "€", "£", "¥"]) {
+    if contains_any(
+        &lower,
+        &[
+            "receipt",
+            "total",
+            "tax",
+            "subtotal",
+            "payment method",
+            "card ending",
+            "thank you for your purchase",
+        ],
+    ) && contains_any(&lower, &["$", "€", "£", "¥"])
+    {
         return Some("receipt".to_string());
     }
 
     // Meeting notes
-    if contains_any(&lower, &[
-        "meeting notes", "agenda", "action items", "minutes",
-        "attendees", "discussion points", "next steps",
-    ]) {
+    if contains_any(
+        &lower,
+        &[
+            "meeting notes",
+            "agenda",
+            "action items",
+            "minutes",
+            "attendees",
+            "discussion points",
+            "next steps",
+        ],
+    ) {
         return Some("meeting_note".to_string());
     }
 
@@ -112,18 +135,36 @@ fn classify_content(text: &str, _metadata: &ObjectMetadata) -> Option<String> {
     }
 
     // Email
-    if contains_any(&lower, &[
-        "subject:", "from:", "to:", "cc:", "bcc:",
-        "forwarded message", "original message",
-    ]) && text.contains('@') {
+    if contains_any(
+        &lower,
+        &[
+            "subject:",
+            "from:",
+            "to:",
+            "cc:",
+            "bcc:",
+            "forwarded message",
+            "original message",
+        ],
+    ) && text.contains('@')
+    {
         return Some("email".to_string());
     }
 
     // Article
-    if text.len() > 500 && contains_any(&lower, &[
-        "introduction", "conclusion", "summary", "abstract",
-        "published", "author",
-    ]) {
+    if text.len() > 500
+        && contains_any(
+            &lower,
+            &[
+                "introduction",
+                "conclusion",
+                "summary",
+                "abstract",
+                "published",
+                "author",
+            ],
+        )
+    {
         return Some("article".to_string());
     }
 

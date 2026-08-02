@@ -153,10 +153,7 @@ impl Worker {
                         error = %e,
                         "Worker job failed"
                     );
-                    let _ = self.queue.mark_failed(
-                        &job.id.to_string(),
-                        &e.to_string(),
-                    );
+                    let _ = self.queue.mark_failed(&job.id.to_string(), &e.to_string());
                 }
             }
 
@@ -173,7 +170,7 @@ impl Worker {
 #[derive(Debug)]
 pub enum WorkerMessage {
     /// Execute this job
-    Execute(Job),
+    Execute(Box<Job>),
     /// Shut down gracefully
     Shutdown,
 }
@@ -188,7 +185,10 @@ impl WorkerHandle {
         Self { tx }
     }
 
-    pub async fn send(&self, msg: WorkerMessage) -> Result<(), mpsc::error::SendError<WorkerMessage>> {
+    pub async fn send(
+        &self,
+        msg: WorkerMessage,
+    ) -> Result<(), mpsc::error::SendError<WorkerMessage>> {
         self.tx.send(msg).await
     }
 }

@@ -17,7 +17,17 @@ regex = "1"
 
 tracing = { version = "0.1", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# File-based (rolling) log appenders are desktop-only — wasm/browser targets
+# have no local filesystem, and tracing-appender does not compile there.
 tracing-appender = "0.2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# uuid's `v4` feature needs an explicit randomness source on wasm32-unknown-unknown.
+# The `js` feature (Web Crypto via wasm-bindgen) is enabled only for wasm builds;
+# native builds keep the default getrandom path via the top-level uuid dependency.
+uuid = { version = "1", features = ["js"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.4", features = ["exception"] }

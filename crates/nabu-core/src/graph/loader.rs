@@ -25,9 +25,7 @@ pub enum LoadResult {
     },
 
     /// Graph is from a future version (incompatible)
-    FutureVersion {
-        version: GraphVersion,
-    },
+    FutureVersion { version: GraphVersion },
 }
 
 /// Load a graph from the persistence store.
@@ -123,8 +121,10 @@ pub fn should_rebuild(load_result: &LoadResult) -> bool {
         LoadResult::Loaded(snapshot) => {
             // Check if version drift requires rebuild
             let current = GraphVersion::new();
-            matches!(needs_rebuild(&snapshot.version, &current), RebuildReason::None)
-                && snapshot.version.app_version == current.app_version
+            matches!(
+                needs_rebuild(&snapshot.version, &current),
+                RebuildReason::None
+            ) && snapshot.version.app_version == current.app_version
                 && snapshot.version.schema_version == current.schema_version
         }
     }

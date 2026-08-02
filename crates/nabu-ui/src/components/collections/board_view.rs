@@ -99,7 +99,7 @@ pub fn board_view(props: &Props) -> Html {
                     // Auto-generate columns from grouped data
                     view! {
                         <div class="flex gap-4 overflow-x-auto h-full">
-                            {for groups.iter().map(|(group_key, items)| {
+                            { groups.iter().map(|(group_key, items)| {
                                 let column_id = group_key.clone();
                                 view! {
                                     <div
@@ -112,7 +112,7 @@ pub fn board_view(props: &Props) -> Html {
                                             <span class="text-xs text-gray-500">{items.len()}</span>
                                         </div>
                                         <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                                            {for items.iter().map(|obj| {
+                                            { items.iter().map(|obj| {
                                                 let obj_id = obj.id.to_string();
                                                 let title = obj.metadata.title.clone().unwrap_or_default();
                                                 view! {
@@ -125,17 +125,17 @@ pub fn board_view(props: &Props) -> Html {
                                                         <div class="text-xs text-gray-500 mt-1">{obj.object_type.to_string()}</div>
                                                     </div>
                                                 }
-                                            })}
+                                            }).collect_view()}
                                         </div>
                                     </div>
                                 }
-                            })}
+                            }).collect_view()}
                         </div>
                     }.into_any()
                 } else {
                     view! {
                         <div class="flex gap-4 overflow-x-auto h-full">
-                            {for columns.iter().map(|col| {
+                            { columns.iter().map(|col| {
                                 let column_id = col.id.clone();
                                 let items = groups.get(&col.id).cloned().unwrap_or_default();
                                 view! {
@@ -149,7 +149,7 @@ pub fn board_view(props: &Props) -> Html {
                                             <span class="text-xs text-gray-500">{items.len()}</span>
                                         </div>
                                         <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                                            {for items.iter().map(|obj| {
+                                            { items.iter().map(|obj| {
                                                 let obj_id = obj.id.to_string();
                                                 let title = obj.metadata.title.clone().unwrap_or_default();
                                                 view! {
@@ -162,11 +162,11 @@ pub fn board_view(props: &Props) -> Html {
                                                         <div class="text-xs text-gray-500 mt-1">{obj.object_type.to_string()}</div>
                                                     </div>
                                                 }
-                                            })}
+                                            }).collect_view()}
                                         </div>
                                     </div>
                                 }
-                            })}
+                            }).collect_view()}
                         </div>
                     }.into_any()
                 }

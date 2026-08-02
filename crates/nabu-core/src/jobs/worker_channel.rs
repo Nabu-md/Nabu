@@ -12,7 +12,6 @@ pub struct WorkerChannel {
     job_tx: mpsc::UnboundedSender<Job>,
 
     /// Completed/failed jobs returned from workers
-    result_rx: std::sync::Mutex<Option<mpsc::UnboundedReceiver<JobResult<Job>>>>,
     result_tx: mpsc::UnboundedSender<JobResult<Job>>,
 }
 
@@ -20,7 +19,6 @@ impl Clone for WorkerChannel {
     fn clone(&self) -> Self {
         Self {
             job_tx: self.job_tx.clone(),
-            result_rx: std::sync::Mutex::new(None),
             result_tx: self.result_tx.clone(),
         }
     }
@@ -30,20 +28,14 @@ impl WorkerChannel {
     /// Create a new worker channel with unbounded capacity.
     pub fn new() -> Self {
         let (job_tx, _job_rx): (_, mpsc::UnboundedReceiver<Job>) = mpsc::unbounded_channel();
-        let (result_tx, result_rx) = mpsc::unbounded_channel();
+        let (result_tx, _result_rx) = mpsc::unbounded_channel();
 
-        Self {
-            job_tx,
-            result_rx: std::sync::Mutex::new(Some(result_rx)),
-            result_tx,
-        }
+        Self { job_tx, result_tx }
     }
 
     /// Send a job to the worker pool.
     pub fn send_job(&self, job: Job) -> JobResult<()> {
-        self.job_tx
-            .send(job)
-            .map_err(|_| JobError::ChannelClosed)
+        self.job_tx.send(job).map_err(|_| JobError::ChannelClosed)
     }
 
     /// Create a receiver for workers to pull jobs from.
@@ -58,7 +50,9 @@ impl WorkerChannel {
             std::mem::drop(rx);
         });
 
-        WorkerReceiver { rx: self.job_tx.clone() }
+        WorkerReceiver {
+            rx: self.job_tx.clone(),
+        }
     }
 
     /// Report a job result back to the queue.

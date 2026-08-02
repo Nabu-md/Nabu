@@ -73,8 +73,8 @@ pub fn decode_wav(data: &[u8]) -> Result<Vec<f32>, NativeError> {
         offset = body_end + (size % 2); // chunks are word-aligned
     }
 
-    let (format, channels, rate, bits) = fmt
-        .ok_or_else(|| NativeError::UnsupportedAudio("missing fmt chunk".into()))?;
+    let (format, channels, rate, bits) =
+        fmt.ok_or_else(|| NativeError::UnsupportedAudio("missing fmt chunk".into()))?;
     let pcm = pcm.ok_or_else(|| NativeError::UnsupportedAudio("missing data chunk".into()))?;
     if channels == 0 || rate == 0 {
         return Err(NativeError::UnsupportedAudio("invalid fmt header".into()));
@@ -196,10 +196,7 @@ mod imp {
             });
         }
 
-        let duration_ms = segments
-            .last()
-            .map(|s| s.end_ms.max(0) as u64)
-            .unwrap_or(0);
+        let duration_ms = segments.last().map(|s| s.end_ms.max(0) as u64).unwrap_or(0);
         let confidence = if token_count > 0 {
             total_prob / token_count as f64
         } else {
@@ -226,7 +223,10 @@ mod imp {
 mod imp {
     use super::*;
 
-    pub fn transcribe(_model_path: &Path, _audio_data: &[u8]) -> Result<Transcription, NativeError> {
+    pub fn transcribe(
+        _model_path: &Path,
+        _audio_data: &[u8],
+    ) -> Result<Transcription, NativeError> {
         Err(NativeError::UnsupportedPlatform)
     }
 }
@@ -248,7 +248,7 @@ mod tests {
         wav.extend_from_slice(&channels.to_le_bytes());
         wav.extend_from_slice(&rate.to_le_bytes());
         wav.extend_from_slice(&(rate * channels as u32 * 2).to_le_bytes());
-        wav.extend_from_slice(&(channels as u16 * 2).to_le_bytes());
+        wav.extend_from_slice(&(channels * 2).to_le_bytes());
         wav.extend_from_slice(&16u16.to_le_bytes());
         wav.extend_from_slice(b"data");
         wav.extend_from_slice(&data_len.to_le_bytes());

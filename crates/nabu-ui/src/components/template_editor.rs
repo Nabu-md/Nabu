@@ -5,9 +5,8 @@
 //! Reuses TemplateManager for persistence.
 //! Views are projections of existing KnowledgeObjects — views never own data.
 
-use leptos::prelude::*;
 use crate::models::template::Template;
-use crate::models::properties::{PropertyDefinition, PropertyType, PropertyValue};
+use leptos::prelude::*;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct FolderTemplateConfig {
@@ -15,18 +14,15 @@ pub struct FolderTemplateConfig {
     pub template_ids: Vec<String>,
 }
 
-#[derive(Properties, PartialEq)]
-pub struct Props {
-    pub templates: Vec<Template>,
-    pub folder_templates: Vec<FolderTemplateConfig>,
-    pub on_save: Callback<Template>,
-    pub on_delete: Callback<String>,
-    pub on_assign: Callback<(String, String)>, // (template_id, folder_path)
-    pub on_unassign: Callback<(String, String)>, // (template_id, folder_path)
-}
-
-#[function_component(TemplateEditor)]
-pub fn template_editor(props: &Props) -> Html {
+#[component]
+pub fn TemplateEditor(
+    templates: Vec<Template>,
+    folder_templates: Vec<FolderTemplateConfig>,
+    on_save: Callback<Template>,
+    on_delete: Callback<String>,
+    on_assign: Callback<(String, String)>, // (template_id, folder_path)
+    on_unassign: Callback<(String, String)>, // (template_id, folder_path)
+) -> impl IntoView {
     let (active_tab, set_active_tab) = signal(TemplateTab::List);
     let (editing_template, set_editing_template) = signal(None::<Template>);
     let (selected_folder, set_selected_folder) = signal(String::new());
@@ -35,32 +31,17 @@ pub fn template_editor(props: &Props) -> Html {
     let (new_template_folder, set_new_template_folder) = signal(String::new());
     let (search_query, set_search_query) = signal(String::new());
 
+    let templates_for_filter = templates.clone();
     let filtered_templates = move || {
         let q = search_query.get().to_lowercase();
         if q.is_empty() {
-            props.templates.clone()
+            templates_for_filter.clone()
         } else {
-            props.templates.iter()
+            templates_for_filter
+                .iter()
                 .filter(|t| t.name.to_lowercase().contains(&q))
                 .cloned()
                 .collect()
-        }
-    };
-
-    let templates_for_folder = move || {
-        let folder = selected_folder.get();
-        if folder.is_empty() {
-            props.templates.clone()
-        } else {
-            props.folder_templates.iter()
-                .find(|ft| ft.folder_path == folder)
-                .map(|ft| {
-                    props.templates.iter()
-                        .filter(|t| ft.template_ids.contains(&t.name))
-                        .cloned()
-                        .collect()
-                })
-                .unwrap_or_default()
         }
     };
 
@@ -73,13 +54,17 @@ pub fn template_editor(props: &Props) -> Html {
                 name,
                 description: None,
                 icon: None,
-                default_folder: if folder.is_empty() { None } else { Some(folder) },
+                default_folder: if folder.is_empty() {
+                    None
+                } else {
+                    Some(folder)
+                },
                 frontmatter_defaults: std::collections::HashMap::new(),
                 property_presets: std::collections::HashMap::new(),
                 body,
                 object_type: None,
             };
-            props.on_save.emit(template);
+            on_save.run(template);
             set_new_template_name.set(String::new());
             set_new_template_body.set(String::new());
             set_new_template_folder.set(String::new());
@@ -93,20 +78,20 @@ pub fn template_editor(props: &Props) -> Html {
     };
 
     let on_delete_template = move |name: String| {
-        props.on_delete.emit(name);
+        on_delete.run(name);
     };
 
     let on_assign_to_folder = move |template_id: String| {
         let folder = selected_folder.get();
         if !folder.is_empty() {
-            props.on_assign.emit((template_id, folder));
+            on_assign.run((template_id, folder));
         }
     };
 
     let on_unassign_from_folder = move |template_id: String| {
         let folder = selected_folder.get();
         if !folder.is_empty() {
-            props.on_unassign.emit((template_id, folder));
+            on_unassign.run((template_id, folder));
         }
     };
 
@@ -143,10 +128,7 @@ pub fn template_editor(props: &Props) -> Html {
                     type="text"
                     placeholder="Search templates..."
                     value={search_query.get()}
-                    on:input=move |ev: InputEvent| {
-                        let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                        set_search_query.set(input.value());
-                    }
+                    on:input=move |ev| set_search_query.set(event_target_value(&ev))
                     class="flex-1 bg-gray-800 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none"
                 />
             </div>
@@ -155,13 +137,13 @@ pub fn template_editor(props: &Props) -> Html {
             {move || match active_tab.get() {
                 TemplateTab::List => view! {
                     <div class="space-y-2">
-                        {move || {
-                            let templates = filtered_templates();
+                        {let templates = filtered_templates();
                             if templates.is_empty() {
                                 view! { <p class="text-sm text-gray-500">"No templates found"</p> }.into_any()
                             } else {
                                 view! {
-                                    {for templates.iter().map(|template| {
+                                    <div class="divide-y divide-gray-800">
+                                    { templates.iter().map(|template| {
                                         let name = template.name.clone();
                                         let desc = template.description.clone().unwrap_or_default();
                                         let folder = template.default_folder.clone().unwrap_or_default();
@@ -169,22 +151,18 @@ pub fn template_editor(props: &Props) -> Html {
                                             <div class="bg-gray-800 rounded-lg border border-gray-700 p-3 hover:border-gray-600 transition-colors">
                                                 <div class="flex items-center justify-between">
                                                     <div>
-                                                        <h4 class="text-sm font-medium text-gray-200">{name}</h4>
-                                                        {move || {
-                                                            if !desc.is_empty() {
-                                                                view! { <p class="text-xs text-gray-500 mt-1">{desc}</p> }.into_any()
-                                                            } else { view! {}.into_any() }
-                                                        }}
-                                                        {move || {
-                                                            if !folder.is_empty() {
-                                                                view! { <span class="text-xs text-blue-400 mt-1 block">📁 {folder}</span> }.into_any()
-                                                            } else { view! {}.into_any() }
-                                                        }}
+                                                        <h4 class="text-sm font-medium text-gray-200">{name.clone()}</h4>
+                                                        {if !desc.is_empty() {
+                                                            view! { <p class="text-xs text-gray-500 mt-1">{desc}</p> }.into_any()
+                                                        } else { view! {}.into_any() }}
+                                                        {if !folder.is_empty() {
+                                                            view! { <span class="text-xs text-blue-400 mt-1 block">"📁" {folder}</span> }.into_any()
+                                                        } else { view! {}.into_any() }}
                                                     </div>
                                                     <div class="flex gap-2">
                                                         <button
                                                             class="text-xs text-blue-400 hover:text-blue-300"
-                                                            on:click=move |_| on_edit_template(template.clone())
+                                                            on:click={let template = template.clone(); move |_| on_edit_template(template.clone())}
                                                         >
                                                             "Edit"
                                                         </button>
@@ -198,9 +176,9 @@ pub fn template_editor(props: &Props) -> Html {
                                                 </div>
                                             </div>
                                         }
-                                    })}
+                                    }).collect_view()}
                                 </div>
-                            }
+                            }.into_any()
                         }}
                     </div>
                 }.into_any(),
@@ -213,10 +191,7 @@ pub fn template_editor(props: &Props) -> Html {
                             <input
                                 type="text"
                                 value={new_template_name.get()}
-                                on:input=move |ev: InputEvent| {
-                                    let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                    set_new_template_name.set(input.value());
-                                }
+                                on:input=move |ev| set_new_template_name.set(event_target_value(&ev))
                                 placeholder="My Template"
                                 class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                             />
@@ -226,10 +201,7 @@ pub fn template_editor(props: &Props) -> Html {
                             <input
                                 type="text"
                                 value={new_template_folder.get()}
-                                on:input=move |ev: InputEvent| {
-                                    let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                    set_new_template_folder.set(input.value());
-                                }
+                                on:input=move |ev| set_new_template_folder.set(event_target_value(&ev))
                                 placeholder="/path/to/folder (optional)"
                                 class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                             />
@@ -237,11 +209,8 @@ pub fn template_editor(props: &Props) -> Html {
                         <div>
                             <label class="text-xs text-gray-500 uppercase tracking-wide">"Body (Markdown)"</label>
                             <textarea
-                                value={new_template_body.get()}
-                                on:input=move |ev: InputEvent| {
-                                    let input: web_sys::HtmlTextAreaElement = ev.target_unchecked_into();
-                                    set_new_template_body.set(input.value());
-                                }
+                                prop:value=new_template_body
+                                on:input=move |ev| set_new_template_body.set(event_target_value(&ev))
                                 placeholder="# Template Body\n\nWrite your template content here..."
                                 class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none h-40 resize-y font-mono"
                             />
@@ -284,10 +253,7 @@ pub fn template_editor(props: &Props) -> Html {
                                         <input
                                             type="text"
                                             value={edit_name.get()}
-                                            on:input=move |ev: InputEvent| {
-                                                let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                                set_edit_name.set(input.value());
-                                            }
+                                            on:input=move |ev| set_edit_name.set(event_target_value(&ev))
                                             class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                                         />
                                     </div>
@@ -296,10 +262,7 @@ pub fn template_editor(props: &Props) -> Html {
                                         <input
                                             type="text"
                                             value={edit_desc.get()}
-                                            on:input=move |ev: InputEvent| {
-                                                let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                                set_edit_desc.set(input.value());
-                                            }
+                                            on:input=move |ev| set_edit_desc.set(event_target_value(&ev))
                                             class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                                         />
                                     </div>
@@ -308,21 +271,15 @@ pub fn template_editor(props: &Props) -> Html {
                                         <input
                                             type="text"
                                             value={edit_folder.get()}
-                                            on:input=move |ev: InputEvent| {
-                                                let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                                set_edit_folder.set(input.value());
-                                            }
+                                            on:input=move |ev| set_edit_folder.set(event_target_value(&ev))
                                             class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                                         />
                                     </div>
                                     <div>
                                         <label class="text-xs text-gray-500 uppercase tracking-wide">"Body (Markdown)"</label>
                                         <textarea
-                                            value={edit_body.get()}
-                                            on:input=move |ev: InputEvent| {
-                                                let input: web_sys::HtmlTextAreaElement = ev.target_unchecked_into();
-                                                set_edit_body.set(input.value());
-                                            }
+                                            prop:value=edit_body
+                                            on:input=move |ev| set_edit_body.set(event_target_value(&ev))
                                             class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none h-40 resize-y font-mono"
                                         />
                                     </div>
@@ -340,7 +297,7 @@ pub fn template_editor(props: &Props) -> Html {
                                                     body: edit_body.get(),
                                                     object_type: template.object_type.clone(),
                                                 };
-                                                props.on_save.emit(updated);
+                                                on_save.run(updated);
                                                 set_editing_template.set(None);
                                                 set_active_tab.set(TemplateTab::List);
                                             }
@@ -372,19 +329,15 @@ pub fn template_editor(props: &Props) -> Html {
                             <input
                                 type="text"
                                 value={selected_folder.get()}
-                                on:input=move |ev: InputEvent| {
-                                    let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                    set_selected_folder.set(input.value());
-                                }
+                                on:input=move |ev| set_selected_folder.set(event_target_value(&ev))
                                 placeholder="/path/to/folder"
                                 class="w-full mt-1 bg-gray-700 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
                             />
                         </div>
                         <div class="space-y-2">
-                            {move || {
-                                let templates = filtered_templates();
+                            {let templates = filtered_templates();
                                 let folder = selected_folder.get();
-                                let assigned = props.folder_templates.iter()
+                                let assigned = folder_templates.iter()
                                     .find(|ft| ft.folder_path == folder)
                                     .map(|ft| ft.template_ids.clone())
                                     .unwrap_or_default();
@@ -393,41 +346,41 @@ pub fn template_editor(props: &Props) -> Html {
                                     view! { <p class="text-sm text-gray-500">"No templates available"</p> }.into_any()
                                 } else {
                                     view! {
-                                        {for templates.iter().map(|template| {
+                                        { templates.iter().map(|template| {
                                             let is_assigned = assigned.contains(&template.name);
                                             let template_id = template.name.clone();
                                             view! {
                                                 <div class="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700">
-                                                    <span class="text-sm text-gray-200">{&template.name}</span>
+                                                    <span class="text-sm text-gray-200">{template.name.clone()}</span>
                                                     <div class="flex gap-2">
-                                                        {move || {
-                                                            if is_assigned {
-                                                                view! {
-                                                                    <button
-                                                                        class="px-2 py-0.5 text-xs bg-red-700 rounded hover:bg-red-600"
-                                                                        on:click=move |_| on_unassign_from_folder(template_id.clone())
-                                                                    >
-                                                                        "Unassign"
-                                                                    </button>
-                                                                }.into_any()
-                                                            } else {
-                                                                view! {
-                                                                    <button
-                                                                        class="px-2 py-0.5 text-xs bg-green-700 rounded hover:bg-green-600"
-                                                                        on:click=move |_| on_assign_to_folder(template_id.clone())
-                                                                    >
-                                                                        "Assign"
-                                                                    </button>
-                                                                }.into_any()
-                                                            }
+                                                        {if is_assigned {
+                                                            let tid = template_id.clone();
+                                                            view! {
+                                                                <button
+                                                                    class="px-2 py-0.5 text-xs bg-red-700 rounded hover:bg-red-600"
+                                                                    on:click=move |_| on_unassign_from_folder(tid.clone())
+                                                                >
+                                                                    "Unassign"
+                                                                </button>
+                                                            }.into_any()
+                                                        } else {
+                                                            let tid = template_id.clone();
+                                                            view! {
+                                                                <button
+                                                                    class="px-2 py-0.5 text-xs bg-green-700 rounded hover:bg-green-600"
+                                                                    on:click=move |_| on_assign_to_folder(tid.clone())
+                                                                >
+                                                                    "Assign"
+                                                                </button>
+                                                            }.into_any()
                                                         }}
                                                     </div>
                                                 </div>
                                             }
-                                        })}
+                                        }).collect_view()}
                                     }.into_any()
                                 }
-                            }}
+                            }
                         </div>
                     </div>
                 }.into_any(),
@@ -442,34 +395,4 @@ enum TemplateTab {
     Create,
     Edit,
     Assign,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::template::Template;
-    use std::collections::HashMap;
-
-    #[test]
-    fn test_template_editor_filters_by_name() {
-        let template = Template {
-            name: "Test Template".to_string(),
-            description: None,
-            icon: None,
-            default_folder: None,
-            frontmatter_defaults: HashMap::new(),
-            property_presets: HashMap::new(),
-            body: "# Test".to_string(),
-            object_type: None,
-        };
-        let props = Props {
-            templates: vec![template],
-            folder_templates: vec![],
-            on_save: Callback::new(|_| {}),
-            on_delete: Callback::new(|_| {}),
-            on_assign: Callback::new(|_| {}),
-            on_unassign: Callback::new(|_| {}),
-        };
-        let _html = template_editor(&props);
-    }
 }

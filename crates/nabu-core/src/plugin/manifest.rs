@@ -140,11 +140,12 @@ pub struct PluginPermission {
 }
 
 /// The type of plugin entry point.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum PluginEntryType {
     /// Native Rust shared library (.dylib/.so/.dll).
     Native,
     /// WebAssembly module.
+    #[default]
     Wasm,
     /// Lua script.
     Lua,
@@ -152,12 +153,6 @@ pub enum PluginEntryType {
     Python,
     /// External process communicating via IPC.
     External,
-}
-
-impl Default for PluginEntryType {
-    fn default() -> Self {
-        Self::Wasm
-    }
 }
 
 /// Result of a Nabu version compatibility check.
@@ -222,14 +217,20 @@ mod tests {
 
     #[test]
     fn empty_id_fails_validation() {
-        let manifest = PluginManifest { id: String::new(), ..valid_manifest() };
+        let manifest = PluginManifest {
+            id: String::new(),
+            ..valid_manifest()
+        };
         let errors = manifest.validate();
         assert!(errors.contains(&ManifestError::EmptyField("id")));
     }
 
     #[test]
     fn zero_manifest_version_fails() {
-        let manifest = PluginManifest { manifest_version: 0, ..valid_manifest() };
+        let manifest = PluginManifest {
+            manifest_version: 0,
+            ..valid_manifest()
+        };
         let errors = manifest.validate();
         assert!(errors.contains(&ManifestError::InvalidManifestVersion(0)));
     }

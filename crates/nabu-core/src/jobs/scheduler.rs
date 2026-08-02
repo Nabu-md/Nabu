@@ -94,7 +94,9 @@ impl Scheduler {
 
     /// Cancel a scheduled job.
     pub fn cancel_scheduled(&self, job_id: &str) -> JobResult<Job> {
-        let job = self.store.move_job(job_id, JobStatus::Scheduled, JobStatus::Cancelled)?;
+        let job = self
+            .store
+            .move_job(job_id, JobStatus::Scheduled, JobStatus::Cancelled)?;
         Ok(job)
     }
 
@@ -152,7 +154,7 @@ mod tests {
         let store = Arc::new(JobStore::new(dir.path()).unwrap());
         let scheduler = Scheduler::new(store);
 
-        let mut job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr");
+        let job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr");
         let scheduled = scheduler
             .schedule(job.clone(), ScheduleSpec::Immediate)
             .unwrap();
@@ -170,9 +172,7 @@ mod tests {
 
         let job = Job::new(JobType::Whisper, serde_json::json!({}), "whisper");
         let future = Utc::now() + Duration::hours(1);
-        scheduler
-            .schedule(job, ScheduleSpec::At(future))
-            .unwrap();
+        scheduler.schedule(job, ScheduleSpec::At(future)).unwrap();
 
         let due = scheduler.process_due_jobs().unwrap();
         assert!(due.is_empty(), "Future jobs should not be due");
@@ -189,9 +189,7 @@ mod tests {
         let id = scheduled.id.to_string();
 
         let future = Utc::now() + Duration::hours(2);
-        scheduler
-            .reschedule(&id, ScheduleSpec::At(future))
-            .unwrap();
+        scheduler.reschedule(&id, ScheduleSpec::At(future)).unwrap();
 
         let due = scheduler.process_due_jobs().unwrap();
         assert!(due.is_empty(), "Rescheduled future job should not be due");

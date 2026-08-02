@@ -38,11 +38,18 @@ impl PluginStage {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PluginLifecycleEvent {
     /// Plugin manifest was discovered at the given path.
-    Discovered { plugin_id: String, path: String, version: String },
+    Discovered {
+        plugin_id: String,
+        path: String,
+        version: String,
+    },
     /// Plugin manifest was validated successfully.
     Validated { plugin_id: String },
     /// Plugin manifest validation failed.
-    ValidationFailed { plugin_id: String, errors: Vec<String> },
+    ValidationFailed {
+        plugin_id: String,
+        errors: Vec<String>,
+    },
     /// Plugin was installed (dependencies resolved).
     Installed { plugin_id: String },
     /// Plugin installation failed.
@@ -52,7 +59,11 @@ pub enum PluginLifecycleEvent {
     /// Plugin was disabled.
     Disabled { plugin_id: String },
     /// Plugin was upgraded from an old version to a new version.
-    Upgraded { plugin_id: String, old_version: String, new_version: String },
+    Upgraded {
+        plugin_id: String,
+        old_version: String,
+        new_version: String,
+    },
     /// Plugin was unloaded.
     Unloaded { plugin_id: String },
 }
@@ -116,7 +127,11 @@ impl PluginLifecycle {
     ///
     /// Returns an error if the transition is invalid (e.g., skipping stages
     /// or going backward in the lifecycle).
-    pub fn transition_to(&mut self, target: PluginStage, event: PluginLifecycleEvent) -> Result<(), LifecycleTransitionError> {
+    pub fn transition_to(
+        &mut self,
+        target: PluginStage,
+        event: PluginLifecycleEvent,
+    ) -> Result<(), LifecycleTransitionError> {
         // Allow same stage (no-op)
         if self.stage == target {
             return Ok(());
@@ -161,14 +176,21 @@ impl Default for PluginLifecycle {
 /// Error returned when an invalid lifecycle transition is attempted.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LifecycleTransitionError {
-    BackwardTransition { current: PluginStage, target: PluginStage },
+    BackwardTransition {
+        current: PluginStage,
+        target: PluginStage,
+    },
 }
 
 impl std::fmt::Display for LifecycleTransitionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::BackwardTransition { current, target } => {
-                write!(f, "Cannot transition from {:?} to {:?}: lifecycle is one-way forward", current, target)
+                write!(
+                    f,
+                    "Cannot transition from {:?} to {:?}: lifecycle is one-way forward",
+                    current, target
+                )
             }
         }
     }
@@ -189,10 +211,14 @@ mod tests {
     #[test]
     fn forward_transition_succeeds() {
         let mut lc = PluginLifecycle::new();
-        assert!(lc.transition_to(
-            PluginStage::Validated,
-            PluginLifecycleEvent::Validated { plugin_id: "test".into() },
-        ).is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Validated,
+                PluginLifecycleEvent::Validated {
+                    plugin_id: "test".into()
+                },
+            )
+            .is_ok());
         assert_eq!(lc.stage(), PluginStage::Validated);
     }
 
@@ -201,7 +227,9 @@ mod tests {
         let mut lc = PluginLifecycle::at(PluginStage::Enabled);
         let result = lc.transition_to(
             PluginStage::Installed,
-            PluginLifecycleEvent::Disabled { plugin_id: "test".into() },
+            PluginLifecycleEvent::Disabled {
+                plugin_id: "test".into(),
+            },
         );
         assert!(result.is_err());
     }
@@ -209,19 +237,66 @@ mod tests {
     #[test]
     fn full_lifecycle() {
         let mut lc = PluginLifecycle::new();
-        assert!(lc.transition_to(PluginStage::Validated, PluginLifecycleEvent::Validated { plugin_id: "p".into() }).is_ok());
-        assert!(lc.transition_to(PluginStage::Installed, PluginLifecycleEvent::Installed { plugin_id: "p".into() }).is_ok());
-        assert!(lc.transition_to(PluginStage::Enabled, PluginLifecycleEvent::Enabled { plugin_id: "p".into() }).is_ok());
-        assert!(lc.transition_to(PluginStage::Disabled, PluginLifecycleEvent::Disabled { plugin_id: "p".into() }).is_ok());
-        assert!(lc.transition_to(PluginStage::Unloaded, PluginLifecycleEvent::Unloaded { plugin_id: "p".into() }).is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Validated,
+                PluginLifecycleEvent::Validated {
+                    plugin_id: "p".into()
+                }
+            )
+            .is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Installed,
+                PluginLifecycleEvent::Installed {
+                    plugin_id: "p".into()
+                }
+            )
+            .is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Enabled,
+                PluginLifecycleEvent::Enabled {
+                    plugin_id: "p".into()
+                }
+            )
+            .is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Disabled,
+                PluginLifecycleEvent::Disabled {
+                    plugin_id: "p".into()
+                }
+            )
+            .is_ok());
+        assert!(lc
+            .transition_to(
+                PluginStage::Unloaded,
+                PluginLifecycleEvent::Unloaded {
+                    plugin_id: "p".into()
+                }
+            )
+            .is_ok());
         assert!(lc.is_unloaded());
     }
 
     #[test]
     fn history_records_events() {
         let mut lc = PluginLifecycle::new();
-        lc.transition_to(PluginStage::Validated, PluginLifecycleEvent::Validated { plugin_id: "p".into() }).unwrap();
-        lc.transition_to(PluginStage::Installed, PluginLifecycleEvent::Installed { plugin_id: "p".into() }).unwrap();
+        lc.transition_to(
+            PluginStage::Validated,
+            PluginLifecycleEvent::Validated {
+                plugin_id: "p".into(),
+            },
+        )
+        .unwrap();
+        lc.transition_to(
+            PluginStage::Installed,
+            PluginLifecycleEvent::Installed {
+                plugin_id: "p".into(),
+            },
+        )
+        .unwrap();
         assert_eq!(lc.history().len(), 2);
     }
 }

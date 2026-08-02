@@ -7,24 +7,24 @@
 //! from canonical Markdown sources. The persisted graph is derived state
 //! and never becomes canonical.
 
-pub mod version;
-pub mod serializer;
-pub mod integrity;
-pub mod persistence;
-pub mod loader;
-pub mod recovery;
 pub mod incremental;
+pub mod integrity;
+pub mod loader;
+pub mod persistence;
+pub mod recovery;
+pub mod serializer;
+pub mod version;
 
-pub use version::*;
-pub use serializer::*;
-pub use persistence::*;
-pub use loader::*;
-pub use integrity::*;
-pub use recovery::*;
 pub use incremental::*;
+pub use integrity::*;
+pub use loader::*;
+pub use persistence::*;
+pub use recovery::*;
+pub use serializer::*;
+pub use version::*;
 
-use crate::event_bus::{EventBus, GraphOperation, GraphUpdatedEvent, PipelineEvent};
 use crate::event_bus::kinds::GRAPH_UPDATED;
+use crate::event_bus::{EventBus, GraphOperation, GraphUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -178,13 +178,15 @@ impl VaultGraph {
     }
 
     /// Try to load graph data from persistent storage.
-    fn try_load(
-        store: &persistence::GraphStore,
-    ) -> (bool, Option<serializer::GraphSnapshot>, u64) {
-        let raw_store = GraphStore::new(store.graph_dir().parent()
-            .and_then(|p| p.parent())
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| store.graph_dir().to_path_buf()))
+    fn try_load(store: &persistence::GraphStore) -> (bool, Option<serializer::GraphSnapshot>, u64) {
+        let raw_store = GraphStore::new(
+            store
+                .graph_dir()
+                .parent()
+                .and_then(|p| p.parent())
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| store.graph_dir().to_path_buf()),
+        )
         .unwrap();
 
         let recovery = recovery::GraphRecovery::new(raw_store);
@@ -227,8 +229,12 @@ impl VaultGraph {
             }
 
             if let Ok(mut adj) = self.adjacency.write() {
-                adj.entry(serialized_edge.source).or_default().insert(serialized_edge.target);
-                adj.entry(serialized_edge.target).or_default().insert(serialized_edge.source);
+                adj.entry(serialized_edge.source)
+                    .or_default()
+                    .insert(serialized_edge.target);
+                adj.entry(serialized_edge.target)
+                    .or_default()
+                    .insert(serialized_edge.source);
             }
         }
     }
@@ -253,12 +259,9 @@ impl VaultGraph {
         // Add edges
         if let Ok(edges) = self.edges.read() {
             for edge in edges.iter() {
-                let serialized = serializer::SerializedEdge::new(
-                    edge.source,
-                    edge.target,
-                    &edge.relationship,
-                )
-                .with_weight(edge.weight);
+                let serialized =
+                    serializer::SerializedEdge::new(edge.source, edge.target, &edge.relationship)
+                        .with_weight(edge.weight);
                 snapshot.add_edge(serialized);
             }
         }
@@ -393,12 +396,7 @@ impl VaultGraph {
     }
 
     /// Add an edge between two nodes.
-    pub fn add_edge(
-        &self,
-        source: Uuid,
-        target: Uuid,
-        relationship: &str,
-    ) -> Result<(), String> {
+    pub fn add_edge(&self, source: Uuid, target: Uuid, relationship: &str) -> Result<(), String> {
         let edge = GraphEdge {
             source,
             target,
@@ -509,7 +507,10 @@ mod tests {
     #[test]
     fn test_add_and_query_node() {
         let graph = VaultGraph::new();
-        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Graph node".to_string()));
+        let obj = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("Graph node".to_string()),
+        );
 
         graph.add_node(&obj).unwrap();
         assert_eq!(graph.node_count(), 1);
@@ -518,8 +519,14 @@ mod tests {
     #[test]
     fn test_add_edge_and_query_neighbors() {
         let graph = VaultGraph::new();
-        let obj1 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Node A".to_string()));
-        let obj2 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Node B".to_string()));
+        let obj1 = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("Node A".to_string()),
+        );
+        let obj2 = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("Node B".to_string()),
+        );
 
         graph.add_node(&obj1).unwrap();
         graph.add_node(&obj2).unwrap();
@@ -536,7 +543,10 @@ mod tests {
 
         assert!(!graph.loaded_from_disk());
 
-        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Persisted".to_string()));
+        let obj = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("Persisted".to_string()),
+        );
         graph.add_node(&obj).unwrap();
         graph.persist().unwrap();
 
@@ -547,8 +557,14 @@ mod tests {
     fn test_to_snapshot_and_back() {
         let graph = VaultGraph::new();
 
-        let obj1 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("A".to_string()));
-        let obj2 = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("B".to_string()));
+        let obj1 = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("A".to_string()),
+        );
+        let obj2 = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("B".to_string()),
+        );
 
         graph.add_node(&obj1).unwrap();
         graph.add_node(&obj2).unwrap();
@@ -564,8 +580,14 @@ mod tests {
         let graph = VaultGraph::new();
 
         let objs = vec![
-            KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Rebuilt A".to_string())),
-            KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("Rebuilt B".to_string())),
+            KnowledgeObject::new(
+                crate::models::ObjectType::Note,
+                ObjectContent::Markdown("Rebuilt A".to_string()),
+            ),
+            KnowledgeObject::new(
+                crate::models::ObjectType::Note,
+                ObjectContent::Markdown("Rebuilt B".to_string()),
+            ),
         ];
 
         graph.rebuild_from_objects(&objs).unwrap();
@@ -575,7 +597,10 @@ mod tests {
     #[test]
     fn test_clear_graph() {
         let graph = VaultGraph::new();
-        let obj = KnowledgeObject::new(crate::models::ObjectType::Note, ObjectContent::Markdown("To clear".to_string()));
+        let obj = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("To clear".to_string()),
+        );
         graph.add_node(&obj).unwrap();
         assert_eq!(graph.node_count(), 1);
 

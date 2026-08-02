@@ -19,8 +19,6 @@ struct JobStoreInner {
     jobs: HashMap<String, HashMap<String, Job>>,
     /// All jobs indexed by ID for fast lookup
     by_id: HashMap<String, Job>,
-    /// Dirty flag — whether there are unsaved changes
-    dirty: bool,
 }
 
 impl JobStore {
@@ -34,7 +32,14 @@ impl JobStore {
         fs::create_dir_all(&jobs_path)?;
 
         // Create status subdirectories
-        for status in &["queued", "running", "completed", "failed", "cancelled", "scheduled"] {
+        for status in &[
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+        ] {
             fs::create_dir_all(jobs_path.join(status))?;
         }
 
@@ -43,7 +48,6 @@ impl JobStore {
             inner: Mutex::new(JobStoreInner {
                 jobs: HashMap::new(),
                 by_id: HashMap::new(),
-                dirty: false,
             }),
         };
 
@@ -138,7 +142,14 @@ impl JobStore {
     /// Remove a job entirely from disk and memory.
     pub fn remove(&self, job_id: &str) -> JobResult<()> {
         // Remove from all status directories
-        for status in &["queued", "running", "completed", "failed", "cancelled", "scheduled"] {
+        for status in &[
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+        ] {
             let path = self.base_path.join(status).join(format!("{}.json", job_id));
             let _ = fs::remove_file(&path);
         }
@@ -183,7 +194,14 @@ impl JobStore {
         inner.jobs.clear();
         inner.by_id.clear();
 
-        for status in &["queued", "running", "completed", "failed", "cancelled", "scheduled"] {
+        for status in &[
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+        ] {
             let dir_path = self.base_path.join(status);
             if !dir_path.exists() {
                 continue;
@@ -213,7 +231,14 @@ impl JobStore {
 
     /// Load a job from disk by scanning all status directories.
     fn load_from_disk(&self, job_id: &str) -> JobResult<Option<Job>> {
-        for status in &["queued", "running", "completed", "failed", "cancelled", "scheduled"] {
+        for status in &[
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+        ] {
             let path = self.base_path.join(status).join(format!("{}.json", job_id));
             if path.exists() {
                 let content = fs::read_to_string(&path)?;
@@ -231,13 +256,18 @@ impl JobStore {
 
     /// Clear all persisted jobs (for testing).
     pub fn clear_all(&self) -> JobResult<()> {
-        for status in &["queued", "running", "completed", "failed", "cancelled", "scheduled"] {
+        for status in &[
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+        ] {
             let dir_path = self.base_path.join(status);
             if dir_path.exists() {
-                for entry in fs::read_dir(&dir_path).into_iter().flatten() {
-                    if let Ok(entry) = entry {
-                        let _ = fs::remove_file(entry.path());
-                    }
+                for entry in fs::read_dir(&dir_path).into_iter().flatten().flatten() {
+                    let _ = fs::remove_file(entry.path());
                 }
             }
         }

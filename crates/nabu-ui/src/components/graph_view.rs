@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -35,13 +35,11 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                     for node in nodes {
                         let is_folder = node["is_folder"].as_bool().unwrap_or(false);
                         context.begin_path();
-                        let blue_style = JsValue::from_str("blue");
-                        let black_style = JsValue::from_str("black");
                         if is_folder {
-                            context.set_fill_style(&blue_style);
+                            context.set_fill_style_str("blue");
                             context.rect(100.0, 100.0, 20.0, 20.0);
                         } else {
-                            context.set_fill_style(&black_style);
+                            context.set_fill_style_str("black");
                             context
                                 .arc(100.0, 100.0, 10.0, 0.0, std::f64::consts::PI * 2.0)
                                 .unwrap();

@@ -69,9 +69,15 @@ impl Version {
             return Err(VersionError::ParseError(s.to_string()));
         }
 
-        let major = parts[0].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
-        let minor = parts[1].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
-        let patch = parts[2].parse().map_err(|_| VersionError::ParseError(s.to_string()))?;
+        let major = parts[0]
+            .parse()
+            .map_err(|_| VersionError::ParseError(s.to_string()))?;
+        let minor = parts[1]
+            .parse()
+            .map_err(|_| VersionError::ParseError(s.to_string()))?;
+        let patch = parts[2]
+            .parse()
+            .map_err(|_| VersionError::ParseError(s.to_string()))?;
 
         Ok(Self {
             major,
@@ -104,10 +110,14 @@ impl Version {
             VersionRequirement::Range(min, max) => {
                 let min_ok = self.major > min.major
                     || (self.major == min.major && self.minor > min.minor)
-                    || (self.major == min.major && self.minor == min.minor && self.patch >= min.patch);
+                    || (self.major == min.major
+                        && self.minor == min.minor
+                        && self.patch >= min.patch);
                 let max_ok = self.major < max.major
                     || (self.major == max.major && self.minor < max.minor)
-                    || (self.major == max.major && self.minor == max.minor && self.patch <= max.patch);
+                    || (self.major == max.major
+                        && self.minor == max.minor
+                        && self.patch <= max.patch);
                 min_ok && max_ok
             }
             VersionRequirement::GreaterThan(min) => self >= min,
@@ -194,14 +204,23 @@ impl fmt::Display for VersionRequirement {
 }
 
 /// Errors that can occur during version operations.
+///
+/// The `TooOld`/`TooNew` variants box their [`Version`]s so the error type
+/// stays small (returned from `Result`s on hot paths).
 #[derive(Debug, Clone, PartialEq)]
 pub enum VersionError {
     /// The version string could not be parsed.
     ParseError(String),
     /// An API version is too old.
-    TooOld { version: Version, minimum: Version },
+    TooOld {
+        version: Box<Version>,
+        minimum: Box<Version>,
+    },
     /// An API version is too new (not tested).
-    TooNew { version: Version, maximum: Version },
+    TooNew {
+        version: Box<Version>,
+        maximum: Box<Version>,
+    },
 }
 
 impl fmt::Display for VersionError {
@@ -209,10 +228,18 @@ impl fmt::Display for VersionError {
         match self {
             Self::ParseError(s) => write!(f, "Cannot parse version string: '{}'", s),
             Self::TooOld { version, minimum } => {
-                write!(f, "Version {} is too old. Minimum supported: {}", version, minimum)
+                write!(
+                    f,
+                    "Version {} is too old. Minimum supported: {}",
+                    version, minimum
+                )
             }
             Self::TooNew { version, maximum } => {
-                write!(f, "Version {} was not tested. Maximum tested: {}", version, maximum)
+                write!(
+                    f,
+                    "Version {} was not tested. Maximum tested: {}",
+                    version, maximum
+                )
             }
         }
     }
@@ -286,10 +313,7 @@ mod tests {
     #[test]
     fn range_requirement() {
         let v = Version::new(1, 5, 0);
-        let req = VersionRequirement::Range(
-            Version::new(1, 0, 0),
-            Version::new(2, 0, 0),
-        );
+        let req = VersionRequirement::Range(Version::new(1, 0, 0), Version::new(2, 0, 0));
         assert!(v.is_compatible_with(&req));
     }
 

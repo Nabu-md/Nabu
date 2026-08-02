@@ -6,10 +6,8 @@ use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
 use crate::components::note_editor::NoteEditor;
 use crate::components::reading_queue::ReadingQueue;
-use crate::components::relation_editor::RelationEditor;
 use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::template_editor::TemplateEditor;
-use crate::components::template_picker::TemplatePicker;
 use crate::components::vault_setup_wizard::VaultSetupWizard;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -36,7 +34,7 @@ pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
 
     let (screen, set_screen) = signal(AppScreen::Loading);
-    let (vault_path, set_vault_path) = signal(String::new());
+    let (_vault_path, set_vault_path) = signal(String::new());
     let (view_mode, set_view_mode) = signal(ViewMode::Editor);
     let (show_left_sidebar, set_show_left_sidebar) = signal(true);
     let (show_right_inspector, set_show_right_inspector) = signal(true);
@@ -64,6 +62,12 @@ pub fn App() -> impl IntoView {
         set_vault_path.set(path);
         set_screen.set(AppScreen::MainDashboard);
     };
+
+    // RibbonBar expects optional Arc<dyn Fn> callbacks over signals.
+    let on_view_mode_change: std::sync::Arc<dyn Fn(ViewMode) + Send + Sync + 'static> =
+        std::sync::Arc::new(move |mode: ViewMode| set_view_mode.set(mode));
+    let on_show_sidebar_change: std::sync::Arc<dyn Fn(bool) + Send + Sync + 'static> =
+        std::sync::Arc::new(move |show: bool| set_show_left_sidebar.set(show));
 
     view! {
         // Loading screen
@@ -95,14 +99,17 @@ pub fn App() -> impl IntoView {
                 <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
                     // Left Ribbon Bar
                     <div class="flex-none">
-                        <RibbonBar set_view_mode=set_view_mode set_show_sidebar=set_show_left_sidebar />
+                        <RibbonBar
+                            set_view_mode=on_view_mode_change.clone()
+                            set_show_sidebar=on_show_sidebar_change.clone()
+                        />
                     </div>
 
                     // Left Sidebar (Vault File Explorer)
                     {move || if show_left_sidebar.get() {
                         view! {
                             <div class="flex-none">
-                                <LeftSidebar vault_path=vault_path.get() />
+                                <LeftSidebar />
                             </div>
                         }.into_any()
                     } else {

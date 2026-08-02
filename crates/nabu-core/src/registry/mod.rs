@@ -125,10 +125,7 @@ impl ServiceRegistry {
     ///
     /// Returns an empty slice if the category does not exist.
     pub fn get_category(&self, category: &str) -> Vec<String> {
-        self.categories
-            .get(category)
-            .cloned()
-            .unwrap_or_default()
+        self.categories.get(category).cloned().unwrap_or_default()
     }
 
     /// Returns `true` if a service is registered under the given key
@@ -229,9 +226,7 @@ mod tests {
     }
 
     #[derive(Debug, Clone)]
-    struct OtherService {
-        name: String,
-    }
+    struct OtherService;
 
     #[test]
     fn register_and_resolve_singleton() {
@@ -266,9 +261,7 @@ mod tests {
     #[test]
     fn factory_produces_new_instances() {
         let mut registry = ServiceRegistry::new();
-        registry.register_factory("counter", || {
-            Arc::new(MockService { value: 0 })
-        });
+        registry.register_factory("counter", || Arc::new(MockService { value: 0 }));
 
         let a: Arc<MockService> = registry.resolve("counter").unwrap();
         let b: Arc<MockService> = registry.resolve("counter").unwrap();
@@ -328,7 +321,7 @@ mod tests {
     fn resolve_category_filters_by_type() {
         let mut registry = ServiceRegistry::new();
         registry.register("mock_svc", Arc::new(MockService { value: 1 }));
-        registry.register("other_svc", Arc::new(OtherService { name: "test".into() }));
+        registry.register("other_svc", Arc::new(OtherService));
         registry.register_in_category("mix", "mock_svc");
         registry.register_in_category("mix", "other_svc");
 
@@ -364,11 +357,10 @@ mod tests {
         registry.register("b", Arc::new(MockService { value: 2 }));
         registry.register("c", Arc::new(MockService { value: 3 }));
 
-        registry.register_batch_in_category("procs", vec![
-            "a".to_string(),
-            "b".to_string(),
-            "c".to_string(),
-        ]);
+        registry.register_batch_in_category(
+            "procs",
+            vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        );
 
         assert_eq!(registry.get_category("procs").len(), 3);
     }

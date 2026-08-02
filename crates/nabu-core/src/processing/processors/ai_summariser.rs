@@ -74,10 +74,8 @@ impl Processor for AiSummariser {
 
             // Update description with summary if no description exists
             if object.metadata.description.is_none() {
-                object.metadata.description = object
-                    .custom_properties
-                    .get("ai_summary")
-                    .and_then(|v| {
+                object.metadata.description =
+                    object.custom_properties.get("ai_summary").and_then(|v| {
                         if let crate::models::CustomPropertyValue::Text(t) = v {
                             Some(t.clone())
                         } else {
@@ -179,10 +177,7 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert!(result
-            .object
-            .custom_properties
-            .contains_key("ai_summary"));
+        assert!(result.object.custom_properties.contains_key("ai_summary"));
     }
 
     #[tokio::test]
@@ -198,6 +193,6 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 }

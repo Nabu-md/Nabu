@@ -267,8 +267,7 @@ impl PermissionEvaluator {
     ) -> Vec<PermissionCheck> {
         let mut checks = Vec::new();
         for perm_name in requested {
-            let known = self.known_permissions.iter()
-                .find(|p| p.name == *perm_name);
+            let known = self.known_permissions.iter().find(|p| p.name == *perm_name);
             let is_granted = granted.is_granted(perm_name);
             checks.push(PermissionCheck {
                 permission: perm_name.clone(),
@@ -281,14 +280,10 @@ impl PermissionEvaluator {
     }
 
     /// Validate that requested permissions are all known and valid.
-    pub fn validate_requested(
-        &self,
-        requested: &[String],
-    ) -> Vec<PermissionValidation> {
+    pub fn validate_requested(&self, requested: &[String]) -> Vec<PermissionValidation> {
         let mut results = Vec::new();
         for perm_name in requested {
-            let known = self.known_permissions.iter()
-                .find(|p| p.name == *perm_name);
+            let known = self.known_permissions.iter().find(|p| p.name == *perm_name);
             results.push(PermissionValidation {
                 permission: perm_name.clone(),
                 valid: known.is_some(),
@@ -360,10 +355,8 @@ mod tests {
         let evaluator = PermissionEvaluator::new();
         let mut ps = PermissionSet::new();
         ps.grant("vault.read");
-        let checks = evaluator.check_required_permissions(
-            &["vault.read".into(), "network.http".into()],
-            &ps,
-        );
+        let checks = evaluator
+            .check_required_permissions(&["vault.read".into(), "network.http".into()], &ps);
         assert_eq!(checks.len(), 2);
         assert!(checks[0].is_granted);
         assert!(!checks[1].is_granted);
@@ -372,9 +365,8 @@ mod tests {
     #[test]
     fn evaluator_validates_requested() {
         let evaluator = PermissionEvaluator::new();
-        let results = evaluator.validate_requested(
-            &["vault.read".into(), "unknown.permission".into()],
-        );
+        let results =
+            evaluator.validate_requested(&["vault.read".into(), "unknown.permission".into()]);
         assert!(results[0].valid);
         assert!(!results[1].valid);
     }

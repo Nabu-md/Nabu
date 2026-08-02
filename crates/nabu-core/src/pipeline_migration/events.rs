@@ -1,17 +1,18 @@
-use crate::event_bus::{EventBus, ItemProcessingCompletedEvent, ItemProcessingFailedEvent,
-    ItemProcessingStartedEvent, PipelineEvent};
-use crate::event_bus::kinds::{ITEM_PROCESSING_COMPLETED, ITEM_PROCESSING_FAILED, ITEM_PROCESSING_STARTED};
+use crate::event_bus::kinds::{
+    ITEM_PROCESSING_COMPLETED, ITEM_PROCESSING_FAILED, ITEM_PROCESSING_STARTED,
+};
+use crate::event_bus::{
+    EventBus, ItemProcessingCompletedEvent, ItemProcessingFailedEvent, ItemProcessingStartedEvent,
+    PipelineEvent,
+};
 use crate::jobs::job::Job;
-
 
 /// Wires the job queue lifecycle events to the EventBus.
 ///
 /// When a job starts/completes/fails, this publishes the corresponding
 /// PipelineEvent so that StorageManager, Indexer, VaultGraph, and UI
 /// can react.
-pub fn wire_job_events_to_event_bus(
-    _event_bus: &EventBus<PipelineEvent>,
-) {
+pub fn wire_job_events_to_event_bus(_event_bus: &EventBus<PipelineEvent>) {
     // Subscribe to queue lifecycle events via the event bus.
     // This function sets up subscriptions that bridge job state transitions
     // to typed pipeline events.
@@ -21,10 +22,7 @@ pub fn wire_job_events_to_event_bus(
 }
 
 /// Publish a processing started event.
-pub fn publish_processing_started(
-    event_bus: &EventBus<PipelineEvent>,
-    job: &Job,
-) {
+pub fn publish_processing_started(event_bus: &EventBus<PipelineEvent>, job: &Job) {
     event_bus.publish(
         ITEM_PROCESSING_STARTED,
         &PipelineEvent::ItemProcessingStarted(ItemProcessingStartedEvent {
@@ -37,10 +35,7 @@ pub fn publish_processing_started(
 }
 
 /// Publish a processing completed event.
-pub fn publish_processing_completed(
-    event_bus: &EventBus<PipelineEvent>,
-    job: &Job,
-) {
+pub fn publish_processing_completed(event_bus: &EventBus<PipelineEvent>, job: &Job) {
     event_bus.publish(
         ITEM_PROCESSING_COMPLETED,
         &PipelineEvent::ItemProcessingCompleted(ItemProcessingCompletedEvent {

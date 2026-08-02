@@ -1,10 +1,10 @@
 use nabu_core::models::{CustomPropertyValue, KnowledgeObject};
 use nabu_core::registry::context::ApplicationContext;
 use nabu_core::storage::StorageManager;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
-use serde::{Deserialize, Serialize};
 
 use crate::settings::{AppSettings, SettingsStore};
 
@@ -15,9 +15,13 @@ use crate::settings::{AppSettings, SettingsStore};
 /// is a descendant of the vault path.
 fn validate_path_within_vault(vault_path: &Path, user_path: &str) -> Result<PathBuf, String> {
     let resolved = vault_path.join(user_path);
-    let canonical = resolved.canonicalize().map_err(|e| format!("Invalid path: {}", e))?;
-    let canonical_vault = vault_path.canonicalize().map_err(|e| format!("Invalid vault path: {}", e))?;
-    
+    let canonical = resolved
+        .canonicalize()
+        .map_err(|e| format!("Invalid path: {}", e))?;
+    let canonical_vault = vault_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {}", e))?;
+
     if !canonical.starts_with(&canonical_vault) {
         return Err(format!(
             "Path traversal detected: {} is outside vault directory {}",
@@ -25,7 +29,7 @@ fn validate_path_within_vault(vault_path: &Path, user_path: &str) -> Result<Path
             canonical_vault.display()
         ));
     }
-    
+
     Ok(canonical)
 }
 
@@ -33,24 +37,27 @@ fn validate_path_within_vault(vault_path: &Path, user_path: &str) -> Result<Path
 /// or patterns that could be used for injection attacks.
 fn validate_input_safe(input: &str, max_length: usize) -> Result<(), String> {
     if input.len() > max_length {
-        return Err(format!("Input exceeds maximum length of {} characters", max_length));
+        return Err(format!(
+            "Input exceeds maximum length of {} characters",
+            max_length
+        ));
     }
-    
+
     // Check for null bytes
     if input.contains('\0') {
         return Err("Input contains null bytes".to_string());
     }
-    
+
     // Check for path traversal patterns
     if input.contains("..") {
         return Err("Input contains path traversal pattern '..'".to_string());
     }
-    
+
     // Check for null byte injection
     if input.contains('%') && input.contains('0') {
         return Err("Input contains potential URL encoding injection".to_string());
     }
-    
+
     Ok(())
 }
 
@@ -66,7 +73,9 @@ pub enum QueueStatus {
 }
 
 impl Default for QueueStatus {
-    fn default() -> Self { Self::Unread }
+    fn default() -> Self {
+        Self::Unread
+    }
 }
 
 impl QueueStatus {
@@ -98,7 +107,9 @@ pub enum QueuePriority {
 }
 
 impl Default for QueuePriority {
-    fn default() -> Self { Self::Normal }
+    fn default() -> Self {
+        Self::Normal
+    }
 }
 
 impl QueuePriority {
@@ -147,7 +158,9 @@ pub enum InboxStatus {
 }
 
 impl Default for InboxStatus {
-    fn default() -> Self { Self::Pending }
+    fn default() -> Self {
+        Self::Pending
+    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -254,8 +267,10 @@ fn set_custom_json(obj: &mut KnowledgeObject, key: &str, value: &serde_json::Val
 
 /// Sets a plain text custom property.
 fn set_custom_text(obj: &mut KnowledgeObject, key: &str, value: &str) {
-    obj.custom_properties
-        .insert(key.to_string(), CustomPropertyValue::Text(value.to_string()));
+    obj.custom_properties.insert(
+        key.to_string(),
+        CustomPropertyValue::Text(value.to_string()),
+    );
 }
 
 /// Reads a numeric custom property.
@@ -483,7 +498,8 @@ pub fn settings_set_all(
 
 /// Helper: convert a canonical KnowledgeObject to the frontend InboxItem.
 fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
-    let inbox_status_str = custom_text(obj, "inbox_status").unwrap_or_else(|| "pending".to_string());
+    let inbox_status_str =
+        custom_text(obj, "inbox_status").unwrap_or_else(|| "pending".to_string());
     let status = match inbox_status_str.as_str() {
         "processing" => InboxStatus::Processing,
         "ready" => InboxStatus::Ready,
@@ -499,8 +515,8 @@ fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
     let timeline_info = custom_json(obj, "timeline_info")
         .and_then(|v| serde_json::from_value::<TimelineInfo>(v).ok());
 
-    let ocr_info = custom_json(obj, "ocr_info")
-        .and_then(|v| serde_json::from_value::<OcrInfo>(v).ok());
+    let ocr_info =
+        custom_json(obj, "ocr_info").and_then(|v| serde_json::from_value::<OcrInfo>(v).ok());
 
     let processing_history = custom_json(obj, "processing_history")
         .and_then(|v| v.as_array().cloned())
@@ -579,8 +595,7 @@ pub fn inbox_get_queue(ctx: State<'_, ApplicationContext>) -> Result<Vec<InboxIt
 #[tauri::command]
 pub fn inbox_approve(ctx: State<'_, ApplicationContext>, id: String) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
@@ -591,10 +606,13 @@ pub fn inbox_approve(ctx: State<'_, ApplicationContext>, id: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn inbox_reject(ctx: State<'_, ApplicationContext>, id: String, reason: String) -> Result<(), String> {
+pub fn inbox_reject(
+    ctx: State<'_, ApplicationContext>,
+    id: String,
+    reason: String,
+) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
@@ -608,8 +626,7 @@ pub fn inbox_reject(ctx: State<'_, ApplicationContext>, id: String, reason: Stri
 #[tauri::command]
 pub fn inbox_retry(ctx: State<'_, ApplicationContext>, id: String) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
@@ -622,14 +639,16 @@ pub fn inbox_retry(ctx: State<'_, ApplicationContext>, id: String) -> Result<(),
 #[tauri::command]
 pub fn inbox_delete(ctx: State<'_, ApplicationContext>, id: String) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     manager.delete(object_id).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn inbox_batch_approve(ctx: State<'_, ApplicationContext>, ids: Vec<String>) -> Result<(), String> {
+pub fn inbox_batch_approve(
+    ctx: State<'_, ApplicationContext>,
+    ids: Vec<String>,
+) -> Result<(), String> {
     for id in ids {
         if let Err(e) = inbox_approve(ctx.clone(), id) {
             eprintln!("Failed to approve inbox item: {}", e);
@@ -639,7 +658,11 @@ pub fn inbox_batch_approve(ctx: State<'_, ApplicationContext>, ids: Vec<String>)
 }
 
 #[tauri::command]
-pub fn inbox_batch_reject(ctx: State<'_, ApplicationContext>, ids: Vec<String>, reason: String) -> Result<(), String> {
+pub fn inbox_batch_reject(
+    ctx: State<'_, ApplicationContext>,
+    ids: Vec<String>,
+    reason: String,
+) -> Result<(), String> {
     for id in ids {
         if let Err(e) = inbox_reject(ctx.clone(), id, reason.clone()) {
             eprintln!("Failed to reject inbox item: {}", e);
@@ -649,7 +672,10 @@ pub fn inbox_batch_reject(ctx: State<'_, ApplicationContext>, ids: Vec<String>, 
 }
 
 #[tauri::command]
-pub fn inbox_batch_delete(ctx: State<'_, ApplicationContext>, ids: Vec<String>) -> Result<(), String> {
+pub fn inbox_batch_delete(
+    ctx: State<'_, ApplicationContext>,
+    ids: Vec<String>,
+) -> Result<(), String> {
     for id in ids {
         if let Err(e) = inbox_delete(ctx.clone(), id) {
             eprintln!("Failed to delete inbox item: {}", e);
@@ -659,7 +685,10 @@ pub fn inbox_batch_delete(ctx: State<'_, ApplicationContext>, ids: Vec<String>) 
 }
 
 #[tauri::command]
-pub fn inbox_batch_retry(ctx: State<'_, ApplicationContext>, ids: Vec<String>) -> Result<(), String> {
+pub fn inbox_batch_retry(
+    ctx: State<'_, ApplicationContext>,
+    ids: Vec<String>,
+) -> Result<(), String> {
     for id in ids {
         if let Err(e) = inbox_retry(ctx.clone(), id) {
             eprintln!("Failed to retry inbox item: {}", e);
@@ -679,15 +708,20 @@ pub fn inbox_edit_metadata(
     custom: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
 
-    if let Some(t) = title { obj.metadata.title = Some(t); }
-    if let Some(a) = author { obj.metadata.authors = vec![a]; }
-    if let Some(l) = language { obj.metadata.language = Some(l); }
+    if let Some(t) = title {
+        obj.metadata.title = Some(t);
+    }
+    if let Some(a) = author {
+        obj.metadata.authors = vec![a];
+    }
+    if let Some(l) = language {
+        obj.metadata.language = Some(l);
+    }
     if !tags.is_empty() {
         obj.tags = tags;
     }
@@ -700,10 +734,13 @@ pub fn inbox_edit_metadata(
 }
 
 #[tauri::command]
-pub fn inbox_move(ctx: State<'_, ApplicationContext>, id: String, destination: String) -> Result<(), String> {
+pub fn inbox_move(
+    ctx: State<'_, ApplicationContext>,
+    id: String,
+    destination: String,
+) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
@@ -755,10 +792,13 @@ pub fn queue_get_all(ctx: State<'_, ApplicationContext>) -> Result<Vec<QueueItem
 }
 
 #[tauri::command]
-pub fn queue_set_status(ctx: State<'_, ApplicationContext>, id: String, status: String) -> Result<(), String> {
+pub fn queue_set_status(
+    ctx: State<'_, ApplicationContext>,
+    id: String,
+    status: String,
+) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Object not found: {}", id))?;
@@ -770,10 +810,13 @@ pub fn queue_set_status(ctx: State<'_, ApplicationContext>, id: String, status: 
 }
 
 #[tauri::command]
-pub fn queue_set_priority(ctx: State<'_, ApplicationContext>, id: String, priority: String) -> Result<(), String> {
+pub fn queue_set_priority(
+    ctx: State<'_, ApplicationContext>,
+    id: String,
+    priority: String,
+) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Object not found: {}", id))?;
@@ -785,10 +828,13 @@ pub fn queue_set_priority(ctx: State<'_, ApplicationContext>, id: String, priori
 }
 
 #[tauri::command]
-pub fn queue_set_progress(ctx: State<'_, ApplicationContext>, id: String, progress: f32) -> Result<(), String> {
+pub fn queue_set_progress(
+    ctx: State<'_, ApplicationContext>,
+    id: String,
+    progress: f32,
+) -> Result<(), String> {
     let manager = get_storage_manager(&ctx)?;
-    let object_id = uuid::Uuid::parse_str(&id)
-        .map_err(|e| format!("Invalid object id: {}", e))?;
+    let object_id = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid object id: {}", e))?;
     let mut obj = manager
         .load(object_id)
         .ok_or_else(|| format!("Object not found: {}", id))?;
@@ -802,7 +848,11 @@ pub fn queue_set_progress(ctx: State<'_, ApplicationContext>, id: String, progre
 }
 
 #[tauri::command]
-pub fn queue_batch_set_status(ctx: State<'_, ApplicationContext>, ids: Vec<String>, status: String) -> Result<(), String> {
+pub fn queue_batch_set_status(
+    ctx: State<'_, ApplicationContext>,
+    ids: Vec<String>,
+    status: String,
+) -> Result<(), String> {
     for id in ids {
         if let Err(e) = queue_set_status(ctx.clone(), id, status.clone()) {
             eprintln!("Failed to set queue status: {}", e);
@@ -832,4 +882,3 @@ pub fn queue_archive_completed(ctx: State<'_, ApplicationContext>) -> Result<usi
     }
     Ok(archived)
 }
-

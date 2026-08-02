@@ -34,8 +34,9 @@ mod imp {
 
     pub fn recognize_text(image_data: &[u8]) -> Result<Vec<OcrResult>, NativeError> {
         let data = NSData::with_bytes(image_data);
-        let options: Retained<NSDictionary<objc2_vision::VNImageOption, objc2::runtime::AnyObject>> =
-            NSDictionary::new();
+        let options: Retained<
+            NSDictionary<objc2_vision::VNImageOption, objc2::runtime::AnyObject>,
+        > = NSDictionary::new();
 
         // SAFETY: `initWithData_options` is a generated init that transfers
         // ownership; the image data is fully copied into an NSData.

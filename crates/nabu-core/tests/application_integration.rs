@@ -26,16 +26,16 @@ fn application_builder_creates_default_app() {
 #[test]
 fn application_builder_with_custom_event_bus() {
     let bus = Arc::new(EventBus::<PipelineEvent>::new());
-    let app = Application::builder()
-        .with_event_bus(bus.clone())
-        .build();
+    let app = Application::builder().with_event_bus(bus.clone()).build();
     assert!(Arc::ptr_eq(app.context().event_bus(), &bus));
 }
 
 #[test]
 fn application_builder_registers_event_bus() {
     let app = Application::builder().build();
-    let resolved = app.context().resolve::<EventBus<PipelineEvent>>("event_bus");
+    let resolved = app
+        .context()
+        .resolve::<EventBus<PipelineEvent>>("event_bus");
     assert!(resolved.is_some());
 }
 
@@ -60,7 +60,10 @@ fn initialize_when_all_services_present() {
     let app = Application::builder().build();
 
     // Register missing required services
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
+    app.context().register(
+        "capture_engine",
+        Arc::new(nabu_core::capture::CaptureEngine::new()),
+    );
     app.context().register(
         "pipeline",
         Arc::new(nabu_core::processing::ProcessingPipeline::new()),
@@ -130,11 +133,20 @@ fn shutdown_from_created() {
 #[test]
 fn shutdown_from_initialized() {
     let app = Application::builder().build();
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
-    app.context().register("pipeline", Arc::new(nabu_core::processing::ProcessingPipeline::new()));
-    app.context().register("storage_manager", Arc::new(nabu_core::storage::StorageManager::new(
-        std::env::temp_dir().join("nabu-test-shutdown"),
-    )));
+    app.context().register(
+        "capture_engine",
+        Arc::new(nabu_core::capture::CaptureEngine::new()),
+    );
+    app.context().register(
+        "pipeline",
+        Arc::new(nabu_core::processing::ProcessingPipeline::new()),
+    );
+    app.context().register(
+        "storage_manager",
+        Arc::new(nabu_core::storage::StorageManager::new(
+            std::env::temp_dir().join("nabu-test-shutdown"),
+        )),
+    );
     app.initialize().unwrap();
     assert!(app.shutdown().is_ok());
     assert!(app.is_shutdown());
@@ -220,15 +232,25 @@ fn context_core_validation() {
 #[test]
 fn validation_report_healthy_when_all_present() {
     let app = Application::builder().build();
-    app.context().register("capture_engine", Arc::new(nabu_core::capture::CaptureEngine::new()));
-    app.context().register("pipeline", Arc::new(nabu_core::processing::ProcessingPipeline::new()));
-    app.context().register("storage_manager", Arc::new(nabu_core::storage::StorageManager::new(
-        std::env::temp_dir().join("nabu-test-validate"),
-    )));
+    app.context().register(
+        "capture_engine",
+        Arc::new(nabu_core::capture::CaptureEngine::new()),
+    );
+    app.context().register(
+        "pipeline",
+        Arc::new(nabu_core::processing::ProcessingPipeline::new()),
+    );
+    app.context().register(
+        "storage_manager",
+        Arc::new(nabu_core::storage::StorageManager::new(
+            std::env::temp_dir().join("nabu-test-validate"),
+        )),
+    );
     // Add optional services
-    let queue = Arc::new(nabu_core::jobs::DurableJobQueue::new(
-        std::env::temp_dir().join("nabu-test-jobqueue"),
-    ).unwrap());
+    let queue = Arc::new(
+        nabu_core::jobs::DurableJobQueue::new(std::env::temp_dir().join("nabu-test-jobqueue"))
+            .unwrap(),
+    );
     app.context().register("job_queue", queue.clone());
     app.context().register(
         "worker_pool",
@@ -269,17 +291,14 @@ fn application_context_category_operations() {
 
     app.context().register("p1", Arc::new(TestProcessor));
     app.context().register("p2", Arc::new(TestProcessor));
-    app.context().register_in_category(
-        nabu_core::registry::CATEGORY_PROCESSORS,
-        "p1",
-    );
-    app.context().register_in_category(
-        nabu_core::registry::CATEGORY_PROCESSORS,
-        "p2",
-    );
+    app.context()
+        .register_in_category(nabu_core::registry::CATEGORY_PROCESSORS, "p1");
+    app.context()
+        .register_in_category(nabu_core::registry::CATEGORY_PROCESSORS, "p2");
 
-    let procs: Vec<Arc<TestProcessor>> =
-        app.context().resolve_category(nabu_core::registry::CATEGORY_PROCESSORS);
+    let procs: Vec<Arc<TestProcessor>> = app
+        .context()
+        .resolve_category(nabu_core::registry::CATEGORY_PROCESSORS);
     assert_eq!(procs.len(), 2);
 }
 
@@ -289,12 +308,24 @@ fn application_context_category_operations() {
 
 #[test]
 fn category_constants_are_defined() {
-    assert_eq!(nabu_core::registry::CATEGORY_CAPTURE_HANDLERS, "capture_handlers");
+    assert_eq!(
+        nabu_core::registry::CATEGORY_CAPTURE_HANDLERS,
+        "capture_handlers"
+    );
     assert_eq!(nabu_core::registry::CATEGORY_PROCESSORS, "processors");
     assert_eq!(nabu_core::registry::CATEGORY_AI_PROVIDERS, "ai_providers");
     assert_eq!(nabu_core::registry::CATEGORY_OCR_PROVIDERS, "ocr_providers");
-    assert_eq!(nabu_core::registry::CATEGORY_EMBEDDING_PROVIDERS, "embedding_providers");
+    assert_eq!(
+        nabu_core::registry::CATEGORY_EMBEDDING_PROVIDERS,
+        "embedding_providers"
+    );
     assert_eq!(nabu_core::registry::CATEGORY_EXPORTERS, "exporters");
-    assert_eq!(nabu_core::registry::CATEGORY_STORAGE_PROVIDERS, "storage_providers");
-    assert_eq!(nabu_core::registry::CATEGORY_CONTENT_PROVIDERS, "content_providers");
+    assert_eq!(
+        nabu_core::registry::CATEGORY_STORAGE_PROVIDERS,
+        "storage_providers"
+    );
+    assert_eq!(
+        nabu_core::registry::CATEGORY_CONTENT_PROVIDERS,
+        "content_providers"
+    );
 }

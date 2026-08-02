@@ -1,8 +1,8 @@
-use nabu_core::graph::incremental::engine::IncrementalUpdateEngine;
-use nabu_core::graph::incremental::dependency_tracker::DependencyTracker;
 use nabu_core::graph::incremental::change_log::{ChangeEntry, ChangeLog, CheckpointData};
-use nabu_core::graph::incremental::region::RegionEngine;
+use nabu_core::graph::incremental::dependency_tracker::DependencyTracker;
+use nabu_core::graph::incremental::engine::IncrementalUpdateEngine;
 use nabu_core::graph::incremental::event_wiring::GraphEventBridge;
+use nabu_core::graph::incremental::region::RegionEngine;
 use nabu_core::graph::serializer::{GraphSnapshot, SerializedEdge, SerializedNode};
 use nabu_core::graph::version::GraphVersion;
 use nabu_core::graph::VaultGraph;
@@ -17,7 +17,10 @@ use uuid::Uuid;
 #[test]
 fn test_single_note_edit_incremental() {
     let mut engine = IncrementalUpdateEngine::new();
-    let note = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Original".to_string()));
+    let note = KnowledgeObject::new(
+        ObjectType::Note,
+        ObjectContent::Markdown("Original".to_string()),
+    );
 
     // A persisted note is modified — only it needs recalculation.
     // (A just-added node stays tracked as "added"; no separate modified
@@ -36,7 +39,10 @@ fn test_single_note_edit_incremental() {
 #[test]
 fn test_note_rename() {
     let mut engine = IncrementalUpdateEngine::new();
-    let note = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Content".to_string()));
+    let note = KnowledgeObject::new(
+        ObjectType::Note,
+        ObjectContent::Markdown("Content".to_string()),
+    );
 
     // Rename of a persisted note is just a metadata change
     engine.tracker.record_node_modified(note.id);
@@ -49,7 +55,10 @@ fn test_note_rename() {
 #[test]
 fn test_folder_move() {
     let mut engine = IncrementalUpdateEngine::new();
-    let note = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Moving".to_string()));
+    let note = KnowledgeObject::new(
+        ObjectType::Note,
+        ObjectContent::Markdown("Moving".to_string()),
+    );
 
     engine.node_added(&note);
 
@@ -182,9 +191,24 @@ fn test_region_based_rebuild() {
     let n2 = Uuid::new_v4();
     let n3 = Uuid::new_v4();
 
-    snapshot.add_node(SerializedNode::new(n1, "note", Some("Inbox/Note".into()), "text"));
-    snapshot.add_node(SerializedNode::new(n2, "note", Some("Work/Doc".into()), "text"));
-    snapshot.add_node(SerializedNode::new(n3, "article", Some("Inbox/Article".into()), "text"));
+    snapshot.add_node(SerializedNode::new(
+        n1,
+        "note",
+        Some("Inbox/Note".into()),
+        "text",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n2,
+        "note",
+        Some("Work/Doc".into()),
+        "text",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n3,
+        "article",
+        Some("Inbox/Article".into()),
+        "text",
+    ));
     snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
 
     let mut engine = RegionEngine::new();
@@ -216,7 +240,12 @@ fn test_change_log_append_replay() {
         "text",
     )))
     .unwrap();
-    log.append(&ChangeEntry::EdgeAdded(SerializedEdge::new(n1, n2, "references"))).unwrap();
+    log.append(&ChangeEntry::EdgeAdded(SerializedEdge::new(
+        n1,
+        n2,
+        "references",
+    )))
+    .unwrap();
 
     let mut count = 0u64;
     log.replay(|_entry| {

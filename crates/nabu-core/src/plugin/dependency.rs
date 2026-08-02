@@ -41,16 +41,21 @@ impl DependencyGraph {
     /// Add a plugin and its dependencies to the graph.
     pub fn add_plugin(&mut self, manifest: &PluginManifest) {
         self.nodes.insert(manifest.id.clone());
-        self.versions.insert(manifest.id.clone(), manifest.version.clone());
+        self.versions
+            .insert(manifest.id.clone(), manifest.version.clone());
 
-        let deps: Vec<String> = manifest.dependencies.iter()
+        let deps: Vec<String> = manifest
+            .dependencies
+            .iter()
             .map(|d| d.plugin_id.clone())
             .collect();
         if !deps.is_empty() {
             self.edges.insert(manifest.id.clone(), deps);
         }
 
-        let opt_deps: Vec<String> = manifest.optional_dependencies.iter()
+        let opt_deps: Vec<String> = manifest
+            .optional_dependencies
+            .iter()
             .map(|d| d.plugin_id.clone())
             .collect();
         if !opt_deps.is_empty() {
@@ -62,7 +67,10 @@ impl DependencyGraph {
     pub fn add_dependency(&mut self, from: &str, to: &str) {
         self.nodes.insert(from.to_string());
         self.nodes.insert(to.to_string());
-        self.edges.entry(from.to_string()).or_default().push(to.to_string());
+        self.edges
+            .entry(from.to_string())
+            .or_default()
+            .push(to.to_string());
     }
 
     /// Check if a plugin ID exists in the graph.
@@ -173,7 +181,8 @@ impl DependencyGraph {
             }
         }
 
-        let mut queue: VecDeque<String> = in_degree.iter()
+        let mut queue: VecDeque<String> = in_degree
+            .iter()
             .filter(|(_, &deg)| deg == 0)
             .map(|(id, _)| id.clone())
             .collect();
@@ -223,9 +232,7 @@ pub struct MissingDependency {
 }
 
 /// Validates and evaluates a set of plugin manifests for dependency conflicts.
-pub fn validate_dependencies(
-    manifests: &[PluginManifest],
-) -> DependencyReport {
+pub fn validate_dependencies(manifests: &[PluginManifest]) -> DependencyReport {
     let mut graph = DependencyGraph::new();
     for manifest in manifests {
         graph.add_plugin(manifest);
@@ -271,10 +278,13 @@ mod tests {
     use crate::plugin::version::Version;
 
     fn make_plugin(id: &str, deps: Vec<&str>) -> PluginManifest {
-        let deps: Vec<PluginDependency> = deps.into_iter()
+        let deps: Vec<PluginDependency> = deps
+            .into_iter()
             .map(|d| PluginDependency {
                 plugin_id: d.to_string(),
-                version_requirement: crate::plugin::version::VersionRequirement::Compatible(Version::new(0, 1, 0)),
+                version_requirement: crate::plugin::version::VersionRequirement::Compatible(
+                    Version::new(0, 1, 0),
+                ),
                 optional: false,
             })
             .collect();

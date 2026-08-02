@@ -1,4 +1,6 @@
-use crate::graph::integrity::{check_integrity, compute_graph_checksum, quick_check, IntegrityReport};
+use crate::graph::integrity::{
+    check_integrity, compute_graph_checksum, quick_check, IntegrityReport,
+};
 use crate::graph::serializer::GraphSnapshot;
 use crate::graph::version::GraphVersion;
 use std::fs;
@@ -17,9 +19,6 @@ const GRAPH_META_FILENAME: &str = "graph.meta.json";
 /// All graph data is persisted under `.nabu/graph/`.
 /// Never stores canonical data — only derived graph state.
 pub struct GraphStore {
-    /// Root path (contains `.nabu/graph/`)
-    base_path: PathBuf,
-
     /// Path to the graph data directory
     graph_dir: PathBuf,
 
@@ -45,7 +44,6 @@ impl GraphStore {
             .map_err(|e| format!("Failed to create graph directory: {}", e))?;
 
         Ok(Self {
-            base_path,
             graph_dir: graph_dir.clone(),
             data_path: graph_dir.join(GRAPH_DATA_FILENAME),
             meta_path: graph_dir.join(GRAPH_META_FILENAME),
@@ -103,8 +101,8 @@ impl GraphStore {
             return Ok(None);
         }
 
-        let bytes = fs::read(&self.data_path)
-            .map_err(|e| format!("Failed to read graph file: {}", e))?;
+        let bytes =
+            fs::read(&self.data_path).map_err(|e| format!("Failed to read graph file: {}", e))?;
 
         let snapshot = GraphSnapshot::from_json_bytes(&bytes)
             .map_err(|e| format!("Failed to parse graph file: {}", e))?;
@@ -197,8 +195,18 @@ mod tests {
         let n1 = uuid::Uuid::new_v4();
         let n2 = uuid::Uuid::new_v4();
 
-        snapshot.add_node(SerializedNode::new(n1, "note", Some("Test A".into()), "text"));
-        snapshot.add_node(SerializedNode::new(n2, "note", Some("Test B".into()), "text"));
+        snapshot.add_node(SerializedNode::new(
+            n1,
+            "note",
+            Some("Test A".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            n2,
+            "note",
+            Some("Test B".into()),
+            "text",
+        ));
         snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
 
         snapshot

@@ -232,7 +232,9 @@ impl Default for ProcessingPipeline {
 }
 
 /// Build the standard processing pipeline with all default processors.
-pub fn build_standard_pipeline(event_bus: Option<EventBus<crate::event_bus::PipelineEvent>>) -> ProcessingPipeline {
+pub fn build_standard_pipeline(
+    event_bus: Option<EventBus<crate::event_bus::PipelineEvent>>,
+) -> ProcessingPipeline {
     let mut pipeline = match event_bus {
         Some(bus) => ProcessingPipeline::with_event_bus(bus),
         None => ProcessingPipeline::new(),

@@ -27,6 +27,7 @@
 //! Safe to call multiple times — subsequent calls are no-ops.
 //! Must be called before any other tracing macro to capture all events.
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tracing_subscriber::filter::EnvFilter;
@@ -36,9 +37,11 @@ use tracing_subscriber::util::SubscriberInitExt;
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// Default log directory relative to the vault or working directory.
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_LOG_DIR: &str = ".nabu/logs";
 
 /// Maximum number of log files to retain during rotation.
+#[cfg(not(target_arch = "wasm32"))]
 const MAX_LOG_FILES: usize = 7;
 
 /// Initialize the tracing subscriber with sensible defaults.
@@ -57,6 +60,9 @@ const MAX_LOG_FILES: usize = 7;
 ///
 /// Returns `true` if initialization succeeded or was already done.
 /// Returns `false` only if initialization fails (e.g., cannot create log dir).
+///
+/// Native variant: file logging (rolling JSON appender) plus stderr.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
     if INITIALIZED.swap(true, Ordering::SeqCst) {
         // Already initialized — safe no-op
@@ -82,22 +88,19 @@ pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
     }
 
     // Build the file appender layer (rolling, JSON)
-    let (file_layer, _file_guard) = match crate::diagnostics::layers::rolling_file_layer(
-        &log_dir,
-        app_name,
-        MAX_LOG_FILES,
-    ) {
-        Ok((layer, guard)) => (layer, guard),
-        Err(e) => {
-            eprintln!(
-                "[nabu::diagnostics] Warning: Cannot initialize file logging: {}. \
+    let (file_layer, _file_guard) =
+        match crate::diagnostics::layers::rolling_file_layer(&log_dir, app_name, MAX_LOG_FILES) {
+            Ok((layer, guard)) => (layer, guard),
+            Err(e) => {
+                eprintln!(
+                    "[nabu::diagnostics] Warning: Cannot initialize file logging: {}. \
                  Falling back to stderr-only.",
-                e
-            );
-            init_stderr_only(env_filter);
-            return false;
-        }
-    };
+                    e
+                );
+                init_stderr_only(env_filter);
+                return false;
+            }
+        };
 
     // Build the stderr layer (pretty-printed for dev, compact for release)
     let stderr_layer = crate::diagnostics::layers::stderr_layer(
@@ -120,6 +123,30 @@ pub fn init(vault_path: Option<&std::path::Path>, app_name: &str) -> bool {
         log_dir = %log_dir.display(),
         app_name = app_name,
         "Tracing initialized"
+    );
+
+    true
+}
+
+/// Initialize the tracing subscriber with stderr-only logging.
+///
+/// Wasm/browser variant: there is no local filesystem for log files, so this
+/// installs the same `NABU_LOG`/`RUST_LOG`-filtered stderr subscriber without
+/// the rolling file appender.
+#[cfg(target_arch = "wasm32")]
+pub fn init(_vault_path: Option<&std::path::Path>, _app_name: &str) -> bool {
+    if INITIALIZED.swap(true, Ordering::SeqCst) {
+        // Already initialized — safe no-op
+        return true;
+    }
+
+    init_stderr_only(build_env_filter());
+
+    tracing::info!(
+        subsystem = "diagnostics",
+        component = "init",
+        operation = "init",
+        "Tracing initialized (stderr-only, wasm target)"
     );
 
     true
@@ -173,6 +200,7 @@ fn default_log_level() -> String {
 }
 
 /// Resolve the log directory path.
+#[cfg(not(target_arch = "wasm32"))]
 fn resolve_log_dir(vault_path: Option<&std::path::Path>) -> PathBuf {
     match vault_path {
         Some(vault) => {
@@ -206,6 +234,7 @@ mod tests {
     /// race: the second `init()` call is a no-op and never creates its log dir.
     static INIT_TEST_LOCK: Mutex<()> = Mutex::new(());
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_init_with_vault_path() {
         let _guard = INIT_TEST_LOCK.lock().unwrap();
@@ -229,6 +258,7 @@ mod tests {
     /// Restores the process working directory on drop, so a panicking
     /// assertion between `set_current_dir` and the end of the test can't
     /// leave the cwd changed for other parallel tests.
+    #[cfg(not(target_arch = "wasm32"))]
     struct CwdGuard(PathBuf);
 
     impl Drop for CwdGuard {
@@ -237,6 +267,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_init_without_vault_path() {
         let _guard = INIT_TEST_LOCK.lock().unwrap();
@@ -279,6 +310,7 @@ mod tests {
         let _ = filter;
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_resolve_log_dir_with_vault() {
         let vault = PathBuf::from("/tmp/test-vault");
@@ -286,6 +318,7 @@ mod tests {
         assert_eq!(dir, PathBuf::from("/tmp/test-vault/.nabu/logs"));
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_resolve_log_dir_without_vault() {
         let dir = resolve_log_dir(None);

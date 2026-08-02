@@ -5,47 +5,53 @@
 //! Reuses VaultGraph for entity lookup and relation management.
 //! Views are projections of existing KnowledgeObjects — views never own data.
 
+use crate::models::graph::{GraphEdge, RelationType};
+use crate::models::knowledge_object::KnowledgeObject;
 use leptos::prelude::*;
 use uuid::Uuid;
-use crate::models::graph::{RelationType, GraphEdge};
-use crate::models::knowledge_object::KnowledgeObject;
 
-#[derive(Properties, PartialEq)]
-pub struct Props {
-    pub object: KnowledgeObject,
-    pub relations: Vec<GraphEdge>,
-    pub all_objects: Vec<KnowledgeObject>,
-    pub on_add_relation: Callback<(Uuid, RelationType)>,
-    pub on_remove_relation: Callback<Uuid>,
-    pub on_create_entity: Callback<(String, RelationType)>,
-}
-
-#[function_component(RelationEditor)]
-pub fn relation_editor(props: &Props) -> Html {
+#[component]
+pub fn RelationEditor(
+    object: KnowledgeObject,
+    relations: Vec<GraphEdge>,
+    all_objects: Vec<KnowledgeObject>,
+    on_add_relation: Callback<(Uuid, RelationType)>,
+    on_remove_relation: Callback<Uuid>,
+    on_create_entity: Callback<(String, RelationType)>,
+) -> impl IntoView {
     let (search_query, set_search_query) = signal(String::new());
     let (selected_relation_type, set_selected_relation_type) = signal(RelationType::RelatedTo);
-    let (show_create, set_show_create) = signal(false);
+    let (_show_create, set_show_create) = signal(false);
     let (new_entity_name, set_new_entity_name) = signal(String::new());
     let (active_tab, set_active_tab) = signal(RelationTab::Existing);
 
+    let all_objects_for_filter = all_objects.clone();
     let filtered_objects = move || {
         let query = search_query.get().to_lowercase();
         if query.is_empty() {
-            props.all_objects.clone()
+            all_objects_for_filter.clone()
         } else {
-            props.all_objects.iter()
+            all_objects_for_filter
+                .iter()
                 .filter(|obj| {
-                    obj.metadata.title.as_ref().map_or(false, |t| t.to_lowercase().contains(&query))
-                        || obj.object_type.to_string().to_lowercase().contains(&query)
+                    obj.metadata
+                        .title
+                        .as_ref()
+                        .map_or(false, |t| t.to_lowercase().contains(&query))
+                        || format!("{:?}", obj.object_type)
+                            .to_lowercase()
+                            .contains(&query)
                 })
                 .cloned()
                 .collect()
         }
     };
 
+    let object_id = object.id;
     let existing_relations = move || {
-        props.relations.iter()
-            .filter(|edge| edge.source == props.object.id)
+        relations
+            .iter()
+            .filter(|edge| edge.source == object_id)
             .cloned()
             .collect::<Vec<_>>()
     };
@@ -60,16 +66,16 @@ pub fn relation_editor(props: &Props) -> Html {
         RelationType::DependsOn,
     ];
 
-    let on_add_relation = move |target_id: Uuid| {
+    let add_relation = move |target_id: Uuid| {
         let rel_type = selected_relation_type.get();
-        props.on_add_relation.emit((target_id, rel_type));
+        on_add_relation.run((target_id, rel_type));
     };
 
-    let on_create_entity = move |_| {
+    let create_entity = move |_| {
         let name = new_entity_name.get();
         if !name.is_empty() {
             let rel_type = selected_relation_type.get();
-            props.on_create_entity.emit((name, rel_type));
+            on_create_entity.run((name, rel_type));
             set_new_entity_name.set(String::new());
             set_show_create.set(false);
         }
@@ -80,7 +86,7 @@ pub fn relation_editor(props: &Props) -> Html {
             // Header
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-300">
-                    {format!("Relations for {}", props.object.metadata.title.clone().unwrap_or_default())}
+                    {format!("Relations for {}", object.metadata.title.clone().unwrap_or_default())}
                 </h3>
                 <div class="flex gap-2">
                     <button
@@ -111,17 +117,16 @@ pub fn relation_editor(props: &Props) -> Html {
             {move || match active_tab.get() {
                 RelationTab::Existing => view! {
                     <div class="space-y-2">
-                        {move || {
-                            let rels = existing_relations();
+                        {let rels = existing_relations();
                             if rels.is_empty() {
                                 view! { <p class="text-sm text-gray-500">"No relations yet"</p> }.into_any()
                             } else {
                                 view! {
                                     <div class="space-y-1">
-                                        {for rels.iter().map(|edge| {
+                                        { rels.iter().map(|edge| {
                                             let target_id = edge.target;
                                             let rel_type = edge.relation.clone();
-                                            let target_obj = props.all_objects.iter().find(|o| o.id == target_id);
+                                            let target_obj = all_objects.iter().find(|o| o.id == target_id);
                                             view! {
                                                 <div class="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700">
                                                     <div class="flex items-center gap-2">
@@ -134,17 +139,17 @@ pub fn relation_editor(props: &Props) -> Html {
                                                     </div>
                                                     <button
                                                         class="text-xs text-red-400 hover:text-red-300"
-                                                        on:click=move |_| props.on_remove_relation.emit(target_id)
+                                                        on:click=move |_| on_remove_relation.run(target_id)
                                                     >
                                                         "Remove"
                                                     </button>
                                                 </div>
                                             }
-                                        })}
+                                        }).collect_view()}
                                     </div>
                                 }.into_any()
                             }
-                        }}
+                        }
                     </div>
                 }.into_any(),
 
@@ -155,10 +160,7 @@ pub fn relation_editor(props: &Props) -> Html {
                             type="text"
                             placeholder="Search entities..."
                             value={search_query.get()}
-                            on:input=move |ev: InputEvent| {
-                                let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                set_search_query.set(input.value());
-                            }
+                            on:input=move |ev| set_search_query.set(event_target_value(&ev))
                             class="w-full bg-gray-800 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none"
                         />
 
@@ -166,11 +168,8 @@ pub fn relation_editor(props: &Props) -> Html {
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500">"Relation:"</span>
                             <select
-                                value={format!("{:?}", selected_relation_type.get())}
-                                on:change=move |ev: Event| {
-                                    let select: web_sys::HtmlSelectElement = ev.target_unchecked_into();
-                                    let val = select.value();
-                                    let rel = match val.as_str() {
+                                on:change=move |ev| {
+                                    let rel = match event_target_value(&ev).as_str() {
                                         "BelongsTo" => RelationType::BelongsTo,
                                         "WorksOn" => RelationType::WorksOn,
                                         "RelatedTo" => RelationType::RelatedTo,
@@ -184,27 +183,26 @@ pub fn relation_editor(props: &Props) -> Html {
                                 }
                                 class="bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700"
                             >
-                                {for relation_types.iter().map(|rt| {
+                                { relation_types.iter().map(|rt| {
                                     view! { <option value={format!("{:?}", rt)}>{format!("{:?}", rt)}</option> }
-                                })}
+                                }).collect_view()}
                             </select>
                         </div>
 
                         // Search results
                         <div class="max-h-48 overflow-y-auto space-y-1">
-                            {move || {
-                                let results = filtered_objects();
+                            {let results = filtered_objects();
                                 if results.is_empty() {
                                     view! { <p class="text-sm text-gray-500">"No entities found"</p> }.into_any()
                                 } else {
                                     view! {
-                                        {for results.iter().map(|obj| {
+                                        { results.iter().map(|obj| {
                                             let obj_id = obj.id;
                                             let title = obj.metadata.title.clone().unwrap_or_default();
-                                            let obj_type = obj.object_type.to_string();
+                                            let obj_type = format!("{:?}", obj.object_type);
                                             view! {
                                                 <div class="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700 hover:border-gray-600 cursor-pointer"
-                                                    on:click=move |_| on_add_relation(obj_id)>
+                                                    on:click=move |_| add_relation(obj_id)>
                                                     <div>
                                                         <span class="text-sm text-gray-200">{title}</span>
                                                         <span class="text-xs text-gray-500 ml-2">{obj_type}</span>
@@ -212,10 +210,10 @@ pub fn relation_editor(props: &Props) -> Html {
                                                     <span class="text-xs text-blue-400">"Add →"</span>
                                                 </div>
                                             }
-                                        })}
+                                        }).collect_view()}
                                     }.into_any()
                                 }
-                            }}
+                            }
                         </div>
                     </div>
                 }.into_any(),
@@ -227,10 +225,7 @@ pub fn relation_editor(props: &Props) -> Html {
                             <input
                                 type="text"
                                 value={new_entity_name.get()}
-                                on:input=move |ev: InputEvent| {
-                                    let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                    set_new_entity_name.set(input.value());
-                                }
+                                on:input=move |ev| set_new_entity_name.set(event_target_value(&ev))
                                 placeholder="Enter entity name..."
                                 class="w-full bg-gray-800 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none mt-1"
                             />
@@ -239,11 +234,8 @@ pub fn relation_editor(props: &Props) -> Html {
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500">"Relation:"</span>
                             <select
-                                value={format!("{:?}", selected_relation_type.get())}
-                                on:change=move |ev: Event| {
-                                    let select: web_sys::HtmlSelectElement = ev.target_unchecked_into();
-                                    let val = select.value();
-                                    let rel = match val.as_str() {
+                                on:change=move |ev| {
+                                    let rel = match event_target_value(&ev).as_str() {
                                         "BelongsTo" => RelationType::BelongsTo,
                                         "WorksOn" => RelationType::WorksOn,
                                         "RelatedTo" => RelationType::RelatedTo,
@@ -257,15 +249,15 @@ pub fn relation_editor(props: &Props) -> Html {
                                 }
                                 class="bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700"
                             >
-                                {for relation_types.iter().map(|rt| {
+                                { relation_types.iter().map(|rt| {
                                     view! { <option value={format!("{:?}", rt)}>{format!("{:?}", rt)}</option> }
-                                })}
+                                }).collect_view()}
                             </select>
                         </div>
 
                         <button
                             class="px-3 py-1.5 text-sm bg-blue-700 rounded hover:bg-blue-600"
-                            on:click=on_create_entity
+                            on:click=create_entity
                         >
                             "Create Entity"
                         </button>
@@ -281,37 +273,4 @@ enum RelationTab {
     Existing,
     Search,
     Create,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
-    use std::collections::HashMap;
-
-    #[test]
-    fn test_relation_editor_filters_by_title() {
-        let obj = KnowledgeObject {
-            id: Uuid::new_v4(),
-            object_type: ObjectType::Note,
-            vault_id: "test".to_string(),
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-            modified_at: "2024-01-01T00:00:00Z".to_string(),
-            content: ObjectContent::Markdown,
-            metadata: ObjectMetadata {
-                title: Some("Test Note".to_string()),
-                ..ObjectMetadata::default()
-            },
-        };
-        let props = Props {
-            object: obj.clone(),
-            relations: vec![],
-            all_objects: vec![obj],
-            on_add_relation: Callback::new(|_| {}),
-            on_remove_relation: Callback::new(|_| {}),
-            on_create_entity: Callback::new(|_| {}),
-        };
-        // The component renders without panicking
-        let _html = relation_editor(&props);
-    }
 }

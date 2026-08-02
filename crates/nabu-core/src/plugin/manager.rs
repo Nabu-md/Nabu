@@ -92,10 +92,7 @@ impl PluginManager {
     /// Register a plugin manifest for discovery and validation.
     ///
     /// Returns a list of validation errors (empty = valid).
-    pub fn register_manifest(
-        &mut self,
-        manifest: PluginManifest,
-    ) -> Vec<RegistrationIssue> {
+    pub fn register_manifest(&mut self, manifest: PluginManifest) -> Vec<RegistrationIssue> {
         let mut issues = Vec::new();
 
         // 1. Validate manifest structure
@@ -136,11 +133,16 @@ impl PluginManager {
         }
 
         // 4. Validate requested permissions
-        let permission_names: Vec<String> = manifest.permissions.iter()
+        let permission_names: Vec<String> = manifest
+            .permissions
+            .iter()
             .map(|p| p.name.clone())
             .collect();
-        let permission_validations = self.permission_evaluator.validate_requested(&permission_names);
-        let invalid_permissions: Vec<String> = permission_validations.iter()
+        let permission_validations = self
+            .permission_evaluator
+            .validate_requested(&permission_names);
+        let invalid_permissions: Vec<String> = permission_validations
+            .iter()
             .filter(|v| !v.valid)
             .map(|v| v.permission.clone())
             .collect();
@@ -155,13 +157,16 @@ impl PluginManager {
         // All checks passed — register the manifest
         let plugin_id = manifest.id.clone();
         self.manifests.insert(plugin_id.clone(), manifest);
-        self.lifecycles.insert(plugin_id.clone(), PluginLifecycle::new());
+        self.lifecycles
+            .insert(plugin_id.clone(), PluginLifecycle::new());
 
         // Transition to Validated
         if let Some(lc) = self.lifecycles.get_mut(&plugin_id) {
             let _ = lc.transition_to(
                 PluginStage::Validated,
-                PluginLifecycleEvent::Validated { plugin_id: plugin_id.clone() },
+                PluginLifecycleEvent::Validated {
+                    plugin_id: plugin_id.clone(),
+                },
             );
         }
 
@@ -194,7 +199,9 @@ impl PluginManager {
         }
 
         // Install in topological order if available
-        let order = dep_report.topological.clone()
+        let order = dep_report
+            .topological
+            .clone()
             .unwrap_or_else(|| manifests.iter().map(|m| m.id.clone()).collect());
 
         for plugin_id in &order {
@@ -222,7 +229,9 @@ impl PluginManager {
         };
 
         // Verify lifecycle is at Validated
-        let can_install = self.lifecycles.get(plugin_id)
+        let can_install = self
+            .lifecycles
+            .get(plugin_id)
             .map(|lc| lc.is_at_least(PluginStage::Validated))
             .unwrap_or(false);
 
@@ -246,7 +255,9 @@ impl PluginManager {
         if let Some(lc) = self.lifecycles.get_mut(plugin_id) {
             let _ = lc.transition_to(
                 PluginStage::Installed,
-                PluginLifecycleEvent::Installed { plugin_id: plugin_id.into() },
+                PluginLifecycleEvent::Installed {
+                    plugin_id: plugin_id.into(),
+                },
             );
         }
 
@@ -259,7 +270,9 @@ impl PluginManager {
 
     /// Enable an installed plugin.
     pub fn enable(&mut self, plugin_id: &str) -> Result<(), ManagerError> {
-        let can_enable = self.lifecycles.get(plugin_id)
+        let can_enable = self
+            .lifecycles
+            .get(plugin_id)
             .map(|lc| lc.is_at_least(PluginStage::Installed))
             .unwrap_or(false);
 
@@ -278,7 +291,9 @@ impl PluginManager {
         if let Some(lc) = self.lifecycles.get_mut(plugin_id) {
             let _ = lc.transition_to(
                 PluginStage::Enabled,
-                PluginLifecycleEvent::Enabled { plugin_id: plugin_id.into() },
+                PluginLifecycleEvent::Enabled {
+                    plugin_id: plugin_id.into(),
+                },
             );
         }
 
@@ -287,7 +302,9 @@ impl PluginManager {
 
     /// Disable an enabled plugin.
     pub fn disable(&mut self, plugin_id: &str) -> Result<(), ManagerError> {
-        let is_enabled = self.lifecycles.get(plugin_id)
+        let is_enabled = self
+            .lifecycles
+            .get(plugin_id)
             .map(|lc| lc.stage() == PluginStage::Enabled)
             .unwrap_or(false);
 
@@ -306,7 +323,9 @@ impl PluginManager {
         if let Some(lc) = self.lifecycles.get_mut(plugin_id) {
             let _ = lc.transition_to(
                 PluginStage::Disabled,
-                PluginLifecycleEvent::Disabled { plugin_id: plugin_id.into() },
+                PluginLifecycleEvent::Disabled {
+                    plugin_id: plugin_id.into(),
+                },
             );
         }
 
@@ -341,7 +360,8 @@ impl PluginManager {
 
     /// List plugins at a specific lifecycle stage.
     pub fn plugins_at_stage(&self, stage: PluginStage) -> Vec<String> {
-        self.lifecycles.iter()
+        self.lifecycles
+            .iter()
             .filter(|(_, lc)| lc.stage() == stage)
             .map(|(id, _)| id.clone())
             .collect()
@@ -388,7 +408,9 @@ impl PluginManager {
         let manifests: Vec<PluginManifest> = self.manifests.values().cloned().collect();
         let dep_report = validate_dependencies(&manifests);
 
-        let plugin_states: HashMap<String, PluginStage> = self.lifecycles.iter()
+        let plugin_states: HashMap<String, PluginStage> = self
+            .lifecycles
+            .iter()
             .map(|(id, lc)| (id.clone(), lc.stage()))
             .collect();
 
@@ -411,11 +433,25 @@ impl PluginManager {
 /// Issues that can occur during plugin registration.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RegistrationIssue {
-    ValidationFailed { plugin_id: String, errors: Vec<String> },
-    DuplicatePluginId { plugin_id: String },
-    IncompatibleVersion { plugin_id: String, reason: String },
-    UntestedVersion { plugin_id: String, reason: String },
-    UnknownPermissions { plugin_id: String, permissions: Vec<String> },
+    ValidationFailed {
+        plugin_id: String,
+        errors: Vec<String>,
+    },
+    DuplicatePluginId {
+        plugin_id: String,
+    },
+    IncompatibleVersion {
+        plugin_id: String,
+        reason: String,
+    },
+    UntestedVersion {
+        plugin_id: String,
+        reason: String,
+    },
+    UnknownPermissions {
+        plugin_id: String,
+        permissions: Vec<String>,
+    },
 }
 
 /// Report from a batch installation attempt.
@@ -465,8 +501,7 @@ impl std::error::Error for ManagerError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plugin::manifest::{PluginDependency, PluginEntryType, PluginFeatureFlag, PluginPermission};
-    use uuid::Uuid;
+    use crate::plugin::manifest::PluginEntryType;
 
     fn test_manifest(id: &str) -> PluginManifest {
         PluginManifest {
@@ -501,7 +536,10 @@ mod tests {
         pm.register_manifest(test_manifest("com.example.test"));
         let issues = pm.register_manifest(test_manifest("com.example.test"));
         assert!(!issues.is_empty());
-        assert!(matches!(issues[0], RegistrationIssue::DuplicatePluginId { .. }));
+        assert!(matches!(
+            issues[0],
+            RegistrationIssue::DuplicatePluginId { .. }
+        ));
     }
 
     #[test]
@@ -513,7 +551,10 @@ mod tests {
         };
         let issues = pm.register_manifest(manifest);
         assert!(!issues.is_empty());
-        assert!(matches!(issues[0], RegistrationIssue::IncompatibleVersion { .. }));
+        assert!(matches!(
+            issues[0],
+            RegistrationIssue::IncompatibleVersion { .. }
+        ));
     }
 
     #[test]

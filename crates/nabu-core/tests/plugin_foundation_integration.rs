@@ -115,7 +115,10 @@ fn valid_manifest_passes_validation() {
 
 #[test]
 fn empty_id_fails_validation() {
-    let m = PluginManifest { id: String::new(), ..make_manifest("test") };
+    let m = PluginManifest {
+        id: String::new(),
+        ..make_manifest("test")
+    };
     let errors = m.validate();
     assert!(!errors.is_empty());
 }
@@ -149,16 +152,41 @@ fn lifecycle_full_path() {
     let mut lc = PluginLifecycle::new();
     assert_eq!(lc.stage(), PluginStage::Discovered);
 
-    lc.transition_to(PluginStage::Validated,
-        PluginLifecycleEvent::Validated { plugin_id: "p".into() }).unwrap();
-    lc.transition_to(PluginStage::Installed,
-        PluginLifecycleEvent::Installed { plugin_id: "p".into() }).unwrap();
-    lc.transition_to(PluginStage::Enabled,
-        PluginLifecycleEvent::Enabled { plugin_id: "p".into() }).unwrap();
-    lc.transition_to(PluginStage::Disabled,
-        PluginLifecycleEvent::Disabled { plugin_id: "p".into() }).unwrap();
-    lc.transition_to(PluginStage::Unloaded,
-        PluginLifecycleEvent::Unloaded { plugin_id: "p".into() }).unwrap();
+    lc.transition_to(
+        PluginStage::Validated,
+        PluginLifecycleEvent::Validated {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
+    lc.transition_to(
+        PluginStage::Installed,
+        PluginLifecycleEvent::Installed {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
+    lc.transition_to(
+        PluginStage::Enabled,
+        PluginLifecycleEvent::Enabled {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
+    lc.transition_to(
+        PluginStage::Disabled,
+        PluginLifecycleEvent::Disabled {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
+    lc.transition_to(
+        PluginStage::Unloaded,
+        PluginLifecycleEvent::Unloaded {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
 
     assert!(lc.is_unloaded());
 }
@@ -166,18 +194,32 @@ fn lifecycle_full_path() {
 #[test]
 fn lifecycle_prevents_backwards_transition() {
     let mut lc = PluginLifecycle::at(PluginStage::Enabled);
-    let result = lc.transition_to(PluginStage::Installed,
-        PluginLifecycleEvent::Disabled { plugin_id: "p".into() });
+    let result = lc.transition_to(
+        PluginStage::Installed,
+        PluginLifecycleEvent::Disabled {
+            plugin_id: "p".into(),
+        },
+    );
     assert!(result.is_err());
 }
 
 #[test]
 fn lifecycle_tracks_history() {
     let mut lc = PluginLifecycle::new();
-    lc.transition_to(PluginStage::Validated,
-        PluginLifecycleEvent::Validated { plugin_id: "p".into() }).unwrap();
-    lc.transition_to(PluginStage::Installed,
-        PluginLifecycleEvent::Installed { plugin_id: "p".into() }).unwrap();
+    lc.transition_to(
+        PluginStage::Validated,
+        PluginLifecycleEvent::Validated {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
+    lc.transition_to(
+        PluginStage::Installed,
+        PluginLifecycleEvent::Installed {
+            plugin_id: "p".into(),
+        },
+    )
+    .unwrap();
     assert_eq!(lc.history().len(), 2);
 }
 
@@ -188,7 +230,10 @@ fn lifecycle_tracks_history() {
 #[test]
 fn capability_register_and_resolve() {
     let mut cr = CapabilityRegistry::new();
-    cr.register(Capability::new("test", "feature", "A test feature"), "test-provider");
+    cr.register(
+        Capability::new("test", "feature", "A test feature"),
+        "test-provider",
+    );
     assert!(cr.has("test:feature"));
     assert_eq!(cr.provider("test:feature"), Some("test-provider"));
 }
@@ -246,11 +291,14 @@ fn empty_graph_valid() {
 
 #[test]
 fn linear_dependency_resolution() {
-    let a = PluginManifest { dependencies: vec![PluginDependency {
-        plugin_id: "b".into(),
-        version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)),
-        optional: false,
-    }], ..make_manifest("a") };
+    let a = PluginManifest {
+        dependencies: vec![PluginDependency {
+            plugin_id: "b".into(),
+            version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)),
+            optional: false,
+        }],
+        ..make_manifest("a")
+    };
     let b = make_manifest("b");
     let report = validate_dependencies(&[a, b]);
     assert!(report.is_valid());
@@ -313,8 +361,16 @@ fn self_dependency_detected() {
 fn topological_sort() {
     let a = PluginManifest {
         dependencies: vec![
-            PluginDependency { plugin_id: "b".into(), version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)), optional: false },
-            PluginDependency { plugin_id: "c".into(), version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)), optional: false },
+            PluginDependency {
+                plugin_id: "b".into(),
+                version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)),
+                optional: false,
+            },
+            PluginDependency {
+                plugin_id: "c".into(),
+                version_requirement: VersionRequirement::Compatible(Version::new(1, 0, 0)),
+                optional: false,
+            },
         ],
         ..make_manifest("a")
     };
@@ -363,7 +419,12 @@ fn feature_enable_disable_override() {
 fn feature_stages_filter() {
     let mut fr = FeatureRegistry::new();
     fr.register("stable.feature", "Stable", FeatureStage::Stable, true);
-    fr.register("experimental.feature", "Experimental", FeatureStage::Experimental, false);
+    fr.register(
+        "experimental.feature",
+        "Experimental",
+        FeatureStage::Experimental,
+        false,
+    );
     assert_eq!(fr.by_stage(FeatureStage::Stable).len(), 1);
     assert_eq!(fr.by_stage(FeatureStage::Experimental).len(), 1);
 }
@@ -420,10 +481,7 @@ fn permission_risk_levels() {
 #[test]
 fn permission_evaluator_validates_known() {
     let evaluator = PermissionEvaluator::new();
-    let results = evaluator.validate_requested(&[
-        "vault.read".into(),
-        "unknown.perm".into(),
-    ]);
+    let results = evaluator.validate_requested(&["vault.read".into(), "unknown.perm".into()]);
     assert!(results[0].valid);
     assert!(!results[1].valid);
 }
@@ -459,7 +517,10 @@ fn plugin_manager_rejects_duplicate() {
     pm.register_manifest(make_manifest("com.example.test"));
     let issues = pm.register_manifest(make_manifest("com.example.test"));
     assert!(!issues.is_empty());
-    assert!(matches!(issues[0], RegistrationIssue::DuplicatePluginId { .. }));
+    assert!(matches!(
+        issues[0],
+        RegistrationIssue::DuplicatePluginId { .. }
+    ));
 }
 
 #[test]
@@ -470,7 +531,10 @@ fn plugin_manager_rejects_incompatible_version() {
         ..make_manifest("com.example.test")
     });
     assert!(!issues.is_empty());
-    assert!(matches!(issues[0], RegistrationIssue::IncompatibleVersion { .. }));
+    assert!(matches!(
+        issues[0],
+        RegistrationIssue::IncompatibleVersion { .. }
+    ));
 }
 
 #[test]
@@ -580,7 +644,10 @@ fn plugin_manager_plugins_at_stage_filtering() {
 #[test]
 fn empty_manifest_id_rejected() {
     let mut pm = PluginManager::new(Version::new(1, 0, 0));
-    let m = PluginManifest { id: String::new(), ..make_manifest("test") };
+    let m = PluginManifest {
+        id: String::new(),
+        ..make_manifest("test")
+    };
     let issues = pm.register_manifest(m);
     assert!(!issues.is_empty());
 }

@@ -10,7 +10,7 @@ use wasm_bindgen_futures::spawn_local;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InboxStatus {
     Pending,
@@ -22,7 +22,9 @@ pub enum InboxStatus {
 }
 
 impl Default for InboxStatus {
-    fn default() -> Self { Self::Pending }
+    fn default() -> Self {
+        Self::Pending
+    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -106,84 +108,48 @@ pub struct InboxState {
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum SortField {
-    #[default] Timestamp,
+    #[default]
+    Timestamp,
     Title,
     Source,
     Status,
     ObjectType,
 }
 
-// ── Tauri Commands ─────────────────────────────────────────────────────────
+// ── Inbox Actions ──────────────────────────────────────────────────────────
 
-#[tauri::command]
-pub async fn inbox_subscribe() -> Result<Vec<InboxItem>, String> {
-    Ok(vec![])
+fn approve_item(id: String) {
+    spawn_local(async move {
+        let _ =
+            crate::ipc::tauri_invoke("inbox_approve", serde_wasm_bindgen::to_value(&id).unwrap())
+                .await;
+    });
 }
 
-#[tauri::command]
-pub async fn inbox_get_queue() -> Result<Vec<InboxItem>, String> {
-    Ok(vec![])
+fn reject_item(id: String) {
+    spawn_local(async move {
+        let _ = crate::ipc::tauri_invoke(
+            "inbox_reject",
+            serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "reason": "User rejected"}))
+                .unwrap(),
+        )
+        .await;
+    });
 }
 
-#[tauri::command]
-pub async fn inbox_approve(id: String) -> Result<(), String> {
-    Ok(())
+fn retry_item(id: String) {
+    spawn_local(async move {
+        let _ = crate::ipc::tauri_invoke("inbox_retry", serde_wasm_bindgen::to_value(&id).unwrap())
+            .await;
+    });
 }
 
-#[tauri::command]
-pub async fn inbox_reject(id: String, reason: String) -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_retry(id: String) -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_delete(id: String) -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_batch_approve(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_approve(id).await; }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_batch_reject(ids: Vec<String>, reason: String) -> Result<(), String> {
-    for id in ids { let _ = inbox_reject(id, reason.clone()).await; }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_batch_delete(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_delete(id).await; }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_batch_retry(ids: Vec<String>) -> Result<(), String> {
-    for id in ids { let _ = inbox_retry(id).await; }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_edit_metadata(
-    id: String,
-    title: Option<String>,
-    author: Option<String>,
-    language: Option<String>,
-    tags: Vec<String>,
-    custom: std::collections::HashMap<String, serde_json::Value>,
-) -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn inbox_move(id: String, destination: String) -> Result<(), String> {
-    Ok(())
+fn delete_item(id: String) {
+    spawn_local(async move {
+        let _ =
+            crate::ipc::tauri_invoke("inbox_delete", serde_wasm_bindgen::to_value(&id).unwrap())
+                .await;
+    });
 }
 
 // ── Inbox Component ────────────────────────────────────────────────────────
@@ -227,13 +193,6 @@ pub fn Inbox() -> impl IntoView {
 
     let selected_count = move || state.get().items.iter().filter(|i| i.selected).count();
 
-    let toggle_select_all = move |_| {
-        let mut s = state.get();
-        let all = s.items.iter().all(|i| i.selected);
-        for item in s.items.iter_mut() { item.selected = !all; }
-        set_state.set(s);
-    };
-
     let toggle_select_item = move |id: String| {
         let mut s = state.get();
         if let Some(item) = s.items.iter_mut().find(|i| i.id == id) {
@@ -249,60 +208,95 @@ pub fn Inbox() -> impl IntoView {
     };
 
     let batch_approve = move |_| {
-        let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
-        if !ids.is_empty() { spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke("inbox_batch_approve", serde_wasm_bindgen::to_value(&ids).unwrap()).await;
-        });}
+        let ids: Vec<String> = state
+            .get()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            spawn_local(async move {
+                let _ = crate::ipc::tauri_invoke(
+                    "inbox_batch_approve",
+                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                )
+                .await;
+            });
+        }
     };
 
     let batch_reject = move |_| {
-        let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
-        if !ids.is_empty() { spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke("inbox_batch_reject", serde_wasm_bindgen::to_value(&ids).unwrap()).await;
-        });}
+        let ids: Vec<String> = state
+            .get()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            spawn_local(async move {
+                let _ = crate::ipc::tauri_invoke(
+                    "inbox_batch_reject",
+                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                )
+                .await;
+            });
+        }
     };
 
     let batch_delete = move |_| {
-        let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
-        if !ids.is_empty() { spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke("inbox_batch_delete", serde_wasm_bindgen::to_value(&ids).unwrap()).await;
-        });}
+        let ids: Vec<String> = state
+            .get()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            spawn_local(async move {
+                let _ = crate::ipc::tauri_invoke(
+                    "inbox_batch_delete",
+                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                )
+                .await;
+            });
+        }
     };
 
     let batch_retry = move |_| {
-        let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
-        if !ids.is_empty() { spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke("inbox_batch_retry", serde_wasm_bindgen::to_value(&ids).unwrap()).await;
-        });}
+        let ids: Vec<String> = state
+            .get()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            spawn_local(async move {
+                let _ = crate::ipc::tauri_invoke(
+                    "inbox_batch_retry",
+                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                )
+                .await;
+            });
+        }
     };
 
-    let delete_item = move |id: String| { spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke("inbox_delete", serde_wasm_bindgen::to_value(&id).unwrap()).await;
-    });};
-
-    let approve_item = move |id: String| { spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke("inbox_approve", serde_wasm_bindgen::to_value(&id).unwrap()).await;
-    });};
-
-    let reject_item = move |id: String| { spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke("inbox_reject", serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "reason": "User rejected"})).unwrap()).await;
-    });};
-
-    let retry_item = move |id: String| { spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke("inbox_retry", serde_wasm_bindgen::to_value(&id).unwrap()).await;
-    });};
-
-    let on_filter_change = move |ev: InputEvent| {
-        let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
+    let on_filter_change = move |ev| {
         let mut s = state.get();
-        s.filter = input.value();
+        s.filter = event_target_value(&ev);
         set_state.set(s);
     };
 
     let on_sort_change = move |field: SortField| {
         let mut s = state.get();
-        if s.sort_by == field { s.sort_ascending = !s.sort_ascending; }
-        else { s.sort_by = field; s.sort_ascending = true; }
+        if s.sort_by == field {
+            s.sort_ascending = !s.sort_ascending;
+        } else {
+            s.sort_by = field;
+            s.sort_ascending = true;
+        }
         set_state.set(s);
     };
 
@@ -339,8 +333,9 @@ pub fn Inbox() -> impl IntoView {
                         } else {
                             view! {
                                 <div class="divide-y divide-gray-800">
-                                    {for items.iter().map(|item| {
+                                    { items.iter().map(|item| {
                                         let id = item.id.clone();
+                                        let dbl_id = id.clone();
                                         let title = item.title.clone();
                                         let status = item.status;
                                         let source = item.source.clone();
@@ -354,9 +349,9 @@ pub fn Inbox() -> impl IntoView {
                                                 "inbox-item px-3 py-2 cursor-pointer hover:bg-gray-800 border-l-2 {} {}",
                                                 if selected { "bg-gray-800 border-l-blue-500" } else { "border-l-transparent" },
                                                 if warnings.is_empty() { "" } else if duplicate_info.is_some() { "border-l-yellow-500" } else if ocr_info.as_ref().map_or(false, |o| o.warning.is_some()) { "border-l-orange-500" } else { "border-l-green-500" }
-                                            )}
+                                            )
                                                 on:click=move |_| toggle_select_item(id.clone())
-                                                on:dblclick=move |_| set_preview(id.clone())>
+                                                on:dblclick=move |_| set_preview(dbl_id.clone())>
                                                 <div class="flex items-center justify-between">
                                                     <span class="text-sm font-medium truncate max-w-48">{title}</span>
                                                     <span class="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">
@@ -370,7 +365,7 @@ pub fn Inbox() -> impl IntoView {
                                                 </div>
                                             </div>
                                         }
-                                    })}
+                                    }).collect_view()}
                                 </div>
                             }.into_any()
                         }
@@ -393,12 +388,13 @@ pub fn Inbox() -> impl IntoView {
                     let preview_id = state.get().preview_id.clone();
                     match preview_id {
                         Some(id) => {
-                            let item = state.get().items.iter().find(|i| i.id == id);
+                            let state_guard = state.get();
+                            let item = state_guard.items.iter().find(|i| i.id == id);
                             match item {
                                 Some(item) => view! {
                                     <div class="flex h-full">
-                                        <div class="flex-1 overflow-y-auto p-4"><InboxPreview item=item /></div>
-                                        <div class="flex-none w-72 border-l border-gray-800 overflow-y-auto p-4"><InboxMetadataSidebar item=item /></div>
+                                        <div class="flex-1 overflow-y-auto p-4"><InboxPreview item=item.clone() /></div>
+                                        <div class="flex-none w-72 border-l border-gray-800 overflow-y-auto p-4"><InboxMetadataSidebar item=item.clone() /></div>
                                     </div>
                                 }.into_any(),
                                 None => view! { <div class="flex items-center justify-center h-full text-gray-500">"Select an item to preview"</div> }.into_any(),
@@ -415,11 +411,24 @@ pub fn Inbox() -> impl IntoView {
 // ── Inbox Preview ──────────────────────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum InboxPreviewTab { Details, Duplicate, Timeline, Ocr, History }
+enum InboxPreviewTab {
+    Details,
+    Duplicate,
+    Timeline,
+    Ocr,
+    History,
+}
 
 #[component]
-fn InboxPreview(item: &InboxItem) -> impl IntoView {
+fn InboxPreview(item: InboxItem) -> impl IntoView {
     let (active_tab, set_active_tab) = signal(InboxPreviewTab::Details);
+    let approve_id = item.id.clone();
+    let reject_id = item.id.clone();
+    let retry_id = item.id.clone();
+    let delete_id = item.id.clone();
+    let has_duplicate = item.duplicate_info.is_some();
+    let has_timeline = item.timeline_info.is_some();
+    let has_ocr = item.ocr_info.is_some();
 
     view! {
         <div class="inbox-preview">
@@ -427,26 +436,26 @@ fn InboxPreview(item: &InboxItem) -> impl IntoView {
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Details { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
                     on:click=move |_| set_active_tab.set(InboxPreviewTab::Details)>"Details"</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Duplicate { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Duplicate)>{move || format!("Duplicate{}", if item.duplicate_info.is_some() { " ⚠" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Duplicate)>{move || format!("Duplicate{}", if has_duplicate { " ⚠" } else { "" })}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Timeline { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Timeline)>{move || format!("Timeline{}", if item.timeline_info.is_some() { " 📅" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Timeline)>{move || format!("Timeline{}", if has_timeline { " 📅" } else { "" })}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Ocr { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Ocr)>{move || format!("OCR{}", if item.ocr_info.is_some() { " 🔍" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Ocr)>{move || format!("OCR{}", if has_ocr { " 🔍" } else { "" })}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::History { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
                     on:click=move |_| set_active_tab.set(InboxPreviewTab::History)>"History"</button>
             </div>
             {move || match active_tab.get() {
-                InboxPreviewTab::Details => view! { <InboxDetails item=item /> }.into_any(),
-                InboxPreviewTab::Duplicate => view! { <InboxDuplicateReview item=item /> }.into_any(),
-                InboxPreviewTab::Timeline => view! { <InboxTimelineReview item=item /> }.into_any(),
-                InboxPreviewTab::Ocr => view! { <InboxOcrReview item=item /> }.into_any(),
-                InboxPreviewTab::History => view! { <InboxHistory item=item /> }.into_any(),
+                InboxPreviewTab::Details => view! { <InboxDetails item=item.clone() /> }.into_any(),
+                InboxPreviewTab::Duplicate => view! { <InboxDuplicateReview item=item.clone() /> }.into_any(),
+                InboxPreviewTab::Timeline => view! { <InboxTimelineReview item=item.clone() /> }.into_any(),
+                InboxPreviewTab::Ocr => view! { <InboxOcrReview item=item.clone() /> }.into_any(),
+                InboxPreviewTab::History => view! { <InboxHistory item=item.clone() /> }.into_any(),
             }}
             <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-800">
-                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(item.id.clone())>"✓ Approve"</button>
-                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(item.id.clone())>"✗ Reject"</button>
-                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(item.id.clone())>"↻ Retry"</button>
-                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(item.id.clone())>"🗑 Delete"</button>
+                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(approve_id.clone())>"✓ Approve"</button>
+                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(reject_id.clone())>"✗ Reject"</button>
+                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(retry_id.clone())>"↻ Retry"</button>
+                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(delete_id.clone())>"🗑 Delete"</button>
             </div>
         </div>
     }
@@ -455,13 +464,13 @@ fn InboxPreview(item: &InboxItem) -> impl IntoView {
 // ── Preview Tabs ───────────────────────────────────────────────────────────
 
 #[component]
-fn InboxDetails(item: &InboxItem) -> impl IntoView {
+fn InboxDetails(item: InboxItem) -> impl IntoView {
     view! {
         <div class="space-y-3">
-            <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Title"</label><p class="text-lg font-medium">{&item.title}</p></div>
+            <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Title"</label><p class="text-lg font-medium">{item.title.clone()}</p></div>
             <div class="grid grid-cols-2 gap-3">
-                <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Type"</label><p class="text-sm">{&item.object_type}</p></div>
-                <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Source"</label><p class="text-sm">{&item.source}</p></div>
+                <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Type"</label><p class="text-sm">{item.object_type.clone()}</p></div>
+                <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Source"</label><p class="text-sm">{item.source.clone()}</p></div>
                 <div><label class="text-xs text-gray-500 uppercase tracking-wide">"MIME Type"</label><p class="text-sm">{item.mime_type.clone().unwrap_or_default()}</p></div>
                 <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Source File"</label><p class="text-sm text-gray-400 truncate">{item.source_file.clone().unwrap_or_default()}</p></div>
             </div>
@@ -469,7 +478,7 @@ fn InboxDetails(item: &InboxItem) -> impl IntoView {
                 if !item.warnings.is_empty() {
                     view! {
                         <div class="mt-3"><label class="text-xs text-gray-500 uppercase tracking-wide">"Warnings"</label>
-                            <ul class="mt-1 space-y-1">{for item.warnings.iter().map(|w| view! { <li class="text-sm text-yellow-400">{w}</li> })}</ul>
+                            <ul class="mt-1 space-y-1">{ item.warnings.iter().map(|w| view! { <li class="text-sm text-yellow-400">{w.clone()}</li> }).collect_view()}</ul>
                         </div>
                     }.into_any()
                 } else { view! {}.into_any() }
@@ -479,7 +488,7 @@ fn InboxDetails(item: &InboxItem) -> impl IntoView {
 }
 
 #[component]
-fn InboxDuplicateReview(item: &InboxItem) -> impl IntoView {
+fn InboxDuplicateReview(item: InboxItem) -> impl IntoView {
     let duplicate = move || item.duplicate_info.clone();
     view! {
         <div class="space-y-3">
@@ -487,7 +496,7 @@ fn InboxDuplicateReview(item: &InboxItem) -> impl IntoView {
                 Some(dup) => view! {
                     <div class="space-y-3">
                         <div class="p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
-                            <div class="flex items-center gap-2"><span class="text-yellow-400">⚠</span><span class="text-sm font-medium text-yellow-300">Potential Duplicate Detected</span></div>
+                            <div class="flex items-center gap-2"><span class="text-yellow-400">"⚠"</span><span class="text-sm font-medium text-yellow-300">Potential Duplicate Detected</span></div>
                             <p class="text-xs text-yellow-400/70 mt-1">{dup.reason.clone().unwrap_or_default()}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 text-sm">
@@ -510,7 +519,7 @@ fn InboxDuplicateReview(item: &InboxItem) -> impl IntoView {
 }
 
 #[component]
-fn InboxTimelineReview(item: &InboxItem) -> impl IntoView {
+fn InboxTimelineReview(item: InboxItem) -> impl IntoView {
     let timeline = move || item.timeline_info.clone();
     view! {
         <div class="space-y-3">
@@ -533,7 +542,7 @@ fn InboxTimelineReview(item: &InboxItem) -> impl IntoView {
 }
 
 #[component]
-fn InboxOcrReview(item: &InboxItem) -> impl IntoView {
+fn InboxOcrReview(item: InboxItem) -> impl IntoView {
     let ocr = move || item.ocr_info.clone();
     view! {
         <div class="space-y-3">
@@ -549,12 +558,12 @@ fn InboxOcrReview(item: &InboxItem) -> impl IntoView {
                         </div>
                         {move || {
                             if let Some(text) = &ocr.extracted_text {
-                                view! { <div><label class="text-xs text-gray-500">"Extracted Text"</label><pre class="mt-1 text-xs text-gray-300 bg-gray-900 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">{text}</pre></div> }.into_any()
+                                view! { <div><label class="text-xs text-gray-500">"Extracted Text"</label><pre class="mt-1 text-xs text-gray-300 bg-gray-900 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">{text.clone()}</pre></div> }.into_any()
                             } else { view! {}.into_any() }
                         }}
                         {move || {
                             if let Some(warn) = &ocr.warning {
-                                view! { <div class="text-sm text-orange-400">{"⚠ "}{warn}</div> }.into_any()
+                                view! { <div class="text-sm text-orange-400">{"⚠ "}{warn.clone()}</div> }.into_any()
                             } else { view! {}.into_any() }
                         }}
                     </div>
@@ -566,8 +575,8 @@ fn InboxOcrReview(item: &InboxItem) -> impl IntoView {
 }
 
 #[component]
-fn InboxHistory(item: &InboxItem) -> impl IntoView {
-    let history = &item.processing_history;
+fn InboxHistory(item: InboxItem) -> impl IntoView {
+    let history = item.processing_history.clone();
     view! {
         <div class="space-y-2">
             {if history.is_empty() {
@@ -575,32 +584,38 @@ fn InboxHistory(item: &InboxItem) -> impl IntoView {
             } else {
                 view! {
                     <div class="space-y-2">
-                        {for history.iter().map(|entry| {
+                        { history.iter().map(|entry| {
+                            let success = entry.success;
+                            let warnings = entry.warnings.clone();
+                            let error = entry.error.clone();
+                            let processor_name = entry.processor_name.clone();
+                            let duration_ms = entry.duration_ms;
+                            let timestamp = entry.timestamp.clone();
                             view! {
                                 <div class="flex items-start gap-3 p-2 rounded-lg bg-gray-900/50 text-sm">
-                                    <span class=move || format!("mt-0.5 {}", if entry.success { "text-green-400" } else { "text-red-400" })>
-                                        {if entry.success { "✓" } else { "✗" }}
+                                    <span class=move || format!("mt-0.5 {}", if success { "text-green-400" } else { "text-red-400" })>
+                                        {if success { "✓" } else { "✗" }}
                                     </span>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between">
-                                            <span class="font-medium text-gray-200">{entry.processor_name}</span>
-                                            <span class="text-xs text-gray-500">{entry.duration_ms}ms</span>
+                                            <span class="font-medium text-gray-200">{processor_name}</span>
+                                            <span class="text-xs text-gray-500">{duration_ms}ms</span>
                                         </div>
-                                        <div class="text-xs text-gray-500 mt-0.5">{entry.timestamp}</div>
+                                        <div class="text-xs text-gray-500 mt-0.5">{timestamp}</div>
                                         {move || {
-                                            if !entry.warnings.is_empty() {
-                                                view! { <ul class="mt-1 space-y-0.5">{for entry.warnings.iter().map(|w| view! { <li class="text-xs text-yellow-400">{w}</li> })}</ul> }.into_any()
+                                            if !warnings.is_empty() {
+                                                view! { <ul class="mt-1 space-y-0.5">{ warnings.iter().map(|w| view! { <li class="text-xs text-yellow-400">{w.clone()}</li> }).collect_view()}</ul> }.into_any()
                                             } else { view! {}.into_any() }
                                         }}
                                         {move || {
-                                            if let Some(err) = &entry.error {
-                                                view! { <div class="text-xs text-red-400 mt-1">{err}</div> }.into_any()
+                                            if let Some(err) = &error {
+                                                view! { <div class="text-xs text-red-400 mt-1">{err.clone()}</div> }.into_any()
                                             } else { view! {}.into_any() }
                                         }}
                                     </div>
                                 </div>
                             }
-                        })}
+                        }).collect_view()}
                     </div>
                 }.into_any()
             }}
@@ -611,27 +626,47 @@ fn InboxHistory(item: &InboxItem) -> impl IntoView {
 // ── Metadata Sidebar ───────────────────────────────────────────────────────
 
 #[component]
-fn InboxMetadataSidebar(item: &InboxItem) -> impl IntoView {
+fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
     let (title, set_title) = signal(item.metadata.title.clone().unwrap_or_default());
     let (author, set_author) = signal(item.metadata.author.clone().unwrap_or_default());
     let (language, set_language) = signal(item.metadata.language.clone().unwrap_or_default());
     let (tags, set_tags) = signal(item.metadata.tags.join(", "));
 
     let save_metadata = move |_| {
-        let id = item.id.clone();
-        let new_title = if title.get().is_empty() { None } else { Some(title.get()) };
-        let new_author = if author.get().is_empty() { None } else { Some(author.get()) };
-        let new_language = if language.get().is_empty() { None } else { Some(language.get()) };
-        let new_tags: Vec<String> = tags.get().split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+        let item_for_ipc = item.clone();
+        let id = item_for_ipc.id.clone();
+        let new_title = if title.get().is_empty() {
+            None
+        } else {
+            Some(title.get())
+        };
+        let new_author = if author.get().is_empty() {
+            None
+        } else {
+            Some(author.get())
+        };
+        let new_language = if language.get().is_empty() {
+            None
+        } else {
+            Some(language.get())
+        };
+        let new_tags: Vec<String> = tags
+            .get()
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
         spawn_local(async move {
             let _ = crate::ipc::tauri_invoke(
                 "inbox_edit_metadata",
                 serde_wasm_bindgen::to_value(&serde_json::json!({
                     "id": id, "title": new_title, "author": new_author,
                     "language": new_language, "tags": new_tags,
-                    "custom": item.metadata.custom,
-                })).unwrap(),
-            ).await;
+                    "custom": item_for_ipc.metadata.custom,
+                }))
+                .unwrap(),
+            )
+            .await;
         });
     };
 
@@ -640,22 +675,22 @@ fn InboxMetadataSidebar(item: &InboxItem) -> impl IntoView {
             <h3 class="text-sm font-medium text-gray-300">"Metadata"</h3>
             <div>
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Title"</label>
-                <input type="text" value=title on:input=move |ev: InputEvent| { let input: web_sys::HtmlInputElement = ev.target_unchecked_into(); set_title.set(input.value()); }
+                <input type="text" value=title on:input=move |ev| set_title.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none" />
             </div>
             <div>
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Author"</label>
-                <input type="text" value=author on:input=move |ev: InputEvent| { let input: web_sys::HtmlInputElement = ev.target_unchecked_into(); set_author.set(input.value()); }
+                <input type="text" value=author on:input=move |ev| set_author.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none" />
             </div>
             <div>
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Language"</label>
-                <input type="text" value=language on:input=move |ev: InputEvent| { let input: web_sys::HtmlInputElement = ev.target_unchecked_into(); set_language.set(input.value()); }
+                <input type="text" value=language on:input=move |ev| set_language.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none" />
             </div>
             <div>
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Tags (comma-separated)"</label>
-                <input type="text" value=tags on:input=move |ev: InputEvent| { let input: web_sys::HtmlInputElement = ev.target_unchecked_into(); set_tags.set(input.value()); }
+                <input type="text" value=tags on:input=move |ev| set_tags.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none" />
             </div>
             <button class="w-full px-3 py-1.5 text-sm bg-blue-700 rounded hover:bg-blue-600" on:click=save_metadata>"Save Metadata"</button>

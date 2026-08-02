@@ -37,21 +37,18 @@ impl Processor for OcrProcessor {
 
         // Only process binary image content through Vision.
         let image_data = match &object.content {
-            ObjectContent::Binary { mime_type, data, .. }
-                if mime_type.starts_with("image/") =>
-            {
-                data.clone()
-            }
+            ObjectContent::Binary {
+                mime_type, data, ..
+            } if mime_type.starts_with("image/") => data.clone(),
             _ => return ProcessingResult::unmodified(object),
         };
 
         progress.set_progress(0.4);
 
         // Vision OCR is a blocking native call; run it off the async executor.
-        let engine_result = tokio::task::spawn_blocking(move || {
-            crate::native::vision::recognize_text(&image_data)
-        })
-        .await;
+        let engine_result =
+            tokio::task::spawn_blocking(move || crate::native::vision::recognize_text(&image_data))
+                .await;
 
         let recognized = match engine_result {
             Ok(Ok(lines)) if !lines.is_empty() => lines,
@@ -76,8 +73,8 @@ impl Processor for OcrProcessor {
             .map(|l| l.text.as_str())
             .collect::<Vec<_>>()
             .join("\n");
-        let confidence = recognized.iter().map(|l| l.confidence).sum::<f64>()
-            / recognized.len() as f64;
+        let confidence =
+            recognized.iter().map(|l| l.confidence).sum::<f64>() / recognized.len() as f64;
 
         // Add extracted text as description if no description exists
         if object.metadata.description.is_none() {
@@ -110,7 +107,10 @@ mod tests {
     use crate::models::KnowledgeObject;
 
     fn fixture_png() -> Vec<u8> {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/ocr_fixture.png");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/ocr_fixture.png"
+        );
         std::fs::read(path).expect("ocr fixture should exist")
     }
 
@@ -149,7 +149,7 @@ mod tests {
             assert!(result.object.metadata.ocr_confidence.is_some());
         } else {
             // Graceful no-op on non-macOS.
-            assert_eq!(result.modified, false);
+            assert!(!result.modified);
         }
     }
 
@@ -167,6 +167,6 @@ mod tests {
             .await;
 
         // Non-image types should not be modified
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 }

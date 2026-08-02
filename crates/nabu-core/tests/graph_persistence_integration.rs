@@ -1,8 +1,11 @@
 use nabu_core::graph::integrity::{check_integrity, compute_graph_checksum, quick_check};
 use nabu_core::graph::persistence::GraphStore;
-use nabu_core::graph::recovery::{GraphRecovery, RecoveryResult, build_graph_from_objects};
+use nabu_core::graph::recovery::{build_graph_from_objects, GraphRecovery, RecoveryResult};
 use nabu_core::graph::serializer::{EdgeDirection, GraphSnapshot, SerializedEdge, SerializedNode};
-use nabu_core::graph::version::{BuildSource, GraphVersion, VersionCompatibility, check_compatibility, CURRENT_GRAPH_SCHEMA_VERSION};
+use nabu_core::graph::version::{
+    check_compatibility, BuildSource, GraphVersion, VersionCompatibility,
+    CURRENT_GRAPH_SCHEMA_VERSION,
+};
 use nabu_core::graph::VaultGraph;
 use nabu_core::models::{KnowledgeObject, ObjectContent, ObjectType};
 use tempfile::tempdir;
@@ -20,12 +23,28 @@ fn test_full_save_load_roundtrip() {
     let n2 = Uuid::new_v4();
     let n3 = Uuid::new_v4();
 
-    snapshot.add_node(SerializedNode::new(n1, "note", Some("Note A".into()), "text/markdown"));
-    snapshot.add_node(SerializedNode::new(n2, "article", Some("Article B".into()), "text/html"));
-    snapshot.add_node(SerializedNode::new(n3, "bookmark", Some("Bookmark C".into()), "text/uri-list"));
+    snapshot.add_node(SerializedNode::new(
+        n1,
+        "note",
+        Some("Note A".into()),
+        "text/markdown",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n2,
+        "article",
+        Some("Article B".into()),
+        "text/html",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n3,
+        "bookmark",
+        Some("Bookmark C".into()),
+        "text/uri-list",
+    ));
 
     snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
-    snapshot.add_edge(SerializedEdge::new(n2, n3, "related").with_direction(EdgeDirection::Undirected));
+    snapshot
+        .add_edge(SerializedEdge::new(n2, n3, "related").with_direction(EdgeDirection::Undirected));
 
     store.save(&snapshot).unwrap();
 
@@ -48,8 +67,18 @@ fn test_graph_survives_restart() {
         let mut snapshot = GraphSnapshot::new(GraphVersion::new());
         n1 = Uuid::new_v4();
         let n2 = Uuid::new_v4();
-        snapshot.add_node(SerializedNode::new(n1, "note", Some("Persistent".into()), "text"));
-        snapshot.add_node(SerializedNode::new(n2, "note", Some("Survivor".into()), "text"));
+        snapshot.add_node(SerializedNode::new(
+            n1,
+            "note",
+            Some("Persistent".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            n2,
+            "note",
+            Some("Survivor".into()),
+            "text",
+        ));
         snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
         store.save(&snapshot).unwrap();
     }
@@ -175,8 +204,18 @@ fn test_full_graph_rebuild() {
                 let mut edges = Vec::new();
                 let n1 = Uuid::new_v4();
                 let n2 = Uuid::new_v4();
-                nodes.push(SerializedNode::new(n1, "note", Some("Node 1".into()), "text"));
-                nodes.push(SerializedNode::new(n2, "note", Some("Node 2".into()), "text"));
+                nodes.push(SerializedNode::new(
+                    n1,
+                    "note",
+                    Some("Node 1".into()),
+                    "text",
+                ));
+                nodes.push(SerializedNode::new(
+                    n2,
+                    "note",
+                    Some("Node 2".into()),
+                    "text",
+                ));
                 edges.push(SerializedEdge::new(n1, n2, "references"));
                 Ok((nodes, edges))
             },
@@ -193,7 +232,10 @@ fn test_full_graph_rebuild() {
 
 #[test]
 fn test_rebuild_from_knowledge_objects() {
-    let object = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Rebuild test".to_string()));
+    let object = KnowledgeObject::new(
+        ObjectType::Note,
+        ObjectContent::Markdown("Rebuild test".to_string()),
+    );
     let (nodes, edges) = build_graph_from_objects(&[object]);
     assert_eq!(nodes.len(), 1);
     assert_eq!(edges.len(), 0);
@@ -211,7 +253,10 @@ fn test_vaultgraph_with_persistence() {
     assert!(!graph.loaded_from_disk());
 
     // Add data and persist
-    let obj1 = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Persisted node".to_string()));
+    let obj1 = KnowledgeObject::new(
+        ObjectType::Note,
+        ObjectContent::Markdown("Persisted node".to_string()),
+    );
     graph.add_node(&obj1).unwrap();
     graph.persist().unwrap();
 }
@@ -245,7 +290,8 @@ fn test_edge_directions() {
     snapshot.add_node(SerializedNode::new(n1, "note", None, "text"));
     snapshot.add_node(SerializedNode::new(n2, "note", None, "text"));
 
-    snapshot.add_edge(SerializedEdge::new(n1, n2, "directed").with_direction(EdgeDirection::Directed));
+    snapshot
+        .add_edge(SerializedEdge::new(n1, n2, "directed").with_direction(EdgeDirection::Directed));
     snapshot.add_edge(
         SerializedEdge::new(n1, n2, "undirected").with_direction(EdgeDirection::Undirected),
     );
@@ -327,9 +373,24 @@ fn create_test_snapshot() -> GraphSnapshot {
     let n2 = Uuid::from_u128(2);
     let n3 = Uuid::from_u128(3);
 
-    snapshot.add_node(SerializedNode::new(n1, "note", Some("Alpha".into()), "text/markdown"));
-    snapshot.add_node(SerializedNode::new(n2, "article", Some("Beta".into()), "text/html"));
-    snapshot.add_node(SerializedNode::new(n3, "bookmark", Some("Gamma".into()), "text/uri-list"));
+    snapshot.add_node(SerializedNode::new(
+        n1,
+        "note",
+        Some("Alpha".into()),
+        "text/markdown",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n2,
+        "article",
+        Some("Beta".into()),
+        "text/html",
+    ));
+    snapshot.add_node(SerializedNode::new(
+        n3,
+        "bookmark",
+        Some("Gamma".into()),
+        "text/uri-list",
+    ));
 
     snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
     snapshot.add_edge(SerializedEdge::new(n2, n3, "related"));

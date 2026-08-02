@@ -88,7 +88,7 @@ pub fn table_view(props: &Props) -> Html {
             <table class="w-full text-sm text-left text-gray-300">
                 <thead class="text-xs text-gray-400 uppercase bg-gray-800 border-b border-gray-700">
                     <tr>
-                        {for visible_columns().iter().map(|col| {
+                        { visible_columns().iter().map(|col| {
                             let key = col.key.clone();
                             let sortable = col.sortable;
                             view! {
@@ -115,7 +115,7 @@ pub fn table_view(props: &Props) -> Html {
                                     </div>
                                 </th>
                             }
-                        })}
+                        }).collect_view()}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-800">
@@ -131,18 +131,18 @@ pub fn table_view(props: &Props) -> Html {
                             }.into_any()
                         } else {
                             view! {
-                                {for items.iter().map(|obj| {
+                                { items.iter().map(|obj| {
                                     view! {
                                         <tr class="hover:bg-gray-800/50 transition-colors">
-                                            {for visible_columns().iter().map(|col| {
+                                            { visible_columns().iter().map(|col| {
                                                 let value = get_column_value(obj, &col.key);
                                                 view! {
                                                     <td class="px-4 py-2 text-gray-300">{value}</td>
                                                 }
-                                            })}
+                                            }).collect_view()}
                                         </tr>
                                     }
-                                })}
+                                }).collect_view()}
                             }.into_any()
                         }
                     }}

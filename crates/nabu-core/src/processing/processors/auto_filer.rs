@@ -149,7 +149,7 @@ fn sanitize_filename(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{KnowledgeObject, ObjectContent};
+    use crate::models::KnowledgeObject;
 
     #[tokio::test]
     async fn test_file_invoice() {

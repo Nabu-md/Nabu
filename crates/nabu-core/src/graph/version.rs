@@ -141,9 +141,15 @@ pub enum VersionCompatibility {
     /// Version is compatible — can load directly
     Compatible,
     /// Version is outdated — needs migration
-    Outdated { schema_version: u32, current_version: u32 },
+    Outdated {
+        schema_version: u32,
+        current_version: u32,
+    },
     /// Version is from the future — incompatible
-    FutureVersion { schema_version: u32, current_version: u32 },
+    FutureVersion {
+        schema_version: u32,
+        current_version: u32,
+    },
     /// No version metadata found (fresh start)
     Missing,
 }

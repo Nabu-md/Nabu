@@ -211,7 +211,10 @@ mod tests {
     #[test]
     fn register_and_check() {
         let mut cr = CapabilityRegistry::new();
-        cr.register(Capability::new("nabu", "test", "Test capability"), "test_provider");
+        cr.register(
+            Capability::new("nabu", "test", "Test capability"),
+            "test_provider",
+        );
         assert!(cr.has("nabu:test"));
         assert_eq!(cr.provider("nabu:test"), Some("test_provider"));
     }

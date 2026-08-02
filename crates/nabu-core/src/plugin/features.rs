@@ -1,10 +1,11 @@
 //! Feature Flags — integrated plugin feature flags for the application.
 //!
 //! Support:
-//! - Experimental features
-//! - Staged rollout
-//! - Disabled capabilities
-//! - Compatibility switches
+//!   - Experimental features
+//!   - Staged rollout
+//!   - Disabled capabilities
+//!   - Compatibility switches
+//!
 //! All local.
 
 use std::collections::{HashMap, HashSet};
@@ -71,14 +72,23 @@ impl FeatureRegistry {
     }
 
     /// Register a feature flag.
-    pub fn register(&mut self, name: &str, description: &str, stage: FeatureStage, enabled_by_default: bool) {
-        self.flags.insert(name.to_string(), FeatureFlag {
-            name: name.to_string(),
-            description: description.to_string(),
-            enabled_by_default,
-            enabled: enabled_by_default,
-            stage,
-        });
+    pub fn register(
+        &mut self,
+        name: &str,
+        description: &str,
+        stage: FeatureStage,
+        enabled_by_default: bool,
+    ) {
+        self.flags.insert(
+            name.to_string(),
+            FeatureFlag {
+                name: name.to_string(),
+                description: description.to_string(),
+                enabled_by_default,
+                enabled: enabled_by_default,
+                stage,
+            },
+        );
     }
 
     /// Check if a feature flag is enabled.
@@ -124,7 +134,10 @@ impl FeatureRegistry {
 
     /// List flags that have been overridden from their default.
     pub fn overridden(&self) -> Vec<&FeatureFlag> {
-        self.flags.values().filter(|f| self.overrides.contains(&f.name)).collect()
+        self.flags
+            .values()
+            .filter(|f| self.overrides.contains(&f.name))
+            .collect()
     }
 
     /// Number of registered flags.

@@ -46,7 +46,8 @@ impl ProgressReporter {
     pub fn set_progress(&self, value: f64) {
         let clamped = value.clamp(0.0, 1.0);
         let permille = (clamped * PROGRESS_DENOM as f64) as u32;
-        self.permille.store(permille.min(PROGRESS_DENOM), Ordering::Release);
+        self.permille
+            .store(permille.min(PROGRESS_DENOM), Ordering::Release);
         (self.on_update)(clamped);
     }
 

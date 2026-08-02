@@ -103,7 +103,10 @@ mod tests {
     async fn test_embedding_generation() {
         let obj = KnowledgeObject::new(
             ObjectType::Note,
-            ObjectContent::Markdown("This is a sufficiently long note to generate embeddings for semantic search.".to_string()),
+            ObjectContent::Markdown(
+                "This is a sufficiently long note to generate embeddings for semantic search."
+                    .to_string(),
+            ),
         );
 
         let ctx = ProcessingContext::new(obj);
@@ -120,10 +123,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_skips_short_content() {
-        let obj = KnowledgeObject::new(
-            ObjectType::Note,
-            ObjectContent::Markdown("Hi".to_string()),
-        );
+        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Hi".to_string()));
 
         let ctx = ProcessingContext::new(obj);
         let processor = EmbeddingGenerator;
@@ -131,6 +131,6 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 }

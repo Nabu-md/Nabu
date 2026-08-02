@@ -117,7 +117,10 @@ impl Timer {
     }
 
     pub fn window_count(&self) -> u64 {
-        self.inner.read().map(|i| i.samples.len() as u64).unwrap_or(0)
+        self.inner
+            .read()
+            .map(|i| i.samples.len() as u64)
+            .unwrap_or(0)
     }
 
     pub fn total_count(&self) -> u64 {
@@ -126,7 +129,9 @@ impl Timer {
 }
 
 impl Default for Timer {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Statistics from a Timer's sliding window.
@@ -145,8 +150,17 @@ pub struct TimerStats {
 
 impl Default for TimerStats {
     fn default() -> Self {
-        Self { count: 0, window_count: 0, min_ms: 0.0, max_ms: 0.0, avg_ms: 0.0,
-               p50_ms: 0.0, p90_ms: 0.0, p99_ms: 0.0, sum_ms: 0.0 }
+        Self {
+            count: 0,
+            window_count: 0,
+            min_ms: 0.0,
+            max_ms: 0.0,
+            avg_ms: 0.0,
+            p50_ms: 0.0,
+            p90_ms: 0.0,
+            p99_ms: 0.0,
+            sum_ms: 0.0,
+        }
     }
 }
 
@@ -169,16 +183,30 @@ pub struct Counter {
 
 impl Counter {
     pub fn new() -> Self {
-        Self { value: std::sync::atomic::AtomicU64::new(0) }
+        Self {
+            value: std::sync::atomic::AtomicU64::new(0),
+        }
     }
-    pub fn increment(&self) -> u64 { self.add(1) }
+    pub fn increment(&self) -> u64 {
+        self.add(1)
+    }
     pub fn add(&self, delta: u64) -> u64 {
-        self.value.fetch_add(delta, std::sync::atomic::Ordering::Relaxed) + delta
+        self.value
+            .fetch_add(delta, std::sync::atomic::Ordering::Relaxed)
+            + delta
     }
-    pub fn value(&self) -> u64 { self.value.load(std::sync::atomic::Ordering::Relaxed) }
-    pub fn reset(&self) { self.value.store(0, std::sync::atomic::Ordering::Relaxed); }
+    pub fn value(&self) -> u64 {
+        self.value.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn reset(&self) {
+        self.value.store(0, std::sync::atomic::Ordering::Relaxed);
+    }
 }
-impl Default for Counter { fn default() -> Self { Self::new() } }
+impl Default for Counter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Gauge
@@ -191,18 +219,36 @@ pub struct Gauge {
 
 impl Gauge {
     pub fn new() -> Self {
-        Self { value: std::sync::atomic::AtomicI64::new(0) }
+        Self {
+            value: std::sync::atomic::AtomicI64::new(0),
+        }
     }
-    pub fn set(&self, val: i64) { self.value.store(val, std::sync::atomic::Ordering::Relaxed); }
-    pub fn increment(&self) -> i64 { self.add(1) }
-    pub fn decrement(&self) -> i64 { self.add(-1) }
+    pub fn set(&self, val: i64) {
+        self.value.store(val, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub fn increment(&self) -> i64 {
+        self.add(1)
+    }
+    pub fn decrement(&self) -> i64 {
+        self.add(-1)
+    }
     pub fn add(&self, delta: i64) -> i64 {
-        self.value.fetch_add(delta, std::sync::atomic::Ordering::Relaxed) + delta
+        self.value
+            .fetch_add(delta, std::sync::atomic::Ordering::Relaxed)
+            + delta
     }
-    pub fn value(&self) -> i64 { self.value.load(std::sync::atomic::Ordering::Relaxed) }
-    pub fn reset(&self) { self.value.store(0, std::sync::atomic::Ordering::Relaxed); }
+    pub fn value(&self) -> i64 {
+        self.value.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn reset(&self) {
+        self.value.store(0, std::sync::atomic::Ordering::Relaxed);
+    }
 }
-impl Default for Gauge { fn default() -> Self { Self::new() } }
+impl Default for Gauge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Histogram
@@ -221,19 +267,23 @@ struct HistogramInner {
 }
 
 impl Histogram {
-    pub fn new(buckets: &[f64]) -> Self {            let mut sorted = buckets.to_vec();
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let bucket_count = sorted.len() + 1;
-            Self {
-                inner: RwLock::new(HistogramInner {
-                    buckets: sorted,
-                    counts: vec![0u64; bucket_count],
-                total: 0, sum: 0.0,
+    pub fn new(buckets: &[f64]) -> Self {
+        let mut sorted = buckets.to_vec();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let bucket_count = sorted.len() + 1;
+        Self {
+            inner: RwLock::new(HistogramInner {
+                buckets: sorted,
+                counts: vec![0u64; bucket_count],
+                total: 0,
+                sum: 0.0,
             }),
         }
     }
 
-    pub fn default_latency() -> Self { Self::new(DEFAULT_HISTOGRAM_BUCKETS_MS) }
+    pub fn default_latency() -> Self {
+        Self::new(DEFAULT_HISTOGRAM_BUCKETS_MS)
+    }
 
     pub fn record(&self, value: f64) {
         if let Ok(mut inner) = self.inner.write() {
@@ -246,19 +296,37 @@ impl Histogram {
 
     pub fn buckets(&self) -> Vec<HistogramBucket> {
         if let Ok(inner) = self.inner.read() {
-            inner.buckets.iter().enumerate().map(|(i, &boundary)| {
-                HistogramBucket { le: boundary, gt: if i == 0 { 0.0 } else { inner.buckets[i-1] }, count: inner.counts[i] }
-            }).chain(std::iter::once(HistogramBucket {
-                le: f64::MAX, gt: inner.buckets.last().copied().unwrap_or(f64::MAX), count: inner.counts[inner.buckets.len()]
-            })).collect()
-        } else { Vec::new() }
+            inner
+                .buckets
+                .iter()
+                .enumerate()
+                .map(|(i, &boundary)| HistogramBucket {
+                    le: boundary,
+                    gt: if i == 0 { 0.0 } else { inner.buckets[i - 1] },
+                    count: inner.counts[i],
+                })
+                .chain(std::iter::once(HistogramBucket {
+                    le: f64::MAX,
+                    gt: inner.buckets.last().copied().unwrap_or(f64::MAX),
+                    count: inner.counts[inner.buckets.len()],
+                }))
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
-    pub fn total(&self) -> u64 { self.inner.read().map(|i| i.total).unwrap_or(0) }
-    pub fn sum(&self) -> f64 { self.inner.read().map(|i| i.sum).unwrap_or(0.0) }
+    pub fn total(&self) -> u64 {
+        self.inner.read().map(|i| i.total).unwrap_or(0)
+    }
+    pub fn sum(&self) -> f64 {
+        self.inner.read().map(|i| i.sum).unwrap_or(0.0)
+    }
     pub fn reset(&self) {
         if let Ok(mut inner) = self.inner.write() {
-            inner.counts.fill(0); inner.total = 0; inner.sum = 0.0;
+            inner.counts.fill(0);
+            inner.total = 0;
+            inner.sum = 0.0;
         }
     }
 }
@@ -282,12 +350,17 @@ pub struct TimingScope<'a> {
 
 impl<'a> TimingScope<'a> {
     pub fn new(timer: &'a Timer) -> Self {
-        Self { timer: Some(timer), start: Instant::now() }
+        Self {
+            timer: Some(timer),
+            start: Instant::now(),
+        }
     }
     /// Finish early and record the duration.
     pub fn finish(mut self) {
         let elapsed = self.start.elapsed();
-        if let Some(timer) = self.timer.take() { timer.record(elapsed); }
+        if let Some(timer) = self.timer.take() {
+            timer.record(elapsed);
+        }
     }
 }
 
@@ -304,11 +377,17 @@ impl<'a> Drop for TimingScope<'a> {
 // ---------------------------------------------------------------------------
 
 fn percentile(sorted: &[f64], p: f64) -> f64 {
-    if sorted.len() <= 1 { return sorted.first().copied().unwrap_or(0.0); }
+    if sorted.len() <= 1 {
+        return sorted.first().copied().unwrap_or(0.0);
+    }
     let k = (p / 100.0) * (sorted.len() - 1) as f64;
     let f = k.floor() as usize;
     let c = k.ceil() as usize;
-    if f == c { sorted[f] } else { sorted[f] * (c as f64 - k) + sorted[c] * (k - f as f64) }
+    if f == c {
+        sorted[f]
+    } else {
+        sorted[f] * (c as f64 - k) + sorted[c] * (k - f as f64)
+    }
 }
 
 #[cfg(test)]
@@ -318,9 +397,12 @@ mod tests {
     #[test]
     fn test_timer_record_and_stats() {
         let t = Timer::new();
-        t.record_ms(10.0); t.record_ms(20.0); t.record_ms(30.0);
+        t.record_ms(10.0);
+        t.record_ms(20.0);
+        t.record_ms(30.0);
         let s = t.stats();
-        assert_eq!(s.count, 3); assert_eq!(s.window_count, 3);
+        assert_eq!(s.count, 3);
+        assert_eq!(s.window_count, 3);
         assert!((s.min_ms - 10.0).abs() < 0.01);
         assert!((s.max_ms - 30.0).abs() < 0.01);
         assert!((s.avg_ms - 20.0).abs() < 0.01);
@@ -329,38 +411,52 @@ mod tests {
     #[test]
     fn test_timer_window_eviction() {
         let t = Timer::with_capacity(2);
-        t.record_ms(1.0); t.record_ms(2.0); t.record_ms(3.0);
+        t.record_ms(1.0);
+        t.record_ms(2.0);
+        t.record_ms(3.0);
         let s = t.stats();
-        assert_eq!(s.count, 3); assert_eq!(s.window_count, 2);
+        assert_eq!(s.count, 3);
+        assert_eq!(s.window_count, 2);
     }
 
     #[test]
     fn test_counter() {
         let c = Counter::new();
-        c.increment(); c.increment(); c.add(3);
+        c.increment();
+        c.increment();
+        c.add(3);
         assert_eq!(c.value(), 5);
-        c.reset(); assert_eq!(c.value(), 0);
+        c.reset();
+        assert_eq!(c.value(), 0);
     }
 
     #[test]
     fn test_gauge() {
         let g = Gauge::new();
-        g.set(10); assert_eq!(g.value(), 10);
-        g.increment(); assert_eq!(g.value(), 11);
-        g.decrement(); assert_eq!(g.value(), 10);
+        g.set(10);
+        assert_eq!(g.value(), 10);
+        g.increment();
+        assert_eq!(g.value(), 11);
+        g.decrement();
+        assert_eq!(g.value(), 10);
     }
 
     #[test]
     fn test_histogram() {
         let h = Histogram::default_latency();
-        h.record(5.0); h.record(50.0); h.record(500.0);
+        h.record(5.0);
+        h.record(50.0);
+        h.record(500.0);
         assert_eq!(h.total(), 3);
     }
 
     #[test]
     fn test_timing_scope() {
         let timer = Timer::new();
-        { let _s = TimingScope::new(&timer); std::thread::sleep(Duration::from_millis(1)); }
+        {
+            let _s = TimingScope::new(&timer);
+            std::thread::sleep(Duration::from_millis(1));
+        }
         assert_eq!(timer.stats().count, 1);
     }
 

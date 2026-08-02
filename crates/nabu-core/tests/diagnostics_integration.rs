@@ -70,7 +70,10 @@ fn test_subsystem_identifiers_are_defined() {
     assert_eq!(nabu_core::diagnostics::SUBSYSTEM_VAULT, "vault");
     assert_eq!(nabu_core::diagnostics::SUBSYSTEM_EVENT_BUS, "event_bus");
     assert_eq!(nabu_core::diagnostics::SUBSYSTEM_REGISTRY, "registry");
-    assert_eq!(nabu_core::diagnostics::SUBSYSTEM_PIPELINE, "pipeline_migration");
+    assert_eq!(
+        nabu_core::diagnostics::SUBSYSTEM_PIPELINE,
+        "pipeline_migration"
+    );
 }
 
 /// Test that component identifiers are defined correctly.
@@ -113,11 +116,7 @@ fn test_operation_identifiers_are_defined() {
 fn test_all_subsystems_unique() {
     let mut seen = std::collections::HashSet::new();
     for subsystem in nabu_core::diagnostics::ALL_SUBSYSTEMS {
-        assert!(
-            seen.insert(subsystem),
-            "Duplicate subsystem: {}",
-            subsystem
-        );
+        assert!(seen.insert(subsystem), "Duplicate subsystem: {}", subsystem);
     }
     assert_eq!(seen.len(), nabu_core::diagnostics::ALL_SUBSYSTEMS.len());
 }
@@ -125,12 +124,7 @@ fn test_all_subsystems_unique() {
 /// Test that the traced helper function works.
 #[test]
 fn test_traced_helper() {
-    let result = nabu_core::diagnostics::spans::traced(
-        "test",
-        "test_component",
-        "test_op",
-        || 42,
-    );
+    let result = nabu_core::diagnostics::spans::traced("test", "test_component", "test_op", || 42);
     assert_eq!(result, 42);
 }
 
@@ -138,11 +132,8 @@ fn test_traced_helper() {
 #[test]
 fn test_rolling_file_layer_creation() {
     let dir = tempdir().unwrap();
-    let result: Result<(Box<dyn Layer<Registry> + Send + Sync>, _), String> = nabu_core::diagnostics::layers::rolling_file_layer(
-        dir.path(),
-        "test-nabu",
-        7,
-    );
+    let result: Result<(Box<dyn Layer<Registry> + Send + Sync>, _), String> =
+        nabu_core::diagnostics::layers::rolling_file_layer(dir.path(), "test-nabu", 7);
     assert!(result.is_ok(), "Rolling file layer should be creatable");
 }
 
@@ -150,10 +141,12 @@ fn test_rolling_file_layer_creation() {
 #[test]
 fn test_stderr_layer_modes() {
     // Pretty mode
-    let _pretty: Box<dyn Layer<Registry> + Send + Sync> = nabu_core::diagnostics::layers::stderr_layer(true);
+    let _pretty: Box<dyn Layer<Registry> + Send + Sync> =
+        nabu_core::diagnostics::layers::stderr_layer(true);
 
     // Compact mode
-    let _compact: Box<dyn Layer<Registry> + Send + Sync> = nabu_core::diagnostics::layers::stderr_layer(false);
+    let _compact: Box<dyn Layer<Registry> + Send + Sync> =
+        nabu_core::diagnostics::layers::stderr_layer(false);
 
     // Both should succeed without panicking
 }

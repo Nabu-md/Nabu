@@ -55,7 +55,11 @@ pub fn extract_annotations(data: &[u8]) -> Result<Vec<PdfAnnotation>, NativeErro
 ///
 /// `page` is zero-based. `max_dimension` clamps the longer side of the
 /// rendered image in pixels (aspect ratio preserved).
-pub fn render_page_png(data: &[u8], page: usize, max_dimension: f64) -> Result<Vec<u8>, NativeError> {
+pub fn render_page_png(
+    data: &[u8],
+    page: usize,
+    max_dimension: f64,
+) -> Result<Vec<u8>, NativeError> {
     imp::render_page_png(data, page, max_dimension)
 }
 
@@ -68,7 +72,7 @@ mod imp {
     use objc2::runtime::{AnyObject, NSObject};
     use objc2::{extern_class, extern_methods, AnyThread};
     use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep, NSImage};
-    use objc2_foundation::{NSArray, NSData, NSDictionary, NSString, NSRect, NSSize};
+    use objc2_foundation::{NSArray, NSData, NSDictionary, NSRect, NSSize, NSString};
 
     // ── PDFDisplayBox (NS_ENUM) ───────────────────────────────────────────
 
@@ -132,7 +136,8 @@ mod imp {
             pub fn string(&self) -> Option<Retained<NSString>>;
 
             #[unsafe(method(documentAttributes))]
-            pub fn documentAttributes(&self) -> Option<Retained<NSDictionary<NSString, AnyObject>>>;
+            pub fn documentAttributes(&self)
+                -> Option<Retained<NSDictionary<NSString, AnyObject>>>;
 
             #[unsafe(method(pageAtIndex:))]
             pub fn pageAtIndex(&self, index: NSUInteger) -> Option<Retained<PDFPage>>;
@@ -195,20 +200,17 @@ mod imp {
 
     pub fn extract_text(data: &[u8]) -> Result<PdfText, NativeError> {
         with_document(data, |doc| {
-            let text = doc
-                .string()
-                .map(|s| s.to_string())
-                .unwrap_or_default();
+            let text = doc.string().map(|s| s.to_string()).unwrap_or_default();
             Ok(PdfText {
                 text,
-                page_count: doc.pageCount() as usize,
+                page_count: doc.pageCount(),
             })
         })
     }
 
     pub fn extract_metadata(data: &[u8]) -> Result<PdfMetadata, NativeError> {
         with_document(data, |doc| {
-            let page_count = doc.pageCount() as usize;
+            let page_count = doc.pageCount();
             let attrs = doc.documentAttributes();
             let mut meta = PdfMetadata {
                 page_count,
@@ -239,7 +241,7 @@ mod imp {
                             .map(|t| t.to_string())
                             .unwrap_or_default(),
                         contents: annotation.contents().map(|c| c.to_string()),
-                        page: page as usize,
+                        page,
                     });
                 }
             }
@@ -247,7 +249,11 @@ mod imp {
         })
     }
 
-    pub fn render_page_png(data: &[u8], page: usize, max_dimension: f64) -> Result<Vec<u8>, NativeError> {
+    pub fn render_page_png(
+        data: &[u8],
+        page: usize,
+        max_dimension: f64,
+    ) -> Result<Vec<u8>, NativeError> {
         with_document(data, |doc| {
             let page_obj = doc
                 .pageAtIndex(page as NSUInteger)
@@ -272,12 +278,15 @@ mod imp {
             // SAFETY: encoding a freshly created image to PNG data; the
             // returned NSData is owned by us.
             let png = unsafe {
-                let tiff = image
-                    .TIFFRepresentation()
-                    .ok_or_else(|| NativeError::CallFailed("could not get TIFF representation".into()))?;
+                let tiff = image.TIFFRepresentation().ok_or_else(|| {
+                    NativeError::CallFailed("could not get TIFF representation".into())
+                })?;
                 let rep = NSBitmapImageRep::initWithData(NSBitmapImageRep::alloc(), &tiff)
                     .ok_or_else(|| NativeError::CallFailed("could not create bitmap rep".into()))?;
-                rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new())
+                rep.representationUsingType_properties(
+                    NSBitmapImageFileType::PNG,
+                    &NSDictionary::new(),
+                )
             };
             let png = png.ok_or_else(|| NativeError::CallFailed("could not encode PNG".into()))?;
             Ok(png.to_vec())
@@ -298,7 +307,11 @@ mod imp {
     pub fn extract_annotations(_data: &[u8]) -> Result<Vec<PdfAnnotation>, NativeError> {
         Err(NativeError::UnsupportedPlatform)
     }
-    pub fn render_page_png(_data: &[u8], _page: usize, _max_dimension: f64) -> Result<Vec<u8>, NativeError> {
+    pub fn render_page_png(
+        _data: &[u8],
+        _page: usize,
+        _max_dimension: f64,
+    ) -> Result<Vec<u8>, NativeError> {
         Err(NativeError::UnsupportedPlatform)
     }
 }

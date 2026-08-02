@@ -1,4 +1,3 @@
-
 use crate::jobs::queue::Queue;
 use crate::jobs::workers::backpressure::BackpressureController;
 use crate::jobs::workers::executor::ExecutorRegistry;
@@ -34,7 +33,11 @@ impl WorkerPool {
     /// * `worker_count` - Number of worker tasks to spawn
     /// * `queue` - The job queue workers will pull from
     /// * `executors` - Registry of job executors
-    pub fn new(worker_count: usize, queue: Arc<dyn Queue>, executors: Arc<ExecutorRegistry>) -> Self {
+    pub fn new(
+        worker_count: usize,
+        queue: Arc<dyn Queue>,
+        executors: Arc<ExecutorRegistry>,
+    ) -> Self {
         Self {
             worker_count,
             queue,

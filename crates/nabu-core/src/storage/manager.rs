@@ -1,5 +1,5 @@
-use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
 use crate::event_bus::kinds::ITEM_STORED;
+use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
 use crate::models::{KnowledgeObject, ObjectType};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -53,16 +53,12 @@ impl StorageManager {
     /// Returns the vault path where the object was saved.
     /// Publishes ItemStored event on success.
     pub fn save(&self, object: &KnowledgeObject) -> Result<String, String> {
-        let vault_path = object
-            .metadata
-            .vault_path
-            .clone()
-            .unwrap_or_else(|| {
-                format!(
-                    "Inbox/{}.md",
-                    object.metadata.title.as_deref().unwrap_or("untitled")
-                )
-            });
+        let vault_path = object.metadata.vault_path.clone().unwrap_or_else(|| {
+            format!(
+                "Inbox/{}.md",
+                object.metadata.title.as_deref().unwrap_or("untitled")
+            )
+        });
 
         // Store in memory
         {
@@ -124,7 +120,10 @@ impl StorageManager {
 
     /// Check if an object exists.
     pub fn exists(&self, id: Uuid) -> bool {
-        self.store.read().map(|s| s.contains_key(&id)).unwrap_or(false)
+        self.store
+            .read()
+            .map(|s| s.contains_key(&id))
+            .unwrap_or(false)
     }
 
     /// List all stored objects, optionally filtered by source file.
@@ -141,12 +140,7 @@ impl StorageManager {
         let mut objects: Vec<KnowledgeObject> = store.values().cloned().collect();
 
         if let Some(source_file) = source_file {
-            objects.retain(|o| {
-                o.metadata
-                    .original_filename
-                    .as_deref()
-                    == Some(source_file)
-            });
+            objects.retain(|o| o.metadata.original_filename.as_deref() == Some(source_file));
         }
 
         objects.truncate(limit);
@@ -162,7 +156,10 @@ mod tests {
     #[test]
     fn test_save_and_load() {
         let mgr = StorageManager::new("/tmp/test-vault");
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Hello".to_string()));
+        let obj = KnowledgeObject::new(
+            ObjectType::Note,
+            ObjectContent::Markdown("Hello".to_string()),
+        );
 
         mgr.save(&obj).unwrap();
         let loaded = mgr.load(obj.id).unwrap();
@@ -174,7 +171,10 @@ mod tests {
     #[test]
     fn test_delete() {
         let mgr = StorageManager::new("/tmp/test-vault");
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::PlainText("Delete me".to_string()));
+        let obj = KnowledgeObject::new(
+            ObjectType::Note,
+            ObjectContent::PlainText("Delete me".to_string()),
+        );
 
         mgr.save(&obj).unwrap();
         assert!(mgr.exists(obj.id));

@@ -1,5 +1,3 @@
-
-
 use crate::graph::serializer::{GraphSnapshot, SerializedEdge, SerializedNode};
 use std::collections::{HashMap, HashSet, VecDeque};
 use uuid::Uuid;
@@ -95,20 +93,13 @@ impl RegionEngine {
     pub fn regions_for_node(&self, node_id: Uuid) -> Vec<&GraphRegion> {
         self.node_to_region
             .get(&node_id)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.regions.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.regions.get(id)).collect())
             .unwrap_or_default()
     }
 
     /// Get all regions affected by a set of changed nodes.
     /// Returns the union of regions containing any changed node.
-    pub fn affected_regions<'a>(
-        &'a self,
-        changed_nodes: &HashSet<Uuid>,
-    ) -> Vec<&'a GraphRegion> {
+    pub fn affected_regions<'a>(&'a self, changed_nodes: &HashSet<Uuid>) -> Vec<&'a GraphRegion> {
         let mut seen = HashSet::new();
         let mut result = Vec::new();
 
@@ -177,10 +168,16 @@ impl RegionEngine {
                     let folder = title.split('/').next().unwrap_or("Inbox").to_string();
                     folder_nodes.entry(folder).or_default().push(node.id);
                 } else {
-                    folder_nodes.entry("Inbox".to_string()).or_default().push(node.id);
+                    folder_nodes
+                        .entry("Inbox".to_string())
+                        .or_default()
+                        .push(node.id);
                 }
             } else {
-                folder_nodes.entry("Inbox".to_string()).or_default().push(node.id);
+                folder_nodes
+                    .entry("Inbox".to_string())
+                    .or_default()
+                    .push(node.id);
             }
         }
 
@@ -242,9 +239,7 @@ impl RegionEngine {
 
         let rebuilt_edges: Vec<SerializedEdge> = rebuilt_edges_set
             .into_iter()
-            .map(|(source, target, relationship)| {
-                SerializedEdge::new(source, target, relationship)
-            })
+            .map(|(source, target, relationship)| SerializedEdge::new(source, target, relationship))
             .collect();
 
         (rebuilt_nodes, rebuilt_edges)
@@ -272,8 +267,14 @@ fn build_adjacency(snapshot: &GraphSnapshot) -> HashMap<Uuid, HashSet<Uuid>> {
     let mut adjacency: HashMap<Uuid, HashSet<Uuid>> = HashMap::new();
 
     for edge in &snapshot.edges {
-        adjacency.entry(edge.source).or_default().insert(edge.target);
-        adjacency.entry(edge.target).or_default().insert(edge.source);
+        adjacency
+            .entry(edge.source)
+            .or_default()
+            .insert(edge.target);
+        adjacency
+            .entry(edge.target)
+            .or_default()
+            .insert(edge.source);
     }
 
     adjacency
@@ -290,9 +291,24 @@ mod tests {
         let n2 = Uuid::new_v4();
         let n3 = Uuid::new_v4();
 
-        snapshot.add_node(SerializedNode::new(n1, "note", Some("Inbox/Note A".into()), "text"));
-        snapshot.add_node(SerializedNode::new(n2, "note", Some("Work/Note B".into()), "text"));
-        snapshot.add_node(SerializedNode::new(n3, "article", Some("Inbox/Article C".into()), "text"));
+        snapshot.add_node(SerializedNode::new(
+            n1,
+            "note",
+            Some("Inbox/Note A".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            n2,
+            "note",
+            Some("Work/Note B".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            n3,
+            "article",
+            Some("Inbox/Article C".into()),
+            "text",
+        ));
 
         snapshot.add_edge(SerializedEdge::new(n1, n2, "references"));
         snapshot.add_edge(SerializedEdge::new(n2, n3, "related"));
@@ -319,7 +335,7 @@ mod tests {
         let region = engine.proximity_region(root, &snapshot, 1);
 
         assert!(region.nodes.contains(&root));
-        assert!(region.nodes.len() >= 1);
+        assert!(!region.nodes.is_empty());
     }
 
     #[test]
@@ -345,14 +361,10 @@ mod tests {
         engine.discover_regions(&snapshot);
 
         let affected = engine.affected_regions(&snapshot.nodes.iter().map(|n| n.id).collect());
-        let current_nodes: HashMap<Uuid, SerializedNode> = snapshot
-            .nodes
-            .iter()
-            .map(|n| (n.id, n.clone()))
-            .collect();
+        let current_nodes: HashMap<Uuid, SerializedNode> =
+            snapshot.nodes.iter().map(|n| (n.id, n.clone())).collect();
 
-        let (rebuilt_nodes, rebuilt_edges) =
-            engine.rebuild_regions(&affected, &current_nodes, &snapshot.edges);
+        let (rebuilt_nodes, _) = engine.rebuild_regions(&affected, &current_nodes, &snapshot.edges);
 
         assert!(!rebuilt_nodes.is_empty());
     }

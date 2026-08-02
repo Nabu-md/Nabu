@@ -1,5 +1,5 @@
-use crate::event_bus::{EventBus, IndexOperation, IndexUpdatedEvent, PipelineEvent};
 use crate::event_bus::kinds::INDEX_UPDATED;
+use crate::event_bus::{EventBus, IndexOperation, IndexUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
 use std::collections::HashMap;
 use std::sync::RwLock;

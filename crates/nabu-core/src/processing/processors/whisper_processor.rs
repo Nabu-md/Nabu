@@ -128,7 +128,7 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 
     #[tokio::test]
@@ -167,7 +167,7 @@ mod tests {
                 assert!(result.error.is_some() || !result.modified);
             }
         } else {
-            assert_eq!(result.modified, false);
+            assert!(!result.modified);
         }
     }
 }

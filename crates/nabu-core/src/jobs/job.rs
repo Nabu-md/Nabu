@@ -65,7 +65,11 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn new(job_type: JobType, payload: serde_json::Value, processor_name: impl Into<String>) -> Self {
+    pub fn new(
+        job_type: JobType,
+        payload: serde_json::Value,
+        processor_name: impl Into<String>,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             job_type,
@@ -271,10 +275,16 @@ impl JobStatus {
     }
 
     pub fn is_terminal(&self) -> bool {
-        matches!(self, JobStatus::Completed | JobStatus::Failed | JobStatus::Cancelled)
+        matches!(
+            self,
+            JobStatus::Completed | JobStatus::Failed | JobStatus::Cancelled
+        )
     }
 
     pub fn is_active(&self) -> bool {
-        matches!(self, JobStatus::Queued | JobStatus::Running | JobStatus::Scheduled)
+        matches!(
+            self,
+            JobStatus::Queued | JobStatus::Running | JobStatus::Scheduled
+        )
     }
 }

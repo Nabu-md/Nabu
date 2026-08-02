@@ -66,7 +66,15 @@ pub mod version;
 pub use capability::CapabilityRegistry;
 pub use features::{FeatureFlag, FeatureRegistry, FeatureStage};
 pub use lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
-pub use manager::{InstallationReport, ManagerError, ManagerReport, PluginManager, RegistrationIssue};
-pub use manifest::{CompatibilityCheck, ManifestError, PluginDependency, PluginEntryType, PluginFeatureFlag, PluginManifest, PluginPermission};
-pub use permissions::{Permission, PermissionCheck, PermissionEvaluator, PermissionSet, PermissionValidation, RiskLevel};
+pub use manager::{
+    InstallationReport, ManagerError, ManagerReport, PluginManager, RegistrationIssue,
+};
+pub use manifest::{
+    CompatibilityCheck, ManifestError, PluginDependency, PluginEntryType, PluginFeatureFlag,
+    PluginManifest, PluginPermission,
+};
+pub use permissions::{
+    Permission, PermissionCheck, PermissionEvaluator, PermissionSet, PermissionValidation,
+    RiskLevel,
+};
 pub use version::{CompatibilityResult, Version, VersionError, VersionRequirement};

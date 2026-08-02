@@ -41,15 +41,9 @@ impl DependencyTracker {
 
     /// Register that node A depends on node B (e.g., A has an edge to B).
     pub fn add_dependency(&mut self, from: Uuid, to: Uuid) {
-        self.node_dependents
-            .entry(to)
-            .or_default()
-            .insert(from);
+        self.node_dependents.entry(to).or_default().insert(from);
 
-        self.node_dependencies
-            .entry(from)
-            .or_default()
-            .insert(to);
+        self.node_dependencies.entry(from).or_default().insert(to);
     }
 
     /// Remove a dependency (edge was deleted).
@@ -83,10 +77,7 @@ impl DependencyTracker {
             .entry(node_id)
             .or_default()
             .insert(region.clone());
-        self.region_nodes
-            .entry(region)
-            .or_default()
-            .insert(node_id);
+        self.region_nodes.entry(region).or_default().insert(node_id);
     }
 
     /// Remove a node from a region.
@@ -136,18 +127,12 @@ impl DependencyTracker {
 
     /// Get all nodes in the given region.
     pub fn nodes_in_region(&self, region: &str) -> HashSet<Uuid> {
-        self.region_nodes
-            .get(region)
-            .cloned()
-            .unwrap_or_default()
+        self.region_nodes.get(region).cloned().unwrap_or_default()
     }
 
     /// Get all regions the given node belongs to.
     pub fn regions_of(&self, node_id: Uuid) -> HashSet<String> {
-        self.node_regions
-            .get(&node_id)
-            .cloned()
-            .unwrap_or_default()
+        self.node_regions.get(&node_id).cloned().unwrap_or_default()
     }
 
     /// Compute the transitive closure of affected nodes starting from the given node.

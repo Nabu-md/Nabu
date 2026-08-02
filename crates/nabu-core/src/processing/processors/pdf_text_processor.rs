@@ -28,19 +28,18 @@ impl Processor for PdfTextProcessor {
 
         // Only process PDF binary content.
         let pdf_data = match &context.object.content {
-            ObjectContent::Binary { mime_type, data, .. } if mime_type == "application/pdf" => {
-                data.clone()
-            }
+            ObjectContent::Binary {
+                mime_type, data, ..
+            } if mime_type == "application/pdf" => data.clone(),
             _ => return ProcessingResult::unmodified(context.object.clone()),
         };
 
         progress.set_progress(0.4);
         let mut object = context.object.clone();
 
-        let engine_result = tokio::task::spawn_blocking(move || {
-            crate::native::pdfkit::extract_text(&pdf_data)
-        })
-        .await;
+        let engine_result =
+            tokio::task::spawn_blocking(move || crate::native::pdfkit::extract_text(&pdf_data))
+                .await;
 
         let extracted = match engine_result {
             Ok(Ok(text)) => text,
@@ -92,7 +91,10 @@ mod tests {
     use crate::models::KnowledgeObject;
 
     fn fixture_pdf() -> Vec<u8> {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/pdf_fixture.pdf");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/pdf_fixture.pdf"
+        );
         std::fs::read(path).expect("pdf fixture should exist")
     }
 
@@ -127,7 +129,7 @@ mod tests {
             assert!(!extracted.is_empty(), "PDFKit should extract text");
             assert!(extracted.contains("QUICK BROWN FOX"));
         } else {
-            assert_eq!(result.modified, false);
+            assert!(!result.modified);
         }
     }
 
@@ -144,6 +146,6 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 }

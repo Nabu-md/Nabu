@@ -186,7 +186,7 @@ impl ObjectContent {
 }
 
 /// Standard metadata applicable to all object types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ObjectMetadata {
     /// Human-readable title
     pub title: Option<String>,
@@ -212,25 +212,6 @@ pub struct ObjectMetadata {
     pub vault_path: Option<String>,
     /// Extended description / excerpt
     pub description: Option<String>,
-}
-
-impl Default for ObjectMetadata {
-    fn default() -> Self {
-        Self {
-            title: None,
-            source_url: None,
-            authors: Vec::new(),
-            publication_date: None,
-            site_name: None,
-            language: None,
-            file_size: None,
-            mime_type: None,
-            ocr_confidence: None,
-            original_filename: None,
-            vault_path: None,
-            description: None,
-        }
-    }
 }
 
 /// Extensible custom property value types

@@ -36,9 +36,7 @@ impl Processor for SemanticEnricher {
         let mut object = context.object.clone();
 
         // Check for existing embeddings
-        let has_embedding = object
-            .custom_properties
-            .contains_key("embedding_generated");
+        let has_embedding = object.custom_properties.contains_key("embedding_generated");
 
         if !has_embedding {
             // No embedding means we can't do semantic enrichment
@@ -107,13 +105,27 @@ fn infer_topics(object: &KnowledgeObject) -> Vec<String> {
 fn compute_enrichment_score(object: &KnowledgeObject) -> f64 {
     let mut score = 0.0;
 
-    if object.metadata.title.is_some() { score += 0.2; }
-    if !object.metadata.authors.is_empty() { score += 0.1; }
-    if object.metadata.description.is_some() { score += 0.2; }
-    if object.metadata.language.is_some() { score += 0.1; }
-    if object.metadata.source_url.is_some() { score += 0.1; }
-    if object.content_hash.is_some() { score += 0.1; }
-    if !object.tags.is_empty() { score += 0.1; }
+    if object.metadata.title.is_some() {
+        score += 0.2;
+    }
+    if !object.metadata.authors.is_empty() {
+        score += 0.1;
+    }
+    if object.metadata.description.is_some() {
+        score += 0.2;
+    }
+    if object.metadata.language.is_some() {
+        score += 0.1;
+    }
+    if object.metadata.source_url.is_some() {
+        score += 0.1;
+    }
+    if object.content_hash.is_some() {
+        score += 0.1;
+    }
+    if !object.tags.is_empty() {
+        score += 0.1;
+    }
 
     // Bonus for custom property richness
     let prop_count = object.custom_properties.len() as f64;
@@ -140,7 +152,7 @@ mod tests {
             .await;
 
         // Without embeddings, should not modify
-        assert_eq!(result.modified, false);
+        assert!(!result.modified);
     }
 
     #[tokio::test]

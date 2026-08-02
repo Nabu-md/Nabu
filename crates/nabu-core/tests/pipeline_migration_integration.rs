@@ -1,20 +1,20 @@
-use nabu_core::capture::engine::{build_default_capture_engine, CaptureEngine};
+use nabu_core::capture::engine::build_default_capture_engine;
 use nabu_core::capture::handler::{CaptureData, CaptureRequest};
 use nabu_core::event_bus::bus::EventBus;
 use nabu_core::event_bus::events::PipelineEvent;
+use nabu_core::graph::VaultGraph;
+use nabu_core::indexer::Indexer;
+use nabu_core::jobs::cancellation::CancellationToken;
 use nabu_core::jobs::job::{Job, JobType};
 use nabu_core::jobs::persistence::JobStore;
 use nabu_core::jobs::priority::Priority;
 use nabu_core::jobs::queue::{DurableJobQueue, Queue};
 use nabu_core::jobs::workers::progress::ProgressReporter;
-use nabu_core::jobs::cancellation::CancellationToken;
 use nabu_core::models::{CaptureSource, KnowledgeObject, ObjectContent, ObjectType};
 use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::storage::manager::StorageManager;
-use nabu_core::indexer::Indexer;
-use nabu_core::graph::VaultGraph;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use tempfile::tempdir;
 
 // ─── Test 1: Capture → Queue → Execute → Store flow ───────────────────────
@@ -36,8 +36,14 @@ async fn test_capture_through_pipeline() {
     assert!(result.is_some(), "Should have created an object");
 
     // Verify the job was enqueued
-    let queued_count = queue.count_by_status(nabu_core::jobs::job::JobStatus::Queued).unwrap();
-    assert!(queued_count > 0, "Job should have been enqueued: got {}", queued_count);
+    let queued_count = queue
+        .count_by_status(nabu_core::jobs::job::JobStatus::Queued)
+        .unwrap();
+    assert!(
+        queued_count > 0,
+        "Job should have been enqueued: got {}",
+        queued_count
+    );
 }
 
 // ─── Test 2: All processors execute through the job queue ──────────────
@@ -49,7 +55,8 @@ async fn test_all_processors_executable() {
 
     // We should have all 14 processors registered
     assert_eq!(
-        processor_count, 14,
+        processor_count,
+        14,
         "Expected 14 processors, got {}: {:?}",
         processor_count,
         pipeline.processor_names()
@@ -69,11 +76,7 @@ async fn test_object_flows_through_pipeline() {
 
     let pipeline = build_standard_pipeline(None);
     let result = pipeline
-        .run(
-            object,
-            ProgressReporter::noop(),
-            CancellationToken::new(),
-        )
+        .run(object, ProgressReporter::noop(), CancellationToken::new())
         .await;
 
     // Pipeline should have modified the object
@@ -95,21 +98,23 @@ async fn test_event_bus_integration() {
     // Publish an event
     bus.publish(
         nabu_core::event_bus::kinds::ITEM_CAPTURED,
-        &PipelineEvent::ItemCaptured(
-            nabu_core::event_bus::ItemCapturedEvent::new(
-                uuid::Uuid::new_v4(),
-                ObjectType::Note,
-                CaptureSource::Clipboard,
-                Some("Test".to_string()),
-                Some(uuid::Uuid::new_v4()),
-            ),
-        ),
+        &PipelineEvent::ItemCaptured(nabu_core::event_bus::ItemCapturedEvent::new(
+            uuid::Uuid::new_v4(),
+            ObjectType::Note,
+            CaptureSource::Clipboard,
+            Some("Test".to_string()),
+            Some(uuid::Uuid::new_v4()),
+        )),
     );
 
     // Give time for async dispatch
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
-    assert_eq!(counter.load(Ordering::SeqCst), 1, "Should have received the event");
+    assert_eq!(
+        counter.load(Ordering::SeqCst),
+        1,
+        "Should have received the event"
+    );
 }
 
 // ─── Test 5: Job store persistence ──────────────────────────────────────
@@ -121,7 +126,11 @@ async fn test_job_persistence() {
     let job_id;
     {
         let store = JobStore::new(dir.path()).unwrap();
-        let job = Job::new(JobType::Ocr, serde_json::json!({"test": true}), "ocr_processor");
+        let job = Job::new(
+            JobType::Ocr,
+            serde_json::json!({"test": true}),
+            "ocr_processor",
+        );
         job_id = job.id;
         store.store(&job).unwrap();
     }
@@ -164,23 +173,62 @@ async fn test_priority_ordering_in_queue() {
     let queue = DurableJobQueue::new(dir.path()).unwrap();
 
     // Enqueue jobs in reverse priority order
-    queue.enqueue(Job::new(JobType::Export, serde_json::json!({}), "export").with_priority(Priority::Background)).unwrap();
-    queue.enqueue(Job::new(JobType::Ocr, serde_json::json!({}), "ocr").with_priority(Priority::Normal)).unwrap();
-    queue.enqueue(Job::new(JobType::MetadataExtraction, serde_json::json!({}), "metadata").with_priority(Priority::High)).unwrap();
-    queue.enqueue(Job::new(JobType::GraphUpdate, serde_json::json!({}), "graph").with_priority(Priority::Critical)).unwrap();
+    queue
+        .enqueue(
+            Job::new(JobType::Export, serde_json::json!({}), "export")
+                .with_priority(Priority::Background),
+        )
+        .unwrap();
+    queue
+        .enqueue(
+            Job::new(JobType::Ocr, serde_json::json!({}), "ocr").with_priority(Priority::Normal),
+        )
+        .unwrap();
+    queue
+        .enqueue(
+            Job::new(
+                JobType::MetadataExtraction,
+                serde_json::json!({}),
+                "metadata",
+            )
+            .with_priority(Priority::High),
+        )
+        .unwrap();
+    queue
+        .enqueue(
+            Job::new(JobType::GraphUpdate, serde_json::json!({}), "graph")
+                .with_priority(Priority::Critical),
+        )
+        .unwrap();
 
     // Dequeue should respect priority order
     let first = queue.dequeue().unwrap().unwrap();
-    assert_eq!(first.priority, Priority::Critical, "Critical should dequeue first");
+    assert_eq!(
+        first.priority,
+        Priority::Critical,
+        "Critical should dequeue first"
+    );
 
     let second = queue.dequeue().unwrap().unwrap();
-    assert_eq!(second.priority, Priority::High, "High should dequeue second");
+    assert_eq!(
+        second.priority,
+        Priority::High,
+        "High should dequeue second"
+    );
 
     let third = queue.dequeue().unwrap().unwrap();
-    assert_eq!(third.priority, Priority::Normal, "Normal should dequeue third");
+    assert_eq!(
+        third.priority,
+        Priority::Normal,
+        "Normal should dequeue third"
+    );
 
     let fourth = queue.dequeue().unwrap().unwrap();
-    assert_eq!(fourth.priority, Priority::Background, "Background should dequeue last");
+    assert_eq!(
+        fourth.priority,
+        Priority::Background,
+        "Background should dequeue last"
+    );
 }
 
 // ─── Test 8: Queue survives restart ───────────────────────────────────
@@ -192,7 +240,11 @@ async fn test_queue_survives_restart() {
     let job_id;
     {
         let queue = DurableJobQueue::new(dir.path()).unwrap();
-        let job = Job::new(JobType::Ocr, serde_json::json!({"data": "test"}), "ocr_processor");
+        let job = Job::new(
+            JobType::Ocr,
+            serde_json::json!({"data": "test"}),
+            "ocr_processor",
+        );
         job_id = job.id;
         queue.enqueue(job).unwrap();
     }
@@ -232,8 +284,7 @@ async fn test_retry_behavior() {
     let dir = tempdir().unwrap();
     let queue = DurableJobQueue::new(dir.path()).unwrap();
 
-    let job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr_processor")
-        .with_max_retries(2);
+    let job = Job::new(JobType::Ocr, serde_json::json!({}), "ocr_processor").with_max_retries(2);
     let job_id = job.id.to_string();
     queue.enqueue(job).unwrap();
 
@@ -275,7 +326,10 @@ async fn test_storage_and_index_integration() {
     // Index
     indexer.index_object(&object).unwrap();
     let results = indexer.search("integration");
-    assert!(results.contains(&object.id.to_string()), "Index should find the object");
+    assert!(
+        results.contains(&object.id.to_string()),
+        "Index should find the object"
+    );
 
     // Graph
     graph.add_node(&object).unwrap();
@@ -296,8 +350,10 @@ async fn test_capture_enqueues_job() {
     let sources = vec![
         CaptureRequest::new(CaptureData::Text("Browser capture".to_string()))
             .with_title("Browser Test"),
-        CaptureRequest::new(CaptureData::Uri("https://youtube.com/watch?v=test".to_string()))
-            .with_title("YouTube Video"),
+        CaptureRequest::new(CaptureData::Uri(
+            "https://youtube.com/watch?v=test".to_string(),
+        ))
+        .with_title("YouTube Video"),
         CaptureRequest::new(CaptureData::Uri("https://github.com/org/repo".to_string()))
             .with_title("GitHub Repo"),
     ];
@@ -337,27 +393,89 @@ async fn test_all_event_kinds() {
 
     // Publish each event kind
     let id = uuid::Uuid::new_v4();
-    bus.publish(nabu_core::event_bus::kinds::ITEM_CAPTURED,
-        &PipelineEvent::ItemCaptured(nabu_core::event_bus::ItemCapturedEvent::new(id, ObjectType::Note, CaptureSource::Manual, None, None)));
-    bus.publish(nabu_core::event_bus::kinds::ITEM_PROCESSING_STARTED,
-        &PipelineEvent::ItemProcessingStarted(nabu_core::event_bus::ItemProcessingStartedEvent { object_id: id, job_id: uuid::Uuid::new_v4(), processor_name: "test".into(), timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::ITEM_PROCESSING_COMPLETED,
-        &PipelineEvent::ItemProcessingCompleted(nabu_core::event_bus::ItemProcessingCompletedEvent { object_id: id, job_id: uuid::Uuid::new_v4(), processor_name: "test".into(), timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::ITEM_PROCESSING_FAILED,
-        &PipelineEvent::ItemProcessingFailed(nabu_core::event_bus::ItemProcessingFailedEvent { object_id: id, job_id: uuid::Uuid::new_v4(), processor_name: "test".into(), error: "error".into(), retry_count: 0, will_retry: false, timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::ITEM_STORED,
-        &PipelineEvent::ItemStored(nabu_core::event_bus::ItemStoredEvent { object_id: id, vault_path: "/test".into(), object_type: ObjectType::Note, timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::INDEX_UPDATED,
-        &PipelineEvent::IndexUpdated(nabu_core::event_bus::IndexUpdatedEvent { object_id: id, operation: nabu_core::event_bus::IndexOperation::Added, timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::GRAPH_UPDATED,
-        &PipelineEvent::GraphUpdated(nabu_core::event_bus::GraphUpdatedEvent { object_id: id, operation: nabu_core::event_bus::GraphOperation::NodeAdded, timestamp: chrono::Utc::now() }));
-    bus.publish(nabu_core::event_bus::kinds::ITEM_CANCELLED,
-        &PipelineEvent::ItemCancelled(nabu_core::event_bus::ItemCancelledEvent { object_id: id, job_id: uuid::Uuid::new_v4(), timestamp: chrono::Utc::now() }));
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_CAPTURED,
+        &PipelineEvent::ItemCaptured(nabu_core::event_bus::ItemCapturedEvent::new(
+            id,
+            ObjectType::Note,
+            CaptureSource::Manual,
+            None,
+            None,
+        )),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_PROCESSING_STARTED,
+        &PipelineEvent::ItemProcessingStarted(nabu_core::event_bus::ItemProcessingStartedEvent {
+            object_id: id,
+            job_id: uuid::Uuid::new_v4(),
+            processor_name: "test".into(),
+            timestamp: chrono::Utc::now(),
+        }),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_PROCESSING_COMPLETED,
+        &PipelineEvent::ItemProcessingCompleted(
+            nabu_core::event_bus::ItemProcessingCompletedEvent {
+                object_id: id,
+                job_id: uuid::Uuid::new_v4(),
+                processor_name: "test".into(),
+                timestamp: chrono::Utc::now(),
+            },
+        ),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_PROCESSING_FAILED,
+        &PipelineEvent::ItemProcessingFailed(nabu_core::event_bus::ItemProcessingFailedEvent {
+            object_id: id,
+            job_id: uuid::Uuid::new_v4(),
+            processor_name: "test".into(),
+            error: "error".into(),
+            retry_count: 0,
+            will_retry: false,
+            timestamp: chrono::Utc::now(),
+        }),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_STORED,
+        &PipelineEvent::ItemStored(nabu_core::event_bus::ItemStoredEvent {
+            object_id: id,
+            vault_path: "/test".into(),
+            object_type: ObjectType::Note,
+            timestamp: chrono::Utc::now(),
+        }),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::INDEX_UPDATED,
+        &PipelineEvent::IndexUpdated(nabu_core::event_bus::IndexUpdatedEvent {
+            object_id: id,
+            operation: nabu_core::event_bus::IndexOperation::Added,
+            timestamp: chrono::Utc::now(),
+        }),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::GRAPH_UPDATED,
+        &PipelineEvent::GraphUpdated(nabu_core::event_bus::GraphUpdatedEvent {
+            object_id: id,
+            operation: nabu_core::event_bus::GraphOperation::NodeAdded,
+            timestamp: chrono::Utc::now(),
+        }),
+    );
+    bus.publish(
+        nabu_core::event_bus::kinds::ITEM_CANCELLED,
+        &PipelineEvent::ItemCancelled(nabu_core::event_bus::ItemCancelledEvent {
+            object_id: id,
+            job_id: uuid::Uuid::new_v4(),
+            timestamp: chrono::Utc::now(),
+        }),
+    );
 
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
-    assert_eq!(events_received.load(Ordering::SeqCst), 8,
-        "All 8 event kinds should be received");
+    assert_eq!(
+        events_received.load(Ordering::SeqCst),
+        8,
+        "All 8 event kinds should be received"
+    );
 }
 
 // ─── Test 14: Verify no processor depends on queue internals ───────────
@@ -372,15 +490,15 @@ async fn test_processors_no_queue_dependency() {
 
     let pipeline = build_standard_pipeline(None);
     let result = pipeline
-        .run(
-            object,
-            ProgressReporter::noop(),
-            CancellationToken::new(),
-        )
+        .run(object, ProgressReporter::noop(), CancellationToken::new())
         .await;
 
     // The pipeline should complete without any queue interaction
-    assert!(result.error.is_none(), "Pipeline should complete without errors: {:?}", result.error);
+    assert!(
+        result.error.is_none(),
+        "Pipeline should complete without errors: {:?}",
+        result.error
+    );
 }
 
 // ─── Test 15: Capture returns immediately (non-blocking) ───────────────

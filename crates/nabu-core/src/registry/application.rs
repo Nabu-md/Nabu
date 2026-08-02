@@ -335,9 +335,9 @@ impl ApplicationBuilder {
     /// the registry lock is poisoned.
     pub fn build(self) -> Application {
         let event_bus = self.event_bus.unwrap_or_else(|| Arc::new(EventBus::new()));
-        let registry = self.registry.unwrap_or_else(|| {
-            Arc::new(std::sync::RwLock::new(ServiceRegistry::new()))
-        });
+        let registry = self
+            .registry
+            .unwrap_or_else(|| Arc::new(std::sync::RwLock::new(ServiceRegistry::new())));
 
         // ---- 1. Register the event bus itself ----
         {
@@ -346,9 +346,9 @@ impl ApplicationBuilder {
         }
 
         // ---- 2. Build and register the PerformanceMonitor ----
-        let perf_monitor = self.performance_monitor.unwrap_or_else(|| {
-            Arc::new(PerformanceMonitor::new())
-        });
+        let perf_monitor = self
+            .performance_monitor
+            .unwrap_or_else(|| Arc::new(PerformanceMonitor::new()));
         {
             let mut reg = registry.write().expect("registry lock not poisoned");
             reg.register("performance_monitor", perf_monitor.clone());
@@ -448,12 +448,10 @@ mod tests {
         assert_eq!(app.stage(), LifecycleStage::Created);
 
         // Register required services before initialize
-        let bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
-        app.context().register("capture_engine", Arc::new(CaptureEngine::new()));
-        app.context().register(
-            "pipeline",
-            Arc::new(ProcessingPipeline::new()),
-        );
+        app.context()
+            .register("capture_engine", Arc::new(CaptureEngine::new()));
+        app.context()
+            .register("pipeline", Arc::new(ProcessingPipeline::new()));
         app.context().register(
             "storage_manager",
             Arc::new(crate::storage::StorageManager::new(
@@ -480,13 +478,8 @@ mod tests {
     #[test]
     fn test_with_event_bus() {
         let bus = Arc::new(EventBus::new());
-        let app = Application::builder()
-            .with_event_bus(bus.clone())
-            .build();
-        assert!(Arc::ptr_eq(
-            &app.context().event_bus(),
-            &bus,
-        ));
+        let app = Application::builder().with_event_bus(bus.clone()).build();
+        assert!(Arc::ptr_eq(app.context().event_bus(), &bus,));
     }
 
     #[test]

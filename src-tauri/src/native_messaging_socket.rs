@@ -25,13 +25,13 @@ const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10 MB max message size
 pub enum SocketError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
-    
+
     #[error("Capture error: {0}")]
     CaptureError(String),
-    
+
     #[error("Validation error: {0}")]
     ValidationError(String),
 }
@@ -62,8 +62,16 @@ fn validate_capture_message(message: &Message) -> SocketResult<()> {
         .ok_or_else(|| SocketError::ValidationError("Capture type is required".to_string()))?;
 
     let valid_sources = [
-        "clipboard", "screenshot", "browser", "watch_folder", "reader_mode",
-        "youtube", "github", "bookmark", "note", "document",
+        "clipboard",
+        "screenshot",
+        "browser",
+        "watch_folder",
+        "reader_mode",
+        "youtube",
+        "github",
+        "bookmark",
+        "note",
+        "document",
     ];
     if !valid_sources.contains(&capture_type) {
         return Err(SocketError::ValidationError(format!(
@@ -94,10 +102,19 @@ fn validate_capture_message(message: &Message) -> SocketResult<()> {
 /// The payload is a free-form JSON object; this extracts the conventional
 /// fields (`title`, `url`, `text`/`content`) into the canonical model.
 fn message_to_capture_request(message: &Message) -> CaptureRequest {
-    let payload = message.payload.clone().unwrap_or_else(|| serde_json::json!({}));
+    let payload = message
+        .payload
+        .clone()
+        .unwrap_or_else(|| serde_json::json!({}));
 
-    let title = payload.get("title").and_then(|v| v.as_str()).map(String::from);
-    let url = payload.get("url").and_then(|v| v.as_str()).map(String::from);
+    let title = payload
+        .get("title")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let url = payload
+        .get("url")
+        .and_then(|v| v.as_str())
+        .map(String::from);
     let text = payload
         .get("text")
         .or_else(|| payload.get("content"))
@@ -107,7 +124,10 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
     let capture_type = message.capture_type.as_deref().unwrap_or("note");
 
     let data = if let Some(url) = url.clone() {
-        if matches!(capture_type, "bookmark" | "browser" | "reader_mode" | "youtube" | "github") {
+        if matches!(
+            capture_type,
+            "bookmark" | "browser" | "reader_mode" | "youtube" | "github"
+        ) {
             CaptureData::Uri(url)
         } else {
             match text {
@@ -145,7 +165,7 @@ pub fn start_socket_server(state: Arc<SocketServerState>) -> SocketResult<Socket
     }
 
     let listener = UnixListener::bind(&socket_path)?;
-    
+
     // Set socket permissions to allow the native messaging host to connect
     #[cfg(unix)]
     {
@@ -187,7 +207,7 @@ pub fn start_socket_server(state: Arc<SocketServerState>) -> SocketResult<Socket
                 }
             }
         }
-        
+
         // Clean up socket file on shutdown
         let _ = std::fs::remove_file(SOCKET_PATH);
     });
@@ -196,10 +216,7 @@ pub fn start_socket_server(state: Arc<SocketServerState>) -> SocketResult<Socket
 }
 
 /// Handles a single client connection
-async fn handle_connection(
-    mut stream: UnixStream,
-    engine: Arc<CaptureEngine>,
-) -> SocketResult<()> {
+async fn handle_connection(mut stream: UnixStream, engine: Arc<CaptureEngine>) -> SocketResult<()> {
     loop {
         // Read message length (4 bytes, big-endian)
         let mut length_bytes = [0u8; 4];
@@ -320,13 +337,13 @@ mod tests {
     fn test_socket_server_creation() {
         let engine = Arc::new(CaptureEngine::new());
         let state = Arc::new(SocketServerState { engine });
-        
+
         // This test just verifies the server can be created
         let socket_path = PathBuf::from(SOCKET_PATH);
         if socket_path.exists() {
             let _ = std::fs::remove_file(&socket_path);
         }
-        
+
         // Verify socket path is correct
         assert_eq!(socket_path, PathBuf::from(SOCKET_PATH));
     }

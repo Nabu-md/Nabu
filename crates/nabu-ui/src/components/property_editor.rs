@@ -26,7 +26,7 @@ pub struct Props {
 pub fn property_editor(props: &Props) -> Html {
     view! {
         <div class="property-editor space-y-3">
-            {for props.properties.iter().map(|def| {
+            { props.properties.iter().map(|def| {
                 let id = def.id.clone();
                 let value = props.values.get(&id).cloned();
                 let on_change = props.on_change.clone();
@@ -46,7 +46,7 @@ pub fn property_editor(props: &Props) -> Html {
                         />
                     </div>
                 }
-            })}
+            }).collect_view()}
         </div>
     }
 }
@@ -207,12 +207,12 @@ fn select_field(
             class="w-full bg-gray-800 text-gray-100 rounded px-3 py-1.5 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none"
         >
             <option value="" disabled={current.is_empty()}>"-- Select --"</option>
-            {for options.iter().map(|opt| {
+            { options.iter().map(|opt| {
                 let selected = current == *opt;
                 view! {
                     <option value={opt.clone()} selected={selected}>{opt}</option>
                 }
-            })}
+            }).collect_view()}
         </select>
     }
 }
@@ -246,7 +246,7 @@ fn multiselect_field(
 
     html! {
         <div class="flex flex-wrap gap-1">
-            {for options.iter().map(|opt| {
+            { options.iter().map(|opt| {
                 let is_selected = selected.get().contains(opt);
                 let opt_clone = opt.clone();
                 view! {
@@ -259,7 +259,7 @@ fn multiselect_field(
                         {opt}
                     </button>
                 }
-            })}
+            }).collect_view()}
         </div>
     }
 }

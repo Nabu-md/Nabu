@@ -67,7 +67,7 @@ pub fn gallery_view(props: &Props) -> Html {
                         }.into_any()
                     } else {
                         view! {
-                            {for items.iter().map(|obj| {
+                            { items.iter().map(|obj| {
                                 let title = obj.metadata.title.clone().unwrap_or_default();
                                 let obj_type = obj.object_type.to_string();
                                 let modified = obj.modified_at.clone();
@@ -92,7 +92,7 @@ pub fn gallery_view(props: &Props) -> Html {
                                         }}
                                     </div>
                                 }
-                            })}
+                            }).collect_view()}
                         }.into_any()
                     }
                 }}

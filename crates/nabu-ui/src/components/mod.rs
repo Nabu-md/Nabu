@@ -12,7 +12,7 @@ pub mod reading_queue;
 pub mod relation_editor;
 pub mod sandboxed_html;
 pub mod settings;
-pub mod theme_toggle;
 pub mod template_editor;
 pub mod template_picker;
+pub mod theme_toggle;
 pub mod vault_setup_wizard;

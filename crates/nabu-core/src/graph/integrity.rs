@@ -74,11 +74,17 @@ pub fn check_integrity(snapshot: &GraphSnapshot) -> IntegrityReport {
 
         if !source_exists {
             orphan_count += 1;
-            errors.push(format!("Orphan edge source: {} (node doesn't exist)", edge.source));
+            errors.push(format!(
+                "Orphan edge source: {} (node doesn't exist)",
+                edge.source
+            ));
         }
         if !target_exists {
             orphan_count += 1;
-            errors.push(format!("Orphan edge target: {} (node doesn't exist)", edge.target));
+            errors.push(format!(
+                "Orphan edge target: {} (node doesn't exist)",
+                edge.target
+            ));
         }
         if edge.source == edge.target {
             self_ref_count += 1;
@@ -89,7 +95,9 @@ pub fn check_integrity(snapshot: &GraphSnapshot) -> IntegrityReport {
     // Compute checksum
     let computed_checksum = compute_graph_checksum(snapshot);
     let stored_checksum = snapshot.version.checksum.clone();
-    let checksum_valid = stored_checksum.as_ref().map(|stored| *stored == computed_checksum);
+    let checksum_valid = stored_checksum
+        .as_ref()
+        .map(|stored| *stored == computed_checksum);
 
     if let Some(false) = checksum_valid {
         errors.push("Checksum mismatch — graph may be corrupted".to_string());
@@ -299,7 +307,12 @@ mod tests {
 
         snapshot.add_node(SerializedNode::new(node1, "note", Some("A".into()), "text"));
         snapshot.add_node(SerializedNode::new(node2, "note", Some("B".into()), "text"));
-        snapshot.add_node(SerializedNode::new(node3, "article", Some("C".into()), "text"));
+        snapshot.add_node(SerializedNode::new(
+            node3,
+            "article",
+            Some("C".into()),
+            "text",
+        ));
 
         snapshot.add_edge(SerializedEdge::new(node1, node2, "references"));
         snapshot.add_edge(SerializedEdge::new(node2, node3, "related"));

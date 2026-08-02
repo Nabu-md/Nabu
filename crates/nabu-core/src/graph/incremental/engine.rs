@@ -72,9 +72,7 @@ impl IncrementalUpdateEngine {
         // Initialize change log
         let graph_dir = store.graph_dir().to_path_buf();
         self.store = Some(store);
-        self.change_log = Some(
-            ChangeLog::new(graph_dir)?,
-        );
+        self.change_log = Some(ChangeLog::new(graph_dir)?);
 
         Ok(())
     }
@@ -120,7 +118,11 @@ impl IncrementalUpdateEngine {
     }
 
     /// Record that a node was modified.
-    pub fn node_modified(&mut self, object: &KnowledgeObject, old_object: Option<&KnowledgeObject>) {
+    pub fn node_modified(
+        &mut self,
+        object: &KnowledgeObject,
+        old_object: Option<&KnowledgeObject>,
+    ) {
         self.active_tracker().record_node_modified(object.id);
 
         // Detect relationship changes
@@ -175,7 +177,9 @@ impl IncrementalUpdateEngine {
 
         if let Some(ref log) = self.change_log {
             let _ = log.append(&ChangeEntry::EdgeAdded(SerializedEdge::new(
-                source, target, relationship,
+                source,
+                target,
+                relationship,
             )));
         }
     }
@@ -328,13 +332,15 @@ impl Default for IncrementalUpdateEngine {
 mod tests {
     use super::*;
     use crate::models::{ObjectContent, ObjectType};
-    use tempfile::tempdir;
 
     #[test]
     fn test_node_lifecycle() {
         let mut engine = IncrementalUpdateEngine::new();
 
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Hello".to_string()));
+        let obj = KnowledgeObject::new(
+            ObjectType::Note,
+            ObjectContent::Markdown("Hello".to_string()),
+        );
         engine.node_added(&obj);
         assert!(engine.tracker.added_nodes.contains(&obj.id));
 
@@ -373,7 +379,10 @@ mod tests {
         let mut engine = IncrementalUpdateEngine::new();
         engine.begin_transaction();
 
-        let obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Rollback".to_string()));
+        let obj = KnowledgeObject::new(
+            ObjectType::Note,
+            ObjectContent::Markdown("Rollback".to_string()),
+        );
         engine.node_added(&obj);
 
         engine.rollback_transaction();

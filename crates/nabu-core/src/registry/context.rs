@@ -50,8 +50,8 @@ use crate::plugin::capability::CapabilityRegistry;
 use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
-use crate::jobs;
 use crate::diagnostics::PerformanceMonitor;
+use crate::jobs;
 
 // ---------------------------------------------------------------------------
 // Forward type aliases — prevents circular crate dependencies.
@@ -212,10 +212,7 @@ impl ApplicationContext {
 
     /// Registers a service in a category.
     pub fn register_in_category(&self, category: &str, key: &str) {
-        let mut registry = self
-            .registry
-            .write()
-            .expect("registry lock not poisoned");
+        let mut registry = self.registry.write().expect("registry lock not poisoned");
         registry.register_in_category(category, key);
     }
 
@@ -224,58 +221,42 @@ impl ApplicationContext {
     // -----------------------------------------------------------------------
 
     /// Returns the capture engine if registered.
-    pub fn capture_engine(
-        &self,
-    ) -> Option<Arc<crate::capture::CaptureEngine>> {
+    pub fn capture_engine(&self) -> Option<Arc<crate::capture::CaptureEngine>> {
         self.resolve("capture_engine")
     }
 
     /// Returns the processing pipeline if registered.
-    pub fn processing_pipeline(
-        &self,
-    ) -> Option<Arc<crate::processing::ProcessingPipeline>> {
+    pub fn processing_pipeline(&self) -> Option<Arc<crate::processing::ProcessingPipeline>> {
         self.resolve("pipeline")
     }
 
     /// Returns the job queue if registered.
-    pub fn job_queue(
-        &self,
-    ) -> Option<Arc<jobs::DurableJobQueue>> {
+    pub fn job_queue(&self) -> Option<Arc<jobs::DurableJobQueue>> {
         self.resolve("job_queue")
     }
 
     /// Returns the worker pool if registered.
-    pub fn worker_pool(
-        &self,
-    ) -> Option<Arc<jobs::WorkerPool>> {
+    pub fn worker_pool(&self) -> Option<Arc<jobs::WorkerPool>> {
         self.resolve("worker_pool")
     }
 
     /// Returns the vault graph if registered.
-    pub fn vault_graph(
-        &self,
-    ) -> Option<Arc<RwLock<crate::graph::VaultGraph>>> {
+    pub fn vault_graph(&self) -> Option<Arc<RwLock<crate::graph::VaultGraph>>> {
         self.resolve("vault_graph")
     }
 
     /// Returns the indexer if registered.
-    pub fn indexer(
-        &self,
-    ) -> Option<Arc<std::sync::Mutex<crate::indexer::Indexer>>> {
+    pub fn indexer(&self) -> Option<Arc<std::sync::Mutex<crate::indexer::Indexer>>> {
         self.resolve("indexer")
     }
 
     /// Returns the storage manager if registered.
-    pub fn storage_manager(
-        &self,
-    ) -> Option<Arc<crate::storage::StorageManager>> {
+    pub fn storage_manager(&self) -> Option<Arc<crate::storage::StorageManager>> {
         self.resolve("storage_manager")
     }
 
     /// Returns the performance monitor if registered.
-    pub fn performance_monitor(
-        &self,
-    ) -> Option<Arc<PerformanceMonitor>> {
+    pub fn performance_monitor(&self) -> Option<Arc<PerformanceMonitor>> {
         self.resolve("performance_monitor")
     }
 
@@ -306,7 +287,7 @@ impl ApplicationContext {
         let registry = self.registry.read().expect("registry lock not poisoned");
         let mut present = Vec::new();
         let mut missing = Vec::new();
-        let mut unhealthy = Vec::new();
+        let unhealthy = Vec::new();
 
         for key in required {
             if registry.has(key) {
@@ -337,18 +318,8 @@ impl ApplicationContext {
     /// normally be present in a running Nabu application.
     pub fn validate_core_services(&self) -> ValidationReport {
         self.validate_services(
-            &[
-                "event_bus",
-                "capture_engine",
-                "pipeline",
-                "storage_manager",
-            ],
-            &[
-                "job_queue",
-                "worker_pool",
-                "vault_graph",
-                "indexer",
-            ],
+            &["event_bus", "capture_engine", "pipeline", "storage_manager"],
+            &["job_queue", "worker_pool", "vault_graph", "indexer"],
         )
     }
 
@@ -490,9 +461,7 @@ impl ApplicationContextBuilder {
         let registry = self
             .registry
             .unwrap_or_else(|| Arc::new(RwLock::new(ServiceRegistry::new())));
-        let capability_registry = self
-            .capability_registry
-            .unwrap_or_default();
+        let capability_registry = self.capability_registry.unwrap_or_default();
 
         // Register the event bus in the registry for discoverability
         {
@@ -550,7 +519,6 @@ pub fn build_standard_application_context() -> ApplicationContext {
 mod tests {
     use super::*;
     use crate::event_bus::EventBus;
-    use crate::registry::ServiceRegistry;
 
     #[test]
     fn builder_creates_default_context() {
@@ -567,8 +535,14 @@ mod tests {
         assert_eq!(ctx.lifecycle_stage(), LifecycleStage::Created);
 
         // Register required services so initialization succeeds
-        ctx.register("capture_engine", Arc::new(crate::capture::CaptureEngine::new()));
-        ctx.register("pipeline", Arc::new(crate::processing::ProcessingPipeline::new()));
+        ctx.register(
+            "capture_engine",
+            Arc::new(crate::capture::CaptureEngine::new()),
+        );
+        ctx.register(
+            "pipeline",
+            Arc::new(crate::processing::ProcessingPipeline::new()),
+        );
 
         // StorageManager requires a vault path, so use a mock
         use crate::storage::StorageManager;

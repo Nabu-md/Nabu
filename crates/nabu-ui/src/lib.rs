@@ -5,6 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 
 pub mod components;
 pub mod ipc;
+pub mod models;
 pub mod tree;
 
 #[wasm_bindgen(start)]

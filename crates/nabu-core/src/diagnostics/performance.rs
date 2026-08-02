@@ -41,7 +41,7 @@
 
 use crate::diagnostics::metrics::{Counter, Gauge, Timer, TimerStats};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 
 // ---------------------------------------------------------------------------
 // Global monitor (convenience singleton)
@@ -188,7 +188,8 @@ impl PerformanceMonitor {
     /// Record a duration for a named metric.
     pub fn record(&self, key: &str, duration_ms: f64) {
         if let Ok(mut timers) = self.timers.write() {
-            timers.entry(key.to_string())
+            timers
+                .entry(key.to_string())
                 .or_insert_with(Timer::new)
                 .record_ms(duration_ms);
         }
@@ -216,7 +217,10 @@ impl PerformanceMonitor {
 
     /// Record a specific processor duration.
     pub fn record_processor(&self, processor_name: &str, duration_ms: f64) {
-        self.record(&format!("processing.processor.{}", processor_name), duration_ms);
+        self.record(
+            &format!("processing.processor.{}", processor_name),
+            duration_ms,
+        );
     }
 
     /// Record a storage subsystem operation duration.
@@ -246,17 +250,22 @@ impl PerformanceMonitor {
     /// Increment a named counter.
     pub fn increment(&self, key: &str, delta: u64) -> u64 {
         if let Ok(mut counters) = self.counters.write() {
-            counters.entry(key.to_string())
+            counters
+                .entry(key.to_string())
                 .or_insert_with(Counter::new)
                 .add(delta)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     /// Get a counter value.
     pub fn counter(&self, key: &str) -> u64 {
         if let Ok(counters) = self.counters.read() {
             counters.get(key).map(|c| c.value()).unwrap_or(0)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     // ------------------------------------------------------------------
@@ -266,7 +275,8 @@ impl PerformanceMonitor {
     /// Set a named gauge.
     pub fn set_gauge(&self, key: &str, value: i64) {
         if let Ok(mut gauges) = self.gauges.write() {
-            gauges.entry(key.to_string())
+            gauges
+                .entry(key.to_string())
                 .or_insert_with(Gauge::new)
                 .set(value);
         }
@@ -275,17 +285,22 @@ impl PerformanceMonitor {
     /// Increment a gauge.
     pub fn increment_gauge(&self, key: &str, delta: i64) -> i64 {
         if let Ok(mut gauges) = self.gauges.write() {
-            gauges.entry(key.to_string())
+            gauges
+                .entry(key.to_string())
                 .or_insert_with(Gauge::new)
                 .add(delta)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     /// Get a gauge value.
     pub fn gauge(&self, key: &str) -> i64 {
         if let Ok(gauges) = self.gauges.read() {
             gauges.get(key).map(|g| g.value()).unwrap_or(0)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     // ------------------------------------------------------------------
@@ -296,7 +311,9 @@ impl PerformanceMonitor {
     pub fn stats(&self, key: &str) -> TimerStats {
         if let Ok(timers) = self.timers.read() {
             timers.get(key).map(|t| t.stats()).unwrap_or_default()
-        } else { TimerStats::default() }
+        } else {
+            TimerStats::default()
+        }
     }
 
     /// Get stats for a capture operation.
@@ -346,11 +363,14 @@ impl PerformanceMonitor {
     /// Get all timer stats matching a prefix (e.g., "capture", "queue").
     pub fn stats_by_prefix(&self, prefix: &str) -> Vec<(String, TimerStats)> {
         if let Ok(timers) = self.timers.read() {
-            timers.iter()
+            timers
+                .iter()
                 .filter(|(k, _)| k.starts_with(prefix))
                 .map(|(k, t)| (k.clone(), t.stats()))
                 .collect()
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
     /// All capture-related metrics.
@@ -425,7 +445,9 @@ impl PerformanceMonitor {
         ];
 
         for (name, metrics) in &categories {
-            if metrics.is_empty() { continue; }
+            if metrics.is_empty() {
+                continue;
+            }
             lines.push(format!("\n── {} ──", name));
             for (key, stats) in metrics {
                 if stats.count > 0 {
@@ -464,9 +486,15 @@ impl PerformanceMonitor {
 
     /// Reset all metrics.
     pub fn reset(&self) {
-        if let Ok(mut timers) = self.timers.write() { timers.clear(); }
-        if let Ok(mut counters) = self.counters.write() { counters.clear(); }
-        if let Ok(mut gauges) = self.gauges.write() { gauges.clear(); }
+        if let Ok(mut timers) = self.timers.write() {
+            timers.clear();
+        }
+        if let Ok(mut counters) = self.counters.write() {
+            counters.clear();
+        }
+        if let Ok(mut gauges) = self.gauges.write() {
+            gauges.clear();
+        }
     }
 
     /// Total number of active metric timers.
@@ -503,7 +531,9 @@ impl PerformanceMonitor {
 }
 
 impl Default for PerformanceMonitor {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

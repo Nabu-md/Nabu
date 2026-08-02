@@ -3,7 +3,6 @@ use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::KnowledgeObject;
 use async_trait::async_trait;
 
-
 /// Context passed to every processor during execution.
 /// Contains the current KnowledgeObject being processed and associated metadata.
 #[derive(Debug, Clone)]

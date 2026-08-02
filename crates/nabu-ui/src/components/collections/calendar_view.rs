@@ -123,11 +123,11 @@ pub fn calendar_view(props: &Props) -> Html {
             // Calendar grid
             <div class="grid grid-cols-7 gap-1">
                 // Day headers
-                {for ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].iter().map(|day| {
+                { ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].iter().map(|day| {
                     view! {
                         <div class="text-center text-xs text-gray-500 py-2 font-medium">{day}</div>
                     }
-                })}
+                }).collect_view()}
 
                 // Date cells
                 {move || {
@@ -140,7 +140,7 @@ pub fn calendar_view(props: &Props) -> Html {
                         }.into_any()
                     } else {
                         view! {
-                            {for keys.iter().map(|date_key| {
+                            { keys.iter().map(|date_key| {
                                 let items = filtered().iter()
                                     .filter(|obj| {
                                         obj.metadata.created.as_ref()
@@ -162,14 +162,14 @@ pub fn calendar_view(props: &Props) -> Html {
                                             if !day_items.is_empty() {
                                                 view! {
                                                     <div class="mt-1 space-y-1">
-                                                        {for day_items.iter().map(|obj| {
+                                                        { day_items.iter().map(|obj| {
                                                             let title = obj.metadata.title.clone().unwrap_or_default();
                                                             view! {
                                                                 <div class="text-xs text-blue-400 truncate" title={title.clone()}>
                                                                     {title}
                                                                 </div>
                                                             }
-                                                        })}
+                                                        }).collect_view()}
                                                     </div>
                                                 }.into_any()
                                             } else {
@@ -178,7 +178,7 @@ pub fn calendar_view(props: &Props) -> Html {
                                         }}
                                     </div>
                                 }
-                            })}
+                            }).collect_view()}
                         }.into_any()
                     }
                 }}

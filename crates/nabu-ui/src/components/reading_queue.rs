@@ -10,7 +10,7 @@ use wasm_bindgen_futures::spawn_local;
 
 // ── Types ──────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueStatus {
     Unread,
@@ -20,10 +20,12 @@ pub enum QueueStatus {
 }
 
 impl Default for QueueStatus {
-    fn default() -> Self { Self::Unread }
+    fn default() -> Self {
+        Self::Unread
+    }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QueuePriority {
     Low,
@@ -32,7 +34,9 @@ pub enum QueuePriority {
 }
 
 impl Default for QueuePriority {
-    fn default() -> Self { Self::Normal }
+    fn default() -> Self {
+        Self::Normal
+    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -68,57 +72,26 @@ pub enum QueueSortField {
     Status,
 }
 
-// ── Tauri Commands ─────────────────────────────────────────────────
-
-#[tauri::command]
-pub fn queue_get_all() -> Result<Vec<QueueItem>, String> {
-    // TODO: Wire to StorageManager to fetch all KnowledgeObjects with reading metadata
-    Ok(vec![])
-}
-
-#[tauri::command]
-pub fn queue_set_status(id: String, status: QueueStatus) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata custom field "reading_queue.status"
-    Ok(())
-}
-
-#[tauri::command]
-pub fn queue_set_priority(id: String, priority: QueuePriority) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata custom field "reading_queue.priority"
-    Ok(())
-}
-
-#[tauri::command]
-pub fn queue_set_progress(id: String, progress: f32) -> Result<(), String> {
-    // TODO: Update KnowledgeObject metadata custom field "reading_queue.progress"
-    Ok(())
-}
-
-#[tauri::command]
-pub fn queue_batch_set_status(ids: Vec<String>, status: QueueStatus) -> Result<(), String> {
-    for id in ids { let _ = queue_set_status(id, status); }
-    Ok(())
-}
-
-#[tauri::command]
-pub fn queue_archive_completed() -> Result<usize, String> {
-    // TODO: Archive all completed items
-    Ok(0)
-}
-
 // ── Reading Queue Component ────────────────────────────────────────
 
 #[component]
 pub fn ReadingQueue() -> impl IntoView {
     let (items, set_items) = signal(vec![]);
     let (filter, set_filter) = signal(QueueFilter::default());
-    let (selected_ids, set_selected_ids) = signal(Vec::<String>::new());
+    let (selected_ids, _set_selected_ids) = signal(Vec::<String>::new());
 
     // Load items on mount
     spawn_local(async move {
-        match crate::ipc::tauri_invoke("queue_get_all", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await {
+        let result = crate::ipc::tauri_invoke(
+            "queue_get_all",
+            serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+        )
+        .await;
+        match serde_wasm_bindgen::from_value::<Vec<QueueItem>>(result) {
             Ok(queue_items) => set_items.set(queue_items),
-            Err(e) => web_sys::console::error_1(&format!("Failed to load reading queue: {}", e).into()),
+            Err(e) => {
+                web_sys::console::error_1(&format!("Failed to load reading queue: {}", e).into())
+            }
         }
     });
 
@@ -152,7 +125,10 @@ pub fn ReadingQueue() -> impl IntoView {
                 QueueSortField::ModifiedAt => a.modified_at.cmp(&b.modified_at),
                 QueueSortField::Title => a.title.cmp(&b.title),
                 QueueSortField::Priority => a.priority.cmp(&b.priority),
-                QueueSortField::Progress => a.progress.partial_cmp(&b.progress).unwrap_or(std::cmp::Ordering::Equal),
+                QueueSortField::Progress => a
+                    .progress
+                    .partial_cmp(&b.progress)
+                    .unwrap_or(std::cmp::Ordering::Equal),
                 QueueSortField::Status => a.status.cmp(&b.status),
             };
             if f.sort_ascending { ord } else { ord.reverse() }
@@ -164,27 +140,22 @@ pub fn ReadingQueue() -> impl IntoView {
     let status_counts = move || {
         let all = items.get();
         (
-            all.iter().filter(|i| i.status == QueueStatus::Unread).count(),
-            all.iter().filter(|i| i.status == QueueStatus::Reading).count(),
-            all.iter().filter(|i| i.status == QueueStatus::Completed).count(),
-            all.iter().filter(|i| i.status == QueueStatus::Archived).count(),
+            all.iter()
+                .filter(|i| i.status == QueueStatus::Unread)
+                .count(),
+            all.iter()
+                .filter(|i| i.status == QueueStatus::Reading)
+                .count(),
+            all.iter()
+                .filter(|i| i.status == QueueStatus::Completed)
+                .count(),
+            all.iter()
+                .filter(|i| i.status == QueueStatus::Archived)
+                .count(),
         )
     };
 
     let selected_count = move || selected_ids.get().len();
-
-    let toggle_select_all = move |_| {
-        let mut f = filter.get();
-        let visible = filtered_items();
-        let all = visible.iter().all(|i| i.selected);
-        let mut items = items.get();
-        for item in items.iter_mut() {
-            if visible.iter().any(|v| v.id == item.id) {
-                item.selected = !all;
-            }
-        }
-        set_items.set(items);
-    };
 
     let toggle_select_item = move |id: String| {
         let mut items = items.get();
@@ -216,13 +187,20 @@ pub fn ReadingQueue() -> impl IntoView {
         spawn_local(async move {
             let _ = crate::ipc::tauri_invoke(
                 "queue_set_progress",
-                serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "progress"})).unwrap(),
-            ).await;
+                serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "progress": progress}))
+                    .unwrap(),
+            )
+            .await;
         });
     };
 
     let batch_set_status = move |status: QueueStatus| {
-        let ids: Vec<String> = items.get().iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
+        let ids: Vec<String> = items
+            .get()
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
         if !ids.is_empty() {
             spawn_local(async move {
                 let _ = crate::ipc::tauri_invoke(
@@ -233,29 +211,40 @@ pub fn ReadingQueue() -> impl IntoView {
         }
     };
 
-    let on_filter_change = move |ev: InputEvent| {
-        let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
+    let on_filter_change = move |ev| {
         let mut f = filter.get();
-        f.search = input.value();
+        f.search = event_target_value(&ev);
         set_filter.set(f);
     };
 
     let on_status_filter = move |status: QueueStatus| {
         let mut f = filter.get();
-        f.status = if f.status == Some(status) { None } else { Some(status) };
+        f.status = if f.status == Some(status) {
+            None
+        } else {
+            Some(status)
+        };
         set_filter.set(f);
     };
 
     let on_priority_filter = move |priority: QueuePriority| {
         let mut f = filter.get();
-        f.priority = if f.priority == Some(priority) { None } else { Some(priority) };
+        f.priority = if f.priority == Some(priority) {
+            None
+        } else {
+            Some(priority)
+        };
         set_filter.set(f);
     };
 
     let on_sort_change = move |field: QueueSortField| {
         let mut f = filter.get();
-        if f.sort_by == field { f.sort_ascending = !f.sort_ascending; }
-        else { f.sort_by = field; f.sort_ascending = true; }
+        if f.sort_by == field {
+            f.sort_ascending = !f.sort_ascending;
+        } else {
+            f.sort_by = field;
+            f.sort_ascending = true;
+        }
         set_filter.set(f);
     };
 
@@ -366,7 +355,7 @@ pub fn ReadingQueue() -> impl IntoView {
                         } else {
                             view! {
                                 <div class="divide-y divide-gray-800">
-                                    {for visible.iter().map(|item| {
+                                    { visible.iter().map(|item| {
                                         let id = item.id.clone();
                                         let title = item.title.clone();
                                         let status = item.status;
@@ -383,7 +372,7 @@ pub fn ReadingQueue() -> impl IntoView {
                                                     QueuePriority::Normal => "",
                                                     QueuePriority::Low => "border-l-blue-500",
                                                 }
-                                            )}
+                                            )
                                                 on:click=move |_| toggle_select_item(id.clone())>
                                                 <div class="flex items-center justify-between">
                                                     <span class="text-sm font-medium truncate max-w-48">{title}</span>
@@ -401,7 +390,7 @@ pub fn ReadingQueue() -> impl IntoView {
                                                 </div>
                                             </div>
                                         }
-                                    })}
+                                    }).collect_view()}
                                 </div>
                             }.into_any()
                         }
@@ -423,28 +412,28 @@ pub fn ReadingQueue() -> impl IntoView {
             // Right panel: Detail view
             <div class="flex-1 flex flex-col overflow-hidden">
                 {move || {
-                    let selected = items.get().iter().find(|i| i.selected);
+                    let items_guard = items.get();
+                    let selected = items_guard.iter().find(|i| i.selected);
                     match selected {
                         Some(item) => view! {
                             <div class="flex h-full">
                                 <div class="flex-1 overflow-y-auto p-4">
                                     <div class="space-y-4">
-                                        <h2 class="text-xl font-semibold">{&item.title}</h2>
+                                        <h2 class="text-xl font-semibold">{item.title.clone()}</h2>
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Status"</label>
                                                 <div class="mt-1">
                                                     <select
                                                         class="bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700"
-                                                        on:change=move |ev: Event| {
-                                                            let target: web_sys::HtmlSelectElement = ev.target_unchecked_into();
-                                                            let status = match target.value().as_str() {
+                                                        on:change={let id = item.id.clone(); move |ev| {
+                                                            let status = match event_target_value(&ev).as_str() {
                                                                 "reading" => QueueStatus::Reading,
                                                                 "completed" => QueueStatus::Completed,
                                                                 "archived" => QueueStatus::Archived,
                                                                 _ => QueueStatus::Unread,
                                                             };
-                                                            set_status(item.id.clone(), status);
+                                                            set_status(id.clone(), status);
                                                         }}
                                                     >
                                                         <option value="unread" selected={item.status == QueueStatus::Unread}>"Unread"</option>
@@ -459,14 +448,13 @@ pub fn ReadingQueue() -> impl IntoView {
                                                 <div class="mt-1">
                                                     <select
                                                         class="bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700"
-                                                        on:change=move |ev: Event| {
-                                                            let target: web_sys::HtmlSelectElement = ev.target_unchecked_into();
-                                                            let priority = match target.value().as_str() {
+                                                        on:change={let id = item.id.clone(); move |ev| {
+                                                            let priority = match event_target_value(&ev).as_str() {
                                                                 "high" => QueuePriority::High,
                                                                 "low" => QueuePriority::Low,
                                                                 _ => QueuePriority::Normal,
                                                             };
-                                                            set_priority(item.id.clone(), priority);
+                                                            set_priority(id.clone(), priority);
                                                         }}
                                                     >
                                                         <option value="normal" selected={item.priority == QueuePriority::Normal}>"Normal"</option>
@@ -485,10 +473,9 @@ pub fn ReadingQueue() -> impl IntoView {
                                                     max="100"
                                                     value={format!("{}", (item.progress * 100.0) as u32)}
                                                     class="flex-1"
-                                                    on:input=move |ev: InputEvent| {
-                                                        let input: web_sys::HtmlInputElement = ev.target_unchecked_into();
-                                                        let progress = input.value().parse::<f32>().unwrap_or(0.0) / 100.0;
-                                                        set_progress(item.id.clone(), progress);
+                                                    on:input={let id = item.id.clone(); move |ev| {
+                                                        let progress = event_target_value(&ev).parse::<f32>().unwrap_or(0.0) / 100.0;
+                                                        set_progress(id.clone(), progress);
                                                     }}
                                                 />
                                                 <span class="text-sm text-gray-400">{format!("{}%", (item.progress * 100.0) as u32)}</span>
@@ -496,16 +483,16 @@ pub fn ReadingQueue() -> impl IntoView {
                                         </div>
                                         <div>
                                             <label class="text-xs text-gray-500 uppercase tracking-wide">"Type"</label>
-                                            <p class="text-sm text-gray-300 mt-1">{&item.object_type}</p>
+                                            <p class="text-sm text-gray-300 mt-1">{item.object_type.clone()}</p>
                                         </div>
                                         <div>
                                             <label class="text-xs text-gray-500 uppercase tracking-wide">"Source"</label>
-                                            <p class="text-sm text-gray-300 mt-1">{&item.source}</p>
+                                            <p class="text-sm text-gray-300 mt-1">{item.source.clone()}</p>
                                         </div>
                                         <div>
                                             <label class="text-xs text-gray-500 uppercase tracking-wide">"Tags"</label>
                                             <div class="flex flex-wrap gap-1 mt-1">
-                                                {for item.tags.iter().map(|tag| view! { <span class="px-2 py-0.5 text-xs bg-gray-700 rounded text-gray-300">{tag}</span> })}
+                                                { item.tags.iter().map(|tag| view! { <span class="px-2 py-0.5 text-xs bg-gray-700 rounded text-gray-300">{tag.clone()}</span> }).collect_view()}
                                             </div>
                                         </div>
                                     </div>

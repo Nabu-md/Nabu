@@ -29,7 +29,7 @@ use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, WorkerPool};
 use nabu_core::pipeline_migration::PipelineExecutor;
 use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::registry::context::ApplicationContext;
-use nabu_core::registry::{ServiceRegistry, CATEGORY_CAPTURE_HANDLERS};
+use nabu_core::registry::{CATEGORY_CAPTURE_HANDLERS, ServiceRegistry};
 use nabu_core::storage::StorageManager;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
@@ -88,10 +88,13 @@ fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
 
     // ---- 4. One DurableJobQueue ----
     let queue_base = vault_path.join(".nabu").join("queue");
-    let queue = Arc::new(
-        DurableJobQueue::new(&queue_base)
-            .unwrap_or_else(|e| panic!("Failed to create job queue at {}: {}", queue_base.display(), e)),
-    );
+    let queue = Arc::new(DurableJobQueue::new(&queue_base).unwrap_or_else(|e| {
+        panic!(
+            "Failed to create job queue at {}: {}",
+            queue_base.display(),
+            e
+        )
+    }));
     ctx.register("job_queue", queue.clone());
 
     // ---- 5. One PipelineExecutor (Worker → Pipeline → Storage) ----

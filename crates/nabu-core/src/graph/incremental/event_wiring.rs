@@ -1,12 +1,11 @@
-use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
 use crate::event_bus::kinds::{GRAPH_UPDATED, ITEM_STORED};
+use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
 use crate::graph::incremental::engine::IncrementalUpdateEngine;
 use crate::graph::serializer::{GraphSnapshot, SerializedNode};
 use crate::graph::{GraphOperation, GraphUpdatedEvent, VaultGraph};
 use crate::models::KnowledgeObject;
 
 use std::sync::{Arc, Mutex};
-
 
 /// The GraphEventBridge connects the EventBus to the IncrementalUpdateEngine.
 ///
@@ -69,12 +68,6 @@ impl GraphEventBridge {
                     // New object
                     (false, false) => {
                         // Create a KnowledgeObject for the graph
-                        let object = KnowledgeObject::new(
-                            stored.object_type.clone(),
-                            crate::models::ObjectContent::PlainText(String::new()),
-                        );
-
-                        // Use the object from the event
                         let mut obj = KnowledgeObject::new(
                             stored.object_type.clone(),
                             crate::models::ObjectContent::PlainText(String::new()),
@@ -143,9 +136,9 @@ impl GraphEventBridge {
                         snapshot.nodes.retain(|n| n.id != object_id);
 
                         // Remove dependent edges
-                        snapshot.edges.retain(|e| {
-                            e.source != object_id && e.target != object_id
-                        });
+                        snapshot
+                            .edges
+                            .retain(|e| e.source != object_id && e.target != object_id);
 
                         engine.node_removed(object_id);
                     }
@@ -155,10 +148,7 @@ impl GraphEventBridge {
     }
 
     /// Process a batch of ItemStored events at once (for mass imports).
-    pub fn process_batch(
-        &self,
-        events: &[ItemStoredEvent],
-    ) -> Result<(), String> {
+    pub fn process_batch(&self, events: &[ItemStoredEvent]) -> Result<(), String> {
         let mut engine = self.engine.lock().map_err(|e| e.to_string())?;
         engine.begin_transaction();
 

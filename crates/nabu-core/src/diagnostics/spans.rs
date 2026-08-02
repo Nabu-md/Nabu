@@ -266,7 +266,12 @@ macro_rules! span_for_registry {
 ///     42
 /// });
 /// ```
-pub fn traced<T, F>(subsystem: &'static str, component: &'static str, operation: &'static str, f: F) -> T
+pub fn traced<T, F>(
+    subsystem: &'static str,
+    component: &'static str,
+    operation: &'static str,
+    f: F,
+) -> T
 where
     F: FnOnce() -> T,
 {
@@ -296,7 +301,12 @@ where
 /// Async version of `traced`.
 ///
 /// Wraps an async closure with enter/exit tracing events and duration.
-pub async fn traced_async<T, F, Fut>(subsystem: &'static str, component: &'static str, operation: &'static str, f: F) -> T
+pub async fn traced_async<T, F, Fut>(
+    subsystem: &'static str,
+    component: &'static str,
+    operation: &'static str,
+    f: F,
+) -> T
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = T>,

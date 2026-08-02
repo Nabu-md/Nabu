@@ -137,8 +137,7 @@ impl GraphSnapshot {
         let mut errors = Vec::new();
 
         // Collect all node IDs for reference checking
-        let node_ids: std::collections::HashSet<Uuid> =
-            self.nodes.iter().map(|n| n.id).collect();
+        let node_ids: std::collections::HashSet<Uuid> = self.nodes.iter().map(|n| n.id).collect();
 
         // Check for duplicate node IDs
         let mut seen_ids = std::collections::HashSet::new();
@@ -203,11 +202,7 @@ impl SerializedNode {
 
 impl SerializedEdge {
     /// Create a new serialized edge.
-    pub fn new(
-        source: Uuid,
-        target: Uuid,
-        relationship: impl Into<String>,
-    ) -> Self {
+    pub fn new(source: Uuid, target: Uuid, relationship: impl Into<String>) -> Self {
         Self {
             source,
             target,
@@ -301,9 +296,24 @@ mod tests {
         let node2 = Uuid::new_v4();
         let node3 = Uuid::new_v4();
 
-        snapshot.add_node(SerializedNode::new(node1, "note", Some("Node A".into()), "text"));
-        snapshot.add_node(SerializedNode::new(node2, "note", Some("Node B".into()), "text"));
-        snapshot.add_node(SerializedNode::new(node3, "article", Some("Node C".into()), "text"));
+        snapshot.add_node(SerializedNode::new(
+            node1,
+            "note",
+            Some("Node A".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            node2,
+            "note",
+            Some("Node B".into()),
+            "text",
+        ));
+        snapshot.add_node(SerializedNode::new(
+            node3,
+            "article",
+            Some("Node C".into()),
+            "text",
+        ));
 
         snapshot.add_edge(SerializedEdge::new(node1, node2, "references"));
         snapshot.add_edge(SerializedEdge::new(node2, node3, "related"));

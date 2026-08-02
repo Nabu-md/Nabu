@@ -87,7 +87,11 @@ pub enum CaptureData {
     /// URL reference
     Uri(String),
     /// Binary data (images, audio, PDFs)
-    Binary { mime_type: String, data: Vec<u8>, filename: Option<String> },
+    Binary {
+        mime_type: String,
+        data: Vec<u8>,
+        filename: Option<String>,
+    },
     /// Existing file path
     File(String),
 }
@@ -163,7 +167,8 @@ impl CaptureHandler for FileDropHandler {
     }
 
     async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
-        let object = create_binary_object(request, "application/octet-stream", ObjectType::Attachment)?;
+        let object =
+            create_binary_object(request, "application/octet-stream", ObjectType::Attachment)?;
         Some(CaptureResult::new(object, CaptureSource::FileDrop))
     }
 }
@@ -266,7 +271,10 @@ impl CaptureHandler for GitHubRepositoryHandler {
 
 // Helper functions
 
-fn create_text_object(request: &CaptureRequest, object_type: ObjectType) -> Option<KnowledgeObject> {
+fn create_text_object(
+    request: &CaptureRequest,
+    object_type: ObjectType,
+) -> Option<KnowledgeObject> {
     match &request.data {
         CaptureData::Text(text) => {
             let content = if text.contains("```") || text.starts_with('#') {
@@ -284,7 +292,8 @@ fn create_text_object(request: &CaptureRequest, object_type: ObjectType) -> Opti
             Some(object)
         }
         CaptureData::Uri(url) => {
-            let mut object = KnowledgeObject::new(object_type, crate::models::ObjectContent::Uri(url.clone()));
+            let mut object =
+                KnowledgeObject::new(object_type, crate::models::ObjectContent::Uri(url.clone()));
             object.metadata.title = request.title.clone();
             object.metadata.source_url = request.source_url.clone();
             Some(object)
@@ -299,7 +308,11 @@ fn create_binary_object(
     object_type: ObjectType,
 ) -> Option<KnowledgeObject> {
     match &request.data {
-        CaptureData::Binary { mime_type, data, filename } => {
+        CaptureData::Binary {
+            mime_type,
+            data,
+            filename,
+        } => {
             let mut object = KnowledgeObject::new(
                 object_type,
                 crate::models::ObjectContent::Binary {

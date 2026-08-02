@@ -6,11 +6,13 @@
 //! - `stderr_layer` — Human-readable output to stderr (pretty in dev, compact in release)
 //! - `rolling_file_layer` — JSON file output with daily rotation
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
+use tracing::Subscriber;
+#[cfg(not(target_arch = "wasm32"))]
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::Layer;
-use tracing::Subscriber;
 
 /// Create a stderr logging layer.
 ///
@@ -22,7 +24,9 @@ use tracing::Subscriber;
 /// ## Returns
 ///
 /// A boxed `Layer` suitable for combining with other layers.
-pub fn stderr_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(pretty: bool) -> Box<dyn Layer<S> + Send + Sync> {
+pub fn stderr_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(
+    pretty: bool,
+) -> Box<dyn Layer<S> + Send + Sync> {
     if pretty {
         Box::new(
             tracing_subscriber::fmt::layer()
@@ -65,6 +69,10 @@ pub fn stderr_layer<S: Subscriber + for<'a> tracing_subscriber::registry::Lookup
 ///
 /// Returns a boxed `Layer` plus a `WorkerGuard` that must be kept alive for the
 /// lifetime of the application.
+///
+/// Only available on native targets — wasm/browser builds have no local
+/// filesystem, so this function is compiled out there.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn rolling_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(
     log_dir: &Path,
     app_name: &str,
@@ -110,7 +118,7 @@ pub fn rolling_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::
 /// ## Returns
 ///
 /// Returns a boxed `Layer` plus a `WorkerGuard`.
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 pub fn test_file_layer<S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>>(
     path: &Path,
 ) -> Result<(Box<dyn Layer<S> + Send + Sync>, WorkerGuard), String> {
@@ -140,6 +148,7 @@ mod tests {
         let _ = layer;
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_rolling_file_layer_creation() {
         let dir = tempdir().unwrap();
@@ -147,6 +156,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_rolling_file_layer_nonexistent_dir() {
         let dir = Path::new("/nonexistent/path/that/should/not/exist");
@@ -154,6 +164,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_multiple_layers_compose() {
         let dir = tempdir().unwrap();

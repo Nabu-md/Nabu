@@ -45,7 +45,8 @@ impl GraphRecovery {
             } => {
                 let from_version = match &compatibility {
                     crate::graph::version::VersionCompatibility::Outdated {
-                        schema_version, ..
+                        schema_version,
+                        ..
                     } => *schema_version,
                     _ => 0,
                 };
@@ -201,7 +202,11 @@ pub fn extract_edges(object: &KnowledgeObject) -> Vec<SerializedEdge> {
             crate::models::RelationType::Custom(label) => label.as_str(),
         };
 
-        edges.push(SerializedEdge::new(object.id, relation.target_id, relationship));
+        edges.push(SerializedEdge::new(
+            object.id,
+            relation.target_id,
+            relationship,
+        ));
     }
 
     edges
@@ -209,7 +214,9 @@ pub fn extract_edges(object: &KnowledgeObject) -> Vec<SerializedEdge> {
 
 /// Build a graph snapshot from a list of KnowledgeObjects.
 /// This is the standard rebuild function used during startup.
-pub fn build_graph_from_objects(objects: &[KnowledgeObject]) -> (Vec<SerializedNode>, Vec<SerializedEdge>) {
+pub fn build_graph_from_objects(
+    objects: &[KnowledgeObject],
+) -> (Vec<SerializedNode>, Vec<SerializedEdge>) {
     let mut nodes = Vec::with_capacity(objects.len());
     let mut edges = Vec::new();
 
@@ -226,8 +233,8 @@ mod tests {
     use super::*;
     use crate::graph::persistence::GraphStore;
     use crate::graph::serializer::{SerializedEdge, SerializedNode};
-    use tempfile::tempdir;
     use crate::models::ObjectType;
+    use tempfile::tempdir;
 
     #[test]
     fn test_recovery_empty_store() {
@@ -277,14 +284,26 @@ mod tests {
             let n1 = uuid::Uuid::new_v4();
             let n2 = uuid::Uuid::new_v4();
 
-            nodes.push(SerializedNode::new(n1, "note", Some("Rebuilt A".into()), "text"));
-            nodes.push(SerializedNode::new(n2, "note", Some("Rebuilt B".into()), "text"));
+            nodes.push(SerializedNode::new(
+                n1,
+                "note",
+                Some("Rebuilt A".into()),
+                "text",
+            ));
+            nodes.push(SerializedNode::new(
+                n2,
+                "note",
+                Some("Rebuilt B".into()),
+                "text",
+            ));
             edges.push(SerializedEdge::new(n1, n2, "references"));
 
             Ok((nodes, edges))
         };
 
-        let result = recovery.rebuild(rebuild_fn, BuildSource::Canonical).unwrap();
+        let result = recovery
+            .rebuild(rebuild_fn, BuildSource::Canonical)
+            .unwrap();
         assert_eq!(result.node_count(), 2);
         assert_eq!(result.edge_count(), 1);
     }

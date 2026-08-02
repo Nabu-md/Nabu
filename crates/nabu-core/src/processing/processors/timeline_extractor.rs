@@ -69,10 +69,7 @@ impl Processor for TimelineExtractor {
     fn supports(&self, object_type: &ObjectType) -> bool {
         matches!(
             object_type,
-            ObjectType::Note
-                | ObjectType::Article
-                | ObjectType::Document
-                | ObjectType::Email
+            ObjectType::Note | ObjectType::Article | ObjectType::Document | ObjectType::Email
         )
     }
 }
@@ -82,7 +79,8 @@ fn extract_dates(text: &str) -> Vec<String> {
     let mut dates = Vec::new();
 
     // ISO 8601 dates: 2024-01-15, 2024-01-15T14:30:00Z
-    let iso_re = Regex::new(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2}))?").unwrap();
+    let iso_re =
+        Regex::new(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2}))?").unwrap();
     for cap in iso_re.find_iter(text) {
         dates.push(cap.as_str().to_string());
     }
@@ -116,8 +114,7 @@ mod tests {
         let obj = KnowledgeObject::new(
             ObjectType::Note,
             ObjectContent::Markdown(
-                "Meeting on 2024-01-15. Follow-up on 2024-03-20T14:30:00Z."
-                    .to_string(),
+                "Meeting on 2024-01-15. Follow-up on 2024-03-20T14:30:00Z.".to_string(),
             ),
         );
 

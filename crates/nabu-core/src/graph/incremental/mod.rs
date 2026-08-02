@@ -24,16 +24,16 @@
 //!     └── Snapshots: updates in-memory graph state
 //! ```
 
-pub mod update_tracker;
-pub mod dependency_tracker;
 pub mod change_log;
-pub mod region;
+pub mod dependency_tracker;
 pub mod engine;
 pub mod event_wiring;
+pub mod region;
+pub mod update_tracker;
 
-pub use update_tracker::*;
-pub use dependency_tracker::*;
 pub use change_log::*;
-pub use region::*;
+pub use dependency_tracker::*;
 pub use engine::*;
 pub use event_wiring::*;
+pub use region::*;
+pub use update_tracker::*;

@@ -1,6 +1,6 @@
 use crate::capture::handler::{CaptureHandler, CaptureRequest, CaptureResult};
-use crate::event_bus::{EventBus, ItemCapturedEvent, PipelineEvent};
 use crate::event_bus::kinds::ITEM_CAPTURED;
+use crate::event_bus::{EventBus, ItemCapturedEvent, PipelineEvent};
 use crate::jobs::errors::JobResult;
 use crate::jobs::job::{Job, JobType};
 use crate::jobs::queue::{DurableJobQueue, Queue};
@@ -86,9 +86,13 @@ impl CaptureEngine {
                     "source_url": result.object.metadata.source_url,
                 });
 
-                let mut job = Job::new(job_type.clone(), payload, format!("{}_processor", job_type.name()))
-                    .with_object_id(result.object.id)
-                    .with_tag("capture");
+                let mut job = Job::new(
+                    job_type.clone(),
+                    payload,
+                    format!("{}_processor", job_type.name()),
+                )
+                .with_object_id(result.object.id)
+                .with_tag("capture");
 
                 if let Some(ref source_url) = result.object.metadata.source_url {
                     job = job.with_metadata("source_url", source_url.clone());
