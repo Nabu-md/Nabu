@@ -1,3 +1,5 @@
+use crate::components::ui::feedback::{LoadingBlock, SpinnerSize};
+use crate::components::ui::info::EmptyState;
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::CanvasRenderingContext2d;
@@ -52,10 +54,35 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
     });
 
     view! {
-        <canvas node_ref=canvas_ref width=800 height=600 class="graph-canvas" on:click=move |ev| {
-            // Placeholder: Implement click detection for node
-            // In real app, calculate distance to node centers
-            println!("Node clicked at: {}, {}", ev.offset_x(), ev.offset_y());
-        }/>
+        <div class="relative w-full h-full flex items-center justify-center">
+            // Loading state: show a spinner until the graph data arrives.
+            {move || if graph_data.get().is_none() {
+                view! { <LoadingBlock label="Building graph…" size=SpinnerSize::Lg /> }.into_any()
+            } else {
+                view! {}.into_any()
+            }}
+            // Empty state: no notes → nothing to draw.
+            {move || if let Some(data) = graph_data.get() {
+                let has_nodes = data["nodes"].as_array().map_or(false, |n| !n.is_empty());
+                if !has_nodes {
+                    view! {
+                        <EmptyState
+                            icon="🕸️"
+                            title="No connections yet".to_string()
+                            description="Create a few notes with [[links]] and they will appear here as a knowledge graph.".to_string()
+                        ></EmptyState>
+                    }.into_any()
+                } else {
+                    view! {}.into_any()
+                }
+            } else {
+                view! {}.into_any()
+            }}
+            <canvas node_ref=canvas_ref width=800 height=600 class="graph-canvas" on:click=move |ev| {
+                // Placeholder: Implement click detection for node
+                // In real app, calculate distance to node centers
+                println!("Node clicked at: {}, {}", ev.offset_x(), ev.offset_y());
+            }/>
+        </div>
     }
 }

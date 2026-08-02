@@ -18,10 +18,34 @@ pub fn RightInspector() -> impl IntoView {
             </div>
             <div class="flex-1 p-4 text-gray-300 text-sm">
                 {move || match active_tab.get().as_str() {
-                    "🏷️" => view! { "Tags: #work, #project" }.into_any(),
-                    "🔗" => view! { "Backlinks: Note A" }.into_any(),
-                    "➡️" => view! { "Outgoing: Note B" }.into_any(),
-                    "📋" => view! { "Outline: H1, H2" }.into_any(),
+                    "🏷️" => view! {
+                        <crate::components::ui::info::EmptyState
+                            icon="🏷️"
+                            title="No tags yet".to_string()
+                            description="Tags you add to the active note will appear here.".to_string()
+                        ></crate::components::ui::info::EmptyState>
+                    }.into_any(),
+                    "🔗" => view! {
+                        <crate::components::ui::info::EmptyState
+                            icon="🔗"
+                            title="No backlinks yet".to_string()
+                            description="Other notes that link to this one will appear here.".to_string()
+                        ></crate::components::ui::info::EmptyState>
+                    }.into_any(),
+                    "➡️" => view! {
+                        <crate::components::ui::info::EmptyState
+                            icon="➡️"
+                            title="No outgoing links".to_string()
+                            description="Links you write in this note will appear here.".to_string()
+                        ></crate::components::ui::info::EmptyState>
+                    }.into_any(),
+                    "📋" => view! {
+                        <crate::components::ui::info::EmptyState
+                            icon="📋"
+                            title="No outline yet".to_string()
+                            description="Headings in this note will be listed here for quick navigation.".to_string()
+                        ></crate::components::ui::info::EmptyState>
+                    }.into_any(),
                     _ => view! {}.into_any(),
                 }}
             </div>

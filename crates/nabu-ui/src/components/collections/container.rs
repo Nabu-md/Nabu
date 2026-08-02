@@ -19,17 +19,45 @@ pub fn CollectionContainer() -> impl IntoView {
     let (view, set_view) = signal(CollectionView::Table);
     let (search_state, set_search_state) = signal(SearchState::default());
     let (objects, set_objects) = signal(vec![]);
+    let (loaded, set_loaded) = signal(false);
+    let (load_error, set_load_error) = signal(None::<String>);
+    let toasts = crate::components::ui::feedback::use_toast();
 
-    // Load objects on mount
-    spawn_local(async move {
-        match crate::ipc::tauri_invoke(
-            "fetch_objects",
-            serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
-        ).await {
-            Ok(objs) => set_objects.set(objs),
-            Err(e) => web_sys::console::error_1(&format!("Failed to load objects: {}", e).into()),
-        }
-    });
+    // Load objects on mount. `retry` is a plain fn so it can be re-run from
+    // the error panel's Retry button.
+    fn fetch_objects() -> Vec<crate::models::knowledge_object::KnowledgeObject> {
+        vec![]
+    }
+    let do_load = {
+        let set_objects = set_objects;
+        let set_loaded = set_loaded;
+        let set_load_error = set_load_error;
+        let toasts = toasts;
+        Callback::new(move |_| {
+            set_loaded.set(false);
+            set_load_error.set(None);
+            let set_objects = set_objects;
+            let set_loaded = set_loaded;
+            let set_load_error = set_load_error;
+            let toasts = toasts;
+            spawn_local(async move {
+                let res = crate::ipc::tauri_invoke(
+                    "fetch_objects",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+                )
+                .await;
+                match serde_wasm_bindgen::from_value::<Vec<crate::models::knowledge_object::KnowledgeObject>>(res) {
+                    Ok(objs) => set_objects.set(objs),
+                    Err(e) => {
+                        set_load_error.set(Some(e.to_string()));
+                        toasts.error("Couldn't load collections", "Your collections could not be loaded — try again.");
+                    }
+                }
+                set_loaded.set(true);
+            });
+        })
+    };
+    do_load.run(());
 
     let on_view_change = {
         let view = view.clone();
@@ -79,42 +107,72 @@ pub fn CollectionContainer() -> impl IntoView {
     view! {
         <div class="collection-container">
             <ViewSwitcher current_view={*view} on_change={on_view_change} />
-            {
-                match *view {
-                    CollectionView::Table => view! {
-                        <TableView
-                            objects={objects.get()}
-                            columns={table_columns()}
-                            filter={table_filter()}
-                            on_filter_change=Callback::new(|_| {})
-                            on_sort=Callback::new(|_| {})
-                        />
-                    }.into_any(),
-                    CollectionView::Board => view! {
-                        <BoardView
-                            objects={objects.get()}
-                            columns={board_columns()}
-                            filter={board_filter()}
-                            on_filter_change=Callback::new(|_| {})
-                            on_move_item=Callback::new(|_| {})
-                        />
-                    }.into_any(),
-                    CollectionView::Gallery => view! {
-                        <GalleryView
-                            objects={objects.get()}
-                            filter={gallery_filter()}
-                            on_filter_change=Callback::new(|_| {})
-                        />
-                    }.into_any(),
-                    CollectionView::Calendar => view! {
-                        <CalendarView
-                            objects={objects.get()}
-                            filter={calendar_filter()}
-                            on_filter_change=Callback::new(|_| {})
-                        />
-                    }.into_any(),
-                }
-            }
+            {move || if let Some(err) = load_error.get() {
+                view! {
+                    <crate::components::ui::feedback::ErrorPanel
+                        title="Couldn't load collections".to_string()
+                        message="Something went wrong while reading your knowledge objects.".to_string()
+                        details=Some(err)
+                        recovery=Some("Check that your vault is accessible, then try again.".to_string())
+                        on_retry=Some(do_load)
+                    />
+                }.into_any()
+            } else if !loaded.get() {
+                view! {
+                    <div class="p-6">
+                        <crate::components::ui::feedback::SkeletonList rows=Some(6) />
+                    </div>
+                }.into_any()
+            } else if objects.get().is_empty() {
+                view! {
+                    <div class="p-10 flex justify-center">
+                        <crate::components::ui::info::EmptyState
+                            icon="🗂️"
+                            title="No knowledge objects yet".to_string()
+                            description="Collections show your structured knowledge once you start adding objects.".to_string()
+                        ></crate::components::ui::info::EmptyState>
+                    </div>
+                }.into_any()
+            } else {
+                view! {
+                    {
+                        match *view {
+                            CollectionView::Table => view! {
+                                <TableView
+                                    objects={objects.get()}
+                                    columns={table_columns()}
+                                    filter={table_filter()}
+                                    on_filter_change=Callback::new(|_| {})
+                                    on_sort=Callback::new(|_| {})
+                                />
+                            }.into_any(),
+                            CollectionView::Board => view! {
+                                <BoardView
+                                    objects={objects.get()}
+                                    columns={board_columns()}
+                                    filter={board_filter()}
+                                    on_filter_change=Callback::new(|_| {})
+                                    on_move_item=Callback::new(|_| {})
+                                />
+                            }.into_any(),
+                            CollectionView::Gallery => view! {
+                                <GalleryView
+                                    objects={objects.get()}
+                                    filter={gallery_filter()}
+                                    on_filter_change=Callback::new(|_| {})
+                                />
+                            }.into_any(),
+                            CollectionView::Calendar => view! {
+                                <CalendarView
+                                    objects={objects.get()}
+                                    filter={calendar_filter()}
+                                    on_filter_change=Callback::new(|_| {})
+                                />
+                            }.into_any(),
+                        }
+                    }
+                }.into_any()
+            }}
         </div>
     }
 }

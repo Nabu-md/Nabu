@@ -118,44 +118,56 @@ pub enum SortField {
 
 // ── Inbox Actions ──────────────────────────────────────────────────────────
 
-fn approve_item(id: String) {
+fn approve_item(id: String, toasts: crate::components::ui::feedback::ToastContext) {
     spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke(
+        let result = crate::ipc::tauri_invoke(
             "inbox_approve",
             serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
         )
         .await;
+        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+            toasts.error("Approve", "Could not approve that capture");
+        }
     });
 }
 
-fn reject_item(id: String) {
+fn reject_item(id: String, toasts: crate::components::ui::feedback::ToastContext) {
     spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke(
+        let result = crate::ipc::tauri_invoke(
             "inbox_reject",
             serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "reason": "User rejected"}))
                 .unwrap(),
         )
         .await;
+        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+            toasts.error("Reject", "Could not reject that capture");
+        }
     });
 }
 
-fn retry_item(id: String) {
+fn retry_item(id: String, toasts: crate::components::ui::feedback::ToastContext) {
     spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke(
+        let result = crate::ipc::tauri_invoke(
             "inbox_retry",
             serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
         )
         .await;
+        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+            toasts.error("Retry", "Could not retry that capture");
+        }
     });
 }
 
-fn delete_item(id: String) {
+fn delete_item(id: String, toasts: crate::components::ui::feedback::ToastContext) {
     spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke(
+        let result = crate::ipc::tauri_invoke(
             "inbox_delete",
             serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
         )
         .await;
+        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+            toasts.error("Delete", "Could not delete that capture");
+        }
     });
 }
 
@@ -164,6 +176,7 @@ fn delete_item(id: String) {
 #[component]
 pub fn Inbox() -> impl IntoView {
     let (state, set_state) = signal(InboxState::default());
+    let toasts = crate::components::ui::feedback::use_toast();
 
     // Subscribe to EventBus events via Tauri IPC (no polling)
     spawn_local(async move {
@@ -223,12 +236,16 @@ pub fn Inbox() -> impl IntoView {
             .map(|i| i.id.clone())
             .collect();
         if !ids.is_empty() {
+            let toasts = toasts;
             spawn_local(async move {
-                let _ = crate::ipc::tauri_invoke(
+                let result = crate::ipc::tauri_invoke(
                     "inbox_batch_approve",
                     serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts.error("Approve", "Could not approve the selected captures");
+                }
             });
         }
     };
@@ -242,8 +259,9 @@ pub fn Inbox() -> impl IntoView {
             .map(|i| i.id.clone())
             .collect();
         if !ids.is_empty() {
+            let toasts = toasts;
             spawn_local(async move {
-                let _ = crate::ipc::tauri_invoke(
+                let result = crate::ipc::tauri_invoke(
                     "inbox_batch_reject",
                     serde_wasm_bindgen::to_value(&serde_json::json!({
                         "ids": ids,
@@ -252,6 +270,9 @@ pub fn Inbox() -> impl IntoView {
                     .unwrap(),
                 )
                 .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts.error("Reject", "Could not reject the selected captures");
+                }
             });
         }
     };
@@ -265,12 +286,16 @@ pub fn Inbox() -> impl IntoView {
             .map(|i| i.id.clone())
             .collect();
         if !ids.is_empty() {
+            let toasts = toasts;
             spawn_local(async move {
-                let _ = crate::ipc::tauri_invoke(
+                let result = crate::ipc::tauri_invoke(
                     "inbox_batch_delete",
                     serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts.error("Delete", "Could not delete the selected captures");
+                }
             });
         }
     };
@@ -284,12 +309,16 @@ pub fn Inbox() -> impl IntoView {
             .map(|i| i.id.clone())
             .collect();
         if !ids.is_empty() {
+            let toasts = toasts;
             spawn_local(async move {
-                let _ = crate::ipc::tauri_invoke(
+                let result = crate::ipc::tauri_invoke(
                     "inbox_batch_retry",
                     serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts.error("Retry", "Could not retry the selected captures");
+                }
             });
         }
     };
@@ -340,7 +369,15 @@ pub fn Inbox() -> impl IntoView {
                     {move || {
                         let items = filtered_items();
                         if items.is_empty() {
-                            view! { <div class="flex items-center justify-center h-full text-gray-500 text-sm">"No items in inbox"</div> }.into_any()
+                            view! {
+                                <div class="h-full flex items-center justify-center p-6">
+                                    <crate::components::ui::info::EmptyState
+                                        icon="📥"
+                                        title="Inbox is empty".to_string()
+                                        description="Captured knowledge appears here, ready to review and file into your vault.".to_string()
+                                    ></crate::components::ui::info::EmptyState>
+                                </div>
+                            }.into_any()
                         } else {
                             view! {
                                 <div class="divide-y divide-gray-800">
@@ -432,6 +469,7 @@ enum InboxPreviewTab {
 
 #[component]
 fn InboxPreview(item: InboxItem) -> impl IntoView {
+    let toasts = crate::components::ui::feedback::use_toast();
     let (active_tab, set_active_tab) = signal(InboxPreviewTab::Details);
     let approve_id = item.id.clone();
     let reject_id = item.id.clone();
@@ -463,10 +501,10 @@ fn InboxPreview(item: InboxItem) -> impl IntoView {
                 InboxPreviewTab::History => view! { <InboxHistory item=item.clone() /> }.into_any(),
             }}
             <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-800">
-                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(approve_id.clone())>"✓ Approve"</button>
-                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(reject_id.clone())>"✗ Reject"</button>
-                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(retry_id.clone())>"↻ Retry"</button>
-                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(delete_id.clone())>"🗑 Delete"</button>
+                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(approve_id.clone(), toasts)>"✓ Approve"</button>
+                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(reject_id.clone(), toasts)>"✗ Reject"</button>
+                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(retry_id.clone(), toasts)>"↻ Retry"</button>
+                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(delete_id.clone(), toasts)>"🗑 Delete"</button>
             </div>
         </div>
     }
@@ -667,8 +705,9 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
+        let toasts = crate::components::ui::feedback::use_toast();
         spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke(
+            let result = crate::ipc::tauri_invoke(
                 "inbox_edit_metadata",
                 serde_wasm_bindgen::to_value(&serde_json::json!({
                     "id": id, "title": new_title, "author": new_author,
@@ -678,6 +717,9 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
                 .unwrap(),
             )
             .await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                toasts.error("Metadata", "Could not save the updated metadata");
+            }
         });
     };
 

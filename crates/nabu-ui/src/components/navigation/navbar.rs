@@ -94,6 +94,8 @@ pub fn NavBar() -> impl IntoView {
                         "↷"
                     </button>
                     <span class="navbar-sep"></span>
+                    <crate::components::ui::feedback::TaskIndicator />
+                    <crate::components::ui::feedback::NotificationBell />
                     <SaveStatusIndicator />
                     <button
                         type="button"

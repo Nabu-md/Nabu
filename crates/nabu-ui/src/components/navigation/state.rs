@@ -22,6 +22,11 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
+/// Title of the persistent failure notification for the vault note index.
+/// Shared between the push and the success-path dismissal so they always
+/// agree.
+const INDEX_FAILURE_TITLE: &str = "Couldn't build the vault index";
+
 /// The top-level screens of the app.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ViewMode {
@@ -371,11 +376,42 @@ pub fn dashboard_section_label(id: &str) -> &'static str {
 
 /// Loads the vault note index from the backend (`notes_index`).
 pub fn load_notes_index(nav: NavContext) {
+    // Capture the toast + task contexts during render — never
+    // `expect_context` inside `spawn_local` (no reactive owner on the failure
+    // path). The index load registers an indeterminate background task so the
+    // NavBar indicator reflects real long-running work.
+    let toasts = crate::components::ui::feedback::use_toast();
+    let tasks = crate::components::ui::feedback::use_tasks();
+    let task_id = tasks.start("Indexing vault…");
     spawn_local(async move {
         let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("notes_index", empty).await;
+        tasks.finish(&task_id);
         if let Ok(index) = serde_wasm_bindgen::from_value::<Vec<NoteIndexEntry>>(result) {
             nav.notes_index.set(index);
+            // A successful (re)load resolves any previous failure — clear the
+            // stale warning so the notification center stays truthful, and
+            // confirm a retry worked (silent on a clean first load).
+            if toasts.has_toast_with_title(INDEX_FAILURE_TITLE) {
+                toasts.dismiss_by_title(INDEX_FAILURE_TITLE);
+                toasts.success("Index rebuilt", "The vault index is up to date.");
+            }
+        } else {
+            // Persistent + actionable: stays in the notification center until
+            // dismissed, with a Retry action that re-runs the load. Dedupe so
+            // repeated failures (each launch / retry) don't flood the center.
+            let retry_nav = nav;
+            if !toasts.has_toast_with_title(INDEX_FAILURE_TITLE) {
+                toasts.push_persistent_with_action(
+                    crate::components::ui::feedback::ToastKind::Warning,
+                    INDEX_FAILURE_TITLE,
+                    "Recently modified, favourites and the quick switcher may be incomplete.",
+                    crate::components::ui::feedback::ToastAction::new(
+                        "Retry",
+                        Callback::new(move |_| load_notes_index(retry_nav)),
+                    ),
+                );
+            }
         }
     });
 }

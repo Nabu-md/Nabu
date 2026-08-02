@@ -72,6 +72,7 @@ pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
     crate::history::provide_history();
     crate::components::recovery::save_status::provide_save_status();
+    crate::components::ui::feedback::provide_tasks();
     // Capture the workspace context at render time so async tasks and raw
     // event callbacks never call `expect_context` without a reactive owner.
     let workspace = provide_workspace();
@@ -275,9 +276,16 @@ pub fn App() -> impl IntoView {
         {move || if screen.get() == AppScreen::Loading {
             (view! {
                 <div class="flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100">
-                    <div class="flex items-center space-x-2 text-blue-400">
-                        <div class="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        <span class="text-sm">"Loading..."</span>
+                    <div class="w-64">
+                        <crate::components::ui::feedback::LoadingBlock
+                            label="Opening Nabu…"
+                            size=crate::components::ui::feedback::SpinnerSize::Lg
+                        />
+                        <div class="mt-4 space-y-2">
+                            <crate::components::ui::feedback::Skeleton width="100%" height="14px" />
+                            <crate::components::ui::feedback::Skeleton width="80%" height="14px" />
+                            <crate::components::ui::feedback::Skeleton width="60%" height="14px" />
+                        </div>
                     </div>
                 </div>
             }).into_any()

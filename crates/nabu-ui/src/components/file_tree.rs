@@ -345,6 +345,7 @@ fn do_create(ctx: TreeContext, workspace: WorkspaceContext) {
 pub fn FileTree() -> impl IntoView {
     let workspace = use_workspace();
     let toasts = use_toast();
+    let (tree_loaded, set_tree_loaded) = signal(false);
     let nodes = RwSignal::new(Vec::<TreeNode>::new());
     let expanded = RwSignal::new(HashSet::<String>::new());
     let selected = RwSignal::new(Vec::<String>::new());
@@ -384,8 +385,11 @@ pub fn FileTree() -> impl IntoView {
     let workspace_refresh = workspace.refresh_tree;
     Effect::new(move |_| {
         let _ = workspace_refresh.get();
+        let tree_nodes = nodes;
         spawn_local(async move {
-            nodes.set(load_tree().await);
+            let loaded = load_tree().await;
+            tree_nodes.set(loaded);
+            set_tree_loaded.set(true);
         });
     });
 
@@ -521,12 +525,44 @@ pub fn FileTree() -> impl IntoView {
                 view! {}.into_any()
             }}
 
-            // Tree
-            <ul class="tree-list flex-1 overflow-y-auto min-h-0 py-1">
-                {move || nodes.get().into_iter().map(|node| {
-                    view! { <TreeNodeView node=node /> }
-                }).collect_view()}
-            </ul>
+            // Tree (skeleton while first load is in flight, empty state for a
+            // brand-new vault)
+            {move || if !tree_loaded.get() {
+                view! {
+                    <div class="px-2 py-1">
+                        <crate::components::ui::feedback::SkeletonList rows=6 />
+                    </div>
+                }.into_any()
+            } else if nodes.get().is_empty() {
+                view! {
+                    <div class="px-2 py-3">
+                        <crate::components::ui::info::EmptyState
+                            icon="🗒️"
+                            title="Your vault is empty".to_string()
+                            description="Create your first note to start building your knowledge base.".to_string()
+                        >
+                            <button
+                                type="button"
+                                class="btn btn-sm mt-2"
+                                on:click=move |_| {
+                                    creating.set(Some((String::new(), false)));
+                                    create_value.set(String::new());
+                                }
+                            >
+                                "➕ New Note"
+                            </button>
+                        </crate::components::ui::info::EmptyState>
+                    </div>
+                }.into_any()
+            } else {
+                view! {
+                    <ul class="tree-list flex-1 overflow-y-auto min-h-0 py-1">
+                        {move || nodes.get().into_iter().map(|node| {
+                            view! { <TreeNodeView node=node /> }
+                        }).collect_view()}
+                    </ul>
+                }.into_any()
+            }}
 
             // Batch action bar
             {move || {

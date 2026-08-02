@@ -53,6 +53,9 @@ pub struct ToastItem {
     /// Optional clickable action rendered as a button inside the toast
     /// (e.g. an "Undo" button after an item is moved to trash).
     pub action: Option<ToastAction>,
+    /// Persistent toasts stay until dismissed (no auto-dismiss timer) and are
+    /// listed in the notification center.
+    pub persistent: bool,
 }
 
 /// A clickable action attached to a toast.
@@ -78,14 +81,14 @@ pub struct ToastContext {
 }
 
 impl ToastContext {
-    /// Pushes a toast and auto-dismisses it after `duration`.
+    /// Pushes a toast and auto-dismisses it after a short lifetime.
     pub fn push(
         self,
         kind: ToastKind,
         title: impl Into<String>,
         message: impl Into<String>,
     ) {
-        self.push_with_duration(kind, title, message, None, 5000);
+        self.push_inner(kind, title, message, None, Some(5000));
     }
 
     /// Pushes a toast with a clickable action button and a longer lifetime so
@@ -97,16 +100,30 @@ impl ToastContext {
         message: impl Into<String>,
         action: ToastAction,
     ) {
-        self.push_with_duration(kind, title, message, Some(action), 10_000);
+        self.push_inner(kind, title, message, Some(action), Some(10_000));
     }
 
-    fn push_with_duration(
+    /// Pushes a persistent notification with a clickable action — stays until
+    /// dismissed, and the action stays available the whole time (e.g. a
+    /// "Retry" button on an index failure that keeps failing). Use sparingly
+    /// for important, long-lived state that needs a decision.
+    pub fn push_persistent_with_action(
+        self,
+        kind: ToastKind,
+        title: impl Into<String>,
+        message: impl Into<String>,
+        action: ToastAction,
+    ) {
+        self.push_inner(kind, title, message, Some(action), None);
+    }
+
+    fn push_inner(
         self,
         kind: ToastKind,
         title: impl Into<String>,
         message: impl Into<String>,
         action: Option<ToastAction>,
-        duration_ms: u64,
+        duration_ms: Option<u64>,
     ) {
         let id = uuid::Uuid::new_v4().to_string();
         let title = title.into();
@@ -119,12 +136,40 @@ impl ToastContext {
                 title,
                 message: (!message_str.is_empty()).then_some(message_str),
                 action,
+                persistent: duration_ms.is_none(),
             });
         });
-        set_timeout(
-            move || toasts.update(|list| list.retain(|t| t.id != id)),
-            Duration::from_millis(duration_ms),
-        );
+        if let Some(ms) = duration_ms {
+            set_timeout(
+                move || toasts.update(|list| list.retain(|t| t.id != id)),
+                Duration::from_millis(ms),
+            );
+        }
+    }
+
+    /// Dismisses a toast by id (used by the notification center).
+    pub fn dismiss(self, id: &str) {
+        let id = id.to_string();
+        self.toasts.update(|list| list.retain(|t| t.id != id));
+    }
+
+    /// Dismisses every toast with the given title — used to clear a stale
+    /// persistent warning once the underlying condition has resolved (e.g. a
+    /// successful retry after an index failure).
+    pub fn dismiss_by_title(self, title: &str) {
+        let title = title.to_string();
+        self.toasts.update(|list| list.retain(|t| t.title != title));
+    }
+
+    /// True when a toast with this title is currently shown (used to dedupe
+    /// repeated failure notifications).
+    pub fn has_toast_with_title(self, title: &str) -> bool {
+        self.toasts.get().iter().any(|t| t.title == title)
+    }
+
+    /// Removes every toast, persistent ones included.
+    pub fn clear_all(self) {
+        self.toasts.set(Vec::new());
     }
 
     pub fn info(self, title: impl Into<String>, message: impl Into<String>) {
@@ -155,6 +200,48 @@ pub fn ToastProvider(children: ChildrenFn) -> impl IntoView {
     }
 }
 
+/// A single toast / notification row, shared by [`ToastRegion`] and the
+/// notification panel so dismiss and action handling stay in one place.
+#[component]
+fn ToastItemView(toast: ToastItem, class: String) -> impl IntoView {
+    let id = toast.id.clone();
+    let kind = toast.kind;
+    let title = toast.title.clone();
+    let message = toast.message.clone();
+    let action = toast.action.clone();
+    let toasts = expect_context::<ToastContext>();
+    view! {
+        <div class=class role="status">
+            <span aria-hidden="true">{kind.icon()}</span>
+            <div class="flex flex-col gap-0.5 min-w-0">
+                <div class="text-sm font-medium text-gray-100">{title}</div>
+                {message.map(|m| view! { <div class="text-xs text-gray-400">{m}</div> }.into_any())}
+            </div>
+            {action.map(|a| {
+                let label = a.label;
+                let on_click = a.on_click;
+                view! {
+                    <button
+                        type="button"
+                        class="toast-action"
+                        on:click=move |_| on_click.run(())
+                    >
+                        {label}
+                    </button>
+                }.into_any()
+            })}
+            <button
+                type="button"
+                class="toast-close"
+                aria-label="Dismiss notification"
+                on:click=move |_| toasts.dismiss(&id)
+            >
+                "✕"
+            </button>
+        </div>
+    }
+}
+
 /// Renders the toast stack (fixed bottom-right).
 #[component]
 pub fn ToastRegion() -> impl IntoView {
@@ -162,45 +249,103 @@ pub fn ToastRegion() -> impl IntoView {
     view! {
         <div class="toast-region" role="region" aria-live="polite" aria-label="Notifications">
             {move || context.toasts.get().into_iter().map(|toast| {
-                let id = toast.id.clone();
-                let kind = toast.kind;
-                let title = toast.title.clone();
-                let message = toast.message.clone();
-                let action = toast.action.clone();
-                let toasts = context.toasts;
-                view! {
-                    <div class=format!("toast {}", kind.toast_class()) role="status">
-                        <span aria-hidden="true">{kind.icon()}</span>
-                        <div class="flex flex-col gap-0.5 min-w-0">
-                            <div class="text-sm font-medium text-gray-100">{title}</div>
-                            {message.map(|m| view! { <div class="text-xs text-gray-400">{m}</div> }.into_any())}
-                        </div>
-                        {action.map(|a| {
-                            let label = a.label;
-                            let on_click = a.on_click;
-                            view! {
-                                <button
-                                    type="button"
-                                    class="toast-action"
-                                    on:click=move |_| on_click.run(())
-                                >
-                                    {label}
-                                </button>
-                            }.into_any()
-                        })}
-                        <button
-                            type="button"
-                            class="toast-close"
-                            aria-label="Dismiss notification"
-                            on:click=move |_| {
-                                toasts.update(|list| list.retain(|t| t.id != id));
-                            }
-                        >
-                            "✕"
-                        </button>
-                    </div>
-                }
+                let class = format!("toast {}", toast.kind.toast_class());
+                view! { <ToastItemView toast=toast class=class /> }
             }).collect_view()}
+        </div>
+    }
+}
+
+/// A bell button with an unread-count badge that opens the notification
+/// center. Rendered in the NavBar; the panel lists active notifications with
+/// dismiss controls (persistent ones stay until cleared).
+#[component]
+pub fn NotificationBell() -> impl IntoView {
+    let context = expect_context::<ToastContext>();
+    let (open, set_open) = signal(false);
+    // Close when the user presses Escape.
+    let overlay_ref = NodeRef::<leptos::html::Div>::new();
+    Effect::new(move |_| {
+        if open.get() {
+            set_timeout(
+                move || {
+                    if let Some(el) = overlay_ref.get() {
+                        let _ = el.focus();
+                    }
+                },
+                std::time::Duration::from_millis(10),
+            );
+        }
+    });
+    view! {
+        <div class="relative">
+            <button
+                type="button"
+                class="navbar-action"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded=move || open.get()
+                on:click=move |_| set_open.update(|v| *v = !*v)
+            >
+                "🔔"
+                {move || {
+                    let count = context.toasts.get().len();
+                    if count > 0 {
+                        view! { <span class="notif-badge" aria-hidden="true">{count}</span> }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }
+                }}
+            </button>
+            {move || if open.get() {
+                view! {
+                    <div
+                        node_ref=overlay_ref
+                        tabindex="-1"
+                        class="notif-overlay"
+                        role="dialog"
+                        aria-modal="false"
+                        aria-label="Notifications"
+                        on:click=move |_| set_open.set(false)
+                        on:keydown=move |ev| if ev.key() == "Escape" { set_open.set(false) }
+                    >
+                        <div class="notif-panel" on:click=move |ev| ev.stop_propagation()>
+                            <div class="notif-panel-header">
+                                <span class="text-sm font-medium">"Notifications"</span>
+                                {move || if context.toasts.get().is_empty() {
+                                    view! {}.into_any()
+                                } else {
+                                    view! {
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-ghost"
+                                            on:click=move |_| context.clear_all()
+                                        >
+                                            "Clear all"
+                                        </button>
+                                    }.into_any()
+                                }}
+                            </div>
+                            <div class="notif-panel-body">
+                                {move || {
+                                    let toasts = context.toasts.get();
+                                    if toasts.is_empty() {
+                                        view! {
+                                            <div class="dash-empty">"No notifications — you're all caught up."</div>
+                                        }.into_any()                                    } else {
+                                        toasts.into_iter().map(|toast| {
+                                            let class = format!("notif-item {}", toast.kind.toast_class());
+                                            view! { <ToastItemView toast=toast class=class /> }
+                                        }).collect_view().into_any()
+                                    }
+                                }}
+                            </div>
+                        </div>
+                    </div>
+                }.into_any()
+            } else {
+                view! {}.into_any()
+            }}
         </div>
     }
 }
@@ -437,5 +582,245 @@ pub fn StatusDot(
             role="status"
             aria-label=label
         ></span>
+    }
+}
+
+// ── Loading states ───────────────────────────────────────────────────────
+
+/// A centered, unobtrusive loading block with a spinner and optional label.
+/// Use this instead of blank screens while an async workflow is in flight.
+#[component]
+pub fn LoadingBlock(
+    /// Optional label shown under the spinner.
+    #[prop(optional)]
+    label: Option<&'static str>,
+    /// Size of the spinner.
+    #[prop(optional)]
+    size: SpinnerSize,
+    /// Extra utility classes.
+    #[prop(optional)]
+    class: Option<&'static str>,
+) -> impl IntoView {
+    let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
+    view! {
+        <div class=format!("loading-block{extra}") role="status" aria-live="polite">
+            <Spinner size=size label=label.unwrap_or("Loading") />
+            {label.map(|l| view! { <div class="loading-block-label">{l}</div> }.into_any())}
+        </div>
+    }
+}
+
+/// An absolute-overlay loading veil for content that is being (re)loaded in
+/// place — the parent must be `position: relative`.
+#[component]
+pub fn LoadingOverlay(
+    /// Label shown inside the veil.
+    #[prop(optional)]
+    label: Option<&'static str>,
+) -> impl IntoView {
+    view! {
+        <div class="loading-overlay" role="status" aria-live="polite">
+            <LoadingBlock label=label.unwrap_or("Loading…") />
+        </div>
+    }
+}
+
+/// A full-height centered loading screen (e.g. for the app boot screen).
+#[component]
+pub fn LoadingScreen(
+    /// Label shown under the spinner.
+    #[prop(optional)]
+    label: Option<&'static str>,
+) -> impl IntoView {
+    view! {
+        <div class="loading-screen">
+            <LoadingBlock label=label.unwrap_or("Loading…") size=SpinnerSize::Lg />
+        </div>
+    }
+}
+
+/// A stack of skeleton lines used while a list/table is loading.
+#[component]
+pub fn SkeletonList(
+    /// Number of skeleton rows to render.
+    #[prop(optional)]
+    rows: Option<usize>,
+) -> impl IntoView {
+    let n = rows.unwrap_or(5);
+    view! {
+        <div class="skeleton-list" aria-hidden="true">
+            {(0..n).map(|_| view! {
+                <div class="skeleton-list-row">
+                    <Skeleton width="100%" height="16px" />
+                </div>
+            }).collect_view()}
+        </div>
+    }
+}
+
+// ── Error state ──────────────────────────────────────────────────────────
+
+/// A full-width error panel with a plain-language explanation, expandable
+/// technical details, and an optional retry action. Replaces silent failures.
+#[component]
+pub fn ErrorPanel(
+    /// Plain-language summary (e.g. "Couldn't load your notes").
+    title: String,
+    /// What went wrong in plain language.
+    message: String,
+    /// Optional technical detail shown behind an expander.
+    #[prop(optional)]
+    details: Option<String>,
+    /// Optional retry handler.
+    #[prop(optional)]
+    on_retry: Option<Callback<()>>,
+    /// Optional recovery guidance shown as a callout.
+    #[prop(optional)]
+    recovery: Option<String>,
+) -> impl IntoView {
+    view! {
+        <div class="error-panel panel" role="alert">
+            <div class="flex items-start gap-3">
+                <span class="text-xl" aria-hidden="true">"⚠️"</span>
+                <div class="flex flex-col gap-1 min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-gray-100">{title}</div>
+                    <div class="text-sm text-gray-400">{message}</div>
+                    {recovery.map(|r| view! {
+                        <div class="error-recovery">"💡 " {r}</div>
+                    }.into_any())}
+                    {details.map(|d| view! {
+                        <details class="error-details">
+                            <summary class="error-details-summary">"Technical details"</summary>
+                            <pre class="error-details-pre">{d}</pre>
+                        </details>
+                    }.into_any())}
+                    {if let Some(retry) = on_retry {
+                        view! {
+                            <div class="mt-1">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    on:click=move |_| retry.run(())
+                                >
+                                    "↻ Retry"
+                                </button>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }}
+                </div>
+            </div>
+        </div>
+    }
+}
+
+// ── Background tasks (progress indicators) ───────────────────────────────
+
+/// One in-flight background task.
+#[derive(Clone, PartialEq)]
+pub struct TaskInfo {
+    pub id: String,
+    pub label: String,
+    /// `Some(0.0–1.0)` when determinate progress is known, `None` for
+    /// indeterminate tasks.
+    pub progress: Option<f64>,
+}
+
+/// Shared registry of long-running background tasks, provided at the app root
+/// and rendered by [`TaskIndicator`] in the NavBar.
+#[derive(Clone, Copy)]
+pub struct TaskContext {
+    pub tasks: RwSignal<Vec<TaskInfo>>,
+}
+
+impl TaskContext {
+    /// Registers a task, returning its id for later progress/removal updates.
+    pub fn start(self, label: impl Into<String>) -> String {
+        let id = uuid::Uuid::new_v4().to_string();
+        self.tasks.update(|t| {
+            t.push(TaskInfo {
+                id: id.clone(),
+                label: label.into(),
+                progress: None,
+            });
+        });
+        id
+    }
+
+    /// Updates a task's determinate progress (0.0–1.0).
+    pub fn progress(self, id: &str, value: f64) {
+        self.tasks.update(|t| {
+            if let Some(task) = t.iter_mut().find(|x| x.id == id) {
+                task.progress = Some(value.clamp(0.0, 1.0));
+            }
+        });
+    }
+
+    /// Removes a task (completed, failed or cancelled).
+    pub fn finish(self, id: &str) {
+        let id = id.to_string();
+        self.tasks.update(|t| t.retain(|x| x.id != id));
+    }
+}
+
+/// Provides the background-task context (call once at the app root).
+pub fn provide_tasks() {
+    provide_context(TaskContext {
+        tasks: RwSignal::new(Vec::new()),
+    });
+}
+
+/// Retrieves the background-task context.
+pub fn use_tasks() -> TaskContext {
+    expect_context::<TaskContext>()
+}
+
+/// A compact NavBar indicator that appears while background tasks are active
+/// (spinner for indeterminate, mini progress bar for determinate tasks).
+#[component]
+pub fn TaskIndicator() -> impl IntoView {
+    let tasks = use_tasks();
+    view! {
+        <span class="task-indicator" role="status" aria-live="polite">
+            {move || {
+                let list = tasks.tasks.get();
+                if list.is_empty() {
+                    view! {}.into_any()
+                } else {
+                    // Average only over the determinate tasks; an indeterminate
+                    // sibling shouldn't drag the shown percentage down.
+                    let determinate_count = list.iter().filter(|t| t.progress.is_some()).count();
+                    let determinate = if determinate_count > 0 {
+                        list.iter().filter_map(|t| t.progress).sum::<f64>()
+                            / determinate_count as f64
+                    } else {
+                        0.0
+                    };
+                    let label = list
+                        .first()
+                        .map(|t| t.label.clone())
+                        .unwrap_or_else(|| "Working…".to_string());
+                    let title_text = label.clone();
+                    view! {
+                        <span class="task-indicator-inner" title=title_text>
+                            {if list.iter().any(|t| t.progress.is_some()) {
+                                view! {
+                                    <span class="task-indicator-bar">
+                                        <span
+                                            class="task-indicator-fill"
+                                            style=move || format!("width: {:.0}%;", determinate * 100.0)
+                                        ></span>
+                                    </span>
+                                }.into_any()
+                            } else {
+                                view! { <Spinner size=SpinnerSize::Sm label="Working" /> }.into_any()
+                            }}
+                            <span class="task-indicator-label">{label}</span>
+                        </span>
+                    }.into_any()
+                }
+            }}
+        </span>
     }
 }

@@ -79,21 +79,45 @@ pub fn ReadingQueue() -> impl IntoView {
     let (items, set_items) = signal(vec![]);
     let (filter, set_filter) = signal(QueueFilter::default());
     let (selected_ids, _set_selected_ids) = signal(Vec::<String>::new());
+    let (loaded, set_loaded) = signal(false);
+    let (load_error, set_load_error) = signal(None::<String>);
+    let toasts = crate::components::ui::feedback::use_toast();
 
-    // Load items on mount
-    spawn_local(async move {
-        let result = crate::ipc::tauri_invoke(
-            "queue_get_all",
-            serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
-        )
-        .await;
-        match serde_wasm_bindgen::from_value::<Vec<QueueItem>>(result) {
-            Ok(queue_items) => set_items.set(queue_items),
-            Err(e) => {
-                web_sys::console::error_1(&format!("Failed to load reading queue: {}", e).into())
-            }
-        }
-    });
+    // Load items on mount. `retry` is a plain fn so it can be re-run from the
+    // error panel's Retry button.
+    let retry = {
+        let set_items = set_items;
+        let set_loaded = set_loaded;
+        let set_load_error = set_load_error;
+        let toasts = toasts;
+        Callback::new(move |_| {
+            set_loaded.set(false);
+            set_load_error.set(None);
+            let set_items = set_items;
+            let set_loaded = set_loaded;
+            let set_load_error = set_load_error;
+            let toasts = toasts;
+            spawn_local(async move {
+                let result = crate::ipc::tauri_invoke(
+                    "queue_get_all",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+                )
+                .await;
+                match serde_wasm_bindgen::from_value::<Vec<QueueItem>>(result) {
+                    Ok(queue_items) => set_items.set(queue_items),
+                    Err(e) => {
+                        set_load_error.set(Some(e.to_string()));
+                        toasts.error(
+                            "Couldn't load the reading queue",
+                            "Your reading queue could not be loaded — try again.",
+                        );
+                    }
+                }
+                set_loaded.set(true);
+            });
+        })
+    };
+    retry.run(());
 
     let filtered_items = move || {
         let f = filter.get();
@@ -166,31 +190,43 @@ pub fn ReadingQueue() -> impl IntoView {
     };
 
     let set_status = move |id: String, status: QueueStatus| {
+        let toasts = toasts;
         spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke(
+            let result = crate::ipc::tauri_invoke(
                 "queue_set_status",
                 serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "status": format!("{:?}", status).to_lowercase()})).unwrap(),
             ).await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                toasts.error("Reading queue", "Could not update that item's status");
+            }
         });
     };
 
     let set_priority = move |id: String, priority: QueuePriority| {
+        let toasts = toasts;
         spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke(
+            let result = crate::ipc::tauri_invoke(
                 "queue_set_priority",
                 serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "priority": format!("{:?}", priority).to_lowercase()})).unwrap(),
             ).await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                toasts.error("Reading queue", "Could not update that item's priority");
+            }
         });
     };
 
     let set_progress = move |id: String, progress: f32| {
+        let toasts = toasts;
         spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke(
+            let result = crate::ipc::tauri_invoke(
                 "queue_set_progress",
                 serde_wasm_bindgen::to_value(&serde_json::json!({"id": id, "progress": progress}))
                     .unwrap(),
             )
             .await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                toasts.error("Reading queue", "Could not update reading progress");
+            }
         });
     };
 
@@ -202,11 +238,15 @@ pub fn ReadingQueue() -> impl IntoView {
             .map(|i| i.id.clone())
             .collect();
         if !ids.is_empty() {
+            let toasts = toasts;
             spawn_local(async move {
-                let _ = crate::ipc::tauri_invoke(
+                let result = crate::ipc::tauri_invoke(
                     "queue_batch_set_status",
                     serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids, "status": format!("{:?}", status).to_lowercase()})).unwrap(),
                 ).await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts.error("Reading queue", "Could not update the selected items");
+                }
             });
         }
     };
@@ -349,13 +389,38 @@ pub fn ReadingQueue() -> impl IntoView {
                 // Queue list
                 <div class="flex-1 overflow-y-auto">
                     {move || {
-                        let visible = filtered_items();
-                        if visible.is_empty() {
-                            view! { <div class="flex items-center justify-center h-full text-gray-500 text-sm">"No items in reading queue"</div> }.into_any()
+                        if let Some(err) = load_error.get() {
+                            view! {
+                                <div class="p-4">
+                                    <crate::components::ui::feedback::ErrorPanel
+                                        title="Couldn't load the reading queue".to_string()
+                                        message="Something went wrong while reading your queue.".to_string()
+                                        details=err
+                                        recovery="Check that your vault is accessible, then try again.".to_string()
+                                        on_retry=retry
+                                    />
+                                </div>
+                            }.into_any()
+                        } else if !loaded.get() {
+                            view! {
+                                <div class="p-4">
+                                    <crate::components::ui::feedback::SkeletonList rows=6 />
+                                </div>
+                            }.into_any()
+                        } else if filtered_items().is_empty() {
+                            view! {
+                                <div class="h-full flex items-center justify-center p-6">
+                                    <crate::components::ui::info::EmptyState
+                                        icon="📚"
+                                        title="Nothing in the queue".to_string()
+                                        description="Add documents or web articles to your reading queue and track progress here.".to_string()
+                                    ></crate::components::ui::info::EmptyState>
+                                </div>
+                            }.into_any()
                         } else {
                             view! {
                                 <div class="divide-y divide-gray-800">
-                                    { visible.iter().map(|item| {
+                                    { filtered_items().iter().map(|item| {
                                         let id = item.id.clone();
                                         let title = item.title.clone();
                                         let status = item.status;

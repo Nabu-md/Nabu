@@ -47,6 +47,8 @@ pub fn NoteEditor(
         .unwrap_or_else(|| "new_note.md".to_string());
     let (content, set_content) = signal(initial_content.unwrap_or_default());
     let (show_menu, set_show_menu) = signal(false);
+    // Phase 12.3: never leave a blank editor while the note loads from disk.
+    let (note_loaded, set_note_loaded) = signal(false);
     let save_status = use_save_status();
 
     // Report the active note path so the app can persist it in the session.
@@ -67,6 +69,7 @@ pub fn NoteEditor(
                 set_content.set(saved);
             }
         }
+        set_note_loaded.set(true);
     });
 
     // Debounced autosave. Each keystroke bumps a dirty counter; an effect
@@ -279,38 +282,50 @@ pub fn NoteEditor(
             } else {
                 view! {}.into_any()
             }}
-            <textarea
-                node_ref=ta_ref
-                prop:value=content
-                on:keydown=on_editor_keydown
-                on:input=move |ev| {
-                    let value = event_target_value(&ev);
-                    set_content.set(value);
-                    set_dirty.update(|v| *v = v.wrapping_add(1));
-                }
-                on:select=move |ev: web_sys::Event| {
-                    if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
-                        report_position(&ta);
-                    }
-                }
-                on:keyup=move |ev: web_sys::KeyboardEvent| {
-                    if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
-                        report_position(&ta);
-                    }
-                }
-                on:scroll=move |ev: web_sys::Event| {
-                    if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
-                        report_position(&ta);
-                    }
-                }
-                class="editor-textarea flex-1 resize-none"
-            />
-            {move || if show_menu.get() {
-                view! { <SlashMenu on_select=Callback::new(move |_item| { set_show_menu.set(false); /* Insert item logic */ }) /> }.into_any()
+            {move || if !note_loaded.get() {
+                view! {
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="w-2/3">
+                            <crate::components::ui::feedback::SkeletonList rows=6 />
+                        </div>
+                    </div>
+                }.into_any()
             } else {
-                view! {}.into_any()
+                view! {
+                    <textarea
+                        node_ref=ta_ref
+                        prop:value=content
+                        on:keydown=on_editor_keydown
+                        on:input=move |ev| {
+                            let value = event_target_value(&ev);
+                            set_content.set(value);
+                            set_dirty.update(|v| *v = v.wrapping_add(1));
+                        }
+                        on:select=move |ev: web_sys::Event| {
+                            if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
+                                report_position(&ta);
+                            }
+                        }
+                        on:keyup=move |ev: web_sys::KeyboardEvent| {
+                            if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
+                                report_position(&ta);
+                            }
+                        }
+                        on:scroll=move |ev: web_sys::Event| {
+                            if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {
+                                report_position(&ta);
+                            }
+                        }
+                        class="editor-textarea flex-1 resize-none"
+                    />
+                    {move || if show_menu.get() {
+                        view! { <SlashMenu on_select=Callback::new(move |_item| { set_show_menu.set(false); /* Insert item logic */ }) /> }.into_any()
+                    } else {
+                        view! {}.into_any()
+                    }}
+                    <NoteView content=content />
+                }.into_any()
             }}
-            <NoteView content=content />
         </div>
     }
 }

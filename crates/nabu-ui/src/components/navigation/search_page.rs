@@ -56,6 +56,7 @@ pub fn SearchPage() -> impl IntoView {
 
     let (query, set_query) = signal(String::new());
     let (results, set_results) = signal(Vec::<SearchHit>::new());
+    let (is_searching, set_is_searching) = signal(false);
     let sort_by = RwSignal::new(SortBy::Relevance);
     let folder_filter = RwSignal::new(String::new());
     let (save_name, set_save_name) = signal(String::new());
@@ -89,6 +90,7 @@ pub fn SearchPage() -> impl IntoView {
         let query_owned = q.clone();
         if query_owned.trim().is_empty() {
             set_results.set(Vec::new());
+            set_is_searching.set(false);
             return;
         }
         let ws = ws;
@@ -100,6 +102,7 @@ pub fn SearchPage() -> impl IntoView {
                 if query.get() != query_final {
                     return;
                 }
+                set_is_searching.set(true);
                 record_recent_search(nav, &query_final);
                 spawn_local(async move {
                     let args = serde_wasm_bindgen::to_value(&serde_json::json!({
@@ -110,6 +113,7 @@ pub fn SearchPage() -> impl IntoView {
                     if let Ok(hits) = serde_wasm_bindgen::from_value::<Vec<SearchHit>>(result) {
                         set_results.set(hits);
                     }
+                    set_is_searching.set(false);
                     let _ = ws;
                 });
             },
@@ -199,6 +203,15 @@ pub fn SearchPage() -> impl IntoView {
                         set_dirty.update(|v| *v = v.wrapping_add(1));
                     }
                 />
+                {move || if is_searching.get() {
+                    view! {
+                        <span class="search-spinner" aria-hidden="true">
+                            <crate::components::ui::feedback::Spinner size=crate::components::ui::feedback::SpinnerSize::Sm label="Searching" />
+                        </span>
+                    }.into_any()
+                } else {
+                    view! {}.into_any()
+                }}
                 <div class="search-controls">
                     <Select
                         label=""
@@ -320,6 +333,11 @@ pub fn SearchPage() -> impl IntoView {
             // Results
             <div class="search-results">
                 {move || {
+                    if is_searching.get() && results.get().is_empty() {
+                        view! {
+                            <crate::components::ui::feedback::SkeletonList rows=5 />
+                        }.into_any()
+                    } else {
                     let groups = grouped.get();
                     if groups.is_empty() {
                         if query.get().trim().is_empty() {
@@ -375,6 +393,7 @@ pub fn SearchPage() -> impl IntoView {
                                 }
                             }).collect_view()}
                         }.into_any()
+                    }
                     }
                 }}
             </div>
