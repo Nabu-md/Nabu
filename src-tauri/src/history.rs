@@ -438,6 +438,9 @@ pub fn note_rename(
     if to_path.exists() {
         return Err(format!("Destination already exists: {}", to));
     }
+    // Phase 11.3: snapshot the note before it is renamed so its history is
+    // preserved under the pre-rename content.
+    let _ = crate::recovery::snapshot_note(&vault_path, &from);
     if let Some(parent) = to_path.parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -486,6 +489,9 @@ pub fn note_delete(
         return Err(format!("File does not exist: {}", path));
     }
 
+    // Phase 11.3: snapshot before the note is moved to trash so its content
+    // survives in version history even after permanent deletion.
+    let _ = crate::recovery::snapshot_note(&vault_path, &path);
     let _trash = trash_file(&vault_path, &safe_path)?;
     let undo_vault = vault_path.clone();
     let redo_vault = vault_path;

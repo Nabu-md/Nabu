@@ -455,6 +455,10 @@ pub fn note_create_file(
     validate_input_safe(&path, 500)?;
     validate_input_safe(&content, 1_000_000)?; // 1MB max content
 
+    // Phase 11.3: if this write overwrites an existing note (import / bulk
+    // edit), snapshot the previous content first so it is never lost.
+    let _ = crate::recovery::snapshot_note(&vault_path, &path);
+
     if let Some(parent) = safe_path.parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)

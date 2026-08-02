@@ -2,6 +2,7 @@ pub mod commands;
 pub mod history;
 pub mod native_messaging;
 pub mod native_messaging_socket;
+pub mod recovery;
 pub mod settings;
 
 // ---------------------------------------------------------------------------
@@ -248,6 +249,20 @@ pub fn run() {
             crate::commands::queue_set_progress,
             crate::commands::queue_batch_set_status,
             crate::commands::queue_archive_completed,
+            crate::recovery::note_save,
+            crate::recovery::note_read,
+            crate::recovery::versions_list,
+            crate::recovery::versions_get,
+            crate::recovery::versions_restore,
+            crate::recovery::versions_duplicate,
+            crate::recovery::versions_diff,
+            crate::recovery::snapshot_create,
+            crate::recovery::versions_all,
+            crate::recovery::session_save,
+            crate::recovery::session_load,
+            crate::recovery::session_clear,
+            crate::recovery::recovery_check,
+            crate::recovery::recovery_discard,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------
@@ -262,6 +277,11 @@ pub fn run() {
                     PathBuf::from(path)
                 }
             };
+
+            // Crash recovery marker: a leftover `.running` file means the
+            // previous run died unexpectedly. Write a `.recovery_pending`
+            // marker so the frontend can offer to restore the last session.
+            crate::recovery::mark_running(&vault_path);
 
             let ctx = build_application_context(vault_path);
             let engine: Arc<CaptureEngine> = ctx
@@ -332,8 +352,19 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // On graceful exit, remove the `.running` marker so the next
+            // launch knows the session ended cleanly (no crash recovery UI).
+            if let tauri::RunEvent::Exit = event {
+                let settings = app_handle.state::<crate::settings::SettingsStore>().get();
+                let path = settings.last_vault_path.trim().to_string();
+                if !path.is_empty() {
+                    crate::recovery::mark_clean_exit(&std::path::PathBuf::from(path));
+                }
+            }
+        });
 }
 
 fn dirs_next() -> std::path::PathBuf {

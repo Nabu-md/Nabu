@@ -6,6 +6,10 @@ use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
 use crate::components::note_editor::NoteEditor;
 use crate::components::reading_queue::ReadingQueue;
+use crate::components::recovery::RecoveryBanner;
+use crate::components::recovery::RecoveryManager;
+use crate::components::recovery::SaveStatusIndicator;
+use crate::components::recovery::VersionHistory;
 use crate::components::settings::settings_panel::SettingsPanel;
 use crate::components::template_editor::TemplateEditor;
 use crate::components::trash::Trash;
@@ -29,12 +33,59 @@ pub enum ViewMode {
     Templates,
     Settings,
     Trash,
+    History,
+    Recovery,
+}
+
+/// Maps a persisted session view-mode string back to a [`ViewMode`].
+fn parse_view_mode(mode: &str) -> ViewMode {
+    match mode.to_lowercase().as_str() {
+        "graph" => ViewMode::Graph,
+        "inbox" => ViewMode::Inbox,
+        "readingqueue" | "reading_queue" => ViewMode::ReadingQueue,
+        "templates" => ViewMode::Templates,
+        "settings" => ViewMode::Settings,
+        "trash" => ViewMode::Trash,
+        "history" => ViewMode::History,
+        "recovery" => ViewMode::Recovery,
+        _ => ViewMode::Editor,
+    }
+}
+
+/// Renders the persisted-session form of the current workspace state.
+fn session_state_from(
+    view_mode: ViewMode,
+    active_note: Option<String>,
+    editor_cursor: u32,
+    editor_scroll: u32,
+    show_left_sidebar: bool,
+    show_right_inspector: bool,
+) -> crate::components::recovery::session::SessionState {
+    use crate::components::recovery::session::SessionState;
+    let saved_at = js_sys::Date::new_0()
+        .to_iso_string()
+        .as_string()
+        .unwrap_or_default();
+    SessionState {
+        version: 1,
+        saved_at: Some(saved_at),
+        view_mode: Some(format!("{:?}", view_mode).to_lowercase()),
+        active_note: active_note.clone(),
+        open_tabs: active_note.into_iter().collect(),
+        split_panes: vec![],
+        cursor_pos: Some(editor_cursor),
+        scroll_top: Some(editor_scroll),
+        left_sidebar: Some(show_left_sidebar),
+        right_inspector: Some(show_right_inspector),
+        window_layout: None,
+    }
 }
 
 #[component]
 pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
     crate::history::provide_history();
+    crate::components::recovery::save_status::provide_save_status();
 
     let history = crate::history::use_history();
     let toasts = crate::components::ui::feedback::use_toast();
@@ -47,6 +98,119 @@ pub fn App() -> impl IntoView {
     let (initial_content, _set_initial_content) = signal(
         "# Welcome to Nabu\n\nA powerful markdown note-taking app with graph visualization and AI dictation.\n\n- [[Graph View]]\n- [[Settings]]\n- Task: - [ ] Explore features".to_string()
     );
+
+    // ── Phase 11.3: session persistence + crash recovery ───────────────
+    // Workspace signals captured into the persisted session.
+    let (active_note, set_active_note) = signal(Option::<String>::None);
+    let (editor_cursor, set_editor_cursor) = signal(0u32);
+    let (editor_scroll, set_editor_scroll) = signal(0u32);
+    let pending_recovery = RwSignal::new(None::<crate::components::recovery::session::RecoveryStatus>);
+    let set_pending_recovery = pending_recovery;
+
+    // On mount, ask the backend whether the previous run crashed.
+    spawn_local(async move {
+        let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+        let result = crate::ipc::tauri_invoke("recovery_check", empty_args).await;
+        if let Ok(status) =
+            serde_wasm_bindgen::from_value::<crate::components::recovery::session::RecoveryStatus>(result)
+        {
+            if status.crashed {
+                // Never silently discard recoverable work — surface a banner.
+                set_pending_recovery.set(Some(status));
+            } else if let Some(session) = status.session {
+                // Clean shutdown with a saved session: restore automatically.
+                if let Some(mode) = session.view_mode.as_deref() {
+                    set_view_mode.set(parse_view_mode(mode));
+                }
+                if let Some(note) = session.active_note.clone() {
+                    set_active_note.set(Some(note));
+                }
+                if let Some(cursor) = session.cursor_pos {
+                    set_editor_cursor.set(cursor);
+                }
+                if let Some(scroll) = session.scroll_top {
+                    set_editor_scroll.set(scroll);
+                }
+                if let Some(left) = session.left_sidebar {
+                    set_show_left_sidebar.set(left);
+                }
+                if let Some(right) = session.right_inspector {
+                    set_show_right_inspector.set(right);
+                }
+            }
+        }
+    });
+
+    // Persist the session (debounced) whenever any workspace field changes.
+    let (session_dirty, set_session_dirty) = signal(0u32);
+    Effect::new(move |_| {
+        let _ = view_mode.get();
+        let _ = show_left_sidebar.get();
+        let _ = show_right_inspector.get();
+        let _ = active_note.get();
+        let _ = editor_cursor.get();
+        let _ = editor_scroll.get();
+        set_session_dirty.update(|v| *v = v.wrapping_add(1));
+    });
+    Effect::new(move |_| {
+        let _ = session_dirty.get();
+        set_timeout(
+            move || {
+                let state = session_state_from(
+                    view_mode.get(),
+                    active_note.get(),
+                    editor_cursor.get(),
+                    editor_scroll.get(),
+                    show_left_sidebar.get(),
+                    show_right_inspector.get(),
+                );
+                crate::components::recovery::session::session_save(&state);
+            },
+            std::time::Duration::from_millis(800),
+        );
+    });
+
+    // Saving the session right before the window unloads catches the latest
+    // cursor / scroll position.
+    let beforeunload_handle = window_event_listener_untyped("beforeunload", move |_| {
+        let state = session_state_from(
+            view_mode.get(),
+            active_note.get(),
+            editor_cursor.get(),
+            editor_scroll.get(),
+            show_left_sidebar.get(),
+            show_right_inspector.get(),
+        );
+        crate::components::recovery::session::session_save(&state);
+    });
+    on_cleanup(move || beforeunload_handle.remove());
+
+    // Restore-session action from the recovery banner.
+    let restore_session = Callback::new(move |session: crate::components::recovery::session::SessionState| {
+        if let Some(mode) = session.view_mode.as_deref() {
+            set_view_mode.set(parse_view_mode(mode));
+        }
+        if let Some(note) = session.active_note.clone() {
+            set_active_note.set(Some(note));
+        }
+        if let Some(cursor) = session.cursor_pos {
+            set_editor_cursor.set(cursor);
+        }
+        if let Some(scroll) = session.scroll_top {
+            set_editor_scroll.set(scroll);
+        }
+        if let Some(left) = session.left_sidebar {
+            set_show_left_sidebar.set(left);
+        }
+        if let Some(right) = session.right_inspector {
+            set_show_right_inspector.set(right);
+        }
+        toasts.success("Session restored", "Your previous workspace is back.");
+    });
+
+    let inspect_recovery = Callback::new(move |_| {
+        set_view_mode.set(ViewMode::Recovery);
+    });
 
     // On mount, check if a vault already exists via Tauri IPC
     spawn_local(async move {
@@ -103,6 +267,14 @@ pub fn App() -> impl IntoView {
         {move || if screen.get() == AppScreen::MainDashboard {
             (view! {
                 <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
+                    // Crash recovery banner (only when a previous session is pending)
+                    <div class="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
+                        <RecoveryBanner
+                            recovery=pending_recovery
+                            on_restore=restore_session
+                            on_inspect=inspect_recovery
+                        />
+                    </div>
                     // Left Ribbon Bar
                     <div class="flex-none">
                         <RibbonBar
@@ -168,8 +340,24 @@ pub fn App() -> impl IntoView {
                             >
                                 "🗑️ Trash"
                             </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::History { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::History)
+                                title="Version history"
+                            >
+                                "🕘 History"
+                            </button>
+                            <button
+                                class=move || format!("px-2.5 py-1 rounded transition-colors {}", if view_mode.get() == ViewMode::Recovery { "bg-blue-600 text-white font-medium" } else { "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50" })
+                                on:click=move |_| set_view_mode.set(ViewMode::Recovery)
+                                title="Recovery Manager"
+                            >
+                                "🛟 Recovery"
+                            </button>
 
                             <div class="flex-1"></div>
+
+                            <SaveStatusIndicator />
 
                             <button
                                 class=move || format!("px-2 py-1 rounded transition-colors {}", if history.can_undo.get() { "text-gray-200 hover:bg-gray-700/50" } else { "text-gray-600 cursor-default" })
@@ -211,7 +399,17 @@ pub fn App() -> impl IntoView {
                             {move || match view_mode.get() {
                                 ViewMode::Editor => view! {
                                     <div class="max-w-4xl mx-auto h-full">
-                                        <NoteEditor initial_content=initial_content.get() />
+                                        <NoteEditor
+                                            note_path=active_note.get().unwrap_or_default()
+                                            initial_content=initial_content.get()
+                                            on_active_note=Callback::new(move |p: String| {
+                                                if active_note.get().as_deref() != Some(p.as_str()) {
+                                                    set_active_note.set(Some(p));
+                                                }
+                                            })
+                                            on_cursor=Callback::new(move |c: u32| set_editor_cursor.set(c))
+                                            on_scroll=Callback::new(move |s: u32| set_editor_scroll.set(s))
+                                        />
                                     </div>
                                 }.into_any(),
                                 ViewMode::Graph => view! {
@@ -249,6 +447,16 @@ pub fn App() -> impl IntoView {
                                 ViewMode::Trash => view! {
                                     <div class="max-w-7xl mx-auto h-full">
                                         <Trash />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::History => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <VersionHistory />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Recovery => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <RecoveryManager />
                                     </div>
                                 }.into_any(),
                             }}

@@ -9,6 +9,7 @@ pub mod note_editor;
 pub mod note_view;
 pub mod pdf_viewer;
 pub mod reading_queue;
+pub mod recovery;
 pub mod relation_editor;
 pub mod sandboxed_html;
 pub mod settings;

@@ -41,7 +41,9 @@ pub fn EmptyState(
     /// Extra utility classes.
     #[prop(optional)]
     class: Option<&'static str>,
-    children: ChildrenFn,
+    /// Optional children (most empty states render without any).
+    #[prop(optional)]
+    children: Option<ChildrenFn>,
 ) -> impl IntoView {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     view! {
@@ -49,7 +51,7 @@ pub fn EmptyState(
             {icon.map(|i| view! { <div class="empty-state-icon" aria-hidden="true">{i}</div> }.into_any())}
             <div class="empty-state-title">{title}</div>
             {description.map(|d| view! { <div class="empty-state-desc">{d}</div> }.into_any())}
-            {children()}
+            {children.map(|c| c())}
         </div>
     }
 }
