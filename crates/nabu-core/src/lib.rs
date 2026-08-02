@@ -29,6 +29,7 @@ pub mod capture;
 pub mod diagnostics;
 pub mod event_bus;
 pub mod graph;
+pub mod history;
 pub mod indexer;
 pub mod jobs;
 pub mod models;
@@ -48,6 +49,8 @@ pub use capture::*;
 pub use event_bus::*;
 #[allow(ambiguous_glob_reexports)]
 pub use graph::*;
+#[allow(ambiguous_glob_reexports)]
+pub use history::*;
 #[allow(ambiguous_glob_reexports)]
 pub use indexer::*;
 #[allow(ambiguous_glob_reexports)]

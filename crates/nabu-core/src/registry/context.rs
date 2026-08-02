@@ -255,6 +255,11 @@ impl ApplicationContext {
         self.resolve("storage_manager")
     }
 
+    /// Returns the universal history manager if registered.
+    pub fn history_manager(&self) -> Option<Arc<std::sync::RwLock<crate::history::HistoryManager>>> {
+        self.resolve("history_manager")
+    }
+
     /// Returns the performance monitor if registered.
     pub fn performance_monitor(&self) -> Option<Arc<PerformanceMonitor>> {
         self.resolve("performance_monitor")

@@ -13,7 +13,10 @@ use crate::settings::{AppSettings, SettingsStore};
 /// Validates that a file path is within the vault directory.
 /// Prevents path traversal attacks by ensuring the resolved path
 /// is a descendant of the vault path.
-fn validate_path_within_vault(vault_path: &Path, user_path: &str) -> Result<PathBuf, String> {
+pub(crate) fn validate_path_within_vault(
+    vault_path: &Path,
+    user_path: &str,
+) -> Result<PathBuf, String> {
     let resolved = vault_path.join(user_path);
     let canonical = resolved
         .canonicalize()
@@ -431,6 +434,7 @@ pub fn note_create_file(
     path: String,
     content: Option<String>,
     store: State<'_, SettingsStore>,
+    ctx: State<'_, ApplicationContext>,
 ) -> Result<(), String> {
     let content = content.unwrap_or_default();
     let settings = store.get();
@@ -449,7 +453,35 @@ pub fn note_create_file(
                 .map_err(|e| format!("Failed to create directories: {}", e))?;
         }
     }
-    std::fs::write(&safe_path, content).map_err(|e| e.to_string())?;
+    std::fs::write(&safe_path, &content).map_err(|e| e.to_string())?;
+
+    // Register an undoable history entry so creation can be reversed.
+    let undo_path = safe_path.clone();
+    let redo_path = safe_path.clone();
+    let redo_content = content.clone();
+    crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::NoteCreate,
+        format!("Create Note '{}'", path),
+        vec![path.clone()],
+        serde_json::json!({ "path": path, "exists": false }),
+        serde_json::json!({ "path": path, "exists": true }),
+        std::sync::Arc::new(move || {
+            if undo_path.exists() {
+                std::fs::remove_file(&undo_path).map_err(|e| e.to_string())?;
+            }
+            Ok(())
+        }),
+        std::sync::Arc::new(move || {
+            if let Some(parent) = redo_path.parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                }
+            }
+            std::fs::write(&redo_path, &redo_content).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+    )?;
     Ok(())
 }
 
@@ -601,8 +633,37 @@ pub fn inbox_approve(ctx: State<'_, ApplicationContext>, id: String) -> Result<(
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
 
+    let previous = custom_text(&obj, "inbox_status").unwrap_or_else(|| "pending".to_string());
     set_custom_text(&mut obj, "inbox_status", "approved");
     manager.save(&obj).map_err(|e| e.to_string())?;
+
+    // Undo flips back to the previous status; redo re-approves.
+    let manager_undo = manager.clone();
+    let manager_redo = manager.clone();
+    crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::Metadata,
+        "Approve Inbox Item".to_string(),
+        vec![id.clone()],
+        serde_json::json!({ "inbox_status": previous }),
+        serde_json::json!({ "inbox_status": "approved" }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_undo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during undo".to_string())?;
+            set_custom_text(&mut o, "inbox_status", &previous);
+            manager_undo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_redo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during redo".to_string())?;
+            set_custom_text(&mut o, "inbox_status", "approved");
+            manager_redo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+    )?;
     Ok(())
 }
 
@@ -618,9 +679,40 @@ pub fn inbox_reject(
         .load(object_id)
         .ok_or_else(|| format!("Inbox item not found: {}", id))?;
 
+    let previous_status =
+        custom_text(&obj, "inbox_status").unwrap_or_else(|| "pending".to_string());
+    let previous_reason = custom_text(&obj, "rejection_reason").unwrap_or_default();
     set_custom_text(&mut obj, "inbox_status", "rejected");
     set_custom_text(&mut obj, "rejection_reason", &reason);
     manager.save(&obj).map_err(|e| e.to_string())?;
+
+    let manager_undo = manager.clone();
+    let manager_redo = manager.clone();
+    crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::Metadata,
+        "Reject Inbox Item".to_string(),
+        vec![id.clone()],
+        serde_json::json!({ "inbox_status": previous_status }),
+        serde_json::json!({ "inbox_status": "rejected", "rejection_reason": reason }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_undo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during undo".to_string())?;
+            set_custom_text(&mut o, "inbox_status", &previous_status);
+            set_custom_text(&mut o, "rejection_reason", &previous_reason);
+            manager_undo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_redo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during redo".to_string())?;
+            set_custom_text(&mut o, "inbox_status", "rejected");
+            manager_redo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+    )?;
     Ok(())
 }
 
@@ -805,8 +897,38 @@ pub fn queue_set_status(
         .ok_or_else(|| format!("Object not found: {}", id))?;
 
     let status = QueueStatus::from_label(&status);
-    set_custom_text(&mut obj, "reading_status", status.label());
+    let previous =
+        custom_text(&obj, "reading_status").unwrap_or_else(|| QueueStatus::Unread.label().to_string());
+    let new_label = status.label().to_string();
+    set_custom_text(&mut obj, "reading_status", &new_label);
     manager.save(&obj).map_err(|e| e.to_string())?;
+
+    let manager_undo = manager.clone();
+    let manager_redo = manager.clone();
+    crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::Metadata,
+        format!("Mark '{}' {}", obj.metadata.title.as_deref().unwrap_or("item"), new_label),
+        vec![id.clone()],
+        serde_json::json!({ "reading_status": previous }),
+        serde_json::json!({ "reading_status": new_label }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_undo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during undo".to_string())?;
+            set_custom_text(&mut o, "reading_status", &previous);
+            manager_undo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+        std::sync::Arc::new(move || {
+            let mut o = manager_redo
+                .load(object_id)
+                .ok_or_else(|| "Object not found during redo".to_string())?;
+            set_custom_text(&mut o, "reading_status", &new_label);
+            manager_redo.save(&o).map_err(|e| e.to_string())?;
+            Ok(())
+        }),
+    )?;
     Ok(())
 }
 

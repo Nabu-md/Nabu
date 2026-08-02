@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub mod components;
+pub mod history;
 pub mod ipc;
 pub mod models;
 pub mod tree;
@@ -12,7 +13,13 @@ pub mod tree;
 pub fn start() {
     console_error_panic_hook::set_once();
     remove_boot_splash();
-    mount_to_body(|| view! { <App /> });
+    mount_to_body(|| {
+        view! {
+            <crate::components::ui::feedback::ToastProvider>
+                <App />
+            </crate::components::ui::feedback::ToastProvider>
+        }
+    });
 }
 
 /// Removes the static boot splash element from `index.html` once the app is

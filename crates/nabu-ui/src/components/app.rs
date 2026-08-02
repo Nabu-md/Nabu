@@ -32,6 +32,10 @@ pub enum ViewMode {
 #[component]
 pub fn App() -> impl IntoView {
     crate::provide_theme("dark".to_string());
+    crate::history::provide_history();
+
+    let history = crate::history::use_history();
+    let toasts = crate::components::ui::feedback::use_toast();
 
     let (screen, set_screen) = signal(AppScreen::Loading);
     let (_vault_path, set_vault_path) = signal(String::new());
@@ -157,6 +161,25 @@ pub fn App() -> impl IntoView {
                             </button>
 
                             <div class="flex-1"></div>
+
+                            <button
+                                class=move || format!("px-2 py-1 rounded transition-colors {}", if history.can_undo.get() { "text-gray-200 hover:bg-gray-700/50" } else { "text-gray-600 cursor-default" })
+                                on:click=move |_| crate::history::undo(history, toasts)
+                                title="Undo (Cmd/Ctrl+Z)"
+                                aria-label="Undo"
+                                disabled=move || !history.can_undo.get()
+                            >
+                                "↶"
+                            </button>
+                            <button
+                                class=move || format!("px-2 py-1 rounded transition-colors {}", if history.can_redo.get() { "text-gray-200 hover:bg-gray-700/50" } else { "text-gray-600 cursor-default" })
+                                on:click=move |_| crate::history::redo(history, toasts)
+                                title="Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)"
+                                aria-label="Redo"
+                                disabled=move || !history.can_redo.get()
+                            >
+                                "↷"
+                            </button>
 
                             <button
                                 class="px-2 py-1 text-gray-400 hover:text-gray-200 rounded hover:bg-gray-700/50"

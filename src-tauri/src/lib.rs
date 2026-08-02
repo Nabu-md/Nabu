@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod history;
 pub mod native_messaging;
 pub mod native_messaging_socket;
 pub mod settings;
@@ -144,7 +145,13 @@ fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
     ));
     ctx.register("vault_graph", vault_graph.clone());
 
-    // ---- 10. Canonical event flow: ITEM_STORED → Indexer + VaultGraph ----
+    // ---- 10. One HistoryManager (universal undo/redo) ----
+    let history_manager = Arc::new(RwLock::new(
+        nabu_core::history::HistoryManager::new(),
+    ));
+    ctx.register("history_manager", history_manager.clone());
+
+    // ---- 11. Canonical event flow: ITEM_STORED → Indexer + VaultGraph ----
     // StorageManager.save() publishes ITEM_STORED after persistence. These
     // subscribers are the ONLY consumers of that event: they index the stored
     // object and add it to the graph. No side paths, no skipped stages.
@@ -204,6 +211,18 @@ pub fn run() {
             crate::commands::open_settings,
             crate::commands::note_create_file,
             crate::commands::note_daily,
+            crate::history::history_status,
+            crate::history::history_undo,
+            crate::history::history_redo,
+            crate::history::history_clear,
+            crate::history::history_set_depth,
+            crate::history::note_rename,
+            crate::history::note_delete,
+            crate::history::note_restore,
+            crate::history::trash_list,
+            crate::history::trash_empty,
+            crate::history::folder_create,
+            crate::history::folder_rename,
             crate::commands::get_settings,
             crate::commands::settings_get,
             crate::commands::settings_set,
