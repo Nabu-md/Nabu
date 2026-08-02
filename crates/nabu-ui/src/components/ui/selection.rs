@@ -108,10 +108,11 @@ pub fn Switch(
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     let cb = on_change;
     view! {
-        <label class=format!("switch{extra}") aria-label=label>
+        <label class=format!("switch{extra}")>
             <input
                 type="checkbox"
                 role="switch"
+                aria-label=label
                 prop:checked=checked
                 disabled=disabled
                 on:change=move |ev| {
@@ -166,20 +167,22 @@ pub fn Segmented(
     view! {
         <div class=format!("segmented{extra}") role="radiogroup">
             {options.into_iter().map(|opt| {
-                let value = opt.value.clone();
+                let value_checked = opt.value.clone();
+                let value_class = opt.value.clone();
+                let value_click = opt.value.clone();
                 let label = opt.label.clone();
                 let on_click_cb = cb;
                 view! {
                     <button
                         type="button"
                         role="radio"
-                        aria-checked=move || selected.get() == value
-                        class=move || if selected.get() == value { "segmented-active" } else { "" }
+                        aria-checked=move || selected.get() == value_checked
+                        class=move || if selected.get() == value_class { "segmented-active" } else { "" }
                         disabled=disabled
                         on:click=move |_| {
-                            selected.set(value.clone());
+                            selected.set(value_click.clone());
                             if let Some(cb) = on_click_cb.as_ref() {
-                                cb.run(value.clone());
+                                cb.run(value_click.clone());
                             }
                         }
                     >

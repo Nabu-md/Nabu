@@ -1,3 +1,4 @@
+use crate::components::ui::button::IconButton;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -21,54 +22,58 @@ pub fn RibbonBar(
 ) -> impl IntoView {
     let (enabled, _set_enabled) = signal(false);
 
-    let handle_open_graph = move |_| {
+    let open_sidebar = Callback::new(move |_| {
+        if let Some(ref f) = set_show_sidebar {
+            f(true);
+        }
+    });
+
+    let open_graph = Callback::new(move |_| {
         if let Some(ref f) = set_view_mode {
             f(crate::components::app::ViewMode::Graph);
         }
-    };
+    });
 
-    let handle_toggle_dictation = move |_| {
+    let toggle_dictation = Callback::new(move |_| {
         spawn_local(async move {
             let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
             let _ = crate::ipc::tauri_invoke("toggle_dictation_pill", empty_args).await;
         });
-    };
+    });
 
-    let handle_open_settings = move |_| {
+    let open_settings = Callback::new(move |_| {
         spawn_local(async move {
             let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
             let _ = crate::ipc::tauri_invoke("open_settings", empty_args).await;
         });
-    };
+    });
+
+    let daily_note = Callback::new(move |_| {
+        spawn_local(async move {
+            let _ = crate::ipc::tauri_invoke(
+                "note_daily",
+                serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+            )
+            .await;
+        });
+    });
 
     view! {
         <div class="w-12 h-screen border-r border-gray-700 bg-gray-900 flex flex-col items-center py-4 space-y-4">
-            <button title="Vault Explorer" on:click=move |_| {
-                if let Some(ref f) = set_show_sidebar {
-                    f(true);
-                }
-            }>"📁"</button>
-            <button title="Global Search" on:click=move |_| {
-                spawn_local(async move {
-                    // TODO: wire search command when implemented
-                });
-            }>"🔍"</button>
-            <button title="Graph View" on:click=handle_open_graph>"🕸️"</button>
+            <IconButton title="Vault Explorer" on_click=open_sidebar>"📁"</IconButton>
+            <IconButton title="Global Search">"🔍"</IconButton>
+            <IconButton title="Graph View" on_click=open_graph>"🕸️"</IconButton>
             {move || if enabled.get() {
                 view! {
-                    <button title="Daily Note" on:click=move |_| {
-                        spawn_local(async move {
-                            let _ = crate::ipc::tauri_invoke("note_daily", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await;
-                        });
-                    }>"📅"</button>
+                    <IconButton title="Daily Note" on_click=daily_note>"📅"</IconButton>
                 }.into_any()
             } else {
                 view! {}.into_any()
             }}
-            <button title="Dictation" on:click=handle_toggle_dictation>"🎤"</button>
-            <button title="Canvas" on:click=move |_| println!("Open Canvas")>"🎨"</button>
+            <IconButton title="Dictation" on_click=toggle_dictation>"🎤"</IconButton>
+            <IconButton title="Canvas">"🎨"</IconButton>
             <div class="flex-grow"></div>
-            <button title="Settings" on:click=handle_open_settings>"⚙️"</button>
+            <IconButton title="Settings" on_click=open_settings>"⚙️"</IconButton>
         </div>
     }
 }

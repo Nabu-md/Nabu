@@ -42,14 +42,14 @@ pub fn Tabs(
                 let id_for_active = id.clone();
                 let id_for_click = id.clone();
                 let label = tab.label.clone();
-                let is_active = move || active.get() == id_for_active;
+                let is_active = Memo::new(move |_| active.get() == id_for_active);
                 let on_click_cb = cb;
                 view! {
                     <button
                         type="button"
                         role="tab"
-                        aria-selected=move || is_active()
-                        class=move || format!("tab{}", if is_active() { " tab-active" } else { "" })
+                        aria-selected=move || is_active.get()
+                        class=move || format!("tab{}", if is_active.get() { " tab-active" } else { "" })
                         on:click=move |_| {
                             active.set(id_for_click.clone());
                             if let Some(cb) = on_click_cb.as_ref() {
@@ -110,7 +110,7 @@ pub fn Breadcrumbs(
                     } else {
                         view! {
                             <button type="button" class="breadcrumb-link" on:click=move |_| {
-                                if let Some(cb) = on_click { cb.run(()); }
+                                if let Some(cb) = on_click.as_ref() { cb.run(()); }
                             }>
                                 {label}
                             </button>
@@ -147,16 +147,21 @@ pub fn SidebarItem(
     if active {
         base.push_str(" sidebar-item-active");
     }
-    let indent_class = indent
-        .map(|lvl| format!(" pl-{}", lvl * 4))
-        .unwrap_or_default();
+    // Static class literals so Tailwind's scanner picks them up (no dynamic
+    // class-name construction).
+    let indent_class = match indent {
+        Some(1) => " pl-4",
+        Some(2) => " pl-8",
+        Some(3) => " pl-12",
+        _ => "",
+    };
     view! {
         <button
             type="button"
             class=format!("{base}{indent_class}")
             aria-current=move || if active { Some("page") } else { None }
             on:click=move |_| {
-                if let Some(cb) = on_click { cb.run(()); }
+                if let Some(cb) = on_click.as_ref() { cb.run(()); }
             }
         >
             {icon.map(|i| view! { <span class="text-sm" aria-hidden="true">{i}</span> }.into_any())}
@@ -192,7 +197,7 @@ pub fn ToolbarButton(
             aria-pressed=move || active
             disabled=disabled
             on:click=move |_| {
-                if let Some(cb) = on_click { cb.run(()); }
+                if let Some(cb) = on_click.as_ref() { cb.run(()); }
             }
         >
             {label}

@@ -1,18 +1,25 @@
+use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
+use crate::components::ui::nav::{TabDef, Tabs};
 use leptos::prelude::*;
 
 #[component]
 pub fn TabBar() -> impl IntoView {
+    let active = RwSignal::new("note-1".to_string());
+    let tabs = vec![
+        TabDef::new("note-1", "Note 1"),
+        TabDef::new("note-2", "Note 2"),
+    ];
     view! {
         <div class="flex border-b border-gray-700 bg-gray-900 h-9 items-center px-1">
-            <div class="group flex items-center px-3 py-1 bg-gray-800 border-t-2 border-primary text-sm text-white rounded-t h-full">
-                "Note 1"
-                <button class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">"×"</button>
-            </div>
-            <div class="group flex items-center px-3 py-1 text-sm text-gray-400 h-full hover:bg-gray-800 rounded-t">
-                "Note 2"
-                <button class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">"×"</button>
-            </div>
-            <button class="ml-2 text-gray-400 hover:text-white">"+"</button>
+            <Tabs tabs=tabs active=active />
+            <Button
+                variant=ButtonVariant::Ghost
+                size=ButtonSize::Sm
+                title="New note"
+                aria_label="New note"
+            >
+                "+"
+            </Button>
         </div>
     }
 }

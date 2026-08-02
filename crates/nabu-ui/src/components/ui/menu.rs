@@ -64,12 +64,18 @@ pub fn DropdownMenu(
 ) -> impl IntoView {
     let (open, set_open) = signal(false);
     let menu_extra = menu_class.map(|c| format!(" {c}")).unwrap_or_default();
-    let trigger_classes = trigger_class.unwrap_or("").to_string();
     view! {
-        <div class="relative inline-block">
+        <div
+            class="relative inline-block"
+            on:keydown=move |ev| {
+                if ev.key() == "Escape" {
+                    set_open.set(false);
+                }
+            }
+        >
             <Button
                 variant=ButtonVariant::Ghost
-                class=trigger_classes
+                class=trigger_class.unwrap_or("")
                 aria_haspopup="menu"
                 aria_expanded=open
                 on_click=Callback::new(move |_| set_open.update(|o| *o = !*o))
@@ -102,16 +108,15 @@ pub fn OverflowMenu(
     menu_class: Option<&'static str>,
     children: ChildrenFn,
 ) -> impl IntoView {
-    let menu_classes = menu_class.unwrap_or("").to_string();
     view! {
-        <DropdownMenu trigger="⋯" trigger_class="btn-icon" menu_class=menu_classes>
+        <DropdownMenu trigger="⋯".to_string() trigger_class="btn-icon" menu_class=menu_class.unwrap_or("")>
             {children()}
         </DropdownMenu>
     }
 }
 
 /// One command entry in a [`CommandMenu`].
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct CommandItem {
     pub id: String,
     pub label: String,
@@ -263,7 +268,12 @@ pub fn CommandMenu(
 
 /// Context menu — right-click on the trigger opens a floating menu at the cursor.
 #[component]
-pub fn ContextMenu(children: ChildrenFn) -> impl IntoView {
+pub fn ContextMenu(
+    /// The right-click target content.
+    children: ChildrenFn,
+    /// Items rendered inside the floating menu (e.g. [`MenuItem`]s).
+    menu_items: ChildrenFn,
+) -> impl IntoView {
     let (open, set_open) = signal(false);
     let (pos, set_pos) = signal((0.0, 0.0));
     view! {
@@ -293,7 +303,7 @@ pub fn ContextMenu(children: ChildrenFn) -> impl IntoView {
                     style=move || format!("left: {}px; top: {}px;", pos.get().0, pos.get().1)
                     on:click=move |_| set_open.set(false)
                 >
-                    {children()}
+                    {menu_items()}
                 </div>
             }.into_any()
         } else {

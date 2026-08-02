@@ -1,3 +1,5 @@
+use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::selection::{Segmented, SegmentedOption};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::DragEvent;
@@ -5,7 +7,7 @@ use web_sys::DragEvent;
 #[component]
 pub fn DictationPill() -> impl IntoView {
     let (scratchpad, set_scratchpad) = signal(String::new());
-    let (mode, set_mode) = signal("dictation".to_string());
+    let mode = RwSignal::new("dictation".to_string());
     let (_opacity, set_opacity) = signal(0.8_f32);
 
     // Load settings for opacity
@@ -22,8 +24,42 @@ pub fn DictationPill() -> impl IntoView {
     let (is_dictating, set_is_dictating) = signal(false);
     let (is_dragging, set_is_dragging) = signal(false);
 
+    let mode_options = vec![
+        SegmentedOption::new("dictation", "Dictation"),
+        SegmentedOption::new("scratchpad", "Scratchpad"),
+        SegmentedOption::new("drop", "Drop Zone"),
+    ];
+
+    let open_settings = Callback::new(move |_| {
+        spawn_local(async move {
+            let _ = crate::ipc::tauri_invoke(
+                "open_settings",
+                serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+            )
+            .await;
+        });
+    });
+
+    let toggle_dictation = Callback::new(move |_| {
+        set_is_dictating.set(!is_dictating.get());
+        spawn_local(async move {
+            let _ = crate::ipc::tauri_invoke(
+                "start_dictation",
+                serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
+            )
+            .await;
+        });
+    });
+
+    let drag_class = move || {
+        if is_dragging.get() {
+            "scale-105 border-4 border-blue-500"
+        } else {
+            ""
+        }
+    };
     view! {
-        <div class=move || format!("dictation-pill transition-all {}", if is_dragging.get() { "scale-105 border-4 border-blue-500" } else { "" })
+        <div class=move || format!("dictation-pill transition-all {}", drag_class())
              on:mouseenter=move |_| set_opacity.set(1.0)
              on:mouseleave=move |_| set_opacity.set(0.8)
              on:dragenter=move |_| set_is_dragging.set(true)
@@ -42,29 +78,18 @@ pub fn DictationPill() -> impl IntoView {
                 view! {}.into_any()
             }}
 
-            <div class="mode-selector">
-                <button on:click=move |_| set_mode.set("dictation".to_string())>"Dictation"</button>
-                <button on:click=move |_| set_mode.set("scratchpad".to_string())>"Scratchpad"</button>
-                <button on:click=move |_| set_mode.set("drop".to_string())>"Drop Zone"</button>
-            </div>
+            <Segmented options=mode_options selected=mode class="mode-selector" />
 
-            <button on:click=move |_| {
-            }>"📋"</button>
-            <button on:click=move |_| {
-                spawn_local(async move {
-                    let _ = crate::ipc::tauri_invoke("open_settings", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await;
-                });
-            }>"⚙️"</button>
+            <Button variant=ButtonVariant::Ghost aria_label="Copy to clipboard">"📋"</Button>
+            <Button variant=ButtonVariant::Ghost aria_label="Open settings" on_click=open_settings>"⚙️"</Button>
             {move || match mode.get().as_str() {
                 "dictation" => view! {
-                    <button on:click=move |_| {
-                        set_is_dictating.set(!is_dictating.get());
-                        spawn_local(async move {
-                            let _ = crate::ipc::tauri_invoke("start_dictation", serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap()).await;
-                        });
-                    }>
+                    <Button
+                        variant=ButtonVariant::Primary
+                        on_click=toggle_dictation
+                    >
                         {move || if is_dictating.get() { "Stop" } else { "Record" }}
-                    </button>
+                    </Button>
                 }.into_any(),
                 "scratchpad" => view! {
                     <textarea

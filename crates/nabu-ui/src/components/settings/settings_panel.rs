@@ -1,3 +1,6 @@
+use crate::components::ui::button::Button;
+use crate::components::ui::nav::SidebarItem;
+use crate::components::ui::selection::{Checkbox, Select, SelectOption};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
@@ -86,21 +89,20 @@ pub fn SettingsPanel() -> impl IntoView {
 
     view! {
         <div class="settings-panel flex h-full">
-            <div class="tabs w-1/4 border-r border-gray-700 bg-gray-900 p-4">
-                {tabs.iter().map(|tab_str| {
+            <nav class="w-1/4 border-r border-gray-700 bg-gray-900 p-2 flex flex-col gap-0.5" aria-label="Settings sections">
+                {move || tabs.iter().map(|tab_str| {
                     let tab = tab_str.to_string();
-                    let tab_for_class = tab.clone();
-                    let tab_for_click = tab.clone();
+                    let tab_click = tab.clone();
+                    let is_active = active_tab.get() == tab;
                     view! {
-                        <button
-                            class=move || format!("block w-full text-left p-2 {}", if active_tab.get() == tab_for_class { "bg-gray-800 text-white" } else { "text-gray-400" })
-                            on:click=move |_| set_active_tab.set(tab_for_click.clone())
-                        >
-                            {tab}
-                        </button>
+                        <SidebarItem
+                            label=tab
+                            active=is_active
+                            on_click=Callback::new(move |_| set_active_tab.set(tab_click.clone()))
+                        />
                     }
                 }).collect_view()}
-            </div>
+            </nav>
             <div class="content w-3/4 p-4 text-white">
                 {move || match active_tab.get().as_str() {
                     "General & Modules" => view! { <GeneralSettings settings=settings save=save_settings /> }.into_any(),
@@ -116,6 +118,34 @@ pub fn SettingsPanel() -> impl IntoView {
     }
 }
 
+/// Two-way check helper: builds a `Checkbox` bound to a bool settings field.
+#[component]
+fn SettingCheckbox(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+    label: &'static str,
+    get: Callback<AppSettings, bool>,
+    set: Callback<(AppSettings, bool), ()>,
+) -> impl IntoView {
+    let checked = RwSignal::new(get.run(settings.get()));
+    Effect::new(move |_| {
+        let current = get.run(settings.get());
+        if checked.get_untracked() != current {
+            checked.set(current);
+        }
+    });
+    let on_change = Callback::new(move |new_value: bool| {
+        checked.set(new_value);
+        let s = settings.get();
+        set.run((s.clone(), new_value));
+        settings.set(s.clone());
+        save.run(s);
+    });
+    view! {
+        <Checkbox checked=checked on_change=on_change label=label.to_string() />
+    }
+}
+
 #[component]
 fn GeneralSettings(
     settings: RwSignal<AppSettings>,
@@ -124,20 +154,22 @@ fn GeneralSettings(
     view! {
         <h2 class="text-xl font-bold mb-4">"General & Modules"</h2>
         <div class="space-y-4">
-            <div><label>"Vault Location: " {move || settings.get().last_vault_path}</label></div>
-            <button class="bg-gray-700 p-2 rounded">"Change Vault..."</button>
-            <label class="block"><input type="checkbox" checked=move || settings.get().enable_daily_notes on:change=move |ev| {
-                let mut s = settings.get();
-                s.enable_daily_notes = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Enable Daily Notes"</label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().launch_at_startup on:change=move |ev| {
-                let mut s = settings.get();
-                s.launch_at_startup = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Launch at Startup"</label>
+            <div><label class="text-sm text-gray-400">"Vault Location: " {move || settings.get().last_vault_path}</label></div>
+            <Button>"Change Vault..."</Button>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Enable Daily Notes"
+                get=Callback::new(|s: AppSettings| s.enable_daily_notes)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.enable_daily_notes = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Launch at Startup"
+                get=Callback::new(|s: AppSettings| s.launch_at_startup)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.launch_at_startup = v)
+            />
         </div>
     }
 }
@@ -150,41 +182,43 @@ fn EditorSettings(
     view! {
         <h2 class="text-xl font-bold mb-4">"Editor & Notion Block Menu"</h2>
         <div class="space-y-4">
-            <label class="block">"Editing Mode: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().editor_mode on:change=move |ev| {
-                let mut s = settings.get();
-                s.editor_mode = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"Live Preview"</option>
-                <option>"Source Markdown"</option>
-            </select>
-            </label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().auto_pair_brackets on:change=move |ev| {
-                let mut s = settings.get();
-                s.auto_pair_brackets = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Auto-pair brackets"</label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().show_line_numbers on:change=move |ev| {
-                let mut s = settings.get();
-                s.show_line_numbers = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Show line numbers"</label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().convert_pasted_html_to_markdown on:change=move |ev| {
-                let mut s = settings.get();
-                s.convert_pasted_html_to_markdown = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Convert pasted HTML to Markdown"</label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().enable_notion_slash_menu on:change=move |ev| {
-                let mut s = settings.get();
-                s.enable_notion_slash_menu = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Enable Notion Slash Menu"</label>
+            <Select
+                label="Editing Mode"
+                options=vec![
+                    SelectOption::new("Live Preview", "Live Preview"),
+                    SelectOption::new("Source Markdown", "Source Markdown"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.editor_mode.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.editor_mode = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Auto-pair brackets"
+                get=Callback::new(|s: AppSettings| s.auto_pair_brackets)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.auto_pair_brackets = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Show line numbers"
+                get=Callback::new(|s: AppSettings| s.show_line_numbers)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.show_line_numbers = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Convert pasted HTML to Markdown"
+                get=Callback::new(|s: AppSettings| s.convert_pasted_html_to_markdown)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.convert_pasted_html_to_markdown = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Enable Notion Slash Menu"
+                get=Callback::new(|s: AppSettings| s.enable_notion_slash_menu)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.enable_notion_slash_menu = v)
+            />
         </div>
     }
 }
@@ -197,32 +231,37 @@ fn WhisprSettings(
     view! {
         <h2 class="text-xl font-bold mb-4">"Whispr AI & Voice Dictation"</h2>
         <div class="space-y-4">
-            <label class="block">"Model: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().whisper_model on:change=move |ev| {
-                let mut s = settings.get();
-                s.whisper_model = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"ggml-tiny.en.bin"</option>
-                <option>"ggml-base.en.bin"</option>
-                <option>"ggml-small.en-q5_0.bin"</option>
-            </select>
+            <Select
+                label="Model"
+                options=vec![
+                    SelectOption::new("ggml-tiny.en.bin", "ggml-tiny.en.bin"),
+                    SelectOption::new("ggml-base.en.bin", "ggml-base.en.bin"),
+                    SelectOption::new("ggml-small.en-q5_0.bin", "ggml-small.en-q5_0.bin"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.whisper_model.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.whisper_model = v)
+            />
+            <label class="field">
+                <span class="field-label">"Voice Hotkey"</span>
+                <input
+                    type="text"
+                    class="input"
+                    prop:value=derive_string_field(settings, |s: &AppSettings| s.voice_hotkey.clone())
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.voice_hotkey = event_target_value(&ev);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
             </label>
-            <label class="block">"Voice Hotkey: "
-            <input type="text" class="bg-gray-800 p-1" prop:value=move || settings.get().voice_hotkey on:change=move |ev| {
-                let mut s = settings.get();
-                s.voice_hotkey = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/>
-            </label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().auto_format_filler_words on:change=move |ev| {
-                let mut s = settings.get();
-                s.auto_format_filler_words = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Auto-format filler words"</label>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Auto-format filler words"
+                get=Callback::new(|s: AppSettings| s.auto_format_filler_words)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.auto_format_filler_words = v)
+            />
         </div>
     }
 }
@@ -235,40 +274,57 @@ fn AppearanceSettings(
     view! {
         <h2 class="text-xl font-bold mb-4">"Appearance & Opacity Controls"</h2>
         <div class="space-y-4">
-            <label class="block">"Theme: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().theme on:change=move |ev| {
-                let mut s = settings.get();
-                s.theme = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"Dark"</option>
-                <option>"Light"</option>
-                <option>"System Sync"</option>
-            </select>
+            <Select
+                label="Theme"
+                options=vec![
+                    SelectOption::new("Dark", "Dark"),
+                    SelectOption::new("Light", "Light"),
+                    SelectOption::new("System Sync", "System Sync"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.theme.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.theme = v)
+            />
+            <label class="field">
+                <span class="field-label">"Main Window Opacity"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="0.2"
+                    max="1.0"
+                    step="0.05"
+                    prop:value=move || settings.get().main_window_opacity.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.main_window_opacity = event_target_value(&ev).parse().unwrap_or(1.0);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
             </label>
-            <label class="block">"Main Window Opacity: "
-            <input type="range" class="w-full" min="0.2" max="1.0" step="0.05" prop:value=move || settings.get().main_window_opacity on:change=move |ev| {
-                let mut s = settings.get();
-                s.main_window_opacity = event_target_value(&ev).parse().unwrap_or(1.0);
-                settings.set(s.clone());
-                save.run(s);
-            }/>
+            <label class="field">
+                <span class="field-label">"Floating Pill Opacity"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="0.2"
+                    max="1.0"
+                    step="0.05"
+                    prop:value=move || settings.get().floating_pill_opacity.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.floating_pill_opacity = event_target_value(&ev).parse().unwrap_or(0.8);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
             </label>
-            <label class="block">"Floating Pill Opacity: "
-            <input type="range" class="w-full" min="0.2" max="1.0" step="0.05" prop:value=move || settings.get().floating_pill_opacity on:change=move |ev| {
-                let mut s = settings.get();
-                s.floating_pill_opacity = event_target_value(&ev).parse().unwrap_or(0.8);
-                settings.set(s.clone());
-                save.run(s);
-            }/>
-            </label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().pill_hover_boost_opacity on:change=move |ev| {
-                let mut s = settings.get();
-                s.pill_hover_boost_opacity = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Pill Hover Focus"</label>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Pill Hover Focus"
+                get=Callback::new(|s: AppSettings| s.pill_hover_boost_opacity)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.pill_hover_boost_opacity = v)
+            />
         </div>
     }
 }
@@ -278,36 +334,33 @@ fn FileSettings(settings: RwSignal<AppSettings>, save: Callback<AppSettings, ()>
     view! {
         <h2 class="text-xl font-bold mb-4">"Files, Trash & Sandboxing"</h2>
         <div class="space-y-4">
-            <label class="block">"Default New Note Path: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().default_new_note_path on:change=move |ev| {
-                let mut s = settings.get();
-                s.default_new_note_path = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"Vault Root"</option>
-                <option>"Same Folder as Active Note"</option>
-                <option>"Custom Subfolder"</option>
-            </select>
-            </label>
-            <label class="block">"Trash Retention: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().trash_retention_policy on:change=move |ev| {
-                let mut s = settings.get();
-                s.trash_retention_policy = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"Move to System Trash"</option>
-                <option>"Move to .trash Vault Folder"</option>
-                <option>"Permanently Delete"</option>
-            </select>
-            </label>
-            <label class="block"><input type="checkbox" checked=move || settings.get().force_sandbox_for_web_snippets on:change=move |ev| {
-                let mut s = settings.get();
-                s.force_sandbox_for_web_snippets = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Sandbox Security (iframe)"</label>
+            <Select
+                label="Default New Note Path"
+                options=vec![
+                    SelectOption::new("Vault Root", "Vault Root"),
+                    SelectOption::new("Same Folder as Active Note", "Same Folder as Active Note"),
+                    SelectOption::new("Custom Subfolder", "Custom Subfolder"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.default_new_note_path.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.default_new_note_path = v)
+            />
+            <Select
+                label="Trash Retention"
+                options=vec![
+                    SelectOption::new("Move to System Trash", "Move to System Trash"),
+                    SelectOption::new("Move to .trash Vault Folder", "Move to .trash Vault Folder"),
+                    SelectOption::new("Permanently Delete", "Permanently Delete"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.trash_retention_policy.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.trash_retention_policy = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Sandbox Security (iframe)"
+                get=Callback::new(|s: AppSettings| s.force_sandbox_for_web_snippets)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.force_sandbox_for_web_snippets = v)
+            />
         </div>
     }
 }
@@ -320,39 +373,85 @@ fn GraphSettings(
     view! {
         <h2 class="text-xl font-bold mb-4">"Folder Graph & Canvas"</h2>
         <div class="space-y-4">
-            <label class="block"><input type="checkbox" checked=move || settings.get().include_folders_in_graph on:change=move |ev| {
-                let mut s = settings.get();
-                s.include_folders_in_graph = event_target_checked(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }/> " Include Folders as Hub Nodes"</label>
-            <label class="block">"Folder Click Behavior: "
-            <select class="bg-gray-800 p-1" prop:value=move || settings.get().folder_click_behavior on:change=move |ev| {
-                let mut s = settings.get();
-                s.folder_click_behavior = event_target_value(&ev);
-                settings.set(s.clone());
-                save.run(s);
-            }>
-                <option>"Open Folder Table View"</option>
-                <option>"Browse Folder"</option>
-            </select>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Include Folders as Hub Nodes"
+                get=Callback::new(|s: AppSettings| s.include_folders_in_graph)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.include_folders_in_graph = v)
+            />
+            <Select
+                label="Folder Click Behavior"
+                options=vec![
+                    SelectOption::new("Open Folder Table View", "Open Folder Table View"),
+                    SelectOption::new("Browse Folder", "Browse Folder"),
+                ]
+                value=derive_string_field(settings, |s: &AppSettings| s.folder_click_behavior.clone())
+                on_change=set_string_field(settings, save, |s: &mut AppSettings, v: String| s.folder_click_behavior = v)
+            />
+            <label class="field">
+                <span class="field-label">"Gravity Strength"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    prop:value=move || settings.get().graph_node_physics_gravity.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.graph_node_physics_gravity = event_target_value(&ev).parse().unwrap_or(0.5);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
             </label>
-            <label class="block">"Gravity Strength: "
-            <input type="range" class="w-full" min="0" max="1" step="0.1" prop:value=move || settings.get().graph_node_physics_gravity on:change=move |ev| {
-                let mut s = settings.get();
-                s.graph_node_physics_gravity = event_target_value(&ev).parse().unwrap_or(0.5);
-                settings.set(s.clone());
-                save.run(s);
-            }/>
-            </label>
-            <label class="block">"Node Spacing: "
-            <input type="range" class="w-full" min="0" max="1" step="0.1" prop:value=move || settings.get().graph_node_physics_spacing on:change=move |ev| {
-                let mut s = settings.get();
-                s.graph_node_physics_spacing = event_target_value(&ev).parse().unwrap_or(1.0);
-                settings.set(s.clone());
-                save.run(s);
-            }/>
+            <label class="field">
+                <span class="field-label">"Node Spacing"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    prop:value=move || settings.get().graph_node_physics_spacing.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.graph_node_physics_spacing = event_target_value(&ev).parse().unwrap_or(1.0);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
             </label>
         </div>
     }
+}
+
+/// Creates a derived read-only signal for a string settings field.
+fn derive_string_field(
+    settings: RwSignal<AppSettings>,
+    get: impl Fn(&AppSettings) -> String + Copy + 'static,
+) -> RwSignal<String> {
+    let signal = RwSignal::new(get(&settings.get()));
+    Effect::new(move |_| {
+        let current = get(&settings.get());
+        if signal.get_untracked() != current {
+            signal.set(current);
+        }
+    });
+    signal
+}
+
+/// Builds the write-back callback for a string settings field.
+fn set_string_field(
+    settings: RwSignal<AppSettings>,
+    save: Callback<AppSettings, ()>,
+    set: impl Fn(&mut AppSettings, String) + Copy + Send + Sync + 'static,
+) -> Callback<String, ()> {
+    Callback::new(move |new_value: String| {
+        let mut s = settings.get();
+        set(&mut s, new_value.clone());
+        settings.set(s.clone());
+        save.run(s);
+    })
 }

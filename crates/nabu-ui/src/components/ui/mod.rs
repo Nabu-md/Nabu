@@ -32,7 +32,7 @@ pub use card::{Card, CardBody, CardFooter, CardHeader, CardVariant, CollapsibleC
 pub use dialog::{AlertDialog, ConfirmDialog, Dialog, DialogSize, PromptDialog};
 pub use feedback::{
     Alert, Badge, BadgeKind, Banner, Progress, Skeleton, Spinner, SpinnerSize, StatusDot,
-    ToastKind, ToastProvider, ToastRegion, use_toast,
+    StatusKind, ToastContext, ToastItem, ToastKind, ToastProvider, ToastRegion, use_toast,
 };
 pub use info::{Callout, CalloutKind, EmptyState, HelpText, Tooltip};
 pub use input::{NumberInput, PasswordInput, SearchInput, TextInput, Textarea};

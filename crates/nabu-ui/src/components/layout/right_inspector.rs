@@ -1,26 +1,20 @@
+use crate::components::ui::nav::{TabDef, Tabs};
 use leptos::prelude::*;
 
 #[component]
 pub fn RightInspector() -> impl IntoView {
-    let (active_tab, set_active_tab) = signal("Tags".to_string());
-    let tabs = vec!["🏷️", "🔗", "➡️", "📋"];
+    let active_tab = RwSignal::new("🏷️".to_string());
+    let tabs = vec![
+        TabDef::new("🏷️", "Tags"),
+        TabDef::new("🔗", "Backlinks"),
+        TabDef::new("➡️", "Outgoing"),
+        TabDef::new("📋", "Outline"),
+    ];
 
     view! {
         <div class="w-64 border-l border-gray-700 bg-gray-900 h-screen flex flex-col">
             <div class="flex border-b border-gray-700">
-                {tabs.iter().map(|t| {
-                    let tab = t.to_string();
-                    let tab_for_class = tab.clone();
-                    let tab_for_click = tab.clone();
-                    view! {
-                        <button
-                            class=move || format!("flex-1 p-2 text-center {}", if active_tab.get() == tab_for_class { "bg-gray-800" } else { "" })
-                            on:click=move |_| set_active_tab.set(tab_for_click.clone())
-                        >
-                            {tab}
-                        </button>
-                    }
-                }).collect_view()}
+                <Tabs tabs=tabs active=active_tab />
             </div>
             <div class="flex-1 p-4 text-gray-300 text-sm">
                 {move || match active_tab.get().as_str() {

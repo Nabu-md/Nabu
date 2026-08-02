@@ -1,3 +1,4 @@
+use crate::components::ui::button::{Button, ButtonSize};
 use wasm_bindgen_futures::spawn_local;
 
 use leptos::prelude::*;
@@ -31,11 +32,14 @@ pub fn FileTree(nodes: Vec<TreeNode>, on_select: Callback<PathBuf>) -> impl Into
     let (new_folder_input, set_new_folder_input) = signal(false);
     let (name_input, set_name_input) = signal("".to_string());
 
+    let show_new_file = Callback::new(move |_| set_new_file_input.set(true));
+    let show_new_folder = Callback::new(move |_| set_new_folder_input.set(true));
+
     view! {
         <div class="file-tree">
             <div class="actions">
-                <button on:click=move |_| set_new_file_input.set(true)>"+ New File"</button>
-                <button on:click=move |_| set_new_folder_input.set(true)>"+ New Folder"</button>
+                <Button size=ButtonSize::Sm on_click=show_new_file>"+ New File"</Button>
+                <Button size=ButtonSize::Sm on_click=show_new_folder>"+ New Folder"</Button>
             </div>
 
             {move || if new_file_input.get() || new_folder_input.get() {
