@@ -120,9 +120,11 @@ pub enum SortField {
 
 fn approve_item(id: String) {
     spawn_local(async move {
-        let _ =
-            crate::ipc::tauri_invoke("inbox_approve", serde_wasm_bindgen::to_value(&id).unwrap())
-                .await;
+        let _ = crate::ipc::tauri_invoke(
+            "inbox_approve",
+            serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
+        )
+        .await;
     });
 }
 
@@ -139,16 +141,21 @@ fn reject_item(id: String) {
 
 fn retry_item(id: String) {
     spawn_local(async move {
-        let _ = crate::ipc::tauri_invoke("inbox_retry", serde_wasm_bindgen::to_value(&id).unwrap())
-            .await;
+        let _ = crate::ipc::tauri_invoke(
+            "inbox_retry",
+            serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
+        )
+        .await;
     });
 }
 
 fn delete_item(id: String) {
     spawn_local(async move {
-        let _ =
-            crate::ipc::tauri_invoke("inbox_delete", serde_wasm_bindgen::to_value(&id).unwrap())
-                .await;
+        let _ = crate::ipc::tauri_invoke(
+            "inbox_delete",
+            serde_wasm_bindgen::to_value(&serde_json::json!({"id": id})).unwrap(),
+        )
+        .await;
     });
 }
 
@@ -219,7 +226,7 @@ pub fn Inbox() -> impl IntoView {
             spawn_local(async move {
                 let _ = crate::ipc::tauri_invoke(
                     "inbox_batch_approve",
-                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
             });
@@ -238,7 +245,11 @@ pub fn Inbox() -> impl IntoView {
             spawn_local(async move {
                 let _ = crate::ipc::tauri_invoke(
                     "inbox_batch_reject",
-                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                    serde_wasm_bindgen::to_value(&serde_json::json!({
+                        "ids": ids,
+                        "reason": "User rejected"
+                    }))
+                    .unwrap(),
                 )
                 .await;
             });
@@ -257,7 +268,7 @@ pub fn Inbox() -> impl IntoView {
             spawn_local(async move {
                 let _ = crate::ipc::tauri_invoke(
                     "inbox_batch_delete",
-                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
             });
@@ -276,7 +287,7 @@ pub fn Inbox() -> impl IntoView {
             spawn_local(async move {
                 let _ = crate::ipc::tauri_invoke(
                     "inbox_batch_retry",
-                    serde_wasm_bindgen::to_value(&ids).unwrap(),
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
                 )
                 .await;
             });

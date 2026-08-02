@@ -264,18 +264,22 @@ pub fn run() {
                 });
             }
 
-            // Start native messaging socket server.
+            // Start native messaging socket server. The tokio listener requires a
+            // running reactor, so the server is started inside the Tauri async
+            // runtime rather than on the setup (main) thread.
             let socket_state = Arc::new(crate::native_messaging_socket::SocketServerState {
                 engine: engine.clone(),
             });
-            match crate::native_messaging_socket::start_socket_server(socket_state) {
-                Ok(_handle) => {
-                    tracing::info!("Native messaging socket server started");
+            tauri::async_runtime::spawn(async move {
+                match crate::native_messaging_socket::start_socket_server(socket_state) {
+                    Ok(_handle) => {
+                        tracing::info!("Native messaging socket server started");
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to start native messaging socket server");
+                    }
                 }
-                Err(e) => {
-                    tracing::error!(error = %e, "Failed to start native messaging socket server");
-                }
-            }
+            });
 
             Ok(())
         })

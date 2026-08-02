@@ -429,9 +429,10 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn note_create_file(
     path: String,
-    content: String,
+    content: Option<String>,
     store: State<'_, SettingsStore>,
 ) -> Result<(), String> {
+    let content = content.unwrap_or_default();
     let settings = store.get();
     let vault_path = PathBuf::from(&settings.last_vault_path);
 
