@@ -1,18 +1,33 @@
+# ── Dependencies ─────────────────────────────────────────────
 node_modules/
-out/
-dist/
-test-results/
-playwright-report/
-.DS_Store
-*.log
-.kiro/
-.zcode/
-*.tsbuildinfo
+
+# ── Build output ─────────────────────────────────────────────
+# NOTE: these are intentionally unanchored so they match the nested
+# workspaces too (crates/nabu-ui, crates/nabu-core, src-tauri each
+# have their own target/ and dist/).
 target/
 dist/
+out/
+generated/
 *.rs.bk
+
+# ── Test / lint artifacts ────────────────────────────────────
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# ── Editor / OS ──────────────────────────────────────────────
 .DS_Store
-# Mise local overrides
+*.log
+.idea/
+.vscode/
+.kiro/
+.zcode/
+
+# ── Mise local overrides ─────────────────────────────────────
 .mise.local.toml
 .mise/*.env
 core
+
+# ── Nabu runtime data (vault-local files created by the app) ─
+.nabu/

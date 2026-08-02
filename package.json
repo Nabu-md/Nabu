@@ -1,0 +1,13 @@
+{
+  "name": "nabu",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nabu — build-time CSS pipeline (Tailwind CSS).",
+  "scripts": {
+    "css:build": "tailwindcss -i ./src/styles/app.css -o ./generated/tailwind.css --minify",
+    "css:watch": "tailwindcss -i ./src/styles/app.css -o ./generated/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
