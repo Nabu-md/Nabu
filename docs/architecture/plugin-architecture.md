@@ -27,14 +27,20 @@ All built-in components use the same types that future plugins will use.
 
 ```
 crates/nabu-core/src/plugin/
-├── mod.rs             # Root: re-exports, standard constants (capabilities, permissions)
+├── mod.rs             # Root: re-exports, module wiring
 ├── manifest.rs        # PluginManifest, PluginMetadata, compatibility validation
-├── capability.rs      # CapabilityRegistry — what services are available
-├── dependencies.rs    # DependencyGraph — resolution, cycle detection, topological sort
-├── feature_flags.rs   # FeatureFlags — runtime toggles, gating, change notification
-├── hooks.rs           # PluginLifecycle — stage machine (discovered → ... → unloaded)
-└── version.rs         # Version, VersionReq — semantic versioning + parsing
+├── capability.rs      # CapabilityRegistry, builtin_capabilities()
+├── dependency.rs      # DependencyGraph — resolution, cycle detection, topological sort
+├── features.rs        # FeatureRegistry, FeatureFlag, FeatureStage
+├── lifecycle.rs       # PluginLifecycle, PluginStage, PluginLifecycleEvent
+├── manager.rs         # PluginManager — orchestration and installation reports
+├── permissions.rs     # Permission, PermissionSet, PermissionEvaluator, RiskLevel
+└── version.rs         # Version, VersionRequirement — semantic versioning + parsing
 ```
+
+> **Note:** The code samples in the sections below are illustrative of the
+> intent of each module. Always verify against the actual public API in
+> `crates/nabu-core/src/plugin/` before using these types.
 
 ---
 
@@ -46,20 +52,26 @@ The canonical description of a plugin or built-in component:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `PluginId` | Unique identifier (e.g., `"my-ocr-engine"`) |
-| `metadata` | `PluginMetadata` | Name, description, author, homepage, license, tags |
+| `id` | `String` | Unique identifier (e.g., `"my-ocr-engine"`) |
+| `name` | `String` | Display name |
 | `version` | `Version` | Current semantic version |
+| `author` | `String` | Author name |
+| `description` | `String` | Short description |
 | `min_nabu_version` | `Version` | Minimum Nabu version required |
-| `capabilities` | `HashSet<CapabilityId>` | What this plugin provides |
-| `dependencies` | `Vec<PluginDependency>` | What this plugin requires |
-| `permissions` | `HashSet<Permission>` | Runtime permissions requested |
-| `features` | `Vec<PluginFeature>` | Toggleable optional features |
+| `max_tested_version` | `Option<Version>` | Highest version tested against |
+| `manifest_version` | `u32` | Manifest format version |
+| `capabilities` | `Vec<PluginCapability>` | What this plugin provides |
+| `dependencies` | `Vec<PluginDependency>` | Required dependencies |
+| `optional_dependencies` | `Vec<PluginDependency>` | Optional dependencies |
+| `feature_flags` | `Vec<PluginFeatureFlag>` | Toggleable optional features |
+| `permissions` | `Vec<PluginPermission>` | Runtime permissions requested |
+| `entry_type` | `PluginEntryType` | Wasm, Lua, native, external |
 
-**Validation:** `manifest.validate()` checks internal consistency (non-empty ID,
-valid capability namespacing).
+**Validation:** `manifest.validate()` returns `Vec<ManifestError>` — checks internal
+consistency (non-empty ID, valid capability namespacing).
 
-**Compatibility:** `manifest.check_compatibility(nabu_version)` returns a
-`Compatibility` result that distinguishes `Compatible`, `CompatibleWithWarnings`,
+**Compatibility:** `manifest.check_nabu_compatibility(&nabu_version)` returns a
+`CompatibilityCheck` that distinguishes `Compatible`, `CompatibleWithWarnings`,
 and `Incompatible`.
 
 ### CapabilityRegistry (`capability.rs`)
@@ -67,158 +79,165 @@ and `Incompatible`.
 Central index of available capabilities:
 
 ```rust
-let registry = CapabilityRegistry::new();
+let mut registry = CapabilityRegistry::new();
 
 // Built-in capabilities registered at startup
-registry.register_builtin_capabilities(&nabu_version);
+registry.register_builtin();
 
-// Look up providers
-let ocr_providers = registry.get_providers("nabu:ocr");
-let first_ocr = registry.get_first_provider("nabu:ocr");
-
-// Check availability
-let status = registry.check_capability("nabu:llm");
-// Returns Available | Disabled | Unavailable | VersionMismatch
-
-// Validate dependencies
-let issues = registry.check_dependencies(&plugin_dependencies);
+// Look up capabilities
+registry.has("nabu:ocr");              // true
+registry.get("nabu:ocr");              // Option<&Capability>
+registry.provider("nabu:ocr");         // Option<&str> — "nabu"
+registry.list();                        // Vec<String> of all IDs
+registry.list_enabled();                // Vec<String> of enabled IDs
+registry.namespace_has("nabu", "llm");
+registry.provider_capabilities("nabu");
 ```
 
-### DependencyGraph (`dependencies.rs`)
+### DependencyGraph (`dependency.rs`)
 
-Directed graph for resolving capability dependencies:
+Directed graph for resolving plugin dependencies:
 
 - **Cycle detection** via DFS with three-color marking
 - **Topological sort** via Kahn's algorithm
-- **Version validation** against `CapabilityRegistry`
+- **Missing-dependency reporting** against the registered manifests
 
 ```rust
-let graph = DependencyGraph::new();
-graph.add_node(DependencyNode { id, dependencies, provides, enabled });
-graph.add_node(...);
+let mut graph = DependencyGraph::new();
+graph.add_plugin(&manifest_a);
+graph.add_plugin(&manifest_b);
+graph.add_dependency("plugin-a", "plugin-b");
 
 // Check for cycles
-if let Some(cycle) = graph.detect_cycles() { ... }
+let cycles: Vec<Vec<String>> = graph.detect_cycles();
 
-// Resolve initialization order
-let result = graph.resolve(&capability_registry);
-// result.order — topological order (dependencies first)
-// result.errors  — missing/version-mismatch errors
-// result.warnings — optional dependency notices
+// Missing dependencies / initialization order
+let missing: Vec<MissingDependency> = graph.missing_dependencies();
+let order: Option<Vec<String>> = graph.topological_order(); // deps first
 ```
 
-### PluginLifecycle (`hooks.rs`)
+### PluginLifecycle (`lifecycle.rs`)
 
-State machine governing plugin/component lifecycle:
+State machine governing plugin lifecycle:
 
 ```
-Discovered → Registered → Initialized → Started → Stopped → Unloaded
+Discovered → Validated → Installed → Enabled → Disabled → Upgraded → Unloaded
 ```
 
 | Stage | Meaning |
 |-------|---------|
 | `Discovered` | Plugin was found but not yet processed |
-| `Registered` | Manifest validated and registered |
-| `Initialized` | Dependencies resolved, setup complete |
-| `Started` | Actively providing services |
-| `Stopped` | Gracefully stopped, no longer active |
+| `Validated` | Manifest validated |
+| `Installed` | Dependencies resolved, setup complete |
+| `Enabled` | Actively providing services |
+| `Disabled` | Disabled at runtime, not active |
+| `Upgraded` | Version upgrade applied |
 | `Unloaded` | Fully cleaned up, terminal stage |
 
 ```rust
-let lc = PluginLifecycle::new("my-ocr");
-
-// Register hooks
-lc.on_started(|id, stage| { println!("{} is now {}", id, stage); });
-
-// Progress
-lc.boot().unwrap();    // Discovered → ... → Started
-lc.shutdown().unwrap(); // Started → ... → Unloaded
+let lc = PluginLifecycle::new();
+lc.transition_to(PluginStage::Validated); // records a lifecycle event
+lc.stage();                               // PluginStage
+lc.history();                             // &[PluginLifecycleEvent]
+lc.is_enabled();                          // stage >= Enabled
+lc.is_unloaded();                         // terminal
 ```
 
-The `LifecycleManager` batches operations:
+The `PluginManager` owns the lifecycle of every registered plugin:
 ```rust
-let manager = LifecycleManager::new();
-manager.register(PluginLifecycle::new("plugin-a"));
-manager.register(PluginLifecycle::new("plugin-b"));
-manager.boot_all();     // Boot all discovered plugins
-// later...
-manager.shutdown_all(); // Graceful shutdown
+let mut manager = PluginManager::new(nabu_version);
+manager.register_manifest(manifest_a);
+manager.register_manifest(manifest_b);
+let report: InstallationReport = manager.install_all(); // boot + validate + install
+manager.enable("plugin-a");   // Result<(), ManagerError>
+manager.disable("plugin-a");  // Result<(), ManagerError>
+manager.list_plugins();       // Vec<String>
+manager.stage("plugin-a");    // Option<PluginStage>
 ```
 
-### FeatureFlags (`feature_flags.rs`)
+### FeatureRegistry (`features.rs`)
 
 Runtime toggle framework:
 
 ```rust
-let flags = FeatureFlags::new();
-flags.register(FeatureFlag::new("nabu:experimental_ocr", "Experimental OCR", "...")
-    .with_default(false)
-    .experimental());
+let mut flags = FeatureRegistry::new();
+flags.register_standard_flags(); // registers the built-in flag set
+flags.register(FeatureFlag {
+    name: "nabu:experimental_ocr".into(),
+    description: "Experimental OCR".into(),
+    enabled_by_default: false,
+    enabled: false,
+    stage: FeatureStage::Experimental,
+});
 
 flags.is_enabled("nabu:experimental_ocr"); // false
-flags.set_enabled("nabu:experimental_ocr", true); // toggle at runtime
+flags.enable("nabu:experimental_ocr");     // toggle at runtime
+flags.disable("nabu:experimental_ocr");
+flags.reset("nabu:experimental_ocr");      // back to default
 
-// Scoped overrides for testing
-flags.set_override("nabu:verbose_logging", Some(true));
-flags.clear_overrides();
-
-// Change notifications
-flags.on_change(|id, enabled| { println!("Flag '{}' = {}", id, enabled); });
+flags.list();      // Vec<&FeatureFlag>
+flags.by_stage(FeatureStage::Experimental);
+flags.overridden(); // Vec<&FeatureFlag> with non-default values
 ```
 
 ### Version (`version.rs`)
 
 Semantic versioning with requirement operators:
 
-| Operator | Name | Example | Meaning |
-|----------|------|---------|---------|
-| `*` | Any | `*` | All versions |
-| `=x.y.z` | Exact | `=1.2.3` | Exactly 1.2.3 |
-| `^x.y.z` | Compatible | `^1.2.3` | 1.y.z where y ≥ 2 |
-| `~x.y.z` | Patch | `~1.2.3` | 1.2.x where x ≥ 3 |
-| `>=x.y.z` | Minimum | `>=1.0.0` | At least 1.0.0 |
+| Variant | Display | Meaning |
+|---------|---------|---------|
+| `VersionRequirement::Exact(v)` | `==1.2.3` | Exactly 1.2.3 |
+| `VersionRequirement::Compatible(v)` | `~1.2.3` | Same major, minor ≥ required |
+| `VersionRequirement::Range(min, max)` | `>=1.0.0, <=2.0.0` | Inclusive range |
+| `VersionRequirement::GreaterThan(v)` | `>=1.0.0` | At least 1.0.0 (via `VersionRequirement::at_least(1, 0, 0)`) |
 
 ---
 
 ## Standard Capabilities
 
-Defined as constants in `plugin::capabilities`:
+Built-in capabilities are returned by `builtin_capabilities()` in
+`plugin::capability` and registered via `CapabilityRegistry::register_builtin()`:
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `SEARCH` | `"nabu:search"` | Full-text search |
-| `EMBEDDINGS` | `"nabu:embeddings"` | Vector embeddings |
-| `LLM` | `"nabu:llm"` | Language model inference |
-| `OCR` | `"nabu:ocr"` | Optical character recognition |
-| `STT` | `"nabu:stt"` | Speech-to-text |
-| `EXPORT` | `"nabu:export"` | Export to formats |
-| `IMPORT` | `"nabu:import"` | Import from formats |
-| `CAPTURE` | `"nabu:capture"` | Knowledge capture |
-| `PROCESSOR` | `"nabu:processor"` | Processing pipeline |
-| `GRAPH` | `"nabu:graph"` | Relationship graph |
-| `STORAGE` | `"nabu:storage"` | Storage layer |
-| `EVENT_BUS` | `"nabu:event_bus"` | Event bus |
-| `THEME` | `"nabu:theme"` | Theme provider |
-| `CONTENT_PROVIDER` | `"nabu:content_provider"` | Content fetching |
-| `WORKFLOW` | `"nabu:workflow"` | Workflow automation |
-| `VIEW` | `"nabu:view"` | View rendering |
+| ID | Required | Description |
+|----|----------|-------------|
+| `nabu:event_bus` | ✅ | Publish/subscribe messaging backbone |
+| `nabu:storage` | ✅ | Knowledge object persistence |
+| `nabu:capture` | ✅ | Content capture and ingestion |
+| `nabu:processor` | ✅ | Content processing pipeline |
+| `nabu:graph` | ✅ | Semantic relationship graph |
+| `nabu:export` | — | Document export to various formats |
+| `nabu:search` | — | Full-text search engine |
+| `nabu:ocr` | — | Optical character recognition |
+| `nabu:ai` | — | AI provider integration |
+| `nabu:embedding` | — | Vector embedding generation |
+| `nabu:template` | — | Note template management |
+| `nabu:sync` | — | Vault synchronization |
+| `nabu:watch` | — | File system watching |
+| `nabu:plugin` | — | Plugin management lifecycle |
 
 ---
 
 ## Standard Permissions
 
-Defined as constants in `plugin::permissions`:
+Standard permission definitions are returned by `standard_permissions()` in
+`plugin::permissions` (14 built-in definitions):
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `READ_VAULT` | `"nabu:read_vault"` | Read vault files |
-| `WRITE_VAULT` | `"nabu:write_vault"` | Write vault files |
-| `NETWORK` | `"nabu:network"` | Network access |
-| `FILE_SYSTEM` | `"nabu:file_system"` | File system access |
-| `CLIPBOARD_READ` | `"nabu:clipboard_read"` | Read clipboard |
-| `MICROPHONE` | `"nabu:microphone"` | Microphone access |
-| `CAMERA` | `"nabu:camera"` | Camera access |
-| `EXECUTE` | `"nabu:execute"` | Code execution |
+| Name | Description | Risk |
+|------|-------------|------|
+| `vault.access` | Read and write access to vault content | High |
+| `vault.read` | Read-only access to vault content | Medium |
+| `capture.access` | Access the capture pipeline | Medium |
+| `filesystem.read` | Read files on the local filesystem | Medium |
+| `filesystem.write` | Write files to the local filesystem | High |
+| `ai.providers` | Access configured AI providers | High |
+| `network.http` | Make HTTP requests to external services | Critical |
+| `network.websocket` | Open WebSocket connections | Critical |
+| `export.access` | Access the export engine | Low |
+| `system.process` | Spawn subprocesses | Critical |
+| `system.env` | Read environment variables | Medium |
+| `event_bus.subscribe` | Subscribe to event bus topics | Low |
+| `event_bus.publish` | Publish to the event bus | Medium |
+| `storage.access` | Access the storage layer | High |
 
 ---
 
@@ -239,8 +258,9 @@ instance* provides them. The two registries complement each other:
 
 ### ApplicationContext (Prompt 31)
 
-`ApplicationContext` owns the `CapabilityRegistry`, `FeatureFlags`,
-`LifecycleManager`, and `DependencyGraph` alongside the `ServiceRegistry`.
+`ApplicationContext` owns the `CapabilityRegistry`, `FeatureRegistry`,
+`PluginManager` (which contains `DependencyGraph` + `PluginLifecycle`)
+alongside the `ServiceRegistry`.
 When future plugin loading is implemented, plugins will register with both
 the `CapabilityRegistry` (metadata) and `ServiceRegistry` (concrete instances).
 
@@ -255,8 +275,8 @@ architecture is ready:
 2. **Registration** — Register capabilities in `CapabilityRegistry`
 3. **Validation** — Check `PluginManifest::validate()` and `check_compatibility()`
 4. **Dependency Resolution** — Resolve via `DependencyGraph`
-5. **Initialization** — Create instances, call lifecycle hooks
+5. **Installation** — `PluginManager::install_all()` drives validate → install
 6. **Runtime** — Services available via `CapabilityRegistry` lookups
-7. **Shutdown** — Call `PluginLifecycle::shutdown()`, unregister capabilities
+7. **Shutdown** — `PluginManager::disable(id)` + lifecycle `Unloaded`, unregister capabilities
 
 No architectural changes needed — only the plugin loader itself.

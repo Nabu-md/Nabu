@@ -4,6 +4,11 @@ All notable changes to Nabu are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Note:** The `1.0.0` entry below documents the **legacy pre-migration release**
+> (Electron/React architecture). It was superseded by the pure-Rust rewrite
+> (Tauri v2 + Leptos + `nabu-core`), whose features are recorded under
+> `[Unreleased]`. See `MIGRATION_OPTION_B.md` for the migration record.
+
 ## [1.0.0] — 2026-07-04
 
 ### Added

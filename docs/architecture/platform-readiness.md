@@ -43,12 +43,12 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 ### 1.6 Registry Integration
 - ✅ 8 category constants defined
 - ✅ 6 capture handlers registered in `CATEGORY_CAPTURE_HANDLERS`
-- ✅ 10 processors registered in `CATEGORY_PROCESSORS`
+- ✅ 14 processors registered in `CATEGORY_PROCESSORS`
 - ✅ Slot reserved for `CATEGORY_AI_PROVIDERS`, `CATEGORY_OCR_PROVIDERS`, etc.
 
 ### 1.7 Plugin Infrastructure Integration
 - ✅ `CapabilityRegistry` integrated into `ApplicationContext`
-- ✅ 10 built-in capabilities registered at startup
+- ✅ 14 built-in capabilities registered at startup
 - ✅ `PluginManifest` supports dependencies, versions, permissions
 - ✅ `DependencyGraph` detects cycles and validates requirements
 
@@ -136,8 +136,8 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 | Services registered in ApplicationContext | 8 |
 | Registry categories defined | 8 |
 | Capture handlers registered | 6 |
-| Processing processors registered | 10 |
-| Built-in capabilities registered | 10 |
+| Processing processors registered | 14 |
+| Built-in capabilities registered | 14 |
 | Plugin lifecycle stages | 6 |
 | Architecture violations (all low/info) | 3 |
 | Platform readiness (fully ready categories) | 7/7 |

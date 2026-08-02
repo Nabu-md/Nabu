@@ -61,21 +61,21 @@ Nabu treats Markdown as a launchpad for **lightweight, interactive software**. B
 
 ### Foundation & File System
 1. **Setup Wizard:** Secure vault directory initialization and path validation.
-2. **Multi-vault Support:** Concurrent vault management with session isolation.
-3. **Real-time Watcher:** Native `notify`-backed file system tracking with hot-reloading.
-4. **Template Management:** `Tera`-powered template interpolation for note creation.
-5. **Document Export Engine:** Markdown-to-HTML/PDF export pipelines.
-6. **FileTree Navigation:** Recursive, reactive Leptos-based file navigation.
+2. **Vault Dialogs:** Create or open a vault through native OS folder pickers.
+3. **Capture Handlers:** Clipboard, screenshot, file-drop, folder-watch, and browser/Safari reader ingestion.
+4. **Template Management:** Create notes from vault templates (Meeting Note, Bug Report, Project Brief).
+5. **FileTree Navigation:** Recursive, reactive Leptos-based file navigation.
 
 ### Editor & Knowledge Base
-7. **Note Editor:** Live markdown preview editor with interactive task checkbox support.
-8. **Tag Parsing:** Real-time tag extraction and indexing.
-9. **Full-Text Search:** High-performance search powered by `tantivy`.
-10. **Backlink Resolution:** Deep graph traversal for interconnected note discovery.
+6. **Note Editor:** Live markdown preview editor with interactive task checkbox support.
+7. **Tag Parsing:** Real-time tag extraction and indexing.
+8. **Full-Text Search:** In-memory `Indexer` over processed KnowledgeObjects.
+9. **Relationship Graph:** `VaultGraph` adjacency model with Canvas visualization.
+10. **Backlink Resolution:** Graph traversal for interconnected note discovery.
 11. **Dynamic Theme Engine:** Reactive dark/light mode switching persisted to disk.
 
 ### Graph & Sandbox
-12. **Graph Engine:** Native `petgraph` + Canvas visualization.
+12. **Graph View:** Canvas-based relationship visualization (no external graph crate).
 13. **Tag/Blocks Graph View:** Filtered graph traversal modes.
 14. **App Block Sandbox:** Secure `iframe` isolation for interactive widgets.
 

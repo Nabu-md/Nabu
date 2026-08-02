@@ -83,8 +83,8 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 
 | Category | Description | Services |
 |----------|-------------|----------|
-| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ArticleCaptureHandler, YouTubeCaptureHandler, GitHubRepositoryHandler, ClipboardHandler, ScreenshotHandler |
-| `processors` | Processing pipeline processors implementing `Processor` trait | ContentClassifier, DuplicateDetector, TimelineExtractor, MetadataExtractor, MetadataEnricher, AutoFiler, OcrProcessor, PdfTextProcessor, PdfMetadataProcessor, PdfAnnotationProcessor |
+| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, FileDropHandler, WatchFolderHandler, SafariReaderHandler |
+| `processors` | Processing pipeline processors implementing `Processor` trait | ContentClassifier, DuplicateDetector, TimelineExtractor, MetadataExtractor, MetadataEnricher, OcrProcessor, PdfTextProcessor, PdfMetadataProcessor, PdfAnnotationProcessor, WhisperProcessor, EmbeddingGenerator, SemanticEnricher, AiSummariser, AutoFiler |
 | `ai_providers` | Future AI provider services | — (reserved) |
 | `ocr_providers` | Future OCR engine services | — (reserved) |
 | `embedding_providers` | Future embedding services | — (reserved) |
@@ -157,7 +157,7 @@ build_application_context() in src-tauri/src/lib.rs
     │   ├── ContentClassifier, DuplicateDetector, ...
     │   └── Registered in CATEGORY_PROCESSORS
     ├── CaptureEngine::new(event_bus)
-    │   ├── BrowserCaptureHandler, ArticleCaptureHandler, ...
+    │   ├── BrowserCaptureHandler, ClipboardHandler, ...
     │   └── Registered in CATEGORY_CAPTURE_HANDLERS
     ├── JobQueue::new(pipeline, event_bus)
     ├── WorkerPool::new(4, job_queue)
@@ -176,7 +176,7 @@ The plugin foundation is prepared but **no third-party plugin loading is impleme
 - **CapabilityRegistry** — Central index of all capabilities (built-in + future plugins)
 - **DependencyGraph** — Cycle detection and topological sort for dependency resolution
 - **VersionNegotiation** — Semantic versioning with `^`, `~`, `>=`, `=`, `*` operators
-- **LifecycleHooks** — 6-stage lifecycle: discovered → registered → initialized → started → stopped → unloaded
+- **LifecycleHooks** — 7-stage lifecycle: discovered → validated → installed → enabled → disabled → upgraded → unloaded
 - **FeatureFlags** — Runtime feature toggles with observation callbacks
 
 ### Standard Capability IDs
@@ -217,7 +217,7 @@ Shutdown
 ### Supported Now
 - ✅ Single AI provider (via EventBus subscription)
 - ✅ Multiple capture handlers (6 built-in)
-- ✅ Multiple processing processors (10 built-in)
+- ✅ Multiple processing processors (14 built-in)
 - ✅ EventBus publish/subscribe
 - ✅ Async job queue with worker pool
 - ✅ SQLite persistence
@@ -236,8 +236,8 @@ Shutdown
 - 🔲 Plugin loading — PluginManifest, DependencyGraph, VersionNegotiation ready
 - 🔲 Plugin sandboxing — Infrastructure prepared
 - 🔲 Distributed processing — JobQueue architecture supports future remote workers
-- 🔲 Export engine — ExportEngine module declared, not populated
-- 🔲 Template manager — TemplateManager module declared in src-tauri
+- 🔲 Export engine — not implemented; no export pipeline exists yet
+- 🔲 Template manager — templates handled in nabu-ui; no Tera backend
 
 ### Architectural Boundaries
 
@@ -246,7 +246,7 @@ crate boundaries:
     nabu-core          →  Core library (models, capture, processing, storage,
                            event_bus, registry, plugin, graph, indexer, job_queue)
     src-tauri           →  Tauri application shell (commands, settings, vault,
-                           native_messaging, export_engine, template_manager)
+                           native_messaging)
     nabu-ui             →  Leptos-based UI components (tree, markdown renderer)
 
 ownership:

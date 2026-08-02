@@ -1,5 +1,11 @@
 # Migration Option B: Pure Rust Architecture
 
+> **Status note (2026-08):** This migration was completed. The final implementation
+> diverged from the original blueprint in a few places: full-text search uses the
+> in-memory `Indexer` (no `tantivy`), the relationship graph is the hand-rolled
+> `VaultGraph` (no `petgraph`), markdown rendering is handled in `nabu-ui`, and
+> file watching is via capture handlers (no `notify` watcher).
+
 ## Overview
 This document outlines the pivot from a TypeScript-heavy architecture to a 100% Pure Rust Architecture using Tauri v2 and Leptos WASM.
 
