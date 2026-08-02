@@ -10,6 +10,11 @@ rust-version = "1.97.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# Standalone workspace root — src-tauri is intentionally NOT a member of the
+# root workspace (which only contains crates/nabu-core). An empty [workspace]
+# table keeps this package independently buildable with plain cargo.
+[workspace]
+
 [lib]
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -33,5 +38,6 @@ walkdir = "2.5.0"
 chrono = "0.4"
 rfd = "0.15"
 tokio = { version = "1.43.0", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
 nabu-core = { path = "../crates/nabu-core" }
 

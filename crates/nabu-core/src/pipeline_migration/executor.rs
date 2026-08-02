@@ -7,6 +7,7 @@ use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::{KnowledgeObject, ObjectType};
 use crate::pipeline_migration::events;
 use crate::processing::pipeline::{build_standard_pipeline, ProcessingPipeline};
+use crate::storage::StorageManager;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -23,6 +24,7 @@ use std::sync::Arc;
 pub struct PipelineExecutor {
     pipeline: Arc<ProcessingPipeline>,
     event_bus: Option<EventBus<crate::event_bus::PipelineEvent>>,
+    storage: Option<Arc<StorageManager>>,
 }
 
 impl PipelineExecutor {
@@ -31,6 +33,7 @@ impl PipelineExecutor {
         Self {
             pipeline,
             event_bus: None,
+            storage: None,
         }
     }
 
@@ -42,7 +45,15 @@ impl PipelineExecutor {
         Self {
             pipeline,
             event_bus: Some(event_bus),
+            storage: None,
         }
+    }
+
+    /// Attach the canonical StorageManager so processed objects are persisted
+    /// through the canonical pipeline: Pipeline → Storage → ITEM_STORED.
+    pub fn with_storage(mut self, storage: Arc<StorageManager>) -> Self {
+        self.storage = Some(storage);
+        self
     }
 
     /// Create a standard pipeline executor with all default processors.
@@ -51,6 +62,7 @@ impl PipelineExecutor {
         Self {
             pipeline,
             event_bus,
+            storage: None,
         }
     }
 
@@ -147,6 +159,15 @@ impl JobExecutor for PipelineExecutor {
         progress.set_progress(1.0);
 
         // Return the job as successful
+        // Persist the processed object through the canonical StorageManager.
+        // StorageManager.save publishes ITEM_STORED, which drives the Indexer
+        // and VaultGraph subscribers downstream.
+        if let Some(ref storage) = self.storage {
+            if let Err(e) = storage.save(&result.object) {
+                tracing::warn!(error = %e, "Failed to persist processed object through StorageManager");
+            }
+        }
+
         let mut completed_job = job.clone();
         completed_job.status = crate::jobs::job::JobStatus::Completed;
         completed_job.progress = 1.0;

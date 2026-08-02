@@ -126,6 +126,33 @@ impl StorageManager {
     pub fn exists(&self, id: Uuid) -> bool {
         self.store.read().map(|s| s.contains_key(&id)).unwrap_or(false)
     }
+
+    /// List all stored objects, optionally filtered by source file.
+    ///
+    /// Mirrors the canonical [`StorageProvider::list_objects`] signature so the
+    /// application can enumerate the vault through the single storage owner.
+    pub fn list_objects(
+        &self,
+        _vault_id: &str,
+        source_file: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<KnowledgeObject>, String> {
+        let store = self.store.read().map_err(|e| e.to_string())?;
+
+        let mut objects: Vec<KnowledgeObject> = store.values().cloned().collect();
+
+        if let Some(source_file) = source_file {
+            objects.retain(|o| {
+                o.metadata
+                    .original_filename
+                    .as_deref()
+                    == Some(source_file)
+            });
+        }
+
+        objects.truncate(limit);
+        Ok(objects)
+    }
 }
 
 #[cfg(test)]

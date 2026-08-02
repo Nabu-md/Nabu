@@ -13,8 +13,8 @@ use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
-mod native_messaging;
-use native_messaging::{Message, NativeMessagingError, NativeMessagingHost};
+// The native messaging protocol types live in the app library crate.
+use app_lib::native_messaging::{Message, NativeMessagingError, NativeMessagingHost};
 
 const SOCKET_PATH: &str = "/tmp/nabu-native-messaging.sock";
 

@@ -3,6 +3,10 @@ name = "nabu-ui"
 version = "0.1.0"
 edition = "2024"
 
+# Standalone workspace root — nabu-ui is intentionally NOT a member of the
+# root workspace (which only contains crates/nabu-core).
+[workspace]
+
 [lib]
 crate-type = ["cdylib"]
 

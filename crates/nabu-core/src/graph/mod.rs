@@ -330,8 +330,14 @@ impl VaultGraph {
 
     /// Add a node to the graph.
     pub fn add_node(&self, object: &KnowledgeObject) -> Result<(), String> {
-        let mut nodes = self.nodes.write().map_err(|e| e.to_string())?;
-        nodes.insert(object.id, object.clone());
+        // Scope the write lock: it MUST be released before persistence.save()
+        // runs, because save() → to_snapshot() re-reads the same locks.
+        // (std::sync::RwLock is not reentrant — holding the write lock while
+        // taking a read lock deadlocks.)
+        {
+            let mut nodes = self.nodes.write().map_err(|e| e.to_string())?;
+            nodes.insert(object.id, object.clone());
+        }
 
         if let Some(ref bus) = self.event_bus {
             bus.publish(
@@ -356,16 +362,24 @@ impl VaultGraph {
 
     /// Remove a node from the graph.
     pub fn remove_node(&self, object_id: Uuid) -> Result<(), String> {
-        let mut nodes = self.nodes.write().map_err(|e| e.to_string())?;
-        nodes.remove(&object_id);
+        // Scope each write lock: they MUST be released before persistence.save()
+        // runs (to_snapshot() re-reads the same locks — not reentrant).
+        {
+            let mut nodes = self.nodes.write().map_err(|e| e.to_string())?;
+            nodes.remove(&object_id);
+        }
 
-        let mut edges = self.edges.write().map_err(|e| e.to_string())?;
-        edges.retain(|e| e.source != object_id && e.target != object_id);
+        {
+            let mut edges = self.edges.write().map_err(|e| e.to_string())?;
+            edges.retain(|e| e.source != object_id && e.target != object_id);
+        }
 
-        let mut adj = self.adjacency.write().map_err(|e| e.to_string())?;
-        adj.remove(&object_id);
-        for neighbors in adj.values_mut() {
-            neighbors.remove(&object_id);
+        {
+            let mut adj = self.adjacency.write().map_err(|e| e.to_string())?;
+            adj.remove(&object_id);
+            for neighbors in adj.values_mut() {
+                neighbors.remove(&object_id);
+            }
         }
 
         // Auto-persist
@@ -392,12 +406,16 @@ impl VaultGraph {
             weight: 1.0,
         };
 
-        let mut edges = self.edges.write().map_err(|e| e.to_string())?;
-        edges.push(edge);
+        // Scope the write locks: they MUST be released before persistence.save()
+        // runs (to_snapshot() re-reads the same locks — not reentrant).
+        {
+            let mut edges = self.edges.write().map_err(|e| e.to_string())?;
+            edges.push(edge);
 
-        let mut adj = self.adjacency.write().map_err(|e| e.to_string())?;
-        adj.entry(source).or_default().insert(target);
-        adj.entry(target).or_default().insert(source);
+            let mut adj = self.adjacency.write().map_err(|e| e.to_string())?;
+            adj.entry(source).or_default().insert(target);
+            adj.entry(target).or_default().insert(source);
+        }
 
         if let Some(ref bus) = self.event_bus {
             bus.publish(

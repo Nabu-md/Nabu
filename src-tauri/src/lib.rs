@@ -9,267 +9,167 @@ pub mod template_manager;
 pub mod vault;
 
 // ---------------------------------------------------------------------------
-// Architectural note (Principle 6 — One Search Engine):
-// The canonical Indexer lives in nabu_core and is the only Tantivy instance.
-// No duplicate search engine exists — src-tauri/search.rs has been removed.
+// Architectural notes (R1 — Application Wiring & Canonical Runtime):
 //
-// Architectural note (Principle 7 — One Graph Engine):
-// The canonical VaultGraph lives in nabu_core and is the only Petgraph instance.
-// No duplicate graph engine exists — src-tauri/graph.rs has been removed.
+// 1. One runtime model: every service below is the canonical instance from
+//    nabu-core. There is exactly one EventBus, one StorageManager, one
+//    ProcessingPipeline, one DurableJobQueue, one WorkerPool, one CaptureEngine,
+//    one Indexer and one VaultGraph.
+//
+// 2. One flow: all content flows Capture → Queue → Workers → Pipeline →
+//    Storage → ITEM_STORED → Indexer + VaultGraph. There is no tokio::spawn
+//    pipeline bypass and no manual processing path in this file.
+//
+// 3. Dependency injection: every service is constructed once here and resolved
+//    through the ApplicationContext (registered in Tauri managed state). No
+//    command or subsystem constructs its own EventBus / StorageManager / queue.
 // ---------------------------------------------------------------------------
 
-pub use nabu_core::markdown::{Document, ParseError, parse};
-
-use nabu_core::capture::{
-    ArticleCaptureHandler, BrowserCaptureHandler, CaptureEngine, ClipboardHandler,
-    GitHubRepositoryHandler, ScreenshotHandler, WatchFolderConfig, WatchFolderService,
-    YouTubeCaptureHandler,
-};
-use nabu_core::event_bus::{
-    EVENT_ITEM_PROCESSED, EVENT_ITEM_PROCESSING_COMPLETED, EVENT_ITEM_PROCESSING_FAILED,
-    EVENT_ITEM_PROCESSING_STARTED, EVENT_ITEM_STORED, EventBus, ItemProcessed, ItemStored,
-};
+use nabu_core::capture::CaptureEngine;
+use nabu_core::event_bus::kinds;
+use nabu_core::event_bus::{EventBus, PipelineEvent};
 use nabu_core::graph::VaultGraph;
 use nabu_core::indexer::Indexer;
-use nabu_core::jobs::cancellation::CancellationToken;
-use nabu_core::jobs::workers::progress::ProgressReporter;
-use nabu_core::processing::{
-    AutoFiler, ContentClassifier, DuplicateDetector, MetadataEnricher, MetadataExtractor,
-    OcrProcessor, PdfAnnotationProcessor, PdfMetadataProcessor, PdfTextProcessor,
-    ProcessingPipeline, TimelineExtractor,
-};
-use nabu_core::processing::PROCESSING_HISTORY_KEY;
+use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, WorkerPool};
+use nabu_core::pipeline_migration::PipelineExecutor;
+use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::registry::context::ApplicationContext;
-use nabu_core::registry::{CATEGORY_CAPTURE_HANDLERS, CATEGORY_PROCESSORS};
-use nabu_core::registry::ServiceRegistry;
-use std::sync::{Arc, RwLock};
+use nabu_core::registry::{ServiceRegistry, CATEGORY_CAPTURE_HANDLERS};
+use nabu_core::storage::StorageManager;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
 use tauri::Manager;
 
-/// Builds the application context with all services registered.
+/// Builds the canonical application context with every runtime service wired.
 ///
-/// This function centralizes all service construction and registration,
-/// replacing the previous inline construction in the Tauri `setup` closure.
-/// The returned [`ApplicationContext`] holds the [`ServiceRegistry`] with all
-/// services, and the [`EventBus`] for publish/subscribe communication.
-fn build_application_context() -> ApplicationContext {
-    let event_bus = Arc::new(EventBus::new());
+/// Construction order mirrors the canonical pipeline:
+///
+/// EventBus
+///   → StorageManager (publishes ITEM_STORED on save)
+///   → ProcessingPipeline (standard 14-processor pipeline)
+///   → DurableJobQueue (file-backed, survives restart)
+///   → PipelineExecutor (Worker → Pipeline → Storage handoff)
+///   → WorkerPool (pulls jobs, dispatches to the executor)
+///   → CaptureEngine (routes captures, enqueues jobs)
+///   → Indexer + VaultGraph (subscribe to ITEM_STORED)
+///
+/// Every service is registered exactly once in the ServiceRegistry and is
+/// resolved by key through the [`ApplicationContext`].
+fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
+    // ---- 1. One EventBus + registry + capabilities ----
+    let event_bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
     let registry = Arc::new(RwLock::new(ServiceRegistry::new()));
 
-    // Register the event bus itself (needed by many services)
+    let mut capability_registry = nabu_core::plugin::CapabilityRegistry::new();
+    capability_registry.register_builtin();
+
+    let ctx = ApplicationContext::new(registry.clone(), event_bus.clone(), capability_registry);
+
+    // Register the event bus itself (ApplicationContext::new does not
+    // auto-register it — only ApplicationContextBuilder::build does).
     {
-        let mut reg = registry.write().unwrap();
+        let mut reg = registry.write().expect("registry lock not poisoned");
         reg.register("event_bus", event_bus.clone());
     }
 
-    // ------------------------------------------------------------------
-    // 1. Build and register the ProcessingPipeline
-    // ------------------------------------------------------------------
-    // Uses new_no_subscribe() because execution is managed by the background
-    // JobQueue rather than running inline on the EventBus.
-    let pipeline = ProcessingPipeline::new_no_subscribe(event_bus.clone());
-    {
-        let mut reg = registry.write().unwrap();
-        reg.register("pipeline", pipeline.clone());
-    }
-
-    // Register all processors in order
-    // Each processor is also registered in the "processors" category for
-    // discovery by future tooling (e.g., diagnostics, admin UI).
-    {
-        let mut reg = registry.write().unwrap();
-
-        let processors: Vec<(&str, Arc<dyn nabu_core::processing::Processor>)> = vec![
-            ("content_classifier", Arc::new(ContentClassifier::new())),
-            ("duplicate_detector", Arc::new(DuplicateDetector::without_storage())),
-            ("timeline_extractor", Arc::new(TimelineExtractor::new())),
-            ("metadata_extractor", Arc::new(MetadataExtractor::new())),
-            ("metadata_enricher", Arc::new(MetadataEnricher::new())),
-            ("auto_filer", Arc::new(AutoFiler::new())),
-            ("pdf_text", Arc::new(PdfTextProcessor::new())),
-            ("pdf_metadata", Arc::new(PdfMetadataProcessor::new())),
-            ("pdf_annotations", Arc::new(PdfAnnotationProcessor::new())),
-        ];
-
-        for (key, processor) in &processors {
-            reg.register(key, processor.clone());
-            reg.register_in_category(CATEGORY_PROCESSORS, key);
-        }
-
-        // Register ocr_processor only on macOS/iOS
-        #[cfg(all(target_os = "macos", target_os = "ios"))]
-        {
-            reg.register("ocr_processor", Arc::new(OcrProcessor::new()));
-            reg.register_in_category(CATEGORY_PROCESSORS, "ocr_processor");
-        }
-    }
-
-    // Register processors with the pipeline (preserving order from the
-    // original setup to maintain identical behaviour).
-    pipeline.register(Arc::new(ContentClassifier::new()));
-    pipeline.register(Arc::new(DuplicateDetector::without_storage()));
-    pipeline.register(Arc::new(TimelineExtractor::new()));
-    #[cfg(all(target_os = "macos", target_os = "ios"))]
-    pipeline.register(Arc::new(OcrProcessor::new()));
-    pipeline.register(Arc::new(MetadataExtractor::new()));
-    pipeline.register(Arc::new(MetadataEnricher::new()));
-    pipeline.register(Arc::new(AutoFiler::new()));
-    pipeline.register(Arc::new(PdfTextProcessor::new()));
-    pipeline.register(Arc::new(PdfMetadataProcessor::new()));
-    pipeline.register(Arc::new(PdfAnnotationProcessor::new()));
-
-    // ------------------------------------------------------------------
-    // 2. Build and register the CaptureEngine
-    // ------------------------------------------------------------------
-    let engine = Arc::new(CaptureEngine::new(event_bus.clone()));
-    {
-        let mut reg = registry.write().unwrap();
-        reg.register("capture_engine", engine.clone());
-    }
-
-    // Register capture handlers
-    {
-        let mut reg = registry.write().unwrap();
-
-        let handlers: Vec<(&str, Arc<dyn nabu_core::capture::CaptureHandler>)> = vec![
-            ("browser", Arc::new(BrowserCaptureHandler::new())),
-            ("article", Arc::new(ArticleCaptureHandler::new())),
-            ("youtube", Arc::new(YouTubeCaptureHandler::new())),
-            ("github", Arc::new(GitHubRepositoryHandler::new())),
-            ("clipboard", Arc::new(ClipboardHandler::default())),
-            ("screenshot", Arc::new(ScreenshotHandler::default())),
-        ];
-
-        for (key, handler) in &handlers {
-            reg.register(key, handler.clone());
-            reg.register_in_category(CATEGORY_CAPTURE_HANDLERS, key);
-        }
-    }
-
-    // Register handlers with the engine (preserving the exact same set)
-    engine.register(Arc::new(BrowserCaptureHandler::new()));
-    engine.register(Arc::new(ArticleCaptureHandler::new()));
-    engine.register(Arc::new(YouTubeCaptureHandler::new()));
-    engine.register(Arc::new(GitHubRepositoryHandler::new()));
-    engine.register(Arc::new(ClipboardHandler::default()));
-    engine.register(Arc::new(ScreenshotHandler::default()));
-
-    // ------------------------------------------------------------------
-    // 3. Async Processing via tokio::spawn
-    // ------------------------------------------------------------------
-    // Items captured through the EventBus are processed asynchronously
-    // using tokio::spawn. Each captured item runs through the pipeline
-    // in a separate async task, preserving the non-blocking behaviour
-    // of the previous JobQueue-based approach.
-    let pipeline_for_processing = pipeline.clone();
-    let eb_for_processing = event_bus.clone();
-    event_bus.subscribe(EVENT_ITEM_PROCESSED, move |event: &ItemProcessed| {
-        if event
-            .knowledge_object
-            .metadata
-            .custom
-            .contains_key(PROCESSING_HISTORY_KEY)
-        {
-            return;
-        }
-
-        let ko = event.knowledge_object.clone();
-        let pipe = pipeline_for_processing.clone();
-        let eb = eb_for_processing.clone();
-
-        tokio::spawn(async move {
-            let progress = ProgressReporter::new();
-            let cancellation = CancellationToken::new();
-
-            // Publish processing started
-            let start_event = nabu_core::event_bus::PipelineEvent::ItemProcessingStarted(
-                nabu_core::event_bus::ItemProcessingStartedEvent {
-                    object_id: ko.id,
-                    job_id: uuid::Uuid::nil(),
-                    processor_name: "pipeline".to_string(),
-                    object_type: ko.object_type.variant_name().to_string(),
-                    timestamp: chrono::Utc::now(),
-                },
-            );
-            eb.publish(EVENT_ITEM_PROCESSING_STARTED, &start_event);
-
-            // Run the processing pipeline
-            let result = pipe.run(ko, progress, cancellation).await;
-
-            // Publish completion or failure
-            if let Some(error) = &result.error {
-                let fail_event = nabu_core::event_bus::PipelineEvent::ItemProcessingFailed(
-                    nabu_core::event_bus::ItemProcessingFailedEvent {
-                        object_id: result.object.id,
-                        job_id: uuid::Uuid::nil(),
-                        processor_name: "pipeline".to_string(),
-                        error: error.clone(),
-                        retry_count: 0,
-                        will_retry: false,
-                        timestamp: chrono::Utc::now(),
-                    },
-                );
-                eb.publish(EVENT_ITEM_PROCESSING_FAILED, &fail_event);
-            } else {
-                let complete_event = nabu_core::event_bus::PipelineEvent::ItemProcessingCompleted(
-                    nabu_core::event_bus::ItemProcessingCompletedEvent {
-                        object_id: result.object.id,
-                        job_id: uuid::Uuid::nil(),
-                        processor_name: "pipeline".to_string(),
-                        timestamp: chrono::Utc::now(),
-                    },
-                );
-                eb.publish(EVENT_ITEM_PROCESSING_COMPLETED, &complete_event);
-
-                // Re-publish ItemProcessed so StorageManager can persist
-                let processed_event =
-                    nabu_core::event_bus::ItemProcessed::from_knowledge_object(
-                        &result.object,
-                        Vec::new(),
-                    );
-                eb.publish(EVENT_ITEM_PROCESSED, &processed_event);
-            }
-        });
-    });
-
-    // ------------------------------------------------------------------
-    // 4. Wire the Indexer as EVENT_ITEM_STORED subscriber (Principle 6)
-    // ------------------------------------------------------------------
-    let indexer_path = std::path::PathBuf::from(".nabu/index");
-    if let Ok(mut indexer) = Indexer::new(indexer_path) {
-        let idx_bus = event_bus.clone();
-        event_bus.subscribe(EVENT_ITEM_STORED, move |event: &ItemStored| {
-            if let Err(e) = indexer.index_document(&event.knowledge_object) {
-                tracing::error!(event.id = %event.id, error = %e, "Indexer failed to index document");
-            }
-        });
-    } else {
-        tracing::warn!("Could not initialize Indexer — search will be unavailable");
-    }
-
-    // ------------------------------------------------------------------
-    // 5. Build and register the VaultGraph (Principle 7)
-    // ------------------------------------------------------------------
-    let graph_vault_path = std::path::PathBuf::from(".");
-    let vault_graph = Arc::new(std::sync::RwLock::new(
-        VaultGraph::with_storage(graph_vault_path),
+    // ---- 2. One StorageManager (canonical storage owner) ----
+    let storage = Arc::new(StorageManager::with_event_bus(
+        vault_path.clone(),
+        (*event_bus).clone(),
     ));
+    ctx.register("storage_manager", storage.clone());
+
+    // ---- 3. One ProcessingPipeline (standard pipeline, 14 processors) ----
+    let pipeline = Arc::new(build_standard_pipeline(Some((*event_bus).clone())));
+    ctx.register("pipeline", pipeline.clone());
+
+    // Register processors in the "processors" category for discovery.
     {
-        let mut reg = registry.write().unwrap();
-        reg.register("vault_graph", vault_graph.clone());
+        let mut reg = registry.write().expect("registry lock not poisoned");
+        for name in pipeline.processor_names() {
+            reg.register_in_category(nabu_core::registry::CATEGORY_PROCESSORS, name);
+        }
     }
 
-    let vg = vault_graph.clone();
-    event_bus.subscribe(EVENT_ITEM_STORED, move |event: &ItemStored| {
-        let mut graph = vg.write().unwrap();
-        graph.update_node(&event.knowledge_object);
+    // ---- 4. One DurableJobQueue ----
+    let queue_base = vault_path.join(".nabu").join("queue");
+    let queue = Arc::new(
+        DurableJobQueue::new(&queue_base)
+            .unwrap_or_else(|e| panic!("Failed to create job queue at {}: {}", queue_base.display(), e)),
+    );
+    ctx.register("job_queue", queue.clone());
+
+    // ---- 5. One PipelineExecutor (Worker → Pipeline → Storage) ----
+    // Registered under every processor name the CaptureEngine can enqueue.
+    let executor: Arc<PipelineExecutor> = Arc::new(
+        PipelineExecutor::with_event_bus(pipeline.clone(), (*event_bus).clone())
+            .with_storage(storage.clone()),
+    );
+    let mut executors = ExecutorRegistry::new();
+    for name in [
+        "ocr_processor",
+        "whisper_processor",
+        "pdf_text_extraction_processor",
+        "metadata_extraction_processor",
+    ] {
+        executors.register(name, executor.clone());
+    }
+    let executors = Arc::new(executors);
+
+    // ---- 6. One WorkerPool ----
+    let worker_pool = Arc::new(WorkerPool::new(4, queue.clone(), executors));
+    ctx.register("worker_pool", worker_pool.clone());
+
+    // ---- 7. One CaptureEngine (canonical handlers + queue) ----
+    let capture_engine = Arc::new(nabu_core::capture::build_default_capture_engine(
+        Some((*event_bus).clone()),
+        Some(queue.clone()),
+    ));
+    ctx.register("capture_engine", capture_engine.clone());
+
+    // Register capture handlers in the "capture_handlers" category.
+    {
+        let mut reg = registry.write().expect("registry lock not poisoned");
+        for name in capture_engine.handler_names() {
+            reg.register_in_category(CATEGORY_CAPTURE_HANDLERS, &name);
+        }
+    }
+
+    // ---- 8. One Indexer (canonical search engine) ----
+    let indexer = Arc::new(Mutex::new(Indexer::with_event_bus((*event_bus).clone())));
+    ctx.register("indexer", indexer.clone());
+
+    // ---- 9. One VaultGraph (canonical graph engine, persisted) ----
+    let vault_graph = Arc::new(RwLock::new(
+        VaultGraph::with_persistence(Some((*event_bus).clone()), vault_path)
+            .unwrap_or_else(|e| panic!("Failed to initialize VaultGraph: {}", e)),
+    ));
+    ctx.register("vault_graph", vault_graph.clone());
+
+    // ---- 10. Canonical event flow: ITEM_STORED → Indexer + VaultGraph ----
+    // StorageManager.save() publishes ITEM_STORED after persistence. These
+    // subscribers are the ONLY consumers of that event: they index the stored
+    // object and add it to the graph. No side paths, no skipped stages.
+    let storage_for_events = storage.clone();
+    let indexer_for_events = indexer.clone();
+    let graph_for_events = vault_graph.clone();
+    event_bus.subscribe(kinds::ITEM_STORED, move |event: &PipelineEvent| {
+        if let PipelineEvent::ItemStored(stored) = event {
+            if let Some(object) = storage_for_events.load(stored.object_id) {
+                if let Ok(indexer) = indexer_for_events.lock() {
+                    if let Err(e) = indexer.index_object(&object) {
+                        tracing::error!(event.id = %stored.object_id, error = %e, "Indexer failed to index document");
+                    }
+                }
+                if let Ok(graph) = graph_for_events.write() {
+                    if let Err(e) = graph.add_node(&object) {
+                        tracing::error!(event.id = %stored.object_id, error = %e, "VaultGraph failed to add node");
+                    }
+                }
+            }
+        }
     });
 
-    // ------------------------------------------------------------------
-    // 6. Build and return the ApplicationContext
-    // ------------------------------------------------------------------
-    let ctx = ApplicationContext::new(registry, event_bus);
-    ctx.initialize();
-    ctx.start();
     ctx
 }
 
@@ -278,10 +178,8 @@ pub fn run() {
     // ------------------------------------------------------------------
     // Initialize the Nabu observability foundation.
     // ------------------------------------------------------------------
-    // This must happen before any other tracing calls.
-    // Uses NABU_LOG or RUST_LOG environment variables for filtering.
-    // Logs are written to .nabu/logs/ for post-hoc analysis.
-    // Nothing is ever sent to external servers — zero telemetry.
+    // Uses NABU_LOG or RUST_LOG for filtering. Logs are written to
+    // .nabu/logs/. Nothing is ever sent to external servers — zero telemetry.
     // ------------------------------------------------------------------
     nabu_core::diagnostics::init(None, "nabu");
 
@@ -332,16 +230,43 @@ pub fn run() {
             crate::commands::queue_archive_completed,
         ])
         .setup(|app| {
-            // Build the application context with all services
-            let ctx = build_application_context();
+            // ------------------------------------------------------------------
+            // Build the canonical application context from the current vault.
+            // ------------------------------------------------------------------
+            let vault_path = {
+                let settings = app.state::<crate::settings::SettingsStore>().get();
+                let path = settings.last_vault_path.trim().to_string();
+                if path.is_empty() {
+                    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+                } else {
+                    PathBuf::from(path)
+                }
+            };
 
-            // Retrieve services for wiring into the Tauri managed state
+            let ctx = build_application_context(vault_path);
             let engine: Arc<CaptureEngine> = ctx
                 .resolve("capture_engine")
                 .expect("CaptureEngine must be registered");
-            let event_bus = ctx.event_bus().clone();
+            let pool: Option<Arc<WorkerPool>> = ctx.worker_pool();
 
-            // Start native messaging socket server
+            // Initialize the context lifecycle (validates core services) BEFORE
+            // moving ctx into Tauri managed state.
+            if let Err(missing) = ctx.initialize() {
+                tracing::warn!(missing = ?missing, "Application context initialization incomplete");
+            }
+            ctx.start();
+
+            // Make the context available to commands via Tauri managed state.
+            app.manage(ctx);
+
+            // Start the canonical worker pool on the Tauri async runtime.
+            if let Some(pool) = pool {
+                tauri::async_runtime::spawn(async move {
+                    pool.start().await;
+                });
+            }
+
+            // Start native messaging socket server.
             let socket_state = Arc::new(crate::native_messaging_socket::SocketServerState {
                 engine: engine.clone(),
             });
@@ -351,17 +276,6 @@ pub fn run() {
                 }
                 Err(e) => {
                     tracing::error!(error = %e, "Failed to start native messaging socket server");
-                }
-            }
-
-            // Wire WatchFolderService (requires app.manage for Tauri state)
-            let config = WatchFolderConfig::default();
-            match WatchFolderService::new(config, engine.clone(), event_bus.clone()).start() {
-                Ok(service) => {
-                    app.manage(service);
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "Watch folders disabled");
                 }
             }
 
