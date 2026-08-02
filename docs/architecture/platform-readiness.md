@@ -6,8 +6,8 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 ## 1. Architecture Audit
 
 ### 1.1 No Duplicate Engines
-- ✅ One search engine: Tantivy (via `Indexer` in `nabu_core::indexer`)
-- ✅ One relationship graph: Petgraph (via `VaultGraph` in `nabu_core::graph`)
+- ✅ One search engine: in-memory `Indexer` (`nabu_core::indexer`)
+- ✅ One relationship graph: `VaultGraph` (`nabu_core::graph`)
 - ✅ One event bus: `EventBus` in `nabu_core::event_bus`
 - ✅ One capture engine: `CaptureEngine` in `nabu_core::capture`
 - ✅ One processing pipeline: `ProcessingPipeline` in `nabu_core::processing`

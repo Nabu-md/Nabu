@@ -11,8 +11,8 @@ Nabu is a local-first, Markdown-canonical, privacy-first knowledge management ap
 3. **Single pipeline: Capture → Process → Store → EventBus → UI (Principle 3)**
 4. **Services never own canonical data (Principle 4)**
 5. **Views are projections, never duplicates (Principle 5)**
-6. **One search engine — Tantivy (Principle 6)**
-7. **One relationship graph — Petgraph/VaultGraph (Principle 7)**
+6. **One search engine — in-memory `Indexer` (Principle 6)**
+7. **One relationship graph — `VaultGraph` (Principle 7)**
 8. **Derived data is rebuildable (Principle 9)**
 9. **Local-first (Principle 10)**
 10. **Privacy-first — no telemetry sent externally (Principle 11)**
@@ -28,7 +28,7 @@ Nabu is a local-first, Markdown-canonical, privacy-first knowledge management ap
 │  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐    │   │
 │  │  │ EventBus   │  │ CaptureEngine│  │ ProcessingPipeline │    │   │
 │  │  ├────────────┤  ├──────────────┤  ├────────────────────┤    │   │
-│  │  │ JobQueue   │  │ StorageManager│  │ Indexer (Tantivy) │    │   │
+│  │  │ JobQueue   │  │ StorageManager│  │ Indexer (in-memory) │    │   │
 │  │  ├────────────┤  ├──────────────┤  ├────────────────────┤    │   │
 │  │  │ VaultGraph │  │ WorkerPool   │  │ OcrProcessor      │    │   │
 │  │  └────────────┘  └──────────────┘  └────────────────────┘    │   │
@@ -103,7 +103,7 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 | `job_queue` | `Arc<JobQueue>` | No | Async background job queue |
 | `worker_pool` | `Arc<WorkerPool>` | No | Tokio-based worker thread pool |
 | `vault_graph` | `Arc<RwLock<VaultGraph>>` | No | Knowledge relationship graph |
-| `indexer` | `Arc<Mutex<Indexer>>` | No | Tantivy full-text search index |
+| `indexer` | `Arc<Mutex<Indexer>>` | No | In-memory full-text search index |
 
 ## Subsystem Ownership
 
@@ -112,8 +112,8 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 | CaptureEngine | Handler registry, dispatch logic | KnowledgeObjects, Storage |
 | ProcessingPipeline | Processor chain, processing history | Storage, Search, Graph |
 | StorageManager | SQLite database, object persistence | Objects in memory, processing state |
-| Indexer | Tantivy index files | Object metadata, graphs |
-| VaultGraph | Petgraph graph structure | Object storage, indexes |
+| Indexer | In-memory index | Object metadata, graphs |
+| VaultGraph | In-memory adjacency list + `.nabu/graph/` persistence | Object storage, indexes |
 | JobQueue | Tokio channel, worker pool | Processing logic, storage |
 | EventBus | Subscriber registry, event dispatch | Business logic, state |
 
@@ -189,7 +189,7 @@ The plugin foundation is prepared but **no third-party plugin loading is impleme
 | `nabu:processor` | Processing pipeline |
 | `nabu:graph` | Knowledge relationship graph |
 | `nabu:export` | Knowledge export to various formats |
-| `nabu:search` | Tantivy-based full-text search |
+| `nabu:search` | Full-text search index |
 | `nabu:import` | Knowledge import from external sources |
 | `nabu:content_provider` | URL and API content fetching |
 | `nabu:theme` | UI theme management |
@@ -221,8 +221,8 @@ Shutdown
 - ✅ EventBus publish/subscribe
 - ✅ Async job queue with worker pool
 - ✅ SQLite persistence
-- ✅ Tantivy search
-- ✅ Petgraph relationship graph
+- ✅ In-memory search index
+- ✅ VaultGraph relationship graph (no petgraph dependency)
 - ✅ Diagnostics with structured tracing
 - ✅ Service registry with dependency injection
 - ✅ Plugin infrastructure (metadata only)

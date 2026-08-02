@@ -1,12 +1,7 @@
 pub mod commands;
-pub mod export_engine;
-pub mod models;
-pub mod native;
 pub mod native_messaging;
 pub mod native_messaging_socket;
 pub mod settings;
-pub mod template_manager;
-pub mod vault;
 
 // ---------------------------------------------------------------------------
 // Architectural notes (R1 — Application Wiring & Canonical Runtime):

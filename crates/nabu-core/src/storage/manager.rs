@@ -129,8 +129,7 @@ impl StorageManager {
 
     /// List all stored objects, optionally filtered by source file.
     ///
-    /// Mirrors the canonical [`StorageProvider::list_objects`] signature so the
-    /// application can enumerate the vault through the single storage owner.
+    /// Enumerates the vault through the single storage owner.
     pub fn list_objects(
         &self,
         _vault_id: &str,

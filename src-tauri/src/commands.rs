@@ -54,28 +54,6 @@ fn validate_input_safe(input: &str, max_length: usize) -> Result<(), String> {
     Ok(())
 }
 
-/// Validates that a file path is safe (no traversal, no absolute paths outside vault).
-fn validate_file_path_safe(path: &str) -> Result<(), String> {
-    if path.is_empty() {
-        return Err("Path cannot be empty".to_string());
-    }
-    
-    // Reject absolute paths that could escape the vault
-    if Path::new(path).is_absolute() && !path.starts_with('/') {
-        // Relative paths are fine, absolute paths need vault validation
-    }
-    
-    // Check for dangerous characters
-    let dangerous_chars = ['\0', '<', '>', '|', '&', ';', '$', '`'];
-    for c in dangerous_chars {
-        if path.contains(c) {
-            return Err(format!("Path contains dangerous character: {}", c));
-        }
-    }
-    
-    Ok(())
-}
-
 // ── Queue Types ────────────────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -855,12 +833,3 @@ pub fn queue_archive_completed(ctx: State<'_, ApplicationContext>) -> Result<usi
     Ok(archived)
 }
 
-#[tauri::command]
-pub fn fetch_objects(ctx: State<'_, ApplicationContext>) -> Result<Vec<KnowledgeObject>, String> {
-    let manager = get_storage_manager(&ctx)?;
-    let objects = manager
-        .list_objects("", None, 1000)
-        .map_err(|e| e.to_string())?;
-
-    Ok(objects)
-}
