@@ -35,6 +35,12 @@ pub struct WorkspaceContext {
     /// Bumped by the file tree after structural mutations so the tree can
     /// reload itself without a full remount.
     pub refresh_tree: RwSignal<u32>,
+    /// Updated whenever a note's content is changed on disk outside the editor
+    /// (e.g. a mention converted to a wikilink). The `(path, version)` pair lets
+    /// the editor reload only the note that actually changed, and only when it
+    /// has no unsaved edits — instead of autosaving a stale buffer over the
+    /// newer file, or clobbering the user's in-progress typing.
+    pub content_version: RwSignal<(String, u32)>,
 }
 
 /// Provides the workspace context (call at the app root, before any child
@@ -44,6 +50,7 @@ pub fn provide_workspace() -> WorkspaceContext {
         tabs: RwSignal::new(Vec::new()),
         active_path: RwSignal::new(None),
         refresh_tree: RwSignal::new(0),
+        content_version: RwSignal::new((String::new(), 0)),
     };
     provide_context(ctx);
     ctx
@@ -190,4 +197,17 @@ pub fn rename_tab_prefix(ctx: WorkspaceContext, old_prefix: &str, new_prefix: &s
 /// duplicate). The tree watches this counter.
 pub fn refresh_tree(ctx: WorkspaceContext) {
     ctx.refresh_tree.update(|v| *v = v.wrapping_add(1));
+}
+
+/// Marks `path`'s on-disk content as changed outside the editor (e.g. a
+/// mention converted to a wikilink by the right inspector / graph panel). The
+/// editor watches [`WorkspaceContext::content_version`] and re-reads the file
+/// so its buffer matches disk instead of overwriting the newer content on the
+/// next autosave. The path is carried so only the affected note reloads.
+pub fn bump_content_version(ctx: WorkspaceContext, path: &str) {
+    let path = path.to_string();
+    ctx.content_version.update(|(p, v)| {
+        *p = path;
+        *v = v.wrapping_add(1);
+    });
 }

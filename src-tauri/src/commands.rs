@@ -1386,3 +1386,763 @@ pub fn queue_archive_completed(ctx: State<'_, ApplicationContext>) -> Result<usi
     }
     Ok(archived)
 }
+
+// ── Knowledge Graph & Connected Knowledge ────────────────────────────
+//
+// Phase 13.1: the UI-facing knowledge graph. Wikilinks (`[[Title]]`) are
+// extracted from note markdown on demand and resolved against the vault's
+// note titles — reusing the existing tree/scan conventions (hidden entries
+// skipped, vault-relative forward-slash paths). No new indexing system is
+// introduced; the graph data is derived state, rebuilt on each call.
+
+/// One note collected from the vault with its raw content.
+#[derive(Clone)]
+struct NoteEntry {
+    path: String,
+    title: String,
+    folder: String,
+    modified_at: String,
+    content: String,
+}
+
+/// Scans the vault for `.md` notes (hidden entries skipped, matching
+/// `tree_list` / `notes_index`).
+fn collect_notes(vault_path: &Path) -> Vec<NoteEntry> {
+    fn walk(dir: &Path, prefix: &str, out: &mut Vec<NoteEntry>) {
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let full = entry.path();
+            if full.is_dir() {
+                walk(&full, &path, out);
+            } else if name.ends_with(".md") {
+                if let Ok(content) = std::fs::read_to_string(&full) {
+                    let title = name.trim_end_matches(".md").to_string();
+                    let folder = match path.rfind('/') {
+                        Some(i) => path[..i].to_string(),
+                        None => String::new(),
+                    };
+                    let modified = std::fs::metadata(&full)
+                        .and_then(|m| m.modified())
+                        .ok()
+                        .and_then(|t| {
+                            t.duration_since(std::time::UNIX_EPOCH)
+                                .ok()
+                                .map(|d| d.as_secs() as i64)
+                        })
+                        .and_then(|secs| {
+                            chrono::DateTime::from_timestamp(secs, 0).map(|dt| dt.to_rfc3339())
+                        })
+                        .unwrap_or_default();
+                    out.push(NoteEntry {
+                        path,
+                        title,
+                        folder,
+                        modified_at: modified,
+                        content,
+                    });
+                }
+            }
+        }
+    }
+    let mut notes = Vec::new();
+    walk(vault_path, "", &mut notes);
+    notes
+}
+
+/// Extracts `[[...]]` wikilink targets from markdown, handling the alias
+/// (`[[Title|Alias]]`), heading (`[[Title#Heading]]`) and block (`[[Title^id]]`)
+/// suffixes. Returns the resolved target name (alias/heading/block stripped).
+fn extract_wikilinks(content: &str) -> Vec<String> {
+    let bytes = content.as_bytes();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'[' && bytes[i + 1] == b'[' {
+            if let Some(rel) = content[i + 2..].find("]]") {
+                let raw = &content[i + 2..i + 2 + rel];
+                let target = raw.split('|').next().unwrap_or(raw);
+                let target = target.split('#').next().unwrap_or(target);
+                let target = target.split('^').next().unwrap_or(target).trim();
+                if !target.is_empty() {
+                    out.push(target.to_string());
+                }
+                i += 2 + rel + 2;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Builds a `lowercased title → paths` index for link resolution.
+fn build_title_index(notes: &[NoteEntry]) -> std::collections::HashMap<String, Vec<String>> {
+    let mut index: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for note in notes {
+        index
+            .entry(note.title.to_lowercase())
+            .or_default()
+            .push(note.path.clone());
+        // Also index the full path (folder/title) so `[[Folder/Note]]` works.
+        index
+            .entry(note.path.to_lowercase())
+            .or_default()
+            .push(note.path.clone());
+    }
+    index
+}
+
+/// Resolves a wikilink target to a note path, or `None` (broken link).
+fn resolve_note(
+    index: &std::collections::HashMap<String, Vec<String>>,
+    target: &str,
+) -> Option<String> {
+    let key = target.trim().to_lowercase();
+    index
+        .get(&key)
+        .and_then(|paths| paths.first().cloned())
+        .or_else(|| {
+            // Allow trailing `.md` in the link.
+            index
+                .get(&format!("{key}.md"))
+                .and_then(|paths| paths.first().cloned())
+        })
+}
+
+/// Extracts `tags:` from YAML frontmatter — inline array (`tags: [a, b]`),
+/// comma list (`tags: a, b`) or block list (`tags:\n  - a\n  - b`).
+fn extract_tags(content: &str) -> Vec<String> {
+    let mut tags = Vec::new();
+    if let Some(rest) = content.strip_prefix("---") {
+        if let Some(end) = rest.find("\n---") {
+            let fm = &rest[..end];
+            let lines: Vec<&str> = fm.lines().collect();
+            let mut in_block = false;
+            for line in lines {
+                let trimmed = line.trim();
+                if in_block {
+                    if let Some(item) = trimmed.strip_prefix("-") {
+                        let p = item.trim().trim_matches('"').trim_matches('\'').to_string();
+                        if !p.is_empty() {
+                            tags.push(p);
+                        }
+                        continue;
+                    }
+                    in_block = false;
+                }
+                if let Some(value) = trimmed.strip_prefix("tags:") {
+                    let inner = value.trim();
+                    if inner.is_empty() {
+                        in_block = true;
+                        continue;
+                    }
+                    let inner = inner.trim_start_matches('[').trim_end_matches(']');
+                    for part in inner.split(',') {
+                        let p = part.trim().trim_matches('"').trim_matches('\'').to_string();
+                        if !p.is_empty() {
+                            tags.push(p);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    tags
+}
+
+/// One node in the knowledge graph (a markdown note).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphNode {
+    /// Vault-relative path.
+    pub path: String,
+    /// Display title (file name without `.md`).
+    pub title: String,
+    /// Parent folder ("" for the vault root).
+    pub folder: String,
+    /// Last modification time (RFC 3339).
+    pub modified_at: String,
+    /// Tags from frontmatter.
+    pub tags: Vec<String>,
+    /// Incoming link count (other notes linking to this one).
+    pub backlink_count: usize,
+    /// Outgoing link count.
+    pub outgoing_count: usize,
+    /// Total degree (backlinks + outgoing).
+    pub degree: usize,
+}
+
+/// One edge in the knowledge graph (a resolved wikilink).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphEdgeData {
+    /// Path of the note containing the link.
+    pub source: String,
+    /// Resolved target path (or the raw link text when `broken`).
+    pub target: String,
+    /// True when the target does not resolve to a note.
+    pub broken: bool,
+}
+
+/// Full graph payload for the graph view.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphData {
+    pub nodes: Vec<GraphNode>,
+    pub edges: Vec<GraphEdgeData>,
+    /// Notes with zero connections (orphans).
+    pub orphan_count: usize,
+    /// Number of disconnected components.
+    pub cluster_count: usize,
+}
+
+/// Returns the full knowledge graph: every note as a node plus every resolved
+/// wikilink as an edge, with degree counts and cluster statistics.
+#[tauri::command]
+pub fn graph_data(store: State<'_, SettingsStore>) -> Result<GraphData, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(GraphData {
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            orphan_count: 0,
+            cluster_count: 0,
+        });
+    }
+
+    let notes = collect_notes(&vault_path);
+    let index = build_title_index(&notes);
+
+    let mut nodes: Vec<GraphNode> = notes
+        .iter()
+        .map(|n| GraphNode {
+            path: n.path.clone(),
+            title: n.title.clone(),
+            folder: n.folder.clone(),
+            modified_at: n.modified_at.clone(),
+            tags: extract_tags(&n.content),
+            backlink_count: 0,
+            outgoing_count: 0,
+            degree: 0,
+        })
+        .collect();
+
+    let mut edges = Vec::new();
+    for note in &notes {
+        for target in extract_wikilinks(&note.content) {
+            match resolve_note(&index, &target) {
+                Some(tpath) => {
+                    if tpath != note.path {
+                        edges.push(GraphEdgeData {
+                            source: note.path.clone(),
+                            target: tpath,
+                            broken: false,
+                        });
+                    }
+                }
+                None => {
+                    edges.push(GraphEdgeData {
+                        source: note.path.clone(),
+                        target: target.clone(),
+                        broken: true,
+                    });
+                }
+            }
+        }
+    }
+
+    // Degree / backlink counts (O(nodes + edges) via a path → index map with
+    // owned String keys so `nodes` isn't held borrowed while mutated).
+    let mut node_index: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
+    for (i, n) in nodes.iter().enumerate() {
+        node_index.insert(n.path.clone(), i);
+    }
+    for edge in &edges {
+        if let Some(&si) = node_index.get(&edge.source) {
+            nodes[si].outgoing_count += 1;
+            nodes[si].degree += 1;
+        }
+        if !edge.broken {
+            if let Some(&di) = node_index.get(&edge.target) {
+                nodes[di].backlink_count += 1;
+                nodes[di].degree += 1;
+            }
+        }
+    }
+
+    // Cluster count via union-find over the resolved edges. Owned String keys
+    // keep the borrows short so `nodes`/`edges` can be moved into the result.
+    let mut parent: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    fn find(parent: &mut std::collections::HashMap<String, String>, x: &str) -> String {
+        let px = parent.get(x).cloned().unwrap_or_else(|| x.to_string());
+        if px != x {
+            let root = find(parent, &px);
+            parent.insert(x.to_string(), root.clone());
+            root
+        } else {
+            px
+        }
+    }
+    for edge in &edges {
+        if edge.broken {
+            continue;
+        }
+        let a = find(&mut parent, &edge.source);
+        let b = find(&mut parent, &edge.target);
+        if a != b {
+            parent.insert(a, b);
+        }
+    }
+    let mut roots = std::collections::HashSet::new();
+    for n in &nodes {
+        roots.insert(find(&mut parent, &n.path));
+    }
+    let orphan_count = nodes.iter().filter(|n| n.degree == 0).count();
+
+    Ok(GraphData {
+        nodes,
+        edges,
+        orphan_count,
+        cluster_count: roots.len(),
+    })
+}
+
+/// One backlink hit: another note linking to the inspected note.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BacklinkEntry {
+    /// Path of the linking note.
+    pub path: String,
+    /// Title of the linking note.
+    pub title: String,
+    /// Parent folder of the linking note.
+    pub folder: String,
+    /// Context snippet around the first link.
+    pub snippet: String,
+    /// Character offset of the match within the snippet.
+    pub match_start: usize,
+    /// Character offset one past the match within the snippet.
+    pub match_end: usize,
+    /// How many times the linking note references this note.
+    pub count: usize,
+}
+
+/// One outgoing link from the inspected note.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutgoingLink {
+    /// `internal` (resolves to a note), `broken`, or `external` (URL).
+    pub kind: String,
+    /// Raw link text or URL.
+    pub target: String,
+    /// Resolved note path when `internal`.
+    pub path: Option<String>,
+    /// How many times this target is linked.
+    pub count: usize,
+}
+
+/// One unlinked mention: another note's title appearing as plain text.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MentionEntry {
+    /// The note that would be linked (matched by title).
+    pub title: String,
+    /// Path of the matched note.
+    pub path: String,
+    /// Context snippet around the first occurrence.
+    pub snippet: String,
+    /// Character offset of the match within the snippet.
+    pub match_start: usize,
+    /// Character offset one past the match within the snippet.
+    pub match_end: usize,
+    /// Match strength (longer titles rank higher).
+    pub score: u32,
+}
+
+/// Backlinks, outgoing links and unlinked mentions for one note.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NoteLinks {
+    pub backlinks: Vec<BacklinkEntry>,
+    pub outgoing: Vec<OutgoingLink>,
+    pub mentions: Vec<MentionEntry>,
+    /// Frontmatter tags of the inspected note.
+    pub tags: Vec<String>,
+}
+
+/// Lowercased chars of `content` with their original byte offsets. Each char
+/// maps to its first lowercase form (1:1 for all common scripts; multi-char
+/// lowercase expansions like `İ` are not handled).
+fn lc_chars(content: &str) -> Vec<(usize, char)> {
+    content
+        .char_indices()
+        .map(|(i, c)| (i, c.to_lowercase().next().unwrap_or(c)))
+        .collect()
+}
+
+/// Returns every word-boundary, case-insensitive occurrence of `needle` in
+/// `content` as a byte range into the ORIGINAL `content` (char-safe).
+///
+/// Word boundaries: the chars immediately before/after must not be
+/// alphanumeric or `_`. Reuses the canonical snippet builder (`make_snippet`)
+/// semantics — this is the single place plain-text mention matching happens.
+fn ci_word_ranges(content: &str, needle: &str) -> Vec<(usize, usize)> {
+    if needle.is_empty() {
+        return Vec::new();
+    }
+    ci_word_ranges_in_lc(content, &lc_chars(content), needle)
+}
+
+/// Like [`ci_word_ranges`], but matches against a precomputed lowercase char
+/// list so callers that scan many needles (unlinked mentions) only build the
+/// lowercase list once — O(content) setup + O(needle × content) per needle
+/// instead of O(content) per needle.
+fn ci_word_ranges_in_lc(
+    content: &str,
+    lc: &[(usize, char)],
+    needle: &str,
+) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    if needle.is_empty() {
+        return out;
+    }
+    let needle_lc: Vec<char> = needle
+        .chars()
+        .map(|c| c.to_lowercase().next().unwrap_or(c))
+        .collect();
+    if needle_lc.is_empty() || needle_lc.len() > lc.len() {
+        return out;
+    }
+    let mut i = 0usize;
+    while i + needle_lc.len() <= lc.len() {
+        let matched = needle_lc
+            .iter()
+            .enumerate()
+            .all(|(k, &c)| lc[i + k].1 == c);
+        if matched {
+            let before_ok = i == 0 || {
+                let p = lc[i - 1].1;
+                !(p.is_alphanumeric() || p == '_')
+            };
+            let after_idx = i + needle_lc.len();
+            let after_ok = after_idx >= lc.len() || {
+                let p = lc[after_idx].1;
+                !(p.is_alphanumeric() || p == '_')
+            };
+            if before_ok && after_ok {
+                let start = lc[i].0;
+                let end = if after_idx < lc.len() {
+                    lc[after_idx].0
+                } else {
+                    content.len()
+                };
+                out.push((start, end));
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Returns backlinks, outgoing links and unlinked mentions for a note.
+///
+/// `min_title_len` (default 3) is the mention-detection sensitivity: titles
+/// shorter than this are never suggested as unlinked mentions.
+#[tauri::command]
+pub fn note_links(
+    path: String,
+    min_title_len: Option<usize>,
+    store: State<'_, SettingsStore>,
+) -> Result<NoteLinks, String> {
+    let min_len = min_title_len.unwrap_or(3).max(2);
+    if path.trim().is_empty() {
+        return Ok(NoteLinks {
+            backlinks: Vec::new(),
+            outgoing: Vec::new(),
+            mentions: Vec::new(),
+            tags: Vec::new(),
+        });
+    }
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(NoteLinks {
+            backlinks: Vec::new(),
+            outgoing: Vec::new(),
+            mentions: Vec::new(),
+            tags: Vec::new(),
+        });
+    }
+
+    let notes = collect_notes(&vault_path);
+    let index = build_title_index(&notes);
+    let this = notes
+        .iter()
+        .find(|n| n.path == path)
+        .cloned()
+        .ok_or_else(|| "Note not found".to_string())?;
+
+    // Titles the user has chosen to ignore (persisted under `nabu.mention_ignored`).
+    let ignored: std::collections::HashSet<String> = store
+        .get_value("nabu.mention_ignored")
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .map(|s| s.to_lowercase())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Hoisted outside the per-note loops (they were re-extracted per note).
+    let this_links = extract_wikilinks(&this.content);
+
+    // ── Backlinks ──
+    let mut backlinks = Vec::new();
+    for note in &notes {
+        if note.path == this.path {
+            continue;
+        }
+        let links = extract_wikilinks(&note.content);
+        let mut count = 0usize;
+        let mut first: Option<(usize, usize)> = None;
+        let lc = lc_chars(&note.content);
+        for target in links {
+            let resolved = resolve_note(&index, &target)
+                .or_else(|| (target.eq_ignore_ascii_case(&this.title)).then(|| this.path.clone()));
+            if resolved.as_deref() == Some(this.path.as_str()) {
+                count += 1;
+                if first.is_none() {
+                    // Locate the first `[[target` span char-safely.
+                    for (start, end) in ci_word_ranges_in_lc(&note.content, &lc, &target) {
+                        if start > 0 && note.content[..start].ends_with('[') {
+                            first = Some((start, end - start));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if count > 0 {
+            let (snippet, s, e) = first
+                .map(|(off, len)| make_snippet(&note.content, off, len))
+                .unwrap_or_else(|| ("…".to_string(), 0, 0));
+            backlinks.push(BacklinkEntry {
+                path: note.path.clone(),
+                title: note.title.clone(),
+                folder: note.folder.clone(),
+                snippet,
+                match_start: s,
+                match_end: e,
+                count,
+            });
+        }
+    }
+    backlinks.sort_by(|a, b| b.count.cmp(&a.count));
+
+    // ── Outgoing ──
+    let mut outgoing: Vec<OutgoingLink> = Vec::new();
+    let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for target in &this_links {
+        let kind;
+        let resolved_path;
+        if target.starts_with("http://")
+            || target.starts_with("https://")
+            || target.starts_with("www.")
+        {
+            kind = "external";
+            resolved_path = None;
+        } else if let Some(tpath) = resolve_note(&index, target) {
+            kind = "internal";
+            resolved_path = Some(tpath);
+        } else {
+            kind = "broken";
+            resolved_path = None;
+        }
+        let key = resolved_path
+            .clone()
+            .unwrap_or_else(|| target.to_lowercase());
+        let entry = seen.entry(key).or_insert(0);
+        *entry += 1;
+        if *entry == 1 {
+            outgoing.push(OutgoingLink {
+                kind: kind.to_string(),
+                target: target.clone(),
+                path: resolved_path,
+                count: 1,
+            });
+        }
+    }
+    // Update counts for duplicates.
+    for link in outgoing.iter_mut() {
+        let key = link
+            .path
+            .clone()
+            .unwrap_or_else(|| link.target.to_lowercase());
+        link.count = seen.get(&key).copied().unwrap_or(1);
+    }
+    outgoing.sort_by(|a, b| b.count.cmp(&a.count));
+
+    // ── Unlinked mentions ──
+    // Only notes with a title at least `min_len` chars count (avoids noise
+    // from short common words). Longer titles rank higher. Word-boundary
+    // matching is char-safe; the lowercase list is built ONCE for this note so
+    // the scan is O(needles × content) rather than rebuilding per needle.
+    let this_lc = lc_chars(&this.content);
+    // Paths already linked from this note (O(1) lookup per candidate).
+    let linked_paths: std::collections::HashSet<String> = this_links
+        .iter()
+        .filter_map(|t| resolve_note(&index, t))
+        .collect();
+    let mut mentions: Vec<MentionEntry> = Vec::new();
+    for note in &notes {
+        if note.path == this.path {
+            continue;
+        }
+        let title = note.title.trim();
+        if title.len() < min_len {
+            continue;
+        }
+        let title_lower = title.to_lowercase();
+        if ignored.contains(&title_lower) {
+            continue;
+        }
+        // Skip titles that are already wikilinked anywhere in this note.
+        if linked_paths.contains(&note.path) {
+            continue;
+        }
+        // Word-boundary occurrence count in the plain text.
+        let ranges = ci_word_ranges_in_lc(&this.content, &this_lc, title);
+        if ranges.is_empty() {
+            continue;
+        }
+        // Exclude matches inside an existing `[[...]]` span (rare: a title
+        // could match the link text itself).
+        let mut count = 0usize;
+        let mut first: Option<(usize, usize)> = None;
+        for (start, end) in ranges {
+            let inside_link = this.content[..start]
+                .rfind("[[")
+                .map(|open| {
+                    this.content[open..]
+                        .find("]]")
+                        .map(|close| open + close + 2 > start)
+                        .unwrap_or(false)
+                })
+                .unwrap_or(false);
+            if inside_link {
+                continue;
+            }
+            count += 1;
+            if first.is_none() {
+                first = Some((start, end - start));
+            }
+        }
+        if count > 0 {
+            if let Some((off, len)) = first {
+                let (snippet, s, e) = make_snippet(&this.content, off, len);
+                mentions.push(MentionEntry {
+                    title: title.to_string(),
+                    path: note.path.clone(),
+                    snippet,
+                    match_start: s,
+                    match_end: e,
+                    score: (title.len() as u32) * (count as u32),
+                });
+            }
+        }
+    }
+    mentions.sort_by(|a, b| b.score.cmp(&a.score));
+
+    Ok(NoteLinks {
+        backlinks,
+        outgoing,
+        mentions,
+        tags: extract_tags(&this.content),
+    })
+}
+
+/// Converts the first plain-text occurrence of `title` in the note at `path`
+/// into a `[[wikilink]]` and writes the note back. Returns the new content.
+#[tauri::command]
+pub fn link_mention(
+    path: String,
+    title: String,
+    store: State<'_, SettingsStore>,
+) -> Result<String, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    let abs = validate_path_within_vault(&vault_path, &path)?;
+    let content = std::fs::read_to_string(&abs).map_err(|e| e.to_string())?;
+    // Char-safe word-boundary matching on the ORIGINAL bytes (no
+    // `to_lowercase()` length shift → slicing can never panic).
+    let mut replacement: Option<(usize, usize)> = None;
+    for (start, end) in ci_word_ranges(&content, &title) {
+        let inside_link = content[..start]
+            .rfind("[[")
+            .map(|open| {
+                content[open..]
+                    .find("]]")
+                    .map(|close| open + close + 2 > start)
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false);
+        if !inside_link {
+            replacement = Some((start, end - start));
+            break;
+        }
+    }
+    let Some((idx, len)) = replacement else {
+        return Err("No matching plain-text mention found".to_string());
+    };
+    let new_content = format!(
+        "{}[[{}]]{}",
+        &content[..idx],
+        title,
+        &content[idx + len..]
+    );
+    std::fs::write(&abs, &new_content).map_err(|e| e.to_string())?;
+    Ok(new_content)
+}
+
+/// Reads the persisted list of mention titles the user chose to ignore.
+#[tauri::command]
+pub fn mention_ignore_list(
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<String>, String> {
+    let value = store.get_value("nabu.mention_ignored");
+    if value.is_null() {
+        return Ok(Vec::new());
+    }
+    Ok(serde_json::from_value(value).unwrap_or_default())
+}
+
+/// Adds a mention title to the ignore list (it stops appearing in the
+/// unlinked-mentions panel).
+#[tauri::command]
+pub fn mention_ignore(
+    title: String,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    store
+        .update(|s| {
+            let mut list: Vec<String> = s
+                .extra_settings
+                .get("nabu.mention_ignored")
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+            if !list.contains(&title) {
+                list.push(title.clone());
+            }
+            s.extra_settings
+                .insert("nabu.mention_ignored".to_string(), serde_json::json!(list));
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

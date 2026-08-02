@@ -74,7 +74,40 @@ pub fn NoteEditor(
 
     // Debounced autosave. Each keystroke bumps a dirty counter; an effect
     // observes it and schedules a single save after the debounce window.
+    // `has_unsaved` is the *semantic* "buffer differs from disk" flag — the
+    // dirty counter is monotonic (never resets) and therefore can't be used as
+    // a clean/dirty test; `has_unsaved` is cleared only by a successful save.
     let (dirty, set_dirty) = signal(0u32);
+    let (has_unsaved, set_has_unsaved) = signal(false);
+
+    // Phase 13.1: reload from disk when THIS note's content changed outside the
+    // editor (a mention converted to a wikilink by the right inspector / graph
+    // panel bumps `workspace.content_version` with the changed path). Without
+    // this, the next autosave would write the stale buffer over the newer file.
+    // Guarded by (a) the path so a link in a *different* note never touches this
+    // buffer, and (b) a clean buffer so in-progress typing is never clobbered.
+    let ws = crate::components::workspace::use_workspace();
+    Effect::new(move |_| {
+        let (changed_path, v) = ws.content_version.get();
+        // Ignore the initial state (the mount load above already read the file)
+        // and bumps for any other note.
+        if v == 0 || changed_path != path || has_unsaved.get_untracked() {
+            return;
+        }
+        let path_reload = path.clone();
+        spawn_local(async move {
+            let args =
+                serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path_reload })).unwrap();
+            let result = crate::ipc::tauri_invoke("note_read", args).await;
+            if let Ok(saved) = serde_wasm_bindgen::from_value::<String>(result) {
+                // Re-check the buffer is still clean after the round-trip — the
+                // user may have typed while the file was being read.
+                if !has_unsaved.get_untracked() {
+                    set_content.set(saved);
+                }
+            }
+        });
+    });
     // `path` is used by several `move` closures and the view below, so clone
     // it for the Effect (which must be `move`/`'static`).
     let path_effect = path.clone();
@@ -102,6 +135,7 @@ pub fn NoteEditor(
                         Ok(()) => {
                             save_status.status.set(SaveStatus::Saved);
                             save_status.detail.set(format!("Saved {}", path_save));
+                            set_has_unsaved.set(false);
                         }
                         Err(_) => {
                             // Surface a retry state; the retry tick below will
@@ -160,6 +194,7 @@ pub fn NoteEditor(
     let insert_at_cursor = move |snippet: String| {
         let Some(ta) = ta_ref.get() else {
             set_content.update(|c| c.push_str(&snippet));
+            set_has_unsaved.set(true);
             return;
         };
         let start = ta.selection_start().ok().flatten().unwrap_or(0) as usize;
@@ -168,6 +203,7 @@ pub fn NoteEditor(
         value.insert_str(end, &snippet);
         set_content.set(value.clone());
         set_dirty.update(|v| *v = v.wrapping_add(1));
+        set_has_unsaved.set(true);
         let new_caret = (end + snippet.len()) as u32;
         let _ = ta.set_selection_range(new_caret, new_caret);
     };
@@ -183,6 +219,7 @@ pub fn NoteEditor(
         value.replace_range(start..end, &format!("{before}{selected}{after}"));
         set_content.set(value);
         set_dirty.update(|v| *v = v.wrapping_add(1));
+        set_has_unsaved.set(true);
         // Put the cursor after the closing marker.
         let caret = (end + before.len() + after.len()) as u32;
         let _ = ta.set_selection_range(caret, caret);
@@ -300,6 +337,7 @@ pub fn NoteEditor(
                             let value = event_target_value(&ev);
                             set_content.set(value);
                             set_dirty.update(|v| *v = v.wrapping_add(1));
+                            set_has_unsaved.set(true);
                         }
                         on:select=move |ev: web_sys::Event| {
                             if let Some(ta) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlTextAreaElement>().ok()) {

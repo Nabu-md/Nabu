@@ -2328,3 +2328,51 @@ kbd {
   transform: translateY(-50%);
   pointer-events: none;
 }
+
+/* ============================================================================
+   Knowledge Navigation & Connected Knowledge (Phase 13.1)
+   ========================================================================== */
+
+/* ---- Graph canvas (replaces the placeholder shell) ---- */
+.graph-view .graph-canvas {
+  background: #0b1220;
+  border: none;
+  border-radius: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.graph-view .graph-canvas:active {
+  cursor: grabbing;
+}
+
+/* ---- Graph toolbar (search / filters / zoom / stats) ---- */
+.graph-toolbar .input,
+.graph-toolbar select.input {
+  background-color: rgb(var(--gray-800));
+  border-color: rgb(var(--gray-700));
+}
+
+/* ---- Graph side panel (relationship inspector) ---- */
+.graph-side-panel {
+  animation: nabu-panel-in 160ms var(--ease-standard);
+  scrollbar-width: thin;
+}
+@keyframes nabu-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---- Mention / snippet highlight (shared with right inspector) ---- */
+.mention-mark {
+  background: rgb(var(--color-primary) / 0.35);
+  color: rgb(var(--gray-50));
+  border-radius: 3px;
+  padding: 0 1px;
+  font-style: normal;
+}
