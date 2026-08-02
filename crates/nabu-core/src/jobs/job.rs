@@ -127,8 +127,12 @@ impl Job {
     }
 
     /// Whether this job should be retried.
+    ///
+    /// `maximum_retries` is the number of retry *attempts* allowed, so a job
+    /// with `max_retries = 1` may fail once and be retried once (retry_count
+    /// becomes 1), then fail permanently on the next failure (retry_count 2).
     pub fn should_retry(&self) -> bool {
-        self.retry_count < self.maximum_retries
+        self.retry_count <= self.maximum_retries
     }
 
     /// Create a cancellation token for this job (for cooperative cancellation).

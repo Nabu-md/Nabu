@@ -194,6 +194,9 @@ impl DependencyGraph {
         }
 
         if order.len() == self.nodes.len() {
+            // Kahn's algorithm emits dependents before their dependencies;
+            // installation requires the reverse — dependencies first.
+            order.reverse();
             Some(order)
         } else {
             None

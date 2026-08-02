@@ -19,14 +19,12 @@ fn test_single_note_edit_incremental() {
     let mut engine = IncrementalUpdateEngine::new();
     let note = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Original".to_string()));
 
-    // First, add the note
-    engine.node_added(&note);
-    assert!(engine.tracker.added_nodes.contains(&note.id));
-    assert_eq!(engine.tracker.change_count(), 1);
-
-    // Then modify it
-    engine.node_modified(&note, Some(&note));
+    // A persisted note is modified — only it needs recalculation.
+    // (A just-added node stays tracked as "added"; no separate modified
+    // entry is created, so this test edits a node that already exists.)
+    engine.node_modified(&note, None);
     assert!(engine.tracker.modified_nodes.contains(&note.id));
+    assert_eq!(engine.tracker.change_count(), 1);
 
     // Only the note itself should need recalculation
     let to_recalc = engine.nodes_to_recalculate();
@@ -40,9 +38,7 @@ fn test_note_rename() {
     let mut engine = IncrementalUpdateEngine::new();
     let note = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown("Content".to_string()));
 
-    engine.node_added(&note);
-
-    // Rename is just a metadata change
+    // Rename of a persisted note is just a metadata change
     engine.tracker.record_node_modified(note.id);
 
     assert!(engine.tracker.metadata_changed.contains(&note.id));
@@ -138,17 +134,19 @@ fn test_relationship_change() {
     let b = Uuid::new_v4();
     let c = Uuid::new_v4();
 
-    // Create initial edges
+    // Edges already exist in the persisted graph
     engine.edge_added(a, b, "references");
     engine.edge_added(b, c, "related");
-
     assert_eq!(engine.tracker.added_edges.len(), 2);
+
+    // Simulate the applied-and-persisted state before the edit
+    engine.reset();
 
     // Change: remove one edge, add another
     engine.edge_removed(a, b, "references");
     engine.edge_added(a, c, "references");
 
-    assert_eq!(engine.tracker.added_edges.len(), 2);
+    assert_eq!(engine.tracker.added_edges.len(), 1);
     assert_eq!(engine.tracker.removed_edges.len(), 1);
 }
 

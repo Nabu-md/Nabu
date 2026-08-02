@@ -16,15 +16,16 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use nabu_core::diagnostics;
+//! use tracing::{info, span};
+//! use uuid::Uuid;
 //!
 //! // Initialize once at application startup:
-//! diagnostics::init();
+//! diagnostics::init(None, "nabu");
 //!
 //! // Structured tracing throughout all subsystems:
-//! use tracing::{info, warn, error, debug, trace, span};
-//!
+//! let object_id = Uuid::new_v4();
 //! info!(
 //!     subsystem = "capture",
 //!     component = "engine",
@@ -34,7 +35,7 @@
 //! );
 //!
 //! // Nested spans:
-//! let parent = span!(tracing::Level::INFO, "capture_session", object_id = %id);
+//! let parent = span!(tracing::Level::INFO, "capture_session", object_id = %object_id);
 //! let _guard = parent.enter();
 //! // ... nested operations inherit this span
 //! ```

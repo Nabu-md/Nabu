@@ -286,13 +286,16 @@ mod tests {
         assert!(matches!(reason, RebuildReason::SchemaUpgrade { .. }));
     }
 
+    /// Build a snapshot with **fixed** node IDs so two calls produce identical
+    /// content — required for the deterministic-checksum test.
     fn create_healthy_snapshot() -> GraphSnapshot {
         let version = GraphVersion::new();
         let mut snapshot = GraphSnapshot::new(version);
 
-        let node1 = Uuid::new_v4();
-        let node2 = Uuid::new_v4();
-        let node3 = Uuid::new_v4();
+        // Fixed UUIDs: two calls must yield byte-identical graphs.
+        let node1 = Uuid::from_u128(1);
+        let node2 = Uuid::from_u128(2);
+        let node3 = Uuid::from_u128(3);
 
         snapshot.add_node(SerializedNode::new(node1, "note", Some("A".into()), "text"));
         snapshot.add_node(SerializedNode::new(node2, "note", Some("B".into()), "text"));

@@ -104,10 +104,14 @@ impl ValidationReport {
 
     /// Returns a human-readable summary of the validation.
     pub fn summary(&self) -> String {
+        // Denominator is the total number of *known* services (present +
+        // missing + unhealthy), not just the required list — present may also
+        // include optional services that were found.
+        let total = self.total_count();
         let mut parts = vec![format!(
             "Validation: {}/{} required services present",
             self.present.len(),
-            self.required_services.len(),
+            total,
         )];
 
         if !self.missing.is_empty() {
@@ -629,7 +633,9 @@ mod tests {
     #[test]
     fn validation_detects_missing_services() {
         let ctx = ApplicationContext::builder().build();
-        let report = ctx.validate_services(&["required_svc"], &["optional_svc"]);
+        // The builder auto-registers `event_bus`, so include it in the
+        // required list to verify it is reported as present.
+        let report = ctx.validate_services(&["event_bus", "required_svc"], &["optional_svc"]);
         assert!(!report.is_valid());
         assert_eq!(report.missing.len(), 1);
         assert!(report.present.contains(&"event_bus"));
@@ -683,6 +689,7 @@ mod tests {
             unhealthy: vec![],
         };
         let summary = report.summary();
+        // 2 of 3 known services (a, c present; b missing) are present.
         assert!(summary.contains("2/3"));
         assert!(summary.contains("Missing: b"));
     }

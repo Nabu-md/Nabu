@@ -5,15 +5,20 @@
 //! ## Usage
 //!
 //! ```rust
-//! use nabu_core::diagnostics::{span_for, span_for_capture};
+//! use nabu_core::diagnostics::{make_span, traced};
+//! use tracing::Level;
 //!
 //! // Create a span with subsystem, component, and operation:
-//! let span = span_for!(tracing::Level::INFO, "capture", "engine", "ingest",
-//!     object_id = %id
+//! let span = make_span(
+//!     Level::INFO,
+//!     "capture",
+//!     "engine",
+//!     "ingest",
+//!     vec![("object_id", &tracing::field::display("abc-123"))],
 //! );
 //!
-//! // Or use the subsystem-specific helpers:
-//! let span = span_for_capture("ingest", object_id = %id);
+//! // Or wrap an operation with timing:
+//! let result = traced("capture", "engine", "ingest", || 42);
 //! ```
 
 use tracing::Span;
@@ -34,7 +39,7 @@ use tracing::Span;
 ///     "capture",
 ///     "engine",
 ///     "ingest",
-///     vec![("object_id", tracing::field::display("abc-123"))],
+///     vec![("object_id", &tracing::field::display("abc-123"))],
 /// );
 /// ```
 pub fn make_span(
@@ -326,14 +331,22 @@ mod tests {
 
     #[test]
     fn test_make_span() {
-        let span = make_span(
-            Level::INFO,
-            "test",
-            "test_component",
-            "test_operation",
-            vec![("key", &tracing::field::display("value"))],
-        );
-        assert_eq!(span.metadata().map(|m| m.name()), Some("nabu"));
+        // Run under a local permissive subscriber so the INFO callsite is
+        // enabled regardless of the global subscriber state (tests that call
+        // `init()` install an env-filtered global subscriber in parallel).
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .finish();
+        tracing::subscriber::with_default(subscriber, || {
+            let span = make_span(
+                Level::INFO,
+                "test",
+                "test_component",
+                "test_operation",
+                vec![("key", &tracing::field::display("value"))],
+            );
+            assert_eq!(span.metadata().map(|m| m.name()), Some("nabu"));
+        });
     }
 
     #[test]

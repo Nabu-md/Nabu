@@ -7,7 +7,6 @@ use crate::jobs::retry::RetryPolicy;
 use crate::jobs::scheduler::{ScheduleSpec, Scheduler};
 use crate::jobs::worker_channel::{QueueHandle, WorkerChannel};
 use chrono::Utc;
-use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -74,7 +73,7 @@ pub struct DurableJobQueue {
     running: Arc<AtomicBool>,
     retry_policies: Mutex<HashMap<JobType, RetryPolicy>>,
     /// In-memory priority heap for fast dequeue
-    heap: Mutex<BinaryHeap<Reverse<PriorityItem<String>>>>,
+    heap: Mutex<BinaryHeap<PriorityItem<String>>>,
 }
 
 impl DurableJobQueue {
@@ -133,11 +132,11 @@ impl DurableJobQueue {
         let queued = self.store.load_by_status(JobStatus::Queued)?;
         for job in queued {
             if job.is_ready() {
-                heap.push(Reverse(PriorityItem::new(
+                heap.push(PriorityItem::new(
                     job.priority,
                     job.created_at,
                     job.id.to_string(),
-                )));
+                ));
             }
         }
 
@@ -159,11 +158,11 @@ impl DurableJobQueue {
         let due = self.scheduler.process_due_jobs()?;
         let mut heap = self.heap.lock().unwrap();
         for job in &due {
-            heap.push(Reverse(PriorityItem::new(
+            heap.push(PriorityItem::new(
                 job.priority,
                 job.created_at,
                 job.id.to_string(),
-            )));
+            ));
         }
         Ok(due)
     }
@@ -189,11 +188,11 @@ impl Queue for DurableJobQueue {
         // Add to in-memory heap
         if job.is_ready() {
             let mut heap = self.heap.lock().unwrap();
-            heap.push(Reverse(PriorityItem::new(
+            heap.push(PriorityItem::new(
                 job.priority,
                 job.created_at,
                 job.id.to_string(),
-            )));
+            ));
         }
 
         tracing::debug!(
@@ -220,7 +219,7 @@ impl Queue for DurableJobQueue {
         // Peek at the highest-priority job
         loop {
             let next_id = match heap.peek() {
-                Some(Reverse(item)) => item.item.clone(),
+                Some(item) => item.item.clone(),
                 None => return Ok(None),
             };
 
@@ -266,7 +265,7 @@ impl Queue for DurableJobQueue {
     fn peek(&self) -> JobResult<Option<Job>> {
         let heap = self.heap.lock().unwrap();
         match heap.peek() {
-            Some(Reverse(item)) => {
+            Some(item) => {
                 let job = self.store.load(&item.item)?;
                 Ok(job.filter(|j| j.status == JobStatus::Queued && j.is_ready()))
             }
@@ -326,11 +325,11 @@ impl Queue for DurableJobQueue {
         self.store.store(&job)?;
 
         let mut heap = self.heap.lock().unwrap();
-        heap.push(Reverse(PriorityItem::new(
+        heap.push(PriorityItem::new(
             job.priority,
             job.created_at,
             job.id.to_string(),
-        )));
+        ));
 
         Ok(job)
     }
@@ -407,11 +406,11 @@ impl Queue for DurableJobQueue {
             self.store.store(&job)?;
 
             let mut heap = self.heap.lock().unwrap();
-            heap.push(Reverse(PriorityItem::new(
+            heap.push(PriorityItem::new(
                 job.priority,
                 job.created_at,
                 job.id.to_string(),
-            )));
+            ));
 
             Ok(job)
         } else {
@@ -556,8 +555,8 @@ mod tests {
         assert_eq!(failed1.status, JobStatus::Queued);
 
         // Second failure: permanent (retry_count becomes 2, but max_retries is 1)
-        // Wait, let's check: retry_count goes from 1 to 2 after mark_failed
-        // should_retry checks retry_count < max_retries, so 2 < 1 is false
+        // mark_failed increments retry_count before checking, and should_retry
+        // uses `<=`, so 2 <= 1 is false → job is permanently failed.
         let failed2 = queue.mark_failed(&job_id, "error 2").unwrap();
         assert_eq!(failed2.status, JobStatus::Failed);
     }

@@ -73,9 +73,12 @@
 //! services. Every mock is a lightweight stand-in, not a production service.
 //!
 //! ```rust
-//! let app = Application::test_builder()
-//!     .with_capture_engine()
-//!     .with_storage_manager()
+//! use std::sync::Arc;
+//! use nabu_core::capture::CaptureEngine;
+//! use nabu_core::registry::Application;
+//!
+//! let app = Application::builder()
+//!     .with_capture_engine(Arc::new(CaptureEngine::new()))
 //!     .build();
 //! assert!(app.context().capture_engine().is_some());
 //! ```

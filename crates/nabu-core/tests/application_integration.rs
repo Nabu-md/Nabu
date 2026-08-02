@@ -165,7 +165,8 @@ fn context_accessors_return_expected_types() {
     assert!(ctx.vault_graph().is_none());
     assert!(ctx.indexer().is_none());
     assert!(ctx.storage_manager().is_none());
-    assert!(ctx.performance_monitor().is_none());
+    // Application::build() always constructs and registers a PerformanceMonitor
+    assert!(ctx.performance_monitor().is_some());
 }
 
 #[test]
@@ -225,9 +226,18 @@ fn validation_report_healthy_when_all_present() {
         std::env::temp_dir().join("nabu-test-validate"),
     )));
     // Add optional services
-    app.context().register("job_queue", Arc::new(nabu_core::jobs::DurableJobQueue::new(
+    let queue = Arc::new(nabu_core::jobs::DurableJobQueue::new(
         std::env::temp_dir().join("nabu-test-jobqueue"),
-    ).unwrap()));
+    ).unwrap());
+    app.context().register("job_queue", queue.clone());
+    app.context().register(
+        "worker_pool",
+        Arc::new(nabu_core::jobs::WorkerPool::new(
+            1,
+            queue.clone(),
+            Arc::new(nabu_core::jobs::workers::ExecutorRegistry::new()),
+        )),
+    );
 
     let report = app.context().validate_core_services();
     assert_eq!(report.present.len(), 6); // event_bus + 3 required + 2 optional

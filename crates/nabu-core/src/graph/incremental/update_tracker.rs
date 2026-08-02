@@ -77,8 +77,8 @@ impl UpdateTracker {
         } else {
             self.added_nodes.insert(node_id);
         }
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Record that a node was modified (metadata change).
@@ -87,8 +87,8 @@ impl UpdateTracker {
             self.modified_nodes.insert(node_id);
             self.metadata_changed.insert(node_id);
         }
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Record that a node was removed.
@@ -100,15 +100,15 @@ impl UpdateTracker {
             self.removed_nodes.insert(node_id);
             self.modified_nodes.remove(&node_id);
         }
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Record that a node's relationships changed.
     pub fn record_relationship_changed(&mut self, node_id: Uuid) {
         self.relationship_changed.insert(node_id);
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Record that an edge was added.
@@ -120,8 +120,8 @@ impl UpdateTracker {
         }
         self.relationship_changed.insert(edge.source);
         self.relationship_changed.insert(edge.target);
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Record that an edge was removed.
@@ -133,8 +133,8 @@ impl UpdateTracker {
         }
         self.relationship_changed.insert(edge.source);
         self.relationship_changed.insert(edge.target);
-        self.has_pending_changes = true;
         self.sequence += 1;
+        self.refresh_pending();
     }
 
     /// Get all node IDs that are affected by the current changes.
@@ -160,6 +160,20 @@ impl UpdateTracker {
             + self.removed_nodes.len()
             + self.added_edges.len()
             + self.removed_edges.len()
+    }
+
+    /// Recompute `has_pending_changes` from the tracked sets.
+    ///
+    /// Operations that cancel out (e.g. add then remove) leave no net change,
+    /// so the flag is derived from set state rather than blindly set to `true`.
+    fn refresh_pending(&mut self) {
+        self.has_pending_changes = !(self.added_nodes.is_empty()
+            && self.modified_nodes.is_empty()
+            && self.removed_nodes.is_empty()
+            && self.added_edges.is_empty()
+            && self.removed_edges.is_empty()
+            && self.metadata_changed.is_empty()
+            && self.relationship_changed.is_empty());
     }
 
     /// Whether there are no pending changes.

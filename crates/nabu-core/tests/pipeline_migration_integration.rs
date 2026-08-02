@@ -6,12 +6,10 @@ use nabu_core::jobs::job::{Job, JobType};
 use nabu_core::jobs::persistence::JobStore;
 use nabu_core::jobs::priority::Priority;
 use nabu_core::jobs::queue::{DurableJobQueue, Queue};
-use nabu_core::jobs::workers::executor::ExecutorRegistry;
 use nabu_core::jobs::workers::progress::ProgressReporter;
 use nabu_core::jobs::cancellation::CancellationToken;
 use nabu_core::models::{CaptureSource, KnowledgeObject, ObjectContent, ObjectType};
 use nabu_core::processing::pipeline::build_standard_pipeline;
-use nabu_core::pipeline_migration::executor::PipelineExecutor;
 use nabu_core::storage::manager::StorageManager;
 use nabu_core::indexer::Indexer;
 use nabu_core::graph::VaultGraph;
@@ -27,14 +25,8 @@ async fn test_capture_through_pipeline() {
     let bus = EventBus::<PipelineEvent>::new();
     let queue = Arc::new(DurableJobQueue::new(dir.path()).unwrap());
 
-    // Build pipeline executor
-    let executor = PipelineExecutor::standard(Some(bus.clone()));
-    let mut registry = ExecutorRegistry::new();
-    registry.register("ocr_processor", Arc::new(executor));
-
-    // Build capture engine with queue
-    let mut capture_engine = CaptureEngine::with_event_bus(bus.clone());
-    capture_engine.set_queue(queue.clone());
+    // Build capture engine with queue and built-in handlers
+    let capture_engine = build_default_capture_engine(Some(bus.clone()), Some(queue.clone()));
 
     // Ingest a capture
     let request = CaptureRequest::new(CaptureData::Text("Test content for processing".to_string()))
@@ -45,7 +37,7 @@ async fn test_capture_through_pipeline() {
 
     // Verify the job was enqueued
     let queued_count = queue.count_by_status(nabu_core::jobs::job::JobStatus::Queued).unwrap();
-    assert!(queued_count == 0, "Job should have been enqueued: got {}", queued_count);
+    assert!(queued_count > 0, "Job should have been enqueued: got {}", queued_count);
 }
 
 // ─── Test 2: All processors execute through the job queue ──────────────

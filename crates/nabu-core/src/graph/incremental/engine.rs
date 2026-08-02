@@ -86,9 +86,23 @@ impl IncrementalUpdateEngine {
         }
     }
 
+    /// Returns the tracker mutations should be recorded into.
+    ///
+    /// While a transaction is active, changes accumulate in the transaction
+    /// tracker and are only merged into the main tracker on commit; rolling
+    /// back discards them entirely.
+    fn active_tracker(&mut self) -> &mut UpdateTracker {
+        if self.in_transaction {
+            self.transaction_tracker
+                .get_or_insert_with(UpdateTracker::new)
+        } else {
+            &mut self.tracker
+        }
+    }
+
     /// Record that a node was added (new KnowledgeObject).
     pub fn node_added(&mut self, object: &KnowledgeObject) {
-        self.tracker.record_node_added(object.id);
+        self.active_tracker().record_node_added(object.id);
 
         // Register in dependency tracker
         for relation in &object.relations {
@@ -107,7 +121,7 @@ impl IncrementalUpdateEngine {
 
     /// Record that a node was modified.
     pub fn node_modified(&mut self, object: &KnowledgeObject, old_object: Option<&KnowledgeObject>) {
-        self.tracker.record_node_modified(object.id);
+        self.active_tracker().record_node_modified(object.id);
 
         // Detect relationship changes
         if let Some(old) = old_object {
@@ -117,7 +131,7 @@ impl IncrementalUpdateEngine {
             // Removed relationships
             for removed in old_relations.difference(&new_relations) {
                 self.dependencies.remove_dependency(object.id, *removed);
-                self.tracker.record_edge_removed(EdgeKey::new(
+                self.active_tracker().record_edge_removed(EdgeKey::new(
                     object.id,
                     *removed,
                     "references",
@@ -127,7 +141,7 @@ impl IncrementalUpdateEngine {
             // Added relationships
             for added in new_relations.difference(&old_relations) {
                 self.dependencies.add_dependency(object.id, *added);
-                self.tracker.record_edge_added(EdgeKey::new(
+                self.active_tracker().record_edge_added(EdgeKey::new(
                     object.id,
                     *added,
                     "references",
@@ -144,7 +158,7 @@ impl IncrementalUpdateEngine {
 
     /// Record that a node was removed.
     pub fn node_removed(&mut self, node_id: Uuid) {
-        self.tracker.record_node_removed(node_id);
+        self.active_tracker().record_node_removed(node_id);
         self.dependencies.remove_all_dependencies(node_id);
 
         // Log
@@ -156,7 +170,7 @@ impl IncrementalUpdateEngine {
     /// Record that an edge was added.
     pub fn edge_added(&mut self, source: Uuid, target: Uuid, relationship: &str) {
         let key = EdgeKey::new(source, target, relationship);
-        self.tracker.record_edge_added(key);
+        self.active_tracker().record_edge_added(key);
         self.dependencies.add_dependency(source, target);
 
         if let Some(ref log) = self.change_log {
@@ -169,7 +183,7 @@ impl IncrementalUpdateEngine {
     /// Record that an edge was removed.
     pub fn edge_removed(&mut self, source: Uuid, target: Uuid, relationship: &str) {
         let key = EdgeKey::new(source, target, relationship);
-        self.tracker.record_edge_removed(key);
+        self.active_tracker().record_edge_removed(key);
         self.dependencies.remove_dependency(source, target);
 
         if let Some(ref log) = self.change_log {
@@ -324,11 +338,16 @@ mod tests {
         engine.node_added(&obj);
         assert!(engine.tracker.added_nodes.contains(&obj.id));
 
+        // Modifying a just-added node keeps it tracked as "added" (it is
+        // already new — no separate modified entry is created).
         engine.node_modified(&obj, None);
-        assert!(engine.tracker.modified_nodes.contains(&obj.id));
+        assert!(engine.tracker.added_nodes.contains(&obj.id));
+        assert!(!engine.tracker.modified_nodes.contains(&obj.id));
 
+        // Removing a just-added node cancels out entirely.
         engine.node_removed(obj.id);
-        assert!(engine.tracker.removed_nodes.contains(&obj.id));
+        assert!(!engine.tracker.added_nodes.contains(&obj.id));
+        assert!(!engine.tracker.removed_nodes.contains(&obj.id));
     }
 
     #[test]

@@ -12,6 +12,17 @@ use tempfile::tempdir;
 use tracing_subscriber::layer::Layer;
 use tracing_subscriber::Registry;
 
+/// Restores the process working directory on drop, so a panicking assertion
+/// between `set_current_dir` and the end of the test can't leave the cwd
+/// changed for other parallel tests in this binary.
+struct CwdGuard(std::path::PathBuf);
+
+impl Drop for CwdGuard {
+    fn drop(&mut self) {
+        let _ = std::env::set_current_dir(&self.0);
+    }
+}
+
 /// Test that diagnostics can be initialized with a vault path.
 #[test]
 fn test_diagnostics_init_with_vault_path() {
@@ -27,6 +38,13 @@ fn test_diagnostics_init_with_vault_path() {
 /// Test that diagnostics can be initialized without a vault path.
 #[test]
 fn test_diagnostics_init_without_vault_path() {
+    // Run from a tempdir so `.nabu/logs` is not created in the package
+    // working directory (avoids polluting the repo during cargo test).
+    let dir = tempdir().unwrap();
+    let original_cwd = std::env::current_dir().unwrap();
+    std::env::set_current_dir(dir.path()).unwrap();
+    let _cwd_guard = CwdGuard(original_cwd);
+
     let result = nabu_core::diagnostics::init(None, "nabu-test");
     assert!(result || nabu_core::diagnostics::init::is_initialized());
 }

@@ -184,8 +184,9 @@ fn test_report_with_counters_and_gauges() {
     m.set_gauge("test.gauge", 10);
 
     let report = m.report();
-    assert!(report.contains("counters"));
-    assert!(report.contains("gauges"));
+    // Section headers are title-cased, matching the other report categories
+    assert!(report.contains("Counters"));
+    assert!(report.contains("Gauges"));
 }
 
 #[test]

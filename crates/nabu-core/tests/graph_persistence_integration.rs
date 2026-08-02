@@ -321,9 +321,11 @@ fn create_test_snapshot() -> GraphSnapshot {
     let version = GraphVersion::new();
     let mut snapshot = GraphSnapshot::new(version);
 
-    let n1 = Uuid::new_v4();
-    let n2 = Uuid::new_v4();
-    let n3 = Uuid::new_v4();
+    // Fixed UUIDs: two calls must yield byte-identical graphs so that
+    // checksum/determinism tests are meaningful.
+    let n1 = Uuid::from_u128(1);
+    let n2 = Uuid::from_u128(2);
+    let n3 = Uuid::from_u128(3);
 
     snapshot.add_node(SerializedNode::new(n1, "note", Some("Alpha".into()), "text/markdown"));
     snapshot.add_node(SerializedNode::new(n2, "article", Some("Beta".into()), "text/html"));

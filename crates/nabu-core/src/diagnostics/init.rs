@@ -144,7 +144,13 @@ fn build_env_filter() -> EnvFilter {
         .or_else(|| std::env::var("RUST_LOG").ok())
         .unwrap_or_else(default_log_level);
 
-    match EnvFilter::try_new(&filter_string) {
+    parse_filter_string(&filter_string)
+}
+
+/// Parse a filter directive into an `EnvFilter`, falling back to `info` on
+/// invalid input. Pure — used by tests to avoid touching process env.
+fn parse_filter_string(filter_string: &str) -> EnvFilter {
+    match EnvFilter::try_new(filter_string) {
         Ok(filter) => filter,
         Err(e) => {
             eprintln!(
@@ -192,10 +198,19 @@ pub fn reset_for_testing() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
     use tempfile::tempdir;
+
+    /// Serializes tests that mutate the global [`INITIALIZED`] flag / install
+    /// the global subscriber. Without this, two init tests running in parallel
+    /// race: the second `init()` call is a no-op and never creates its log dir.
+    static INIT_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_init_with_vault_path() {
+        let _guard = INIT_TEST_LOCK.lock().unwrap();
+        reset_for_testing();
+
         let dir = tempdir().unwrap();
         let result = init(Some(dir.path()), "nabu-test");
         assert!(result);
@@ -211,8 +226,29 @@ mod tests {
         assert!(init(Some(dir.path()), "nabu-test"));
     }
 
+    /// Restores the process working directory on drop, so a panicking
+    /// assertion between `set_current_dir` and the end of the test can't
+    /// leave the cwd changed for other parallel tests.
+    struct CwdGuard(PathBuf);
+
+    impl Drop for CwdGuard {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.0);
+        }
+    }
+
     #[test]
     fn test_init_without_vault_path() {
+        let _guard = INIT_TEST_LOCK.lock().unwrap();
+        reset_for_testing();
+
+        // Run from a tempdir so `.nabu/logs` is not created in the package
+        // working directory (avoids polluting the repo during cargo test).
+        let dir = tempdir().unwrap();
+        let original_cwd = std::env::current_dir().unwrap();
+        std::env::set_current_dir(dir.path()).unwrap();
+        let _cwd_guard = CwdGuard(original_cwd);
+
         let result = init(None, "nabu-test");
         assert!(result);
 
@@ -223,22 +259,24 @@ mod tests {
     }
 
     #[test]
-    fn test_build_env_filter_default() {
-        // Clear env vars for this test
-        std::env::remove_var("NABU_LOG");
-        std::env::remove_var("RUST_LOG");
-
-        let filter = build_env_filter();
+    fn test_parse_filter_default_directive() {
+        // Pure function — no process env mutation (avoids parallel-test races
+        // where a stray NABU_LOG=warn would disable INFO spans in other tests).
+        let filter = parse_filter_string(&default_log_level());
         // Should not panic, should produce a valid filter
         let _ = filter;
     }
 
     #[test]
-    fn test_build_env_filter_from_env() {
-        std::env::set_var("NABU_LOG", "warn");
-        let filter = build_env_filter();
+    fn test_parse_filter_accepts_env_directive() {
+        let filter = parse_filter_string("warn");
         let _ = filter;
-        std::env::remove_var("NABU_LOG");
+    }
+
+    #[test]
+    fn test_parse_filter_falls_back_on_invalid() {
+        let filter = parse_filter_string("!!!not-a-valid-directive!!!");
+        let _ = filter;
     }
 
     #[test]
