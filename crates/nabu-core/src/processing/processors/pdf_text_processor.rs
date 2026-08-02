@@ -1,18 +1,11 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectType};
+use crate::models::{ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 
-/// Extracts text content from PDF files.
-///
-/// For born-digital PDFs, text can be extracted directly.
-/// For scanned PDFs, the text is extracted via OCR (handled by OcrProcessor).
-///
-/// Currently a stub that simulates PDF text extraction.
-/// In production, this would call:
-/// - macOS PDFKit for native PDF text extraction
-/// - pdf-extract or lopdf for pure Rust fallback
+/// Extracts text content from PDF files via the native PDFKit engine
+/// ([`crate::native::pdfkit`]). No simulated extraction exists.
 pub struct PdfTextProcessor;
 
 #[async_trait]
@@ -33,32 +26,48 @@ impl Processor for PdfTextProcessor {
 
         progress.set_progress(0.1);
 
-        // Only process PDF documents
-        let is_pdf = matches!(&context.object.content, ObjectContent::Binary { mime_type, .. } if mime_type == "application/pdf")
-            || context.object.object_type == ObjectType::Document;
-
-        if !is_pdf {
-            return ProcessingResult::unmodified(context.object.clone());
-        }
+        // Only process PDF binary content.
+        let pdf_data = match &context.object.content {
+            ObjectContent::Binary { mime_type, data, .. } if mime_type == "application/pdf" => {
+                data.clone()
+            }
+            _ => return ProcessingResult::unmodified(context.object.clone()),
+        };
 
         progress.set_progress(0.4);
         let mut object = context.object.clone();
 
-        // Simulate PDF text extraction
-        // In production, this would use PDFKit or pdf-extract
-        let extracted_text = simulate_pdf_text_extraction(&object);
+        let engine_result = tokio::task::spawn_blocking(move || {
+            crate::native::pdfkit::extract_text(&pdf_data)
+        })
+        .await;
+
+        let extracted = match engine_result {
+            Ok(Ok(text)) => text,
+            Ok(Err(e)) => {
+                tracing::warn!(
+                    subsystem = "processing",
+                    component = "pdf_text_processor",
+                    object_id = %object.id,
+                    error = %e,
+                    "PDFKit text extraction unavailable; leaving object unmodified"
+                );
+                return ProcessingResult::unmodified(object);
+            }
+            Err(_) => return ProcessingResult::unmodified(object),
+        };
 
         progress.set_progress(0.7);
 
-        if !extracted_text.is_empty() {
+        if !extracted.text.is_empty() {
             object.custom_properties.insert(
                 "pdf_extracted_text".to_string(),
-                crate::models::CustomPropertyValue::Text(extracted_text.clone()),
+                crate::models::CustomPropertyValue::Text(extracted.text.clone()),
             );
 
             // Use extracted text as description
             if object.metadata.description.is_none() {
-                let desc: String = extracted_text.chars().take(200).collect();
+                let desc: String = extracted.text.chars().take(200).collect();
                 object.metadata.description = Some(desc);
             }
 
@@ -77,31 +86,23 @@ impl Processor for PdfTextProcessor {
     }
 }
 
-fn simulate_pdf_text_extraction(object: &KnowledgeObject) -> String {
-    match &object.content {
-        ObjectContent::Markdown(s) => s.clone(),
-        ObjectContent::PlainText(s) => s.clone(),
-        ObjectContent::RichHtml(s) => s.clone(),
-        _ => {
-            format!(
-                "Extracted text from PDF '{}'. This is a placeholder for native PDF text extraction.",
-                object.metadata.title.as_deref().unwrap_or("untitled")
-            )
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::KnowledgeObject;
+
+    fn fixture_pdf() -> Vec<u8> {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/pdf_fixture.pdf");
+        std::fs::read(path).expect("pdf fixture should exist")
+    }
 
     #[tokio::test]
-    async fn test_pdf_text_extraction() {
+    async fn test_pdf_text_extraction_real() {
         let obj = KnowledgeObject::new(
             ObjectType::Document,
             ObjectContent::Binary {
                 mime_type: "application/pdf".to_string(),
-                data: vec![0x25, 0x50, 0x44, 0x46], // %PDF header
+                data: fixture_pdf(),
                 filename: Some("document.pdf".to_string()),
             },
         );
@@ -112,10 +113,22 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert!(result
-            .object
-            .custom_properties
-            .contains_key("pdf_extracted_text"));
+        if cfg!(target_os = "macos") {
+            // Real PDFKit extraction of a Chrome-printed PDF must contain text.
+            let extracted = result
+                .object
+                .custom_properties
+                .get("pdf_extracted_text")
+                .map(|v| match v {
+                    crate::models::CustomPropertyValue::Text(s) => s.clone(),
+                    _ => String::new(),
+                })
+                .unwrap_or_default();
+            assert!(!extracted.is_empty(), "PDFKit should extract text");
+            assert!(extracted.contains("QUICK BROWN FOX"));
+        } else {
+            assert_eq!(result.modified, false);
+        }
     }
 
     #[tokio::test]

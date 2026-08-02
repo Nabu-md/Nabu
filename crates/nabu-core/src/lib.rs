@@ -30,6 +30,7 @@ pub mod event_bus;
 pub mod models;
 pub mod jobs;
 pub mod processing;
+pub mod native;
 pub mod capture;
 pub mod pipeline_migration;
 pub mod storage;

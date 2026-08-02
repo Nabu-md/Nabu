@@ -1,14 +1,11 @@
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
-use crate::models::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
+use crate::models::{ObjectContent, ObjectType};
 use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
 use async_trait::async_trait;
 
-/// Extracts metadata from PDF files (title, author, pages, etc.).
-///
-/// In production, this would use:
-/// - macOS PDFKit for native PDF metadata extraction
-/// - lopdf or pdf-extract for pure Rust fallback
+/// Extracts metadata from PDF files (title, author, pages, etc.) via the
+/// native PDFKit engine ([`crate::native::pdfkit`]). No simulation.
 pub struct PdfMetadataProcessor;
 
 #[async_trait]
@@ -29,19 +26,35 @@ impl Processor for PdfMetadataProcessor {
 
         progress.set_progress(0.1);
 
-        let is_pdf = matches!(&context.object.content, ObjectContent::Binary { mime_type, .. } if mime_type == "application/pdf")
-            || context.object.object_type == ObjectType::Document;
-
-        if !is_pdf {
-            return ProcessingResult::unmodified(context.object.clone());
-        }
+        let pdf_data = match &context.object.content {
+            ObjectContent::Binary { mime_type, data, .. } if mime_type == "application/pdf" => {
+                data.clone()
+            }
+            _ => return ProcessingResult::unmodified(context.object.clone()),
+        };
 
         progress.set_progress(0.3);
         let mut object = context.object.clone();
 
-        // Simulate PDF metadata extraction
-        // In production, this would call PDFKit's metadata API
-        let metadata = simulate_pdf_metadata(&object);
+        let engine_result = tokio::task::spawn_blocking(move || {
+            crate::native::pdfkit::extract_metadata(&pdf_data)
+        })
+        .await;
+
+        let metadata = match engine_result {
+            Ok(Ok(meta)) => meta,
+            Ok(Err(e)) => {
+                tracing::warn!(
+                    subsystem = "processing",
+                    component = "pdf_metadata_processor",
+                    object_id = %object.id,
+                    error = %e,
+                    "PDFKit metadata extraction unavailable; leaving object unmodified"
+                );
+                return ProcessingResult::unmodified(object);
+            }
+            Err(_) => return ProcessingResult::unmodified(object),
+        };
 
         progress.set_progress(0.6);
 
@@ -51,20 +64,22 @@ impl Processor for PdfMetadataProcessor {
             }
         }
 
-        if !metadata.authors.is_empty() && object.metadata.authors.is_empty() {
-            object.metadata.authors = metadata.authors;
+        if let Some(author) = metadata.author {
+            if object.metadata.authors.is_empty() {
+                object.metadata.authors = vec![author];
+            }
         }
 
-        if let Some(desc) = metadata.description {
+        if let Some(desc) = metadata.subject {
             if object.metadata.description.is_none() {
                 object.metadata.description = Some(desc);
             }
         }
 
-        // PDF-specific metadata
+        // Real PDF-specific metadata from PDFKit.
         object.custom_properties.insert(
             "pdf_page_count".to_string(),
-            crate::models::CustomPropertyValue::Number(metadata.file_size.unwrap_or(0) as f64),
+            crate::models::CustomPropertyValue::Number(metadata.page_count as f64),
         );
 
         object.custom_properties.insert(
@@ -81,27 +96,23 @@ impl Processor for PdfMetadataProcessor {
     }
 }
 
-fn simulate_pdf_metadata(object: &KnowledgeObject) -> ObjectMetadata {
-    ObjectMetadata {
-        title: object.metadata.title.clone(),
-        authors: object.metadata.authors.clone(),
-        description: object.metadata.description.clone(),
-        file_size: Some(1024 * 50), // simulated 50KB
-        ..Default::default()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::KnowledgeObject;
+
+    fn fixture_pdf() -> Vec<u8> {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/pdf_fixture.pdf");
+        std::fs::read(path).expect("pdf fixture should exist")
+    }
 
     #[tokio::test]
-    async fn test_pdf_metadata() {
+    async fn test_pdf_metadata_real() {
         let obj = KnowledgeObject::new(
             ObjectType::Document,
             ObjectContent::Binary {
                 mime_type: "application/pdf".to_string(),
-                data: vec![],
+                data: fixture_pdf(),
                 filename: Some("report.pdf".to_string()),
             },
         );
@@ -112,13 +123,26 @@ mod tests {
             .process(&ctx, ProgressReporter::noop(), CancellationToken::new())
             .await;
 
-        assert!(result
-            .object
-            .custom_properties
-            .contains_key("pdf_metadata_extracted"));
-        assert!(result
-            .object
-            .custom_properties
-            .contains_key("pdf_page_count"));
+        if cfg!(target_os = "macos") {
+            assert!(result
+                .object
+                .custom_properties
+                .contains_key("pdf_metadata_extracted"));
+            // Chrome-printed fixture has exactly one page.
+            let pages = result
+                .object
+                .custom_properties
+                .get("pdf_page_count")
+                .map(|v| match v {
+                    crate::models::CustomPropertyValue::Number(n) => *n,
+                    _ => -1.0,
+                })
+                .unwrap_or(-1.0);
+            assert_eq!(pages, 1.0);
+            // Chrome sets the PDF title from the HTML <title>.
+            assert!(result.object.metadata.title.is_some());
+        } else {
+            assert_eq!(result.modified, false);
+        }
     }
 }
