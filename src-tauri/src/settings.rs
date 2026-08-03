@@ -11,50 +11,107 @@ pub struct RecentVaultEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppSettings {
+    // ── Appearance ────────────────────────────────────────────────────
     pub theme: String,
+    pub main_window_opacity: f32,
+    pub floating_pill_opacity: f32,
+    pub pill_hover_boost_opacity: bool,
+    pub sidebar_width: f32,
+    pub inspector_width: f32,
+    pub font_size: f32,
+    pub line_height: f32,
+    pub reduced_motion: bool,
+    pub high_contrast: bool,
+
+    // ── Editor ───────────────────────────────────────────────────────
+    pub editor_mode: String,
+    pub auto_pair_brackets: bool,
+    pub show_line_numbers: bool,
+    pub convert_pasted_html_to_markdown: bool,
+    pub enable_notion_slash_menu: bool,
+    pub auto_format_filler_words: bool,
+    pub tab_size: u32,
+    pub word_wrap: bool,
+    pub spell_check: bool,
+    pub auto_save_interval_secs: u32,
+
+    // ── Markdown ─────────────────────────────────────────────────────
+    pub markdown_gfm: bool,
+    pub markdown_preserve_line_breaks: bool,
+    pub markdown_smart_quotes: bool,
+    pub markdown_math_rendering: bool,
+    pub markdown_diagram_rendering: bool,
+
+    // ── Search ───────────────────────────────────────────────────────
+    pub search_index_on_startup: bool,
+    pub search_max_results: u32,
+    pub search_highlight_matches: bool,
+    pub search_fuzzy_matching: bool,
+
+    // ── Graph ────────────────────────────────────────────────────────
+    pub include_folders_in_graph: bool,
+    pub folder_click_behavior: String,
+    pub graph_node_physics_gravity: f32,
+    pub graph_node_physics_spacing: f32,
+    pub graph_show_tags_as_badges: bool,
+
+    // ── Files & Vaults ───────────────────────────────────────────────
     pub last_vault_path: String,
     #[serde(default)]
     pub recent_vaults: Vec<RecentVaultEntry>,
-    #[serde(default)]
-    pub main_window_opacity: f32,
-    #[serde(default)]
-    pub floating_pill_opacity: f32,
-    #[serde(default)]
-    pub whisper_model: String,
-    #[serde(default)]
-    pub enable_daily_notes: bool,
-    #[serde(default)]
-    pub launch_at_startup: bool,
-    #[serde(default)]
-    pub editor_mode: String,
-    #[serde(default)]
-    pub auto_pair_brackets: bool,
-    #[serde(default)]
-    pub show_line_numbers: bool,
-    #[serde(default)]
-    pub convert_pasted_html_to_markdown: bool,
-    #[serde(default)]
-    pub enable_notion_slash_menu: bool,
-    #[serde(default)]
-    pub voice_hotkey: String,
-    #[serde(default)]
-    pub auto_format_filler_words: bool,
-    #[serde(default)]
-    pub pill_hover_boost_opacity: bool,
-    #[serde(default)]
     pub default_new_note_path: String,
-    #[serde(default)]
     pub trash_retention_policy: String,
-    #[serde(default)]
+    pub enable_daily_notes: bool,
+    pub confirm_before_delete: bool,
+    pub show_hidden_files: bool,
+    pub sort_files_alphabetically: bool,
+
+    // ── Import & Export ──────────────────────────────────────────────
+    pub default_export_format: String,
+    pub export_include_metadata: bool,
+    pub export_include_attachments: bool,
+    pub import_duplicate_strategy: String,
+
+    // ── OCR ──────────────────────────────────────────────────────────
+    pub ocr_language: String,
+    pub ocr_auto_process_scanned_pdfs: bool,
+    pub ocr_confidence_threshold: f32,
+
+    // ── Accessibility ────────────────────────────────────────────────
+    pub screen_reader_support: bool,
+    pub keyboard_navigation: bool,
+    pub focus_ring_visible: bool,
+
+    // ── Performance ──────────────────────────────────────────────────
+    pub max_undo_history: u32,
+    pub worker_pool_size: u32,
+    pub index_on_startup: bool,
+    pub background_processing: bool,
+
+    // ── Privacy ──────────────────────────────────────────────────────
+    pub launch_at_startup: bool,
+    pub analytics_enabled: bool,
+    pub crash_reporting_enabled: bool,
+    pub auto_lock_on_idle: bool,
+    pub auto_lock_timeout_mins: u32,
+
+    // ── Keyboard Shortcuts ───────────────────────────────────────────
+    pub voice_hotkey: String,
+    pub quick_capture_hotkey: String,
+    pub toggle_sidebar_hotkey: String,
+
+    // ── Advanced ─────────────────────────────────────────────────────
     pub force_sandbox_for_web_snippets: bool,
-    #[serde(default)]
-    pub include_folders_in_graph: bool,
-    #[serde(default)]
-    pub folder_click_behavior: String,
-    #[serde(default)]
-    pub graph_node_physics_gravity: f32,
-    #[serde(default)]
-    pub graph_node_physics_spacing: f32,
+    pub debug_mode: bool,
+    pub developer_tools: bool,
+    pub experimental_features: bool,
+
+    // ── Experimental ─────────────────────────────────────────────────
+    pub whisper_model: String,
+    pub enable_ai_summarization: bool,
+    pub enable_semantic_search: bool,
+
+    // ── Extras (backwards-compat) ────────────────────────────────────
     #[serde(default)]
     pub extra_settings: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -62,29 +119,106 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            // Appearance
             theme: "system".to_string(),
-            last_vault_path: "".to_string(),
-            recent_vaults: Vec::new(),
             main_window_opacity: 1.0,
             floating_pill_opacity: 0.8,
-            whisper_model: "ggml-base.en.bin".to_string(),
-            enable_daily_notes: true,
-            launch_at_startup: false,
+            pill_hover_boost_opacity: true,
+            sidebar_width: 280.0,
+            inspector_width: 320.0,
+            font_size: 14.0,
+            line_height: 1.6,
+            reduced_motion: false,
+            high_contrast: false,
+
+            // Editor
             editor_mode: "Live Preview".to_string(),
             auto_pair_brackets: true,
             show_line_numbers: true,
             convert_pasted_html_to_markdown: true,
             enable_notion_slash_menu: true,
-            voice_hotkey: "Cmd+Shift+D".to_string(),
             auto_format_filler_words: true,
-            pill_hover_boost_opacity: true,
-            default_new_note_path: "Vault Root".to_string(),
-            trash_retention_policy: "30 Days".to_string(),
-            force_sandbox_for_web_snippets: true,
+            tab_size: 4,
+            word_wrap: true,
+            spell_check: true,
+            auto_save_interval_secs: 30,
+
+            // Markdown
+            markdown_gfm: true,
+            markdown_preserve_line_breaks: false,
+            markdown_smart_quotes: true,
+            markdown_math_rendering: true,
+            markdown_diagram_rendering: true,
+
+            // Search
+            search_index_on_startup: true,
+            search_max_results: 100,
+            search_highlight_matches: true,
+            search_fuzzy_matching: false,
+
+            // Graph
             include_folders_in_graph: true,
             folder_click_behavior: "Open Folder Table View".to_string(),
             graph_node_physics_gravity: 0.5,
             graph_node_physics_spacing: 1.0,
+            graph_show_tags_as_badges: true,
+
+            // Files & Vaults
+            last_vault_path: "".to_string(),
+            recent_vaults: Vec::new(),
+            default_new_note_path: "Vault Root".to_string(),
+            trash_retention_policy: "30 Days".to_string(),
+            enable_daily_notes: true,
+            confirm_before_delete: true,
+            show_hidden_files: false,
+            sort_files_alphabetically: true,
+
+            // Import & Export
+            default_export_format: "markdown".to_string(),
+            export_include_metadata: true,
+            export_include_attachments: true,
+            import_duplicate_strategy: "skip".to_string(),
+
+            // OCR
+            ocr_language: "eng".to_string(),
+            ocr_auto_process_scanned_pdfs: true,
+            ocr_confidence_threshold: 0.7,
+
+            // Accessibility
+            screen_reader_support: false,
+            keyboard_navigation: true,
+            focus_ring_visible: true,
+
+            // Performance
+            max_undo_history: 100,
+            worker_pool_size: 4,
+            index_on_startup: true,
+            background_processing: true,
+
+            // Privacy
+            launch_at_startup: false,
+            analytics_enabled: false,
+            crash_reporting_enabled: true,
+            auto_lock_on_idle: false,
+            auto_lock_timeout_mins: 15,
+
+            // Keyboard Shortcuts
+            voice_hotkey: "Cmd+Shift+D".to_string(),
+            quick_capture_hotkey: "Cmd+Shift+Space".to_string(),
+            toggle_sidebar_hotkey: "Cmd+B".to_string(),
+
+            // Advanced
+            force_sandbox_for_web_snippets: true,
+            debug_mode: false,
+            developer_tools: false,
+            experimental_features: false,
+
+            // Experimental
+            whisper_model: "ggml-base.en.bin".to_string(),
+            enable_ai_summarization: false,
+            enable_semantic_search: false,
+
+            // Extras
             extra_settings: std::collections::HashMap::new(),
         }
     }
@@ -106,6 +240,15 @@ impl SettingsError {
     fn write<E: std::fmt::Display>(err: E) -> Self {
         SettingsError::Write(err.to_string())
     }
+}
+
+/// Phase 15.1 — import/export settings in a versioned envelope.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SettingsExport {
+    pub version: String,
+    pub exported_at: String,
+    pub platform: String,
+    pub settings: AppSettings,
 }
 
 pub struct SettingsStore {
@@ -172,6 +315,32 @@ impl SettingsStore {
 
     pub fn reset(&self) -> Result<AppSettings, SettingsError> {
         self.update(|settings| *settings = AppSettings::default())
+    }
+
+    /// Serialize settings to JSON for export.
+    pub fn export_settings(&self) -> Result<SettingsExport, SettingsError> {
+        let settings = self.get();
+        Ok(SettingsExport {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            exported_at: chrono::Utc::now().to_rfc3339(),
+            platform: std::env::consts::OS.to_string(),
+            settings,
+        })
+    }
+
+    /// Import settings from a [`SettingsExport`] envelope, validating the
+    /// version field to prevent loading incompatible exports.
+    pub fn import_settings(&self, payload: &[u8]) -> Result<AppSettings, SettingsError> {
+        let export: SettingsExport = serde_json::from_slice(payload)
+            .map_err(|e| SettingsError::Malformed(e.to_string()))?;
+        // We accept any 0.x version for now; tighten as we evolve schema.
+        if !export.version.starts_with('0') {
+            return Err(SettingsError::Malformed(format!(
+                "Unsupported settings export version: {}",
+                export.version
+            )));
+        }
+        self.save(&export.settings)
     }
 
     fn persist(&self, settings: &AppSettings) -> Result<(), SettingsError> {

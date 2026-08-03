@@ -307,9 +307,10 @@ fn scan_tree(dir: &Path, prefix: &str) -> Vec<TreeEntry> {
     let mut items: Vec<TreeEntry> = entries
         .flatten()
         .filter(|e| {
-            let name = e.file_name().to_string_lossy();
+            let file_name = e.file_name();
+            let name_lossy = file_name.to_string_lossy();
             // The reserved `archive/` folder is hidden from normal navigation.
-            !name.starts_with('.') && !(prefix.is_empty() && name == ARCHIVE_FOLDER)
+            !name_lossy.starts_with('.') && !(prefix.is_empty() && name_lossy == ARCHIVE_FOLDER)
         })
         .map(|e| {
             let name = e.file_name().to_string_lossy().to_string();
@@ -667,6 +668,189 @@ pub fn settings_set_all(
     store: State<'_, SettingsStore>,
 ) -> Result<(), String> {
     store.save(&settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ── Settings Import / Export ─────────────────────────────────────────
+
+#[tauri::command]
+pub fn settings_export(store: State<'_, SettingsStore>) -> Result<Vec<u8>, String> {
+    let export = store
+        .export_settings()
+        .map_err(|e| e.to_string())?;
+    serde_json::to_vec(&export).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn settings_import(
+    payload: Vec<u8>,
+    store: State<'_, SettingsStore>,
+) -> Result<AppSettings, String> {
+    store
+        .import_settings(&payload)
+        .map(|s| s.clone())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn settings_reset(store: State<'_, SettingsStore>) -> Result<AppSettings, String> {
+    store.reset().map(|s| s.clone()).map_err(|e| e.to_string())
+}
+
+// ── Platform Integration Commands ───────────────────────────────────
+
+/// macOS: Open the app's location in Finder.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub fn open_app_in_finder() -> Result<(), String> {
+    let app_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&app_path)
+        .status()
+        .map_err(|e| format!("Failed to open Finder: {}", e))?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn open_app_in_finder() -> Result<(), String> {
+    Err("open_app_in_finder is only available on macOS".to_string())
+}
+
+/// macOS: Show a notification using the native `terminal-notifier` if available.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub fn show_macos_notification(title: String, body: String) -> Result<(), String> {
+    let _ = std::process::Command::new("terminal-notifier")
+        .arg("-title")
+        .arg(&title)
+        .arg("-message")
+        .arg(&body)
+        .arg("-sound")
+        .arg("Glass")
+        .status();
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn show_macos_notification(_title: String, _body: String) -> Result<(), String> {
+    Err("show_macos_notification is only available on macOS".to_string())
+}
+
+/// Windows: Pin app to taskbar (Jump List).
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn pin_to_taskbar() -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let dirs = known_folder::get_shell_dirs();
+    let dest = dirs
+        .taskbar_pins
+        .join(format!("{}.lnk", env!("CARGO_PKG_NAME")));
+    let _ = std::os::windows::fs::symlink_file(&exe, &dest);
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn pin_to_taskbar() -> Result<(), String> {
+    Err("pin_to_taskbar is only available on Windows".to_string())
+}
+
+/// Windows: Open the app's location in Explorer.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn open_in_explorer() -> Result<(), String> {
+    let app_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new("explorer")
+        .arg("/select,")
+        .arg(&app_path)
+        .spawn()
+        .map_err(|e| format!("Failed to open Explorer: {}", e))?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn open_in_explorer() -> Result<(), String> {
+    Err("open_in_explorer is only available on Windows".to_string())
+}
+
+/// Linux: Open the app's location in the default file manager.
+#[tauri::command]
+pub fn open_in_file_manager() -> Result<(), String> {
+    let app_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new("xdg-open")
+        .arg(&app_path)
+        .status()
+        .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    Ok(())
+}
+
+/// Linux: Show a desktop notification using `notify-send` or a portal.
+#[tauri::command]
+pub fn show_linux_notification(title: String, body: String) -> Result<(), String> {
+    let _ = std::process::Command::new("notify-send")
+        .arg(&title)
+        .arg(&body)
+        .status();
+    Ok(())
+}
+
+/// Linux: Install a desktop entry for the app (portal integration).
+#[tauri::command]
+pub fn install_desktop_entry() -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let home = std::env::var("HOME").map_err(|e| e.to_string())?;
+        let apps_dir = std::path::PathBuf::from(home).join(".local").join("share").join("applications");
+        std::fs::create_dir_all(&apps_dir).map_err(|e| e.to_string())?;
+        let desktop = apps_dir.join(format!("{}.desktop", env!("CARGO_PKG_NAME")));
+        let content = format!(
+            r#"[Desktop Entry]
+Type=Application
+Name=Nabu
+Exec={} %U
+Icon=nabu
+Terminal=false
+Categories=Office;Utility;
+MimeType=text/markdown;text/plain;
+"#,
+            exe.display()
+        );
+        std::fs::write(&desktop, content).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    Err("install_desktop_entry is only available on Linux".to_string())
+}
+
+/// Generic: reveal vault path in the OS file manager.
+#[tauri::command]
+pub fn reveal_vault_in_file_manager(store: State<'_, SettingsStore>) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = std::path::PathBuf::from(&settings.last_vault_path);
+    if !vault_path.exists() {
+        return Err("Vault path does not exist".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&vault_path)
+        .status()
+        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("explorer")
+        .arg(&vault_path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+    std::process::Command::new("xdg-open")
+        .arg(&vault_path)
+        .status()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -2222,8 +2406,10 @@ pub fn archive_note(
     }
     std::fs::rename(&full, &dest).map_err(|e| format!("Could not archive: {e}"))?;
     // Persist a reversible history entry so Archive → Undo restores the note.
-    let src = full.clone();
-    let dst = dest.clone();
+    let src_arc = full.clone();
+    let dst_arc = dest.clone();
+    let src_rename = full.clone();
+    let dst_rename = dest.clone();
     let _ = crate::history::push_history(
         &ctx,
         nabu_core::history::HistoryOp::Metadata,
@@ -2232,13 +2418,13 @@ pub fn archive_note(
         serde_json::json!({ "archived": false }),
         serde_json::json!({ "archived": true }),
         std::sync::Arc::new(move || {
-            std::fs::rename(&dst, &src).map_err(|e| e.to_string())
+            std::fs::rename(&dst_rename, &src_rename).map_err(|e| e.to_string())
         }),
         std::sync::Arc::new(move || {
-            if let Some(parent) = dst.parent() {
+            if let Some(parent) = dst_arc.parent() {
                 std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
             }
-            std::fs::rename(&src, &dst).map_err(|e| e.to_string())
+            std::fs::rename(&src_arc, &dst_arc).map_err(|e| e.to_string())
         }),
     );
     Ok(())
@@ -2269,8 +2455,10 @@ pub fn archive_restore(
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     std::fs::rename(&full, &original).map_err(|e| format!("Could not restore: {e}"))?;
-    let src = full.clone();
-    let dst = original.clone();
+    let src_restore = full.clone();
+    let dst_restore = original.clone();
+    let src_undo = full.clone();
+    let dst_undo = original.clone();
     let _ = crate::history::push_history(
         &ctx,
         nabu_core::history::HistoryOp::Metadata,
@@ -2279,13 +2467,13 @@ pub fn archive_restore(
         serde_json::json!({ "archived": true }),
         serde_json::json!({ "archived": false }),
         std::sync::Arc::new(move || {
-            if let Some(parent) = src.parent() {
+            if let Some(parent) = src_undo.parent() {
                 std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
             }
-            std::fs::rename(&dst, &src).map_err(|e| e.to_string())
+            std::fs::rename(&dst_undo, &src_undo).map_err(|e| e.to_string())
         }),
         std::sync::Arc::new(move || {
-            std::fs::rename(&src, &dst).map_err(|e| e.to_string())
+            std::fs::rename(&src_restore, &dst_restore).map_err(|e| e.to_string())
         }),
     );
     Ok(())
@@ -2674,7 +2862,7 @@ pub fn template_delete(name: String, store: State<'_, SettingsStore>) -> Result<
 
 #[tauri::command]
 pub fn template_duplicate(name: String, store: State<'_, SettingsStore>) -> Result<TemplateRecord, String> {
-    let list = template_list(store.clone()).unwrap_or_default();
+    let mut list = template_list(store.clone()).unwrap_or_default();
     let source = list
         .iter()
         .find(|t| t.name == name)
@@ -3082,7 +3270,7 @@ fn vault_growth(vault_path: &Path) -> Vec<GrowthPoint> {
 #[tauri::command]
 pub fn statistics_get(
     store: State<'_, SettingsStore>,
-    ctx: State<'_, ApplicationContext>,
+    _ctx: State<'_, ApplicationContext>,
 ) -> Result<VaultStatistics, String> {
     let settings = store.get();
     let vault_path = PathBuf::from(settings.last_vault_path.trim());

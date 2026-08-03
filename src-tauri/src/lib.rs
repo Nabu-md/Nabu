@@ -231,6 +231,7 @@ pub fn run() {
             crate::history::items_move,
             crate::commands::tree_list,
             crate::commands::reveal_in_file_manager,
+            crate::commands::reveal_vault_in_file_manager,
             crate::commands::notes_index,
             crate::commands::notes_search,
             crate::commands::graph_data,
@@ -257,6 +258,9 @@ pub fn run() {
             crate::commands::settings_get,
             crate::commands::settings_set,
             crate::commands::settings_set_all,
+            crate::commands::settings_export,
+            crate::commands::settings_import,
+            crate::commands::settings_reset,
             crate::commands::inbox_subscribe,
             crate::commands::inbox_get_queue,
             crate::commands::inbox_approve,
@@ -295,6 +299,14 @@ pub fn run() {
             crate::recovery::session_clear,
             crate::recovery::recovery_check,
             crate::recovery::recovery_discard,
+            // Phase 15.1 — platform integrations.
+            crate::commands::open_app_in_finder,
+            crate::commands::show_macos_notification,
+            crate::commands::pin_to_taskbar,
+            crate::commands::open_in_explorer,
+            crate::commands::open_in_file_manager,
+            crate::commands::show_linux_notification,
+            crate::commands::install_desktop_entry,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------
