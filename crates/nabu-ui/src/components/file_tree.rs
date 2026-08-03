@@ -244,6 +244,24 @@ fn do_duplicate(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
     });
 }
 
+/// Archives a note/folder into the reserved `archive/` folder (reversible).
+fn do_archive(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
+    let toasts = ctx.toasts;
+    let args = serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path.clone() })).unwrap();
+    spawn_local(async move {
+        let result = crate::ipc::tauri_invoke("archive_note", args).await;
+        if serde_wasm_bindgen::from_value::<()>(result).is_ok() {
+            // The note moved out of normal navigation — close its tab so the
+            // editor never autosaves a recreated file at the old path.
+            crate::components::workspace::close_tab(workspace, &path);
+            refresh_tree(workspace);
+            toasts.success("Archived", format!("Moved {} to the Archive", display_name(&path)));
+        } else {
+            toasts.error("Archive", "Could not archive that item");
+        }
+    });
+}
+
 /// Moves items to the trash (reversible), showing a single undo toast.
 fn do_delete(
     ctx: TreeContext,
@@ -702,6 +720,12 @@ pub fn FileTree() -> impl IntoView {
                     menu.set(None);
                 });
 
+                let path_arch = path.clone();
+                let archive = Callback::new(move |_| {
+                    do_archive(ctx, workspace, path_arch.clone());
+                    menu.set(None);
+                });
+
                 let path_copy = path.clone();
                 let copy_path = Callback::new(move |_| {
                     copy_text(path_copy.clone(), "Copy Path".to_string(), toasts);
@@ -739,6 +763,7 @@ pub fn FileTree() -> impl IntoView {
                         <MenuItem label="Delete".to_string() danger=true on_select=del />
                         <MenuItem label="Duplicate".to_string() on_select=dup />
                         <MenuItem label="Move to…".to_string() on_select=mv />
+                        <MenuItem label="Archive".to_string() hint="hides from navigation".to_string() on_select=archive />
                         <MenuSeparator />
                         <MenuItem label="Copy Path".to_string() on_select=copy_path />
                         <MenuItem label="Copy Wikilink".to_string() on_select=copy_wiki />

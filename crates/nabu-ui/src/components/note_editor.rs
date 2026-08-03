@@ -87,14 +87,17 @@ pub fn NoteEditor(
     // Guarded by (a) the path so a link in a *different* note never touches this
     // buffer, and (b) a clean buffer so in-progress typing is never clobbered.
     let ws = crate::components::workspace::use_workspace();
+    // The `move` closure below would move the prop `path` out, breaking later
+    // uses (`path_effect` for the autosave effect). Capture a clone instead.
+    let path_content = path.clone();
     Effect::new(move |_| {
         let (changed_path, v) = ws.content_version.get();
         // Ignore the initial state (the mount load above already read the file)
         // and bumps for any other note.
-        if v == 0 || changed_path != path || has_unsaved.get_untracked() {
+        if v == 0 || changed_path != path_content || has_unsaved.get_untracked() {
             return;
         }
-        let path_reload = path.clone();
+        let path_reload = path_content.clone();
         spawn_local(async move {
             let args =
                 serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path_reload })).unwrap();

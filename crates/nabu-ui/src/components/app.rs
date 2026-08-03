@@ -4,9 +4,12 @@ use crate::components::layout::left_sidebar::LeftSidebar;
 use crate::components::layout::ribbon_bar::RibbonBar;
 use crate::components::layout::right_inspector::RightInspector;
 use crate::components::layout::tab_bar::TabBar;
+use crate::components::navigation::archive_page::ArchivePage;
+use crate::components::navigation::calendar_page::CalendarPage;
 use crate::components::navigation::command_palette::CommandPalette;
 use crate::components::navigation::dashboard::Dashboard;
 use crate::components::navigation::home_screen::HomeScreen;
+use crate::components::navigation::smart_folders::SmartFoldersPage;
 use crate::components::navigation::navbar::NavBar;
 use crate::components::navigation::quick_switcher::QuickSwitcher;
 use crate::components::navigation::search_page::SearchPage;
@@ -406,14 +409,7 @@ pub fn App() -> impl IntoView {
                                 }.into_any(),
                                 ViewMode::Templates => view! {
                                     <div class="max-w-7xl mx-auto h-full">
-                                        <TemplateEditor
-                                            templates=vec![]
-                                            folder_templates=vec![]
-                                            on_save=Callback::new(|_| {})
-                                            on_delete=Callback::new(|_| {})
-                                            on_assign=Callback::new(|_| {})
-                                            on_unassign=Callback::new(|_| {})
-                                        />
+                                        <TemplateEditor />
                                     </div>
                                 }.into_any(),
                                 ViewMode::Trash => view! {
@@ -429,6 +425,21 @@ pub fn App() -> impl IntoView {
                                 ViewMode::Recovery => view! {
                                     <div class="max-w-7xl mx-auto h-full">
                                         <RecoveryManager />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Calendar => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <CalendarPage />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Archive => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <ArchivePage />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::SmartFolders => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <SmartFoldersPage />
                                     </div>
                                 }.into_any(),
                             }}

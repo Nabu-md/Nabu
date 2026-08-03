@@ -41,6 +41,9 @@ pub enum ViewMode {
     History,
     Recovery,
     Search,
+    Calendar,
+    Archive,
+    SmartFolders,
 }
 
 /// Maps a persisted view-mode string back to a [`ViewMode`].
@@ -56,6 +59,9 @@ pub fn parse_view_mode(mode: &str) -> ViewMode {
         "history" => ViewMode::History,
         "recovery" => ViewMode::Recovery,
         "search" => ViewMode::Search,
+        "calendar" => ViewMode::Calendar,
+        "archive" => ViewMode::Archive,
+        "smartfolders" | "smart_folders" => ViewMode::SmartFolders,
         _ => ViewMode::Editor,
     }
 }
@@ -74,6 +80,9 @@ pub fn view_mode_key(mode: ViewMode) -> &'static str {
         ViewMode::History => "history",
         ViewMode::Recovery => "recovery",
         ViewMode::Search => "search",
+        ViewMode::Calendar => "calendar",
+        ViewMode::Archive => "archive",
+        ViewMode::SmartFolders => "smart_folders",
     }
 }
 
@@ -91,6 +100,9 @@ pub fn view_mode_label(mode: ViewMode) -> &'static str {
         ViewMode::History => "History",
         ViewMode::Recovery => "Recovery",
         ViewMode::Search => "Search",
+        ViewMode::Calendar => "Calendar",
+        ViewMode::Archive => "Archive",
+        ViewMode::SmartFolders => "Smart Folders",
     }
 }
 
@@ -163,6 +175,8 @@ pub struct NavContext {
     pub recent_searches: RwSignal<Vec<String>>,
     /// Saved searches.
     pub saved_searches: RwSignal<Vec<SavedSearch>>,
+    /// Saved smart folders (virtual collections powered by queries).
+    pub smart_folders: RwSignal<Vec<crate::models::organisation::SmartFolder>>,
     /// Recently run command ids (most recent first).
     pub recent_commands: RwSignal<Vec<String>>,
     /// Favourite command ids.
@@ -189,6 +203,7 @@ pub fn provide_navigation() -> NavContext {
         favourites: RwSignal::new(Vec::new()),
         recent_searches: RwSignal::new(Vec::new()),
         saved_searches: RwSignal::new(Vec::new()),
+        smart_folders: RwSignal::new(Vec::new()),
         recent_commands: RwSignal::new(Vec::new()),
         favourite_commands: RwSignal::new(Vec::new()),
         notes_index: RwSignal::new(Vec::new()),
@@ -211,6 +226,7 @@ const K_RECENT_NOTES: &str = "nabu.recent_notes";
 const K_FAVOURITES: &str = "nabu.favourites";
 const K_RECENT_SEARCHES: &str = "nabu.recent_searches";
 const K_SAVED_SEARCHES: &str = "nabu.saved_searches";
+const K_SMART_FOLDERS: &str = "nabu.smart_folders";
 const K_RECENT_COMMANDS: &str = "nabu.recent_commands";
 const K_FAV_COMMANDS: &str = "nabu.favourite_commands";
 const K_DASH_SECTIONS: &str = "nabu.dashboard.sections";
@@ -237,6 +253,10 @@ pub fn load_all_nav_state(nav: NavContext) {
             .await
             .unwrap_or_default();
         nav.saved_searches.set(saved);
+        let smart = load_json::<Vec<crate::models::organisation::SmartFolder>>(K_SMART_FOLDERS)
+            .await
+            .unwrap_or_default();
+        nav.smart_folders.set(smart);
         let recent_cmds = load_string_list(K_RECENT_COMMANDS).await;
         nav.recent_commands.set(recent_cmds);
         let fav_cmds = load_string_list(K_FAV_COMMANDS).await;
@@ -338,6 +358,29 @@ pub fn remove_saved_search(nav: NavContext, name: &str) {
     nav.saved_searches.update(|l| l.retain(|s| s.name != name));
     let snapshot = nav.saved_searches.get_untracked();
     settings_persist(K_SAVED_SEARCHES, serde_json::to_value(snapshot).unwrap());
+}
+
+/// Saves (creates or updates) a smart folder, deduped by id, and persists it.
+pub fn save_smart_folder(
+    nav: NavContext,
+    folder: crate::models::organisation::SmartFolder,
+) {
+    nav.smart_folders.update(|l| {
+        if let Some(existing) = l.iter_mut().find(|f| f.id == folder.id) {
+            *existing = folder.clone();
+        } else {
+            l.push(folder);
+        }
+    });
+    let snapshot = nav.smart_folders.get_untracked();
+    settings_persist(K_SMART_FOLDERS, serde_json::to_value(snapshot).unwrap());
+}
+
+/// Removes a smart folder by id and persists.
+pub fn remove_smart_folder(nav: NavContext, id: &str) {
+    nav.smart_folders.update(|l| l.retain(|f| f.id != id));
+    let snapshot = nav.smart_folders.get_untracked();
+    settings_persist(K_SMART_FOLDERS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Records a command id as recently run (deduped, capped at 12).

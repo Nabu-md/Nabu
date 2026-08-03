@@ -114,6 +114,43 @@ pub fn create_new_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
     })
 }
 
+/// Shared "quick capture into the Inbox" action — creates a pending
+/// KnowledgeObject without touching the filesystem, then lands on the Inbox
+/// screen so the user can review it. Contexts are captured at render time and
+/// threaded into the async task as plain values (never `use_nav` inside a
+/// `spawn_local` future — no reactive owner on the failure path).
+pub fn quick_capture(nav: NavContext, toasts: ToastContext) -> Callback<()> {
+    Callback::new(move |_| {
+        let nav = nav;
+        let toasts = toasts;
+        spawn_local(async move {
+            let stamp = js_sys::Date::new_0();
+            let month = stamp.get_month() + 1;
+            let day = stamp.get_date();
+            let hours = stamp.get_hours();
+            let minutes = stamp.get_minutes();
+            let meridiem = if hours < 12 { "AM" } else { "PM" };
+            let hour12 = if hours % 12 == 0 { 12 } else { hours % 12 };
+            let title = format!(
+                "Capture — {} {:02}:{:02} {}",
+                month, day, hour12, minutes, meridiem
+            );
+            let args = serde_wasm_bindgen::to_value(&serde_json::json!({
+                "title": title,
+                "content": "",
+            }))
+            .unwrap();
+            let result = crate::ipc::tauri_invoke("inbox_quick_capture", args).await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_ok() {
+                nav.view_mode.set(ViewMode::Inbox);
+                toasts.success("Captured", "Added to your Inbox for review.");
+            } else {
+                toasts.error("Quick capture", "Could not capture that note");
+            }
+        });
+    })
+}
+
 /// Shared "reveal the vault folder in the OS file manager" action.
 pub fn open_vault_folder() -> Callback<()> {
     Callback::new(move |_| {
@@ -241,6 +278,36 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             run: set_view(nav, ViewMode::Recovery),
         },
         AppCommand {
+            id: "nav.calendar",
+            label: "Go to Calendar",
+            aliases: &["dates", "journal", "daily notes"],
+            category: "Navigation",
+            description: "Browse notes by date",
+            shortcut: None,
+            icon: "📅",
+            run: set_view(nav, ViewMode::Calendar),
+        },
+        AppCommand {
+            id: "nav.archive",
+            label: "Go to Archive",
+            aliases: &["archived", "stored"],
+            category: "Navigation",
+            description: "Restore archived notes",
+            shortcut: None,
+            icon: "🗃️",
+            run: set_view(nav, ViewMode::Archive),
+        },
+        AppCommand {
+            id: "nav.smart_folders",
+            label: "Go to Smart Folders",
+            aliases: &["virtual folders", "collections", "queries"],
+            category: "Navigation",
+            description: "Manage query-powered folders",
+            shortcut: None,
+            icon: "🗂️",
+            run: set_view(nav, ViewMode::SmartFolders),
+        },
+        AppCommand {
             id: "nav.settings",
             label: "Open Settings",
             aliases: &["preferences", "options"],
@@ -249,6 +316,16 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             shortcut: Some("⌘,"),
             icon: "⚙️",
             run: set_view(nav, ViewMode::Settings),
+        },
+        AppCommand {
+            id: "capture.quick",
+            label: "Quick Capture to Inbox",
+            aliases: &["capture", "clip", "inbox note"],
+            category: "Capture",
+            description: "Add a pending note to the Inbox for review",
+            shortcut: None,
+            icon: "⚡",
+            run: quick_capture(ctx.nav, ctx.toasts),
         },
         AppCommand {
             id: "nav.search",

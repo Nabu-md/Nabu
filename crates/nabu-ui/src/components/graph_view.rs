@@ -891,7 +891,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                 <crate::components::ui::feedback::ErrorPanel
                                     title="Couldn't load the graph".to_string()
                                     message=err
-                                    details=Some("graph_data IPC failed".to_string())
+                                    details="graph_data IPC failed".to_string()
                                     on_retry=retry
                                 ></crate::components::ui::feedback::ErrorPanel>
                             </div>

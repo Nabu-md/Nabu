@@ -306,7 +306,11 @@ fn scan_tree(dir: &Path, prefix: &str) -> Vec<TreeEntry> {
     };
     let mut items: Vec<TreeEntry> = entries
         .flatten()
-        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy();
+            // The reserved `archive/` folder is hidden from normal navigation.
+            !name.starts_with('.') && !(prefix.is_empty() && name == ARCHIVE_FOLDER)
+        })
         .map(|e| {
             let name = e.file_name().to_string_lossy().to_string();
             let path = if prefix.is_empty() {
@@ -1162,6 +1166,10 @@ pub fn notes_index(store: State<'_, SettingsStore>) -> Result<Vec<NoteIndexEntry
             if name.starts_with('.') {
                 continue;
             }
+            // Archived content stays searchable but is hidden from navigation.
+            if prefix.is_empty() && name == ARCHIVE_FOLDER {
+                continue;
+            }
             let path = if prefix.is_empty() {
                 name.clone()
             } else {
@@ -1413,6 +1421,10 @@ fn collect_notes(vault_path: &Path) -> Vec<NoteEntry> {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if name.starts_with('.') {
+                continue;
+            }
+            // Archived content stays searchable but is hidden from navigation.
+            if prefix.is_empty() && name == ARCHIVE_FOLDER {
                 continue;
             }
             let path = if prefix.is_empty() {
@@ -2144,5 +2156,582 @@ pub fn mention_ignore(
                 .insert("nabu.mention_ignored".to_string(), serde_json::json!(list));
         })
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ── Knowledge Organisation & Workflow (Phase 13.2) ──────────────────────
+//
+// Virtual organisational overlays that leave the filesystem untouched:
+// - Archive: notes move into a reserved `archive/` folder at the vault root.
+//   They stay searchable (notes_search scans everything) but are hidden from
+//   normal navigation (tree / index / graph skip the folder) until the
+//   Archive view explicitly lists them for restore.
+// - Smart Folders: persisted query definitions evaluated on demand against
+//   the vault (tags / folders / dates / full text).
+// - Calendar: date-indexed note listing for the calendar workspace.
+// - Templates: CRUD persisted in settings (browse / edit / duplicate /
+//   favourite).
+// - Quick capture: create an inbox KnowledgeObject from the palette.
+
+// ── Archive ─────────────────────────────────────────────────────────────
+
+/// One archived note (its path inside `archive/` plus the original location).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArchiveEntry {
+    /// Path inside the archive folder (vault-relative, `archive/...`).
+    pub archive_path: String,
+    /// Original vault-relative path (where restore puts it back).
+    pub original_path: String,
+    /// Display title (file name without `.md`).
+    pub title: String,
+    /// Original parent folder ("" for vault root).
+    pub folder: String,
+    /// Last modification time (RFC 3339).
+    pub modified_at: String,
+}
+
+/// The reserved archive folder name at the vault root. Notes moved here are
+/// hidden from normal navigation but remain full-text searchable.
+pub const ARCHIVE_FOLDER: &str = "archive";
+
+fn archive_dir(vault_path: &Path) -> PathBuf {
+    vault_path.join(ARCHIVE_FOLDER)
+}
+
+/// Moves a note (or folder) into the reserved `archive/` folder, preserving
+/// its relative layout, and returns the new archive-relative path. Non-
+/// destructive: the original content is untouched and restore is trivial.
+#[tauri::command]
+pub fn archive_note(
+    path: String,
+    ctx: State<'_, ApplicationContext>,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if path.trim().is_empty() || path == ARCHIVE_FOLDER || path.starts_with("archive/") {
+        return Err("Invalid path for archiving".to_string());
+    }
+    let full = validate_path_within_vault(&vault_path, &path)?;
+    if !full.exists() {
+        return Err(format!("Not found: {path}"));
+    }
+    let dest = archive_dir(&vault_path).join(&path);
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&full, &dest).map_err(|e| format!("Could not archive: {e}"))?;
+    // Persist a reversible history entry so Archive → Undo restores the note.
+    let src = full.clone();
+    let dst = dest.clone();
+    let _ = crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::Metadata,
+        format!("Archive '{path}'"),
+        vec![path.clone()],
+        serde_json::json!({ "archived": false }),
+        serde_json::json!({ "archived": true }),
+        std::sync::Arc::new(move || {
+            std::fs::rename(&dst, &src).map_err(|e| e.to_string())
+        }),
+        std::sync::Arc::new(move || {
+            if let Some(parent) = dst.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            std::fs::rename(&src, &dst).map_err(|e| e.to_string())
+        }),
+    );
+    Ok(())
+}
+
+/// Restores an archived note to its original location.
+#[tauri::command]
+pub fn archive_restore(
+    archive_path: String,
+    ctx: State<'_, ApplicationContext>,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if !archive_path.starts_with("archive/") {
+        return Err("Not an archived path".to_string());
+    }
+    let full = validate_path_within_vault(&vault_path, &archive_path)?;
+    if !full.exists() {
+        return Err(format!("Not found: {archive_path}"));
+    }
+    let original_rel = archive_path
+        .strip_prefix("archive/")
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+    let original = validate_path_within_vault(&vault_path, &original_rel)?;
+    if let Some(parent) = original.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&full, &original).map_err(|e| format!("Could not restore: {e}"))?;
+    let src = full.clone();
+    let dst = original.clone();
+    let _ = crate::history::push_history(
+        &ctx,
+        nabu_core::history::HistoryOp::Metadata,
+        format!("Restore '{original_rel}'"),
+        vec![original_rel.clone()],
+        serde_json::json!({ "archived": true }),
+        serde_json::json!({ "archived": false }),
+        std::sync::Arc::new(move || {
+            if let Some(parent) = src.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            std::fs::rename(&dst, &src).map_err(|e| e.to_string())
+        }),
+        std::sync::Arc::new(move || {
+            std::fs::rename(&src, &dst).map_err(|e| e.to_string())
+        }),
+    );
+    Ok(())
+}
+
+/// Lists every note inside the reserved `archive/` folder with its original
+/// location, so the Archive view can offer restore.
+#[tauri::command]
+pub fn archive_list(store: State<'_, SettingsStore>) -> Result<Vec<ArchiveEntry>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    let dir = archive_dir(&vault_path);
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    fn walk(dir: &Path, prefix: &str, out: &mut Vec<ArchiveEntry>) {
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            let archive_rel = format!("archive/{path}");
+            let full = entry.path();
+            if full.is_dir() {
+                walk(&full, &path, out);
+            } else if name.ends_with(".md") {
+                let original_path = path.clone();
+                let title = name.trim_end_matches(".md").to_string();
+                let folder = match path.rfind('/') {
+                    Some(i) => path[..i].to_string(),
+                    None => String::new(),
+                };
+                let modified = std::fs::metadata(&full)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|t| {
+                        t.duration_since(std::time::UNIX_EPOCH)
+                            .ok()
+                            .map(|d| d.as_secs() as i64)
+                    })
+                    .and_then(|secs| {
+                        chrono::DateTime::from_timestamp(secs, 0).map(|dt| dt.to_rfc3339())
+                    })
+                    .unwrap_or_default();
+                out.push(ArchiveEntry {
+                    archive_path: archive_rel,
+                    original_path,
+                    title,
+                    folder,
+                    modified_at: modified,
+                });
+            }
+        }
+    }
+    walk(&dir, "", &mut out);
+    out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    Ok(out)
+}
+
+// ── Smart Folders ────────────────────────────────────────────────────────
+
+/// A persisted smart-folder definition (a named query shown in the sidebar).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SmartFolder {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub query: String,
+    #[serde(default)]
+    pub pinned: bool,
+}
+
+const K_SMART_FOLDERS: &str = "nabu.smart_folders";
+
+/// Lists all saved smart folders (persisted in settings).
+#[tauri::command]
+pub fn smart_folders_list(store: State<'_, SettingsStore>) -> Result<Vec<SmartFolder>, String> {
+    Ok(store
+        .get_value(K_SMART_FOLDERS)
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| serde_json::from_value::<SmartFolder>(v.clone()).ok())
+                .collect()
+        })
+        .unwrap_or_default())
+}
+
+/// Saves (creates or updates) a smart folder definition.
+#[tauri::command]
+pub fn smart_folder_save(
+    folder: SmartFolder,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let mut list = smart_folders_list(store.clone()).unwrap_or_default();
+    if let Some(existing) = list.iter_mut().find(|f| f.id == folder.id) {
+        *existing = folder.clone();
+    } else {
+        list.push(folder);
+    }
+    store
+        .update(|s| {
+            s.extra_settings.insert(K_SMART_FOLDERS.to_string(), serde_json::to_value(&list).unwrap());
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Deletes a smart folder by id.
+#[tauri::command]
+pub fn smart_folder_delete(id: String, store: State<'_, SettingsStore>) -> Result<(), String> {
+    let list = smart_folders_list(store.clone()).unwrap_or_default();
+    let filtered: Vec<SmartFolder> = list.into_iter().filter(|f| f.id != id).collect();
+    store
+        .update(|s| {
+            s.extra_settings.insert(K_SMART_FOLDERS.to_string(), serde_json::to_value(&filtered).unwrap());
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Reads `date:` / `created:` / `modified:` from YAML frontmatter (YYYY-MM-DD).
+fn frontmatter_date(content: &str) -> Option<String> {
+    let rest = content.strip_prefix("---")?;
+    let fm = rest.split("\n---").next()?;
+    for line in fm.lines() {
+        let trimmed = line.trim();
+        for key in ["date:", "created:", "modified:"] {
+            if let Some(value) = trimmed.strip_prefix(key) {
+                let v = value.trim().trim_matches('"').trim_matches('\'');
+                if v.len() >= 10 {
+                    let d: String = v.chars().take(10).collect();
+                    if d.chars().filter(|c| *c == '-').count() == 2 {
+                        return Some(d);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Evaluates a smart-folder query against the vault and returns matching
+/// notes. Mini query language (whitespace-separated, ANDed):
+///   `tag:name`     — frontmatter tag contains `name`
+///   `folder:path`  — note lives in `path` (or a subfolder of it)
+///   `date:YYYY-MM-DD` / `before:...` / `after:...` — frontmatter date or mtime
+///   anything else  — case-insensitive full-text search (title + content)
+#[tauri::command]
+/// Evaluate a smart-folder query against the vault and return matching notes.
+///
+/// Query syntax (space-separated tokens, all optional):
+/// - `tag:<name>`       — note must carry the tag (substring match, case-insensitive)
+/// - `folder:<path>`    — note must live in the folder or a subfolder (case-insensitive)
+/// - `date:YYYY-MM-DD`  — frontmatter date must equal the value
+/// - `before:YYYY-MM-DD`— frontmatter date must be earlier (notes without a date pass)
+/// - `after:YYYY-MM-DD` — frontmatter date must be later (notes without a date pass)
+/// - any other token    — full-text term, must appear in title or body (case-insensitive)
+///
+/// An empty query matches every note in the vault.
+pub fn smart_folder_evaluate(
+    query: String,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<NoteIndexEntry>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(Vec::new());
+    }
+    let notes = collect_notes(&vault_path);
+    let q = query.trim();
+    if q.is_empty() {
+        return Ok(notes
+            .into_iter()
+            .map(|n| NoteIndexEntry {
+                path: n.path,
+                title: n.title,
+                folder: n.folder,
+                modified_at: n.modified_at,
+                pinned: false,
+            })
+            .collect());
+    }
+
+    let mut tag_filters: Vec<String> = Vec::new();
+    let mut folder_filters: Vec<String> = Vec::new();
+    let mut before: Option<String> = None;
+    let mut after: Option<String> = None;
+    let mut exact_date: Option<String> = None;
+    let mut text_terms: Vec<String> = Vec::new();
+
+    for token in q.split_whitespace() {
+        if let Some(t) = token.strip_prefix("tag:") {
+            tag_filters.push(t.to_lowercase());
+        } else if let Some(f) = token.strip_prefix("folder:") {
+            folder_filters.push(f.trim_end_matches('/').to_lowercase());
+        } else if let Some(d) = token.strip_prefix("date:") {
+            exact_date = Some(d.to_string());
+        } else if let Some(d) = token.strip_prefix("before:") {
+            before = Some(d.to_string());
+        } else if let Some(d) = token.strip_prefix("after:") {
+            after = Some(d.to_string());
+        } else {
+            text_terms.push(token.to_lowercase());
+        }
+    }
+
+    let mut out = Vec::new();
+    for note in notes {
+        let tags = extract_tags(&note.content);
+        if !tag_filters.is_empty()
+            && !tag_filters.iter().all(|f| tags.iter().any(|t| t.to_lowercase().contains(f)))
+        {
+            continue;
+        }
+        let folder_lc = note.folder.to_lowercase();
+        if !folder_filters.is_empty()
+            && !folder_filters.iter().all(|f| folder_lc == *f || folder_lc.starts_with(&format!("{f}/")))
+        {
+            continue;
+        }
+        let date = frontmatter_date(&note.content)
+            .or_else(|| note.modified_at.chars().take(10).collect::<String>().into())
+            .unwrap_or_default();
+        if let Some(d) = &exact_date {
+            if date != *d {
+                continue;
+            }
+        }
+        if let Some(b) = &before {
+            if !date.is_empty() && date >= *b {
+                continue;
+            }
+        }
+        if let Some(a) = &after {
+            if !date.is_empty() && date <= *a {
+                continue;
+            }
+        }
+        if !text_terms.is_empty() {
+            let hay = format!("{} {}", note.title.to_lowercase(), note.content.to_lowercase());
+            if !text_terms.iter().all(|t| hay.contains(t)) {
+                continue;
+            }
+        }
+        out.push(NoteIndexEntry {
+            path: note.path.clone(),
+            title: note.title.clone(),
+            folder: note.folder.clone(),
+            modified_at: note.modified_at.clone(),
+            pinned: false,
+        });
+    }
+    Ok(out)
+}
+
+// ── Calendar ─────────────────────────────────────────────────────────────
+
+/// One dated note for the calendar workspace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CalendarEntry {
+    pub path: String,
+    pub title: String,
+    pub folder: String,
+    /// The date this note is shown under (YYYY-MM-DD, frontmatter date or mtime).
+    pub date: String,
+    pub modified_at: String,
+}
+
+/// Returns notes dated within `month` ("YYYY-MM"), using the frontmatter
+/// `date:`/`created:` when present, else the file's modification date.
+#[tauri::command]
+pub fn calendar_notes(
+    month: String,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<CalendarEntry>, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(Vec::new());
+    }
+    let month = month.trim().to_string();
+    let notes = collect_notes(&vault_path);
+    let mut out = Vec::new();
+    for note in notes {
+        let mtime: String = note.modified_at.chars().take(10).collect();
+        let date = frontmatter_date(&note.content).unwrap_or_else(|| mtime.clone());
+        if !month.is_empty() && !date.starts_with(&month) {
+            continue;
+        }
+        out.push(CalendarEntry {
+            path: note.path.clone(),
+            title: note.title.clone(),
+            folder: note.folder.clone(),
+            date,
+            modified_at: note.modified_at.clone(),
+        });
+    }
+    out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    Ok(out)
+}
+
+/// Returns the vault-relative path of the daily note for `date` (YYYY-MM-DD),
+/// opening an existing one or creating it on first write.
+#[tauri::command]
+pub fn daily_note_for(date: String, store: State<'_, SettingsStore>) -> Result<String, String> {
+    let d = date.trim();
+    if d.len() < 10 || d.chars().filter(|c| *c == '-').count() != 2 {
+        return Err("Invalid date (expected YYYY-MM-DD)".to_string());
+    }
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    let path = format!("{d}.md");
+    let full = validate_path_within_vault(&vault_path, &path)?;
+    if !full.exists() {
+        let content = format!("# {d}\n");
+        std::fs::write(&full, content).map_err(|e| e.to_string())?;
+    }
+    Ok(path)
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+
+/// A persisted note template (mirrors the UI `Template` model).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateRecord {
+    pub name: String,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+    pub default_folder: Option<String>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub favourite: bool,
+    pub frontmatter_defaults: std::collections::HashMap<String, String>,
+    pub property_presets: std::collections::HashMap<String, serde_json::Value>,
+    pub body: String,
+    pub object_type: Option<String>,
+}
+
+const K_TEMPLATES: &str = "nabu.templates";
+
+#[tauri::command]
+pub fn template_list(store: State<'_, SettingsStore>) -> Result<Vec<TemplateRecord>, String> {
+    Ok(store
+        .get_value(K_TEMPLATES)
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| serde_json::from_value::<TemplateRecord>(v.clone()).ok())
+                .collect()
+        })
+        .unwrap_or_default())
+}
+
+fn template_persist(store: &SettingsStore, list: &[TemplateRecord]) -> Result<(), String> {
+    store
+        .update(|s| {
+            s.extra_settings.insert(K_TEMPLATES.to_string(), serde_json::to_value(list).unwrap());
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn template_save(template: TemplateRecord, store: State<'_, SettingsStore>) -> Result<(), String> {
+    let mut list = template_list(store.clone()).unwrap_or_default();
+    if let Some(existing) = list.iter_mut().find(|t| t.name == template.name) {
+        *existing = template.clone();
+    } else {
+        list.push(template);
+    }
+    template_persist(&store, &list)
+}
+
+#[tauri::command]
+pub fn template_delete(name: String, store: State<'_, SettingsStore>) -> Result<(), String> {
+    let list = template_list(store.clone()).unwrap_or_default();
+    let filtered: Vec<TemplateRecord> = list.into_iter().filter(|t| t.name != name).collect();
+    template_persist(&store, &filtered)
+}
+
+#[tauri::command]
+pub fn template_duplicate(name: String, store: State<'_, SettingsStore>) -> Result<TemplateRecord, String> {
+    let list = template_list(store.clone()).unwrap_or_default();
+    let source = list
+        .iter()
+        .find(|t| t.name == name)
+        .cloned()
+        .ok_or_else(|| "Template not found".to_string())?;
+    let mut copy = source;
+    let base = format!("{} Copy", copy.name);
+    copy.favourite = false;
+    // Ensure a unique name if a copy already exists (…Copy, …Copy 1, …Copy 2, …).
+    let mut n = 1;
+    let mut candidate = base.clone();
+    while list.iter().any(|t| t.name == candidate) {
+        candidate = format!("{base} {n}");
+        n += 1;
+    }
+    copy.name = candidate;
+    list.push(copy.clone());
+    template_persist(&store, &list)?;
+    Ok(copy)
+}
+
+#[tauri::command]
+pub fn template_set_favourite(
+    name: String,
+    favourite: bool,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let mut list = template_list(store.clone()).unwrap_or_default();
+    if let Some(t) = list.iter_mut().find(|t| t.name == name) {
+        t.favourite = favourite;
+    }
+    template_persist(&store, &list)
+}
+
+// ── Quick capture ────────────────────────────────────────────────────────
+
+/// Captures a quick note into the Inbox (a pending KnowledgeObject) from the
+/// command palette or navbar, without touching the filesystem.
+#[tauri::command]
+pub fn inbox_quick_capture(
+    ctx: State<'_, ApplicationContext>,
+    title: String,
+    content: String,
+) -> Result<(), String> {
+    use nabu_core::models::knowledge_object::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType};
+    let manager = get_storage_manager(&ctx)?;
+    let mut obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::Markdown(content));
+    let mut metadata = ObjectMetadata::default();
+    metadata.title = Some(if title.trim().is_empty() {
+        "Quick capture".to_string()
+    } else {
+        title
+    });
+    metadata.description = Some("Captured via Quick Capture".to_string());
+    obj.metadata = metadata;
+    set_custom_text(&mut obj, "inbox_status", "pending");
+    set_custom_text(&mut obj, "source", "quick_capture");
+    manager.save(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }

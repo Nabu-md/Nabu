@@ -123,9 +123,54 @@ pub mod template {
         pub description: Option<String>,
         pub icon: Option<String>,
         pub default_folder: Option<String>,
+        #[serde(default)]
+        pub category: Option<String>,
+        #[serde(default)]
+        pub favourite: bool,
         pub frontmatter_defaults: HashMap<String, String>,
         pub property_presets: HashMap<String, serde_json::Value>,
         pub body: String,
         pub object_type: Option<String>,
+    }
+}
+
+/// Virtual collections for Knowledge Organisation (Phase 13.2).
+pub mod organisation {
+    use serde::{Deserialize, Serialize};
+
+    /// A persisted smart-folder definition (mirrors the backend `SmartFolder`).
+    #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+    pub struct SmartFolder {
+        pub id: String,
+        pub name: String,
+        #[serde(default)]
+        pub icon: String,
+        pub query: String,
+        #[serde(default)]
+        pub pinned: bool,
+    }
+
+    /// One archived note (mirrors the backend `ArchiveEntry`).
+    #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+    pub struct ArchiveEntry {
+        pub archive_path: String,
+        pub original_path: String,
+        pub title: String,
+        #[serde(default)]
+        pub folder: String,
+        #[serde(default)]
+        pub modified_at: String,
+    }
+
+    /// One dated note for the calendar (mirrors the backend `CalendarEntry`).
+    #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+    pub struct CalendarEntry {
+        pub path: String,
+        pub title: String,
+        #[serde(default)]
+        pub folder: String,
+        pub date: String,
+        #[serde(default)]
+        pub modified_at: String,
     }
 }
