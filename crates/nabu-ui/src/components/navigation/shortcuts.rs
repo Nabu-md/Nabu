@@ -39,6 +39,10 @@ pub const SHORTCUTS: &[Shortcut] = &[
     Shortcut { category: "Navigation", keys: "⌘2", description: "Go to Editor" },
     Shortcut { category: "Navigation", keys: "⌘3", description: "Go to Graph" },
     Shortcut { category: "Navigation", keys: "⌘,", description: "Open Settings" },
+    Shortcut { category: "Navigation", keys: "⌘⇧C", description: "Open Canvas" },
+    Shortcut { category: "Navigation", keys: "⌘⇧1", description: "Open Reader Mode" },
+    Shortcut { category: "Navigation", keys: "⌘⇧M", description: "Open Comparison View" },
+    Shortcut { category: "Navigation", keys: "⌘⇧S", description: "Open Statistics" },
     Shortcut { category: "Navigation", keys: "⌘⇧?", description: "Open shortcuts reference" },
     Shortcut { category: "Navigation", keys: "Esc", description: "Close any overlay / palette" },
     // ── Note management ───────────────────────────────────────────
@@ -164,6 +168,18 @@ pub fn install_global_shortcuts() -> WindowListenerHandle {
                 ev.prevent_default();
                 nav.view_mode.set(mode);
             }
+        } else if meta && shift && key.eq_ignore_ascii_case("c") {
+            ev.prevent_default();
+            nav.view_mode.set(ViewMode::Canvas);
+        } else if meta && shift && key == "1" {
+            ev.prevent_default();
+            nav.view_mode.set(ViewMode::Reader);
+        } else if meta && shift && key.eq_ignore_ascii_case("m") {
+            ev.prevent_default();
+            nav.view_mode.set(ViewMode::Comparison);
+        } else if meta && shift && key.eq_ignore_ascii_case("s") {
+            ev.prevent_default();
+            nav.view_mode.set(ViewMode::Statistics);
         }
     });
     handle

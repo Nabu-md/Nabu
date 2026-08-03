@@ -708,3 +708,24 @@ pub fn recovery_discard(store: State<'_, SettingsStore>) -> Result<(), String> {
     let _ = std::fs::remove_file(pending_marker(&vault));
     Ok(())
 }
+
+// ── Public re-exports (Phase 13.3) ──────────────────────────────────
+//
+// The Comparison View's `notes_diff` command reuses the LCS line diff and
+// vault-path helpers defined above. These thin public wrappers expose them
+// to other modules without changing their internal visibility or callers.
+
+/// Public wrapper around [`vault_path`] for cross-module reuse.
+pub fn vault_path_pub(store: &SettingsStore) -> PathBuf {
+    vault_path(store)
+}
+
+/// Public wrapper around [`resolve_in_vault`] for cross-module reuse.
+pub fn resolve_in_vault_pub(vault: &Path, user_path: &str) -> Result<PathBuf, String> {
+    resolve_in_vault(vault, user_path)
+}
+
+/// Public wrapper around [`line_diff`] for cross-module reuse.
+pub fn line_diff_pub(old: &str, new: &str) -> Vec<DiffRow> {
+    line_diff(old, new)
+}

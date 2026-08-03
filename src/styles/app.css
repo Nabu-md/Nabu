@@ -2376,3 +2376,259 @@ kbd {
   padding: 0 1px;
   font-style: normal;
 }
+
+/* ============================================================================
+   Phase 13.3 · Advanced Knowledge Views
+   ========================================================================== */
+
+/* ---- Canvas ------------------------------------------------ */
+.canvas-view {
+  background-color: rgb(var(--gray-950));
+  user-select: none;
+}
+
+.canvas-bg {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(var(--gray-700) / 0.3) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ---- Reader Mode -------------------------------------------- */
+.reader-view[data-theme="sepia"] {
+  background-color: #f5ecd7;
+  color: #5b4636;
+}
+.reader-view[data-theme="sepia"] .reader-prose h1,
+.reader-view[data-theme="sepia"] .reader-prose h2,
+.reader-view[data-theme="sepia"] .reader-prose h3,
+.reader-view[data-theme="sepia"] .reader-prose h4,
+.reader-view[data-theme="sepia"] .reader-prose h5,
+.reader-view[data-theme="sepia"] .reader-prose h6 {
+  color: #3d2f23;
+}
+.reader-view[data-theme="light"] {
+  background-color: #ffffff;
+  color: #1f2937;
+}
+.reader-view[data-theme="light"] .reader-prose h1,
+.reader-view[data-theme="light"] .reader-prose h2,
+.reader-view[data-theme="light"] .reader-prose h3,
+.reader-view[data-theme="light"] .reader-prose h4,
+.reader-view[data-theme="light"] .reader-prose h5,
+.reader-view[data-theme="light"] .reader-prose h6 {
+  color: #111827;
+}
+
+.reader-prose {
+  font-family: "Georgia", "Iowan Old Style", "Palatino Linotype", serif;
+}
+.reader-prose h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 1.2em 0 0.5em;
+  color: rgb(var(--gray-100));
+}
+.reader-prose h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 1em 0 0.4em;
+  color: rgb(var(--gray-100));
+}
+.reader-prose h3,
+.reader-prose h4,
+.reader-prose h5,
+.reader-prose h6 {
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  color: rgb(var(--gray-200));
+}
+.reader-prose p {
+  margin: 0.6em 0;
+}
+.reader-prose a {
+  color: rgb(var(--color-primary));
+  text-decoration: underline;
+}
+.reader-prose a.wikilink {
+  color: rgb(var(--color-primary));
+  text-decoration: none;
+  border-bottom: 1px dashed rgb(var(--color-primary) / 0.5);
+}
+.reader-prose blockquote {
+  border-left: 3px solid rgb(var(--gray-600));
+  padding-left: 1em;
+  margin: 1em 0;
+  color: rgb(var(--gray-400));
+  font-style: italic;
+}
+.reader-prose code.inline-code {
+  background: rgb(var(--gray-800));
+  border-radius: 3px;
+  padding: 0.15em 0.35em;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.reader-prose pre.code-block {
+  background: rgb(var(--gray-900));
+  border: 1px solid rgb(var(--gray-700));
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: rgb(var(--gray-100));
+}
+.reader-prose hr {
+  border: none;
+  border-top: 1px solid rgb(var(--gray-700));
+  margin: 2em 0;
+}
+.reader-prose ul,
+.reader-prose ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.reader-prose li {
+  margin: 0.2em 0;
+}
+.reader-prose table.md-table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+.reader-prose table.md-table th,
+.reader-prose table.md-table td {
+  border: 1px solid rgb(var(--gray-700));
+  padding: 0.4em 0.8em;
+  text-align: left;
+}
+.reader-prose table.md-table thead th {
+  background: rgb(var(--gray-800));
+  font-weight: 600;
+}
+.reader-prose .task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.3em 0;
+}
+.reader-prose .task-checked {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Focus mode: dim everything except the hovered paragraph */
+.reader-focus-mode p {
+  opacity: 0.25;
+  transition: opacity 120ms ease;
+}
+.reader-focus-mode p:hover {
+  opacity: 1;
+}
+.reader-focus-mode h1,
+.reader-focus-mode h2,
+.reader-focus-mode h3,
+.reader-focus-mode h4,
+.reader-focus-mode h5,
+.reader-focus-mode h6,
+.reader-focus-mode blockquote,
+.reader-focus-mode pre,
+.reader-focus-mode table {
+  opacity: 0.25;
+  transition: opacity 120ms ease;
+}
+.reader-focus-mode h1:hover,
+.reader-focus-mode h2:hover,
+.reader-focus-mode h3:hover,
+.reader-focus-mode h4:hover,
+.reader-focus-mode h5:hover,
+.reader-focus-mode h6:hover,
+.reader-focus-mode blockquote:hover,
+.reader-focus-mode pre:hover,
+.reader-focus-mode table:hover {
+  opacity: 1;
+}
+
+/* ---- Comparison View --------------------------------------- */
+.comparison-view .diff-pane {
+  min-width: 0;
+  letter-spacing: 0.02em;
+}
+.comparison-view .diff-pane::-webkit-scrollbar {
+  width: 6px;
+}
+.comparison-view .diff-pane::-webkit-scrollbar-thumb {
+  background: rgb(var(--gray-700));
+  border-radius: 3px;
+}
+.comparison-view .diff-cell {
+  padding: 2px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.comparison-view .diff-cell.diff-same {
+  color: rgb(var(--gray-400));
+}
+.comparison-view .diff-cell.diff-added {
+  background: rgb(34 197 94 / 0.12);
+  color: rgb(var(--gray-100));
+}
+.comparison-view .diff-cell.diff-removed {
+  background: rgb(239 68 68 / 0.12);
+  color: rgb(var(--gray-100));
+}
+.comparison-view .diff-lineno {
+  display: inline-block;
+  width: 3.5em;
+  color: rgb(var(--gray-600));
+  user-select: none;
+  padding-right: 8px;
+  text-align: right;
+}
+
+/* ---- Statistics View ---------------------------------------- */
+.statistics-view .stat-card {
+  transition: transform 120ms ease;
+}
+.statistics-view .stat-card:hover {
+  transform: translateY(-2px);
+}
+.statistics-view input[type="range"] {
+  accent-color: rgb(var(--color-primary));
+}
+.statistics-view ::-webkit-scrollbar {
+  width: 8px;
+}
+.statistics-view ::-webkit-scrollbar-thumb {
+  background: rgb(var(--gray-700));
+  border-radius: 4px;
+}
+
+/* ---- Accessibility -------------------------------------------
+   Reduce motion for users who prefer it
+   ------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .canvas-view .canvas-bg,
+  .reader-view,
+  .reader-prose p,
+  .reader-focus-mode p,
+  .reader-focus-mode h1,
+  .reader-focus-mode h2,
+  .reader-focus-mode h3,
+  .reader-focus-mode h4,
+  .reader-focus-mode h5,
+  .reader-focus-mode h6,
+  .reader-focus-mode blockquote,
+  .reader-focus-mode pre,
+  .reader-focus-mode table,
+  .statistics-view .stat-card {
+    transition: none !important;
+    animation: none !important;
+  }
+}

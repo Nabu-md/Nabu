@@ -18,6 +18,10 @@ use crate::components::navigation::state::{
     load_all_nav_state, load_notes_index, parse_view_mode, provide_navigation, record_recent_note,
 };
 use crate::components::note_editor::NoteEditor;
+use crate::components::canvas::CanvasView;
+use crate::components::comparison::ComparisonView;
+use crate::components::reader::ReaderView;
+use crate::components::statistics::StatisticsView;
 use crate::components::reading_queue::ReadingQueue;
 use crate::components::recovery::RecoveryBanner;
 use crate::components::recovery::RecoveryManager;
@@ -440,6 +444,26 @@ pub fn App() -> impl IntoView {
                                 ViewMode::SmartFolders => view! {
                                     <div class="max-w-7xl mx-auto h-full">
                                         <SmartFoldersPage />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Canvas => view! {
+                                    <div class="w-full h-full">
+                                        <CanvasView />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Reader => view! {
+                                    <div class="w-full h-full">
+                                        <ReaderView />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Comparison => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <ComparisonView />
+                                    </div>
+                                }.into_any(),
+                                ViewMode::Statistics => view! {
+                                    <div class="max-w-7xl mx-auto h-full">
+                                        <StatisticsView />
                                     </div>
                                 }.into_any(),
                             }}

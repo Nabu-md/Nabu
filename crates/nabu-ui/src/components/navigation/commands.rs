@@ -133,7 +133,7 @@ pub fn quick_capture(nav: NavContext, toasts: ToastContext) -> Callback<()> {
             let hour12 = if hours % 12 == 0 { 12 } else { hours % 12 };
             let title = format!(
                 "Capture — {} {:02}:{:02} {}",
-                month, day, hour12, minutes, meridiem
+                month, day, hour12, meridiem
             );
             let args = serde_wasm_bindgen::to_value(&serde_json::json!({
                 "title": title,
@@ -316,6 +316,46 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             shortcut: Some("⌘,"),
             icon: "⚙️",
             run: set_view(nav, ViewMode::Settings),
+        },
+        AppCommand {
+            id: "nav.canvas",
+            label: "Open Canvas",
+            aliases: &["whiteboard", "visual workspace", "spatial"],
+            category: "Navigation",
+            description: "Open the infinite visual canvas",
+            shortcut: None,
+            icon: "🎨",
+            run: set_view(nav, ViewMode::Canvas),
+        },
+        AppCommand {
+            id: "nav.reader",
+            label: "Open Reader Mode",
+            aliases: &["read", "reading mode", "distraction-free"],
+            category: "Navigation",
+            description: "Open the distraction-free reader",
+            shortcut: None,
+            icon: "📖",
+            run: set_view(nav, ViewMode::Reader),
+        },
+        AppCommand {
+            id: "nav.comparison",
+            label: "Open Comparison View",
+            aliases: &["diff", "compare notes", "side-by-side"],
+            category: "Navigation",
+            description: "Compare two notes or revisions",
+            shortcut: None,
+            icon: "📊",
+            run: set_view(nav, ViewMode::Comparison),
+        },
+        AppCommand {
+            id: "nav.statistics",
+            label: "Open Statistics",
+            aliases: &["insights", "metrics", "dashboard stats"],
+            category: "Navigation",
+            description: "View vault-wide metrics and insights",
+            shortcut: None,
+            icon: "📈",
+            run: set_view(nav, ViewMode::Statistics),
         },
         AppCommand {
             id: "capture.quick",

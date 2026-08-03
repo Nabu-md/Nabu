@@ -44,6 +44,15 @@ pub enum ViewMode {
     Calendar,
     Archive,
     SmartFolders,
+    // ── Phase 13.3: Advanced Knowledge Views ───────────────────
+    /// Infinite visual workspace — spatially organise notes and relationships.
+    Canvas,
+    /// Distraction-free reading experience with typography controls.
+    Reader,
+    /// Side-by-side note / revision comparison with synchronised scrolling.
+    Comparison,
+    /// Vault-wide metrics, growth charts and writing insights.
+    Statistics,
 }
 
 /// Maps a persisted view-mode string back to a [`ViewMode`].
@@ -62,6 +71,10 @@ pub fn parse_view_mode(mode: &str) -> ViewMode {
         "calendar" => ViewMode::Calendar,
         "archive" => ViewMode::Archive,
         "smartfolders" | "smart_folders" => ViewMode::SmartFolders,
+        "canvas" => ViewMode::Canvas,
+        "reader" => ViewMode::Reader,
+        "comparison" => ViewMode::Comparison,
+        "statistics" => ViewMode::Statistics,
         _ => ViewMode::Editor,
     }
 }
@@ -83,6 +96,10 @@ pub fn view_mode_key(mode: ViewMode) -> &'static str {
         ViewMode::Calendar => "calendar",
         ViewMode::Archive => "archive",
         ViewMode::SmartFolders => "smart_folders",
+        ViewMode::Canvas => "canvas",
+        ViewMode::Reader => "reader",
+        ViewMode::Comparison => "comparison",
+        ViewMode::Statistics => "statistics",
     }
 }
 
@@ -103,6 +120,10 @@ pub fn view_mode_label(mode: ViewMode) -> &'static str {
         ViewMode::Calendar => "Calendar",
         ViewMode::Archive => "Archive",
         ViewMode::SmartFolders => "Smart Folders",
+        ViewMode::Canvas => "Canvas",
+        ViewMode::Reader => "Reader",
+        ViewMode::Comparison => "Comparison",
+        ViewMode::Statistics => "Statistics",
     }
 }
 

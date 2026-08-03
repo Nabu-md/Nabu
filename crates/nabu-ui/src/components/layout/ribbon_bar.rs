@@ -28,9 +28,17 @@ pub fn RibbonBar(
         }
     });
 
+    let open_graph_cb = set_view_mode.clone();
     let open_graph = Callback::new(move |_| {
-        if let Some(ref f) = set_view_mode {
+        if let Some(f) = open_graph_cb.as_ref() {
             f(crate::components::app::ViewMode::Graph);
+        }
+    });
+
+    let open_canvas_cb = set_view_mode.clone();
+    let open_canvas = Callback::new(move |_| {
+        if let Some(f) = open_canvas_cb.as_ref() {
+            f(crate::components::app::ViewMode::Canvas);
         }
     });
 
@@ -71,7 +79,7 @@ pub fn RibbonBar(
                 view! {}.into_any()
             }}
             <IconButton title="Dictation" on_click=toggle_dictation>"🎤"</IconButton>
-            <IconButton title="Canvas">"🎨"</IconButton>
+            <IconButton title="Canvas" on_click=open_canvas>"🎨"</IconButton>
             <div class="flex-grow"></div>
             <IconButton title="Settings" on_click=open_settings>"⚙️"</IconButton>
         </div>

@@ -2735,3 +2735,571 @@ pub fn inbox_quick_capture(
     manager.save(&obj).map_err(|e| e.to_string())?;
     Ok(())
 }
+
+// ── Canvas Commands (Phase 13.3) ───────────────────────────────────
+//
+// Canvases are infinite visual workspaces that *reference* existing notes
+// rather than duplicating content. A canvas definition is a JSON document
+// stored in the settings store under `nabu.canvases` — no proprietary
+// storage format, no content duplication. Each node carries a vault-relative
+// note path plus an (x, y) position; edges are visual connectors between
+// nodes. Groups are bounding boxes that label a region of the canvas.
+
+/// One positioned node on a canvas. The `note_path` references an existing
+/// note — the canvas never owns content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CanvasNode {
+    /// Stable client-generated id (uuid).
+    pub id: String,
+    /// Vault-relative path of the referenced note.
+    pub note_path: String,
+    /// Display title (cached from the note for the sidebar list).
+    pub title: String,
+    /// X position in canvas coordinates.
+    pub x: f64,
+    /// Y position in canvas coordinates.
+    pub y: f64,
+    /// Optional width override (px). `None` = default card width.
+    #[serde(default)]
+    pub width: Option<f64>,
+    /// Optional height override (px).
+    #[serde(default)]
+    pub height: Option<f64>,
+    /// Node kind: note, image, pdf, link, group, annotation.
+    #[serde(default = "default_node_kind")]
+    pub kind: String,
+    /// For image/pdf/link nodes: the source URL or vault-relative path.
+    #[serde(default)]
+    pub source: String,
+    /// For annotation nodes: the text content.
+    #[serde(default)]
+    pub text: String,
+}
+
+fn default_node_kind() -> String {
+    "note".to_string()
+}
+
+/// One visual connector between two canvas nodes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CanvasEdge {
+    pub id: String,
+    pub source: String,
+    pub target: String,
+    /// Optional label on the connector (e.g. "references").
+    #[serde(default)]
+    pub label: String,
+}
+
+/// One labelled group (bounding box) on a canvas.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CanvasGroup {
+    pub id: String,
+    pub label: String,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    /// Node ids contained in this group.
+    #[serde(default)]
+    pub members: Vec<String>,
+}
+
+/// A complete canvas definition.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CanvasDef {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub nodes: Vec<CanvasNode>,
+    #[serde(default)]
+    pub edges: Vec<CanvasEdge>,
+    #[serde(default)]
+    pub groups: Vec<CanvasGroup>,
+    /// Pan offset (x, y) — the canvas viewport origin.
+    #[serde(default)]
+    pub pan_x: f64,
+    #[serde(default)]
+    pub pan_y: f64,
+    /// Zoom level (1.0 = 100%).
+    #[serde(default = "default_zoom")]
+    pub zoom: f64,
+}
+
+fn default_zoom() -> f64 {
+    1.0
+}
+
+const CANVAS_KEY: &str = "nabu.canvases";
+
+fn load_canvases(store: &SettingsStore) -> Vec<CanvasDef> {
+    let value = store.get_value(CANVAS_KEY);
+    serde_json::from_value::<Vec<CanvasDef>>(value).unwrap_or_default()
+}
+
+fn save_canvases(store: &SettingsStore, canvases: &[CanvasDef]) -> Result<(), String> {
+    store
+        .update(|s| {
+            s.extra_settings
+                .insert(CANVAS_KEY.to_string(), serde_json::to_value(canvases).unwrap());
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Lists every saved canvas (id + name only — nodes/edges omitted for speed).
+#[tauri::command]
+pub fn canvas_list(store: State<'_, SettingsStore>) -> Result<Vec<CanvasDef>, String> {
+    Ok(load_canvases(&store))
+}
+
+/// Returns the full canvas definition (nodes, edges, groups).
+#[tauri::command]
+pub fn canvas_get(
+    id: String,
+    store: State<'_, SettingsStore>,
+) -> Result<Option<CanvasDef>, String> {
+    Ok(load_canvases(&store).into_iter().find(|c| c.id == id))
+}
+
+/// Creates or updates a canvas (deduped by id) and persists it.
+#[tauri::command]
+pub fn canvas_save(
+    canvas: CanvasDef,
+    store: State<'_, SettingsStore>,
+) -> Result<(), String> {
+    let mut canvases = load_canvases(&store);
+    if let Some(existing) = canvases.iter_mut().find(|c| c.id == canvas.id) {
+        *existing = canvas;
+    } else {
+        canvases.push(canvas);
+    }
+    save_canvases(&store, &canvases)
+}
+
+/// Deletes a canvas by id.
+#[tauri::command]
+pub fn canvas_delete(id: String, store: State<'_, SettingsStore>) -> Result<(), String> {
+    let mut canvases = load_canvases(&store);
+    canvases.retain(|c| c.id != id);
+    save_canvases(&store, &canvases)
+}
+
+// ── Comparison View (Phase 13.3) ───────────────────────────────────
+
+/// Computes a line diff between two arbitrary notes (by vault-relative path).
+/// Reuses the same LCS diff engine as `versions_diff` so the Comparison View
+/// can compare any two notes — not just revisions of the same note.
+#[tauri::command]
+pub fn notes_diff(
+    path_a: String,
+    path_b: String,
+    store: State<'_, SettingsStore>,
+) -> Result<Vec<crate::recovery::DiffRow>, String> {
+    let vault = crate::recovery::vault_path_pub(&store);
+    let read_note = |p: &str| -> Result<String, String> {
+        let abs = crate::recovery::resolve_in_vault_pub(&vault, p)?;
+        if !abs.is_file() {
+            return Ok(String::new());
+        }
+        std::fs::read_to_string(&abs).map_err(|e| e.to_string())
+    };
+    let a = read_note(&path_a)?;
+    let b = read_note(&path_b)?;
+    // Reuse the LCS diff from recovery.rs via the public re-export.
+    Ok(crate::recovery::line_diff_pub(&a, &b))
+}
+
+// ── Statistics & Insights (Phase 13.3) ─────────────────────────────
+
+/// One tag with its usage count.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TagStat {
+    pub tag: String,
+    pub count: usize,
+}
+
+/// One day in the vault-growth histogram (notes created that day).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GrowthPoint {
+    pub date: String,
+    pub count: usize,
+}
+
+/// One recently-active note (created or modified).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentNoteStat {
+    pub path: String,
+    pub title: String,
+    pub folder: String,
+    pub modified_at: String,
+    pub created_at: Option<String>,
+    pub size: usize,
+}
+
+/// The complete vault statistics payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VaultStatistics {
+    pub note_count: usize,
+    pub folder_count: usize,
+    pub tag_count: usize,
+    pub total_tags: usize,
+    pub graph_nodes: usize,
+    pub graph_edges: usize,
+    pub graph_orphans: usize,
+    pub graph_clusters: usize,
+    pub tags: Vec<TagStat>,
+    pub recently_created: Vec<RecentNoteStat>,
+    pub recently_modified: Vec<RecentNoteStat>,
+    pub growth: Vec<GrowthPoint>,
+    pub storage_bytes: u64,
+    pub writing_streak_days: usize,
+    pub active_days_last_30: usize,
+}
+
+/// Recursively counts folders (directories) in the vault, skipping hidden
+/// entries and the reserved `archive/` folder.
+fn count_folders(vault_path: &Path) -> usize {
+    fn walk(dir: &Path, prefix: &str) -> usize {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return 0;
+        };
+        let mut count = 0;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            if prefix.is_empty() && name == ARCHIVE_FOLDER {
+                continue;
+            }
+            let path = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            if entry.path().is_dir() {
+                count += 1 + walk(&entry.path(), &path);
+            }
+        }
+        count
+    }
+    walk(vault_path, "")
+}
+
+/// Computes the total size of all `.md` files in the vault (bytes).
+fn vault_storage_usage(vault_path: &Path) -> u64 {
+    fn walk(dir: &Path) -> u64 {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return 0;
+        };
+        let mut total = 0u64;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = entry.path();
+            if path.is_dir() {
+                total += walk(&path);
+            } else if name.ends_with(".md") {
+                total += std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            }
+        }
+        total
+    }
+    walk(vault_path)
+}
+
+/// Computes the writing streak: the number of consecutive days (ending today
+/// or yesterday) on which at least one note was modified. Also returns the
+/// count of active days in the last 30 days.
+fn writing_streak(vault_path: &Path) -> (usize, usize) {
+    let notes = collect_notes(vault_path);
+    let today = chrono::Local::now().date_naive();
+    let mut active_days: std::collections::HashSet<chrono::NaiveDate> = notes
+        .iter()
+        .filter_map(|n| {
+            chrono::DateTime::parse_from_rfc3339(&n.modified_at)
+                .ok()
+                .map(|dt| dt.with_timezone(&chrono::Local).date_naive())
+        })
+        .collect();
+
+    let streak = {
+        let mut streak = 0;
+        let mut cursor = today;
+        // Allow today to be empty (streak counts from yesterday if today has
+        // no edits yet).
+        if !active_days.contains(&cursor) {
+            cursor = cursor.pred_opt().unwrap_or(cursor);
+        }
+        while active_days.contains(&cursor) {
+            streak += 1;
+            cursor = match cursor.pred_opt() {
+                Some(d) => d,
+                None => break,
+            };
+        }
+        streak
+    };
+
+    // Active days in the last 30 days.
+    let cutoff = today - chrono::Duration::days(30);
+    active_days.retain(|d| *d >= cutoff);
+    (streak, active_days.len())
+}
+
+/// Builds a 30-day vault-growth histogram (notes modified per day).
+fn vault_growth(vault_path: &Path) -> Vec<GrowthPoint> {
+    let notes = collect_notes(vault_path);
+    let today = chrono::Local::now().date_naive();
+    let mut buckets: std::collections::BTreeMap<chrono::NaiveDate, usize> =
+        std::collections::BTreeMap::new();
+    for d in 0..30 {
+        let date = today - chrono::Duration::days(d);
+        buckets.insert(date, 0);
+    }
+    for note in &notes {
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&note.modified_at) {
+            let date = dt.with_timezone(&chrono::Local).date_naive();
+            if let Some(count) = buckets.get_mut(&date) {
+                *count += 1;
+            }
+        }
+    }
+    buckets
+        .into_iter()
+        .rev()
+        .map(|(date, count)| GrowthPoint {
+            date: date.format("%Y-%m-%d").to_string(),
+            count,
+        })
+        .collect()
+}
+
+/// Returns comprehensive vault statistics for the Statistics dashboard.
+#[tauri::command]
+pub fn statistics_get(
+    store: State<'_, SettingsStore>,
+    ctx: State<'_, ApplicationContext>,
+) -> Result<VaultStatistics, String> {
+    let settings = store.get();
+    let vault_path = PathBuf::from(settings.last_vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Ok(VaultStatistics {
+            note_count: 0,
+            folder_count: 0,
+            tag_count: 0,
+            total_tags: 0,
+            graph_nodes: 0,
+            graph_edges: 0,
+            graph_orphans: 0,
+            graph_clusters: 0,
+            tags: vec![],
+            recently_created: vec![],
+            recently_modified: vec![],
+            growth: vec![],
+            storage_bytes: 0,
+            writing_streak_days: 0,
+            active_days_last_30: 0,
+        });
+    }
+
+    let notes = collect_notes(&vault_path);
+
+    // Tag aggregation.
+    let mut tag_map: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
+    for note in &notes {
+        for tag in extract_tags(&note.content) {
+            *tag_map.entry(tag).or_insert(0) += 1;
+        }
+    }
+    let mut tags: Vec<TagStat> = tag_map
+        .into_iter()
+        .map(|(tag, count)| TagStat { tag, count })
+        .collect();
+    tags.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.tag.cmp(&b.tag)));
+    let total_tags: usize = tags.iter().map(|t| t.count).sum();
+    let tag_count = tags.len();
+
+    // Graph data (reuse the graph_data command logic via the context).
+    let graph = graph_data_inner(&vault_path);
+
+    // Recently modified (top 10).
+    let mut recent: Vec<RecentNoteStat> = notes
+        .iter()
+        .map(|n| {
+            let size = n.content.len();
+            RecentNoteStat {
+                path: n.path.clone(),
+                title: n.title.clone(),
+                folder: n.folder.clone(),
+                modified_at: n.modified_at.clone(),
+                created_at: None, // creation time not tracked separately
+                size,
+            }
+        })
+        .collect();
+    recent.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    let recently_modified: Vec<RecentNoteStat> = recent.iter().take(10).cloned().collect();
+    // Recently "created" — approximated by the oldest modifications reversed
+    // (creation time is not stored separately in markdown files).
+    let mut by_oldest = recent.clone();
+    by_oldest.sort_by(|a, b| a.modified_at.cmp(&b.modified_at));
+    let recently_created: Vec<RecentNoteStat> = by_oldest.into_iter().take(10).collect();
+
+    let growth = vault_growth(&vault_path);
+    let storage_bytes = vault_storage_usage(&vault_path);
+    let (writing_streak_days, active_days_last_30) = writing_streak(&vault_path);
+    let folder_count = count_folders(&vault_path);
+
+    Ok(VaultStatistics {
+        note_count: notes.len(),
+        folder_count,
+        tag_count,
+        total_tags,
+        graph_nodes: graph.nodes.len(),
+        graph_edges: graph.edges.len(),
+        graph_orphans: graph.orphan_count,
+        graph_clusters: graph.cluster_count,
+        tags,
+        recently_created,
+        recently_modified,
+        growth,
+        storage_bytes,
+        writing_streak_days,
+        active_days_last_30,
+    })
+}
+
+/// Internal helper that computes GraphData without going through Tauri state
+/// (used by `statistics_get` which already holds the vault path).
+fn graph_data_inner(vault_path: &Path) -> GraphData {
+    let notes = collect_notes(vault_path);
+    let index = build_title_index(&notes);
+
+    let mut nodes: Vec<GraphNode> = notes
+        .iter()
+        .map(|n| GraphNode {
+            path: n.path.clone(),
+            title: n.title.clone(),
+            folder: n.folder.clone(),
+            modified_at: n.modified_at.clone(),
+            tags: extract_tags(&n.content),
+            backlink_count: 0,
+            outgoing_count: 0,
+            degree: 0,
+        })
+        .collect();
+
+    let mut edges = Vec::new();
+    for note in &notes {
+        for target in extract_wikilinks(&note.content) {
+            match resolve_note(&index, &target) {
+                Some(tpath) => {
+                    if tpath != note.path {
+                        edges.push(GraphEdgeData {
+                            source: note.path.clone(),
+                            target: tpath,
+                            broken: false,
+                        });
+                    }
+                }
+                None => {
+                    edges.push(GraphEdgeData {
+                        source: note.path.clone(),
+                        target: target,
+                        broken: true,
+                    });
+                }
+            }
+        }
+    }
+
+    // Degree counts.
+    for edge in &edges {
+        if let Some(node) = nodes.iter_mut().find(|n| n.path == edge.source) {
+            node.outgoing_count += 1;
+            node.degree += 1;
+        }
+        if !edge.broken {
+            if let Some(node) = nodes.iter_mut().find(|n| n.path == edge.target) {
+                node.backlink_count += 1;
+                node.degree += 1;
+            }
+        }
+    }
+
+    let orphan_count = nodes.iter().filter(|n| n.degree == 0).count();
+
+    // Cluster count via union-find.
+    let mut uf = UnionFind::new(nodes.len());
+    let path_index: std::collections::HashMap<String, usize> = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (n.path.clone(), i))
+        .collect();
+    for edge in &edges {
+        if edge.broken {
+            continue;
+        }
+        if let (Some(&a), Some(&b)) =
+            (path_index.get(&edge.source), path_index.get(&edge.target))
+        {
+            uf.union(a, b);
+        }
+    }
+    let cluster_count = uf.count();
+
+    GraphData {
+        nodes,
+        edges,
+        orphan_count,
+        cluster_count,
+    }
+}
+
+/// Simple union-find for cluster counting.
+struct UnionFind {
+    parent: Vec<usize>,
+    rank: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        Self {
+            parent: (0..n).collect(),
+            rank: vec![0; n],
+        }
+    }
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]);
+        }
+        self.parent[x]
+    }
+    fn union(&mut self, a: usize, b: usize) {
+        let ra = self.find(a);
+        let rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        if self.rank[ra] < self.rank[rb] {
+            self.parent[ra] = rb;
+        } else if self.rank[ra] > self.rank[rb] {
+            self.parent[rb] = ra;
+        } else {
+            self.parent[rb] = ra;
+            self.rank[ra] += 1;
+        }
+    }
+    fn count(&mut self) -> usize {
+        let mut roots = std::collections::HashSet::new();
+        for i in 0..self.parent.len() {
+            roots.insert(self.find(i));
+        }
+        roots.len()
+    }
+}
