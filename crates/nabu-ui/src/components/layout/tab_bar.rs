@@ -128,7 +128,7 @@ pub fn TabBar() -> impl IntoView {
                         <ContextMenu menu_items=menu_items>
                             <div
                                 class=move || format!(
-                                    "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800 transition-colors{}",
+                                    "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800{}",
                                     if is_active { " tab-active" } else { "" }
                                 )
                                 draggable="true"
@@ -171,7 +171,7 @@ pub fn TabBar() -> impl IntoView {
                                 }}
                                 <span class="truncate max-w-40">{title.clone()}</span>
                                 <button
-                                    class="tab-close text-gray-500 hover:text-gray-100 rounded px-0.5 text-xs leading-none"
+                                    class="tab-close text-gray-500 px-0.5 text-xs leading-none"
                                     aria-label=format!("Close {}", path)
                                     on:click={let p = path.clone(); move |ev: web_sys::MouseEvent| {
                                         ev.stop_propagation();
@@ -184,7 +184,7 @@ pub fn TabBar() -> impl IntoView {
                 }).collect_view()
             }}
             <button
-                class="tab-new px-3 text-gray-400 hover:text-gray-100 text-sm shrink-0"
+                class="tab-new px-3 text-gray-400 text-sm shrink-0"
                 title="New note"
                 aria-label="New note"
                 on:click=new_note

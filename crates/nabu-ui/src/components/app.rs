@@ -312,7 +312,7 @@ pub fn App() -> impl IntoView {
         // Main Dashboard (only shown when vault is configured)
         {move || if screen.get() == AppScreen::MainDashboard {
             (view! {
-                <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none">
+                <div class="app flex h-screen w-screen bg-gray-950 text-gray-100 overflow-hidden font-sans select-none transition-colors duration-slow ease-standard">
                     // Crash recovery banner (only when a previous session is pending)
                     <div class="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
                         <RecoveryBanner

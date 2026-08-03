@@ -951,7 +951,17 @@ fn TreeNodeView(node: TreeNode) -> impl IntoView {
                 aria-selected={let p = path.clone(); move || ctx.selected.get().contains(&p)}
                 aria-expanded={let p = path.clone(); move || is_folder && ctx.expanded.get().contains(&p)}
             >
-                <span class="tree-chevron w-4 text-center text-xs text-gray-500" aria-hidden="true">
+                <span
+                    class=move || {
+                        let p = path.clone();
+                        let mut c = "tree-chevron w-4 text-center text-xs text-gray-500".to_string();
+                        if is_folder && ctx.expanded.get().contains(&p) {
+                            c.push_str(" tree-chevron-open");
+                        }
+                        c
+                    }
+                    aria-hidden="true"
+                >
                     {let p = path.clone();
                      move || if is_folder {
                         if ctx.expanded.get().contains(&p) { "▼" } else { "▶" }

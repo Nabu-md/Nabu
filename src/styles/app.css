@@ -26,6 +26,7 @@
 
   /* ---- Colour · accent ---- */
   --color-primary: 59 130 246;           /* #3b82f6 blue-600 */
+  --color-accent: 59 130 246;            /* alias for primary (legacy) */
 
   /* ---- Colour · gray scale (semantic) ----
      The Tailwind gray scale is bound to these variables (see
@@ -86,11 +87,19 @@
   --radius-panel: 0.5rem;
   --radius-chip: 9999px;
 
-  /* ---- Motion ---- */
+  /* ---- Motion ----
+     Standardised timing + easing so every transition feels cohesive.
+     - fast:   micro-interactions (hover, active, focus)
+     - normal: state changes (panels, menus, toasts)
+     - slow:   large surfaces (dialogs, sidebars, view transitions) */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 120ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
+  --duration-slower: 400ms;
 }
 
 /* ============================================================================
@@ -232,7 +241,9 @@
     overflow: hidden;
   }
 
-  /* ---- Buttons ---- */
+  /* ---- Buttons ----
+     Consistent hover / active / focus / disabled states with standardised
+     motion. Active state uses scale + translate for tactile press feedback. */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -249,14 +260,26 @@
     transition:
       background-color var(--duration-fast) var(--ease-standard),
       border-color var(--duration-fast) var(--ease-standard),
-      transform var(--duration-fast) var(--ease-standard);
+      color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard),
+      opacity var(--duration-fast) var(--ease-standard);
+    will-change: transform;
   }
   .btn:hover:not(:disabled) {
     background-color: rgb(var(--gray-750));
     border-color: rgb(var(--gray-600));
   }
   .btn:active:not(:disabled) {
-    transform: translateY(0.5px);
+    transform: translateY(0.5px) scale(0.98);
+  }
+  .btn:focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: 1px;
+  }
+
+  .btn-primary:active:not(:disabled) {
+    background-color: rgb(var(--color-primary) / 0.75);
   }
 
   .btn-primary {
@@ -302,6 +325,11 @@
       border-color var(--duration-fast) var(--ease-standard),
       box-shadow var(--duration-fast) var(--ease-standard);
   }
+  .input:hover:not(:focus),
+  .textarea:hover:not(:focus),
+  select.input:hover:not(:focus) {
+    border-color: rgb(var(--gray-600));
+  }
   .input:focus,
   .textarea:focus,
   select.input:focus {
@@ -344,6 +372,7 @@
   .card-hover:hover {
     box-shadow: var(--shadow-card-hover);
     border-color: rgb(var(--gray-600));
+    transform: translateY(-1px);
   }
   .card-header {
     display: flex;
@@ -424,10 +453,16 @@
     user-select: none;
   }
   .tree-row {
-    transition: background-color var(--duration-fast) var(--ease-standard);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
   }
   .tree-row:hover {
     background-color: rgb(var(--gray-800));
+  }
+  .tree-row:active {
+    transform: scale(0.99);
   }
   .tree-row-selected {
     background-color: rgb(var(--gray-750));
@@ -438,14 +473,20 @@
   }
   .tree-row-dragging {
     opacity: 0.45;
+    transform: scale(0.98);
   }
   .tree-row-drop-target {
     outline: 1px dashed rgb(var(--color-primary));
     outline-offset: -1px;
     background-color: rgb(var(--color-primary) / 0.12);
+    animation: nabu-drop-pulse 1.2s var(--ease-standard) infinite;
   }
   .tree-root-drop {
     border-color: rgb(var(--gray-700));
+    transition:
+      border-color var(--duration-fast) var(--ease-standard),
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
   }
   .tree-root-drop-active {
     border-color: rgb(var(--color-primary));
@@ -455,17 +496,26 @@
   .tree-children {
     border-color: rgb(var(--gray-800));
   }
+  .tree-chevron {
+    display: inline-block;
+    transition: transform var(--duration-fast) var(--ease-standard);
+  }
+  .tree-chevron-open {
+    transform: rotate(90deg);
+  }
 
   /* ---- Move-to folder picker ---- */
   .move-picker {
     max-height: 18rem;
     overflow-y: auto;
     min-width: 200px;
+    animation: nabu-menu-in var(--duration-fast) var(--ease-out);
   }
 
   /* ---- Batch action bar ---- */
   .batch-bar {
     border-top: 1px solid rgb(var(--gray-700));
+    animation: nabu-slide-up var(--duration-normal) var(--ease-out);
   }
 
   /* ---- Tab bar ---- */
@@ -474,14 +524,50 @@
   }
   .tab-bar .tab {
     min-width: 0;
+    position: relative;
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+  }
+  .tab-bar .tab:hover {
+    background-color: rgb(var(--gray-800));
+  }
+  .tab-bar .tab:active {
+    transform: scale(0.98);
   }
   .tab-bar .tab-active {
     background-color: rgb(var(--gray-800));
     color: rgb(var(--gray-50));
     box-shadow: inset 0 -2px 0 rgb(var(--color-primary));
   }
-  .tab-bar .tab:hover {
+  .tab-bar .tab-close {
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+    border-radius: var(--radius-panel);
+  }
+  .tab-bar .tab-close:hover {
+    background-color: rgb(var(--gray-700));
+    color: rgb(var(--gray-50));
+  }
+  .tab-bar .tab-close:active {
+    transform: scale(0.9);
+  }
+  .tab-bar .tab-new {
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      background-color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+    border-radius: var(--radius-panel);
+  }
+  .tab-bar .tab-new:hover {
     background-color: rgb(var(--gray-800));
+  }
+  .tab-bar .tab-new:active {
+    transform: scale(0.95);
   }
 
   /* ---- Graph canvas ---- */
@@ -516,6 +602,9 @@
     color: rgb(var(--gray-100));
     background-color: rgb(var(--gray-800));
   }
+  .tabs .tab:active {
+    transform: scale(0.98);
+  }
   .tabs .tab-active {
     color: rgb(var(--gray-100));
     border-bottom-color: rgb(var(--color-primary));
@@ -526,7 +615,16 @@
   .queue-item {
     transition:
       background-color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard);
+      border-color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+  }
+  .inbox-item:hover,
+  .queue-item:hover {
+    background-color: rgb(var(--gray-800));
+  }
+  .inbox-item:active,
+  .queue-item:active {
+    transform: scale(0.99);
   }
 
   /* ---- Dictation pill ---- */
@@ -536,6 +634,7 @@
     border-radius: var(--radius-card);
     padding: var(--space-3);
     box-shadow: var(--shadow-card);
+    animation: nabu-pop-in var(--duration-normal) var(--ease-spring);
   }
   .mode-selector {
     display: flex;
@@ -558,18 +657,20 @@
     border: none;
   }
 
-  /* ---- Sandbox / HTML preview ---- */
+  /* ---- Sandbox / HTML preview ----
+     HTML blocks intentionally render on a white canvas (content fidelity),
+     but the surrounding chrome follows the active theme. */
   .sandbox-frame {
     border: 1px solid rgb(var(--gray-700));
     border-radius: var(--radius-panel);
-    background-color: #ffffff;
+    background-color: rgb(var(--gray-950));
   }
   .sandboxed-html {
     border: 1px solid rgb(var(--gray-700));
     border-radius: var(--radius-panel);
     padding: var(--space-3);
-    background-color: #ffffff;
-    color: #1f2937;
+    background-color: rgb(var(--gray-950));
+    color: rgb(var(--gray-100));
   }
 
   /* ---- Settings panel ---- */
@@ -661,6 +762,12 @@
   .btn-lg {
     padding: 0.5rem 1rem;
     font-size: var(--text-body);
+  }
+  .btn-xs {
+    padding: 0.125rem 0.375rem;
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+    border-radius: calc(var(--radius-panel) - 2px);
   }
   .btn .btn-spinner {
     width: 1em;
@@ -858,6 +965,7 @@
     padding: var(--space-6);
     background-color: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(2px);
+    animation: nabu-fade-in var(--duration-fast) var(--ease-out);
   }
   .dialog {
     width: 100%;
@@ -870,6 +978,7 @@
     border-radius: var(--radius-dialog);
     box-shadow: var(--shadow-dialog);
     overflow: hidden;
+    animation: nabu-dialog-in var(--duration-normal) var(--ease-out);
   }
   .dialog-lg {
     max-width: 720px;
@@ -895,10 +1004,17 @@
     line-height: 1;
     padding: 0.25rem;
     border-radius: var(--radius-panel);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
   }
   .dialog-close:hover {
     color: rgb(var(--gray-100));
     background-color: rgb(var(--gray-800));
+  }
+  .dialog-close:active {
+    transform: scale(0.9);
   }
   .dialog-body {
     padding: var(--space-6);
@@ -924,6 +1040,7 @@
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-popover);
     z-index: 1100;
+    animation: nabu-menu-in var(--duration-fast) var(--ease-out);
   }
   .menu-item {
     display: flex;
@@ -935,7 +1052,13 @@
     font-size: var(--text-body);
     color: rgb(var(--gray-300));
     text-align: left;
-    transition: background-color var(--duration-fast) var(--ease-standard);
+    transition:
+      background-color var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-standard);
+  }
+  .menu-item:active {
+    transform: scale(0.98);
   }
   .menu-item:hover:not(:disabled),
   .menu-item-active {
@@ -1356,6 +1479,71 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* ============================================================================
+   6 · MOTION SYSTEM
+   Shared keyframes for panel / dialog / menu / toast / drag-drop / state
+   transitions. Durations and easings come from the design tokens so every
+   animation stays consistent across the app.
+   ========================================================================== */
+
+@keyframes nabu-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes nabu-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nabu-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nabu-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nabu-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nabu-drop-pulse {
+  0%, 100% {
+    background-color: rgb(var(--color-primary) / 0.12);
+  }
+  50% {
+    background-color: rgb(var(--color-primary) / 0.22);
   }
 }
 
@@ -2330,10 +2518,82 @@ kbd {
 }
 
 /* ============================================================================
+   7 · RESPONSIVE REFINEMENTS
+   Layout adapts cleanly to small desktop windows, ultrawide monitors and
+   zoomed interfaces. Sidebar widths collapse gracefully and grids reflow.
+   ========================================================================== */
+
+@media (max-width: 960px) {
+  .left-sidebar,
+  .sidebar-left {
+    width: 15rem !important;
+  }
+
+  .right-inspector {
+    width: 15rem !important;
+  }
+
+  .dash-grid {
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)) !important;
+  }
+
+  .dash-summary-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .left-sidebar,
+  .sidebar-left {
+    width: 12rem !important;
+  }
+
+  .right-inspector {
+    width: 12rem !important;
+  }
+
+  .navbar-views {
+    display: none !important;
+  }
+
+  .palette {
+    max-width: 94vw !important;
+  }
+
+  .graph-side-panel {
+    width: 16rem !important;
+  }
+
+  .home-hero {
+    padding-top: 2rem !important;
+  }
+
+  .home-title {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Ultrawide monitors: cap content columns so lines don't get too long. */
+@media (min-width: 1920px) {
+  .container-narrow,
+  .container-medium,
+  .container-wide {
+    max-width: 1600px !important;
+  }
+
+  .dash-grid {
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)) !important;
+  }
+}
+
+/* ============================================================================
    Knowledge Navigation & Connected Knowledge (Phase 13.1)
    ========================================================================== */
 
 /* ---- Graph canvas (replaces the placeholder shell) ---- */
+.graph-view {
+  animation: nabu-fade-in var(--duration-slow) var(--ease-out);
+}
 .graph-view .graph-canvas {
   background: #0b1220;
   border: none;

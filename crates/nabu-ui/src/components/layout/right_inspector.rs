@@ -301,7 +301,7 @@ pub fn RightInspector() -> impl IntoView {
     };
 
     view! {
-        <div class="w-64 border-l border-gray-700 bg-gray-900 h-screen flex flex-col">
+        <div class="right-inspector w-64 border-l border-gray-700 bg-gray-900 h-screen flex flex-col transition-[width] duration-slow ease-standard">
             <div class="flex border-b border-gray-700">
                 <Tabs tabs=tabs active=active_tab />
             </div>

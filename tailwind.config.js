@@ -60,6 +60,17 @@ module.exports = {
         dialog: "0 8px 24px rgba(0,0,0,0.5), 0 24px 64px rgba(0,0,0,0.5)",
         popover: "0 4px 16px rgba(0,0,0,0.45), 0 12px 32px rgba(0,0,0,0.4)",
       },
+      transitionDuration: {
+        fast: "120ms",
+        normal: "200ms",
+        slow: "300ms",
+        slower: "400ms",
+      },
+      transitionTimingFunction: {
+        standard: "cubic-bezier(0.4, 0, 0.2, 1)",
+        out: "cubic-bezier(0, 0, 0.2, 1)",
+        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      },
     },
   },
   plugins: [],

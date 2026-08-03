@@ -25,7 +25,7 @@ pub fn LeftSidebar() -> impl IntoView {
     };
 
     view! {
-        <div class="w-64 border-r border-gray-700 bg-gray-900 h-full flex flex-col min-w-0">
+        <div class="left-sidebar sidebar-left w-64 border-r border-gray-700 bg-gray-900 h-full flex flex-col min-w-0 transition-[width] duration-slow ease-standard">
             <div class="flex-1 min-h-0">
                 <FileTree />
             </div>
