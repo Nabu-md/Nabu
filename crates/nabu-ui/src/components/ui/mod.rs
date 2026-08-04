@@ -32,18 +32,19 @@ pub use button::{Button, ButtonSize, ButtonVariant, IconButton};
 pub use card::{Card, CardBody, CardFooter, CardHeader, CardVariant, CollapsibleCard};
 pub use dialog::{AlertDialog, ConfirmDialog, Dialog, DialogSize, PromptDialog};
 pub use feedback::{
-    Alert, Badge, BadgeKind, Banner, ErrorPanel, LoadingBlock, LoadingOverlay, LoadingScreen,
-    NotificationBell, Progress, Skeleton, SkeletonList, Spinner, SpinnerSize, StatusDot, StatusKind,
-    TaskContext, TaskIndicator, TaskInfo, ToastContext, ToastItem, ToastKind, ToastProvider,
-    ToastRegion, provide_tasks, use_tasks, use_toast,
+    provide_tasks, use_tasks, use_toast, Alert, Badge, BadgeKind, Banner, ErrorPanel, LoadingBlock,
+    LoadingOverlay, LoadingScreen, NotificationBell, Progress, Skeleton, SkeletonList, Spinner,
+    SpinnerSize, StatusDot, StatusKind, TaskContext, TaskIndicator, TaskInfo, ToastContext,
+    ToastItem, ToastKind, ToastProvider, ToastRegion,
 };
+pub use icons::{render_icon, render_icon_view, Icon, IconEl};
 pub use info::{Callout, CalloutKind, EmptyState, HelpText, Tooltip};
 pub use input::{NumberInput, PasswordInput, SearchInput, TextInput, Textarea};
-pub use layout::{Container, ContainerWidth, Grid, Panel, Section, Stack, StackDirection, StackGap};
+pub use layout::{
+    Container, ContainerWidth, Grid, Panel, Section, Stack, StackDirection, StackGap,
+};
 pub use menu::{
     CommandItem, CommandMenu, ContextMenu, DropdownMenu, MenuItem, MenuSeparator, OverflowMenu,
 };
-pub use nav::{
-    Breadcrumb, Breadcrumbs, NavGroup, SidebarItem, TabDef, Tabs, ToolbarButton,
-};
+pub use nav::{Breadcrumb, Breadcrumbs, NavGroup, SidebarItem, TabDef, Tabs, ToolbarButton};
 pub use selection::{Checkbox, Radio, Segmented, SegmentedOption, Select, SelectOption, Switch};

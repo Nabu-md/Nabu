@@ -1,6 +1,7 @@
 //! Feedback primitives — toasts, banners, alerts, badges, progress, spinners,
 //! skeletons, status dots.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use std::time::Duration;
 
@@ -24,12 +25,12 @@ impl ToastKind {
         }
     }
 
-    fn icon(self) -> &'static str {
+    fn icon(self) -> crate::components::ui::icons::Icon {
         match self {
-            ToastKind::Info => "ℹ️",
-            ToastKind::Success => "✅",
-            ToastKind::Warning => "⚠️",
-            ToastKind::Error => "❌",
+            ToastKind::Info => crate::components::ui::icons::Icon::Info,
+            ToastKind::Success => crate::components::ui::icons::Icon::CircleCheck,
+            ToastKind::Warning => crate::components::ui::icons::Icon::TriangleAlert,
+            ToastKind::Error => crate::components::ui::icons::Icon::CircleX,
         }
     }
 
@@ -82,12 +83,7 @@ pub struct ToastContext {
 
 impl ToastContext {
     /// Pushes a toast and auto-dismisses it after a short lifetime.
-    pub fn push(
-        self,
-        kind: ToastKind,
-        title: impl Into<String>,
-        message: impl Into<String>,
-    ) {
+    pub fn push(self, kind: ToastKind, title: impl Into<String>, message: impl Into<String>) {
         self.push_inner(kind, title, message, None, Some(5000));
     }
 
@@ -212,7 +208,7 @@ fn ToastItemView(toast: ToastItem, class: String) -> impl IntoView {
     let toasts = expect_context::<ToastContext>();
     view! {
         <div class=class role="status">
-            <span aria-hidden="true">{kind.icon()}</span>
+            <span aria-hidden="true">{render_icon_view(kind.icon())}</span>
             <div class="flex flex-col gap-0.5 min-w-0">
                 <div class="text-sm font-medium text-gray-100">{title}</div>
                 {message.map(|m| view! { <div class="text-xs text-gray-400">{m}</div> }.into_any())}
@@ -236,7 +232,7 @@ fn ToastItemView(toast: ToastItem, class: String) -> impl IntoView {
                 aria-label="Dismiss notification"
                 on:click=move |_| toasts.dismiss(&id)
             >
-                "✕"
+                {render_icon_view(Icon::X)}
             </button>
         </div>
     }
@@ -287,7 +283,7 @@ pub fn NotificationBell() -> impl IntoView {
                 aria-expanded=move || open.get()
                 on:click=move |_| set_open.update(|v| *v = !*v)
             >
-                "🔔"
+                {render_icon_view(Icon::Bell)}
                 {move || {
                     let count = context.toasts.get().len();
                     if count > 0 {
@@ -372,11 +368,11 @@ pub fn Banner(
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     view! {
         <div class=format!("banner {}{extra}", kind.alert_class()) role="status">
-            <span aria-hidden="true">{kind.icon()}</span>
+            <span aria-hidden="true">{render_icon_view(kind.icon())}</span>
             <span class="flex-1">{message}</span>
             {on_dismiss.map(|cb| view! {
                 <button type="button" class="toast-close" aria-label="Dismiss" on:click=move |_| cb.run(())>
-                    "✕"
+                    {render_icon_view(Icon::X)}
                 </button>
             }.into_any())}
         </div>
@@ -400,7 +396,7 @@ pub fn Alert(
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     view! {
         <div class=format!("alert {}{extra}", kind.alert_class()) role="alert">
-            <span aria-hidden="true">{kind.icon()}</span>
+            <span aria-hidden="true">{render_icon_view(kind.icon())}</span>
             <div class="flex flex-col gap-0.5">
                 {title.map(|t| view! { <div class="text-sm font-medium">{t}</div> }.into_any())}
                 <div class="text-sm">{message}</div>
@@ -681,12 +677,12 @@ pub fn ErrorPanel(
     view! {
         <div class="error-panel panel" role="alert">
             <div class="flex items-start gap-3">
-                <span class="text-xl" aria-hidden="true">"⚠️"</span>
+                <span class="text-xl" aria-hidden="true">{render_icon_view(Icon::CircleAlert)}</span>
                 <div class="flex flex-col gap-1 min-w-0 flex-1">
                     <div class="text-sm font-semibold text-gray-100">{title}</div>
                     <div class="text-sm text-gray-400">{message}</div>
                     {recovery.map(|r| view! {
-                        <div class="error-recovery">"💡 " {r}</div>
+                        <div class="error-recovery">{render_icon_view(Icon::Callout)} {r}</div>
                     }.into_any())}
                     {details.map(|d| view! {
                         <details class="error-details">

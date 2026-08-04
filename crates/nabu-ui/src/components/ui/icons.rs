@@ -70,7 +70,6 @@ pub use lucide_leptos::ChevronsRight;
 pub use lucide_leptos::CircleAlert;
 pub use lucide_leptos::CircleCheck;
 pub use lucide_leptos::CircleEllipsis;
-pub use lucide_leptos::CircleHelp;
 pub use lucide_leptos::CircleX;
 pub use lucide_leptos::Clipboard;
 pub use lucide_leptos::ClipboardList;
@@ -84,6 +83,7 @@ pub use lucide_leptos::CornerUpLeft;
 pub use lucide_leptos::CornerUpRight;
 pub use lucide_leptos::Download;
 pub use lucide_leptos::Ellipsis;
+pub use lucide_leptos::EllipsisVertical;
 pub use lucide_leptos::ExternalLink;
 pub use lucide_leptos::Eye;
 pub use lucide_leptos::EyeOff;
@@ -100,7 +100,7 @@ pub use lucide_leptos::GalleryVerticalEnd;
 pub use lucide_leptos::Globe;
 pub use lucide_leptos::Grid2X2;
 pub use lucide_leptos::History;
-pub use lucide_leptos::Home;
+pub use lucide_leptos::House;
 pub use lucide_leptos::Inbox;
 pub use lucide_leptos::Info;
 pub use lucide_leptos::Kanban;
@@ -124,8 +124,6 @@ pub use lucide_leptos::MessageSquare;
 pub use lucide_leptos::Mic;
 pub use lucide_leptos::Monitor;
 pub use lucide_leptos::Moon;
-pub use lucide_leptos::MoreHorizontal;
-pub use lucide_leptos::MoreVertical;
 pub use lucide_leptos::Network;
 pub use lucide_leptos::NotebookPen;
 pub use lucide_leptos::NotebookText;
@@ -490,197 +488,208 @@ impl Icon {
     }
 }
 
-/// Render an [`Icon`] as a theme-inheriting, accessible Lucide SVG.
-///
-/// The SVG scales with the parent's `font-size` (via the global `.lucide`
-/// rule) so it occupies approximately the same visual footprint as the emoji
-/// it replaces — call sites keep their existing `text-*` / `text-[...]`
-/// sizing classes on the wrapping element.
-///
-/// `aria-hidden="true"` keeps decorative icons out of the screen-reader tree;
-/// icon-only controls that use this helper already carry an `aria-label` on
-/// their host element, so an icon is never the only accessible label.
-#[component]
-pub fn render_icon(
-    /// Which icon to draw.
-    icon: Icon,
-    /// Optional extra classes applied to the wrapping `<span>` (e.g. sizing).
-    #[prop(optional)]
-    class: Option<&'static str>,
-) -> impl IntoView {
-    let cls = move || match class {
-        Some(extra) => format!("inline-flex items-center justify-center {extra}"),
-        None => String::from("inline-flex items-center justify-center"),
-    };
-    view! {
-        <span class=cls aria-hidden="true">
-            {icon_component(icon)}
-        </span>
-    }
-}
-
 /// Resolve an [`Icon`] to its underlying Lucide component view. This is the
 /// single dispatch table: change a glyph here and it updates everywhere.
+///
+/// Each arm invokes the real Lucide component (a compile-time SVG) so there is
+/// no runtime icon loading.
 fn icon_component(icon: Icon) -> AnyView {
-    macro_rules! ic {
+    // Lucide component names live in this module's scope via the re-exports
+    // above. The `view!` macro resolves each `<Name />` to the component and
+    // applies all its default props (size=24, color=currentColor).
+    macro_rules! c {
         ($cmp:ident) => {
             view! { <$cmp /> }.into_any()
         };
     }
     match icon {
         // ── Navigation & layout ───────────────────────────
-        Icon::Dashboard => ic!(LayoutDashboard),
-        Icon::Editor => ic!(NotebookText),
-        Icon::Graph => ic!(Network),
-        Icon::Inbox => ic!(Inbox),
-        Icon::ReadingQueue => ic!(BookCheck),
-        Icon::Templates => ic!(ClipboardList),
-        Icon::Trash => ic!(Trash2),
-        Icon::History => ic!(History),
-        Icon::Recovery => ic!(LifeBuoy),
-        Icon::Calendar => ic!(Calendar),
-        Icon::Archive => ic!(Archive),
-        Icon::SmartFolders => ic!(FolderTree),
-        Icon::Settings => ic!(Settings),
-        Icon::Search => ic!(Search),
-        Icon::SearchAlt => ic!(TextSearch),
-        Icon::CommandPalette => ic!(CommandIcon),
-        Icon::QuickSwitcher => ic!(Zap),
-        Icon::Shortcuts => ic!(Keyboard),
-        Icon::DailyNote => ic!(Calendar),
-        Icon::NewNote => ic!(Plus),
-        Icon::ToggleSidebar => ic!(PanelLeft),
-        Icon::ToggleInspector => ic!(ClipboardList),
-        Icon::Home => ic!(Home),
-        Icon::Back => ic!(ArrowLeft),
-        Icon::Forward => ic!(ArrowRight),
-        Icon::ChevronDown => ic!(ChevronDown),
-        Icon::ChevronLeft => ic!(ChevronLeft),
-        Icon::ChevronRight => ic!(ChevronRight),
-        Icon::ChevronUp => ic!(ChevronUp),
-        Icon::ChevronsLeft => ic!(ChevronsLeft),
-        Icon::ChevronsRight => ic!(ChevronsRight),
-        Icon::Menu => ic!(Menu),
-        Icon::MoreHorizontal => ic!(MoreHorizontal),
-        Icon::MoreVertical => ic!(MoreVertical),
-        Icon::PanelLeft => ic!(PanelLeft),
-        Icon::PanelRight => ic!(PanelRight),
+        Icon::Dashboard => c!(LayoutDashboard),
+        Icon::Editor => c!(NotebookText),
+        Icon::Graph => c!(Network),
+        Icon::Inbox => c!(Inbox),
+        Icon::ReadingQueue => c!(BookCheck),
+        Icon::Templates => c!(ClipboardList),
+        Icon::Trash => c!(Trash2),
+        Icon::History => c!(History),
+        Icon::Recovery => c!(LifeBuoy),
+        Icon::Calendar => c!(Calendar),
+        Icon::Archive => c!(Archive),
+        Icon::SmartFolders => c!(FolderTree),
+        Icon::Settings => c!(Settings),
+        Icon::Search => c!(Search),
+        Icon::SearchAlt => c!(TextSearch),
+        Icon::CommandPalette => c!(CommandIcon),
+        Icon::QuickSwitcher => c!(Zap),
+        Icon::Shortcuts => c!(Keyboard),
+        Icon::DailyNote => c!(Calendar),
+        Icon::NewNote => c!(Plus),
+        Icon::ToggleSidebar => c!(PanelLeft),
+        Icon::ToggleInspector => c!(ClipboardList),
+        Icon::Home => c!(House),
+        Icon::Back => c!(ArrowLeft),
+        Icon::Forward => c!(ArrowRight),
+        Icon::ChevronDown => c!(ChevronDown),
+        Icon::ChevronLeft => c!(ChevronLeft),
+        Icon::ChevronRight => c!(ChevronRight),
+        Icon::ChevronUp => c!(ChevronUp),
+        Icon::ChevronsLeft => c!(ChevronsLeft),
+        Icon::ChevronsRight => c!(ChevronsRight),
+        Icon::Menu => c!(Menu),
+        Icon::MoreHorizontal => c!(Ellipsis),
+        Icon::MoreVertical => c!(EllipsisVertical),
+        Icon::PanelLeft => c!(PanelLeft),
+        Icon::PanelRight => c!(PanelRight),
         // ── Files & notes ───────────────────────────────
-        Icon::Folder => ic!(Folder),
-        Icon::FolderOpen => ic!(FolderOpen),
-        Icon::FolderTree => ic!(FolderTree),
-        Icon::FileText => ic!(FileText),
-        Icon::FilePen => ic!(FilePen),
-        Icon::FilePlus => ic!(FilePlus),
-        Icon::StickyNote => ic!(StickyNote),
-        Icon::NotebookPen => ic!(NotebookPen),
-        Icon::Save => ic!(Save),
-        Icon::Copy => ic!(Copy),
-        Icon::Clipboard => ic!(Clipboard),
+        Icon::Folder => c!(Folder),
+        Icon::FolderOpen => c!(FolderOpen),
+        Icon::FolderTree => c!(FolderTree),
+        Icon::FileText => c!(FileText),
+        Icon::FilePen => c!(FilePen),
+        Icon::FilePlus => c!(FilePlus),
+        Icon::StickyNote => c!(StickyNote),
+        Icon::NotebookPen => c!(NotebookPen),
+        Icon::Save => c!(Save),
+        Icon::Copy => c!(Copy),
+        Icon::Clipboard => c!(Clipboard),
         // ── Status & feedback ───────────────────────────
-        Icon::ToastSuccess => ic!(CircleCheck),
-        Icon::ToastWarning => ic!(TriangleAlert),
-        Icon::ToastError => ic!(CircleX),
-        Icon::ToastInfo => ic!(Info),
-        Icon::Bell => ic!(Bell),
-        Icon::BellRing => ic!(BellRing),
-        Icon::Warning => ic!(TriangleAlert),
-        Icon::CircleAlert => ic!(CircleAlert),
-        Icon::Info => ic!(Info),
-        Icon::Check => ic!(Check),
-        Icon::CircleCheck => ic!(CircleCheck),
-        Icon::CircleX => ic!(CircleX),
-        Icon::X => ic!(X),
-        Icon::Plus => ic!(Plus),
-        Icon::Loader => ic!(Loader),
-        Icon::RefreshCw => ic!(RefreshCw),
-        Icon::RefreshCcw => ic!(RefreshCcw),
-        Icon::LifeBuoy => ic!(LifeBuoy),
+        Icon::ToastSuccess => c!(CircleCheck),
+        Icon::ToastWarning => c!(TriangleAlert),
+        Icon::ToastError => c!(CircleX),
+        Icon::ToastInfo => c!(Info),
+        Icon::Bell => c!(Bell),
+        Icon::BellRing => c!(BellRing),
+        Icon::Warning => c!(TriangleAlert),
+        Icon::CircleAlert => c!(CircleAlert),
+        Icon::Info => c!(Info),
+        Icon::Check => c!(Check),
+        Icon::CircleCheck => c!(CircleCheck),
+        Icon::CircleX => c!(CircleX),
+        Icon::X => c!(X),
+        Icon::Plus => c!(Plus),
+        Icon::Loader => c!(Loader),
+        Icon::RefreshCw => c!(RefreshCw),
+        Icon::RefreshCcw => c!(RefreshCcw),
+        Icon::LifeBuoy => c!(LifeBuoy),
         // ── Actions ─────────────────────────────────────
-        Icon::Star => ic!(Star),
-        Icon::StarHalf => ic!(StarHalf),
-        Icon::Pin => ic!(MapPin),
-        Icon::Edit => ic!(PenLine),
-        Icon::Delete => ic!(Trash2),
+        Icon::Star => c!(Star),
+        Icon::StarHalf => c!(StarHalf),
+        Icon::Pin => c!(MapPin),
+        Icon::Edit => c!(PenLine),
+        Icon::Delete => c!(Trash2),
         // ── Communication ───────────────────────────────
-        Icon::Mail => ic!(Mail),
-        Icon::Send => ic!(Send),
-        Icon::Share => ic!(Share),
-        Icon::Share2 => ic!(Share2),
-        Icon::Reply => ic!(Reply),
-        Icon::ReplyAll => ic!(ReplyAll),
+        Icon::Mail => c!(Mail),
+        Icon::Send => c!(Send),
+        Icon::Share => c!(Share),
+        Icon::Share2 => c!(Share2),
+        Icon::Reply => c!(Reply),
+        Icon::ReplyAll => c!(ReplyAll),
         // ── Knowledge graph / links ─────────────────────
-        Icon::Network => ic!(Network),
-        Icon::Link => ic!(Link),
-        Icon::Link2 => ic!(Link2),
-        Icon::MessageCircle => ic!(MessageCircle),
-        Icon::MessageSquare => ic!(MessageSquare),
+        Icon::Network => c!(Network),
+        Icon::Link => c!(Link),
+        Icon::Link2 => c!(Link2),
+        Icon::MessageCircle => c!(MessageCircle),
+        Icon::MessageSquare => c!(MessageSquare),
         // ── Calendar & time ─────────────────────────────
-        Icon::Clock => ic!(Clock),
-        Icon::Timer => ic!(Clock),
+        Icon::Clock => c!(Clock),
+        Icon::Timer => c!(Clock),
         // ── Views ───────────────────────────────────────
-        Icon::List => ic!(List),
-        Icon::ListChecks => ic!(ListChecks),
-        Icon::Grid => ic!(Grid2X2),
-        Icon::Columns => ic!(Columns2),
-        Icon::Table => ic!(Table),
-        Icon::Kanban => ic!(Kanban),
-        Icon::Gallery => ic!(GalleryVerticalEnd),
-        Icon::Palette => ic!(Palette),
-        Icon::Layers => ic!(Layers),
-        Icon::Library => ic!(Library),
+        Icon::List => c!(List),
+        Icon::ListChecks => c!(ListChecks),
+        Icon::Grid => c!(Grid2X2),
+        Icon::Columns => c!(Columns2),
+        Icon::Table => c!(Table),
+        Icon::Kanban => c!(Kanban),
+        Icon::Gallery => c!(GalleryVerticalEnd),
+        Icon::Palette => c!(Palette),
+        Icon::Layers => c!(Layers),
+        Icon::Library => c!(Library),
         // ── Objects & tools ─────────────────────────────
-        Icon::Brush => ic!(Brush),
-        Icon::Mic => ic!(Mic),
-        Icon::Camera => ic!(Camera),
-        Icon::Play => ic!(Play),
-        Icon::Package => ic!(Package),
-        Icon::Target => ic!(Target),
-        Icon::Command => ic!(CommandIcon),
-        Icon::Monitor => ic!(Monitor),
-        Icon::Smartphone => ic!(Smartphone),
-        Icon::Tablet => ic!(Tablet),
-        Icon::Laptop => ic!(Laptop),
+        Icon::Brush => c!(Brush),
+        Icon::Mic => c!(Mic),
+        Icon::Camera => c!(Camera),
+        Icon::Play => c!(Play),
+        Icon::Package => c!(Package),
+        Icon::Target => c!(Target),
+        Icon::Command => c!(CommandIcon),
+        Icon::Monitor => c!(Monitor),
+        Icon::Smartphone => c!(Smartphone),
+        Icon::Tablet => c!(Tablet),
+        Icon::Laptop => c!(Laptop),
         // ── Charts & stats ──────────────────────────────
-        Icon::ChartBar => ic!(ChartBar),
-        Icon::ChartColumn => ic!(ChartColumn),
-        Icon::ChartLine => ic!(ChartLine),
-        Icon::ChartPie => ic!(ChartPie),
-        Icon::TrendingUp => ic!(TrendingUp),
-        Icon::TrendingDown => ic!(TrendingDown),
-        Icon::Flame => ic!(Flame),
+        Icon::ChartBar => c!(ChartBar),
+        Icon::ChartColumn => c!(ChartColumn),
+        Icon::ChartLine => c!(ChartLine),
+        Icon::ChartPie => c!(ChartPie),
+        Icon::TrendingUp => c!(TrendingUp),
+        Icon::TrendingDown => c!(TrendingDown),
+        Icon::Flame => c!(Flame),
         // ── Reader ──────────────────────────────────────
-        Icon::BookOpen => ic!(BookOpen),
-        Icon::BookText => ic!(BookText),
-        Icon::BookMarked => ic!(BookMarked),
+        Icon::BookOpen => c!(BookOpen),
+        Icon::BookText => c!(BookText),
+        Icon::BookMarked => c!(BookMarked),
         // ── Editor slash menu ───────────────────────────
-        Icon::KanbanBoard => ic!(Kanban),
-        Icon::VisionOcr => ic!(ScanText),
-        Icon::CodeBlock => ic!(Code),
-        Icon::Callout => ic!(Lightbulb),
+        Icon::KanbanBoard => c!(Kanban),
+        Icon::VisionOcr => c!(ScanText),
+        Icon::CodeBlock => c!(Code),
+        Icon::Callout => c!(Lightbulb),
         // ── Misc ────────────────────────────────────────
-        Icon::Sparkles => ic!(Sparkles),
-        Icon::Wand => ic!(Wand),
-        Icon::Globe => ic!(Globe),
-        Icon::CloudUpload => ic!(CloudUpload),
-        Icon::Upload => ic!(Upload),
-        Icon::Download => ic!(Download),
-        Icon::Scissors => ic!(Scissors),
-        Icon::ExternalLink => ic!(ExternalLink),
-        Icon::Sun => ic!(Sun),
-        Icon::Moon => ic!(Moon),
-        Icon::Ellipsis => ic!(Ellipsis),
-        Icon::CircleEllipsis => ic!(CircleEllipsis),
-        Icon::Eye => ic!(Eye),
-        Icon::EyeOff => ic!(EyeOff),
+        Icon::Sparkles => c!(Sparkles),
+        Icon::Wand => c!(Wand),
+        Icon::Globe => c!(Globe),
+        Icon::CloudUpload => c!(CloudUpload),
+        Icon::Upload => c!(Upload),
+        Icon::Download => c!(Download),
+        Icon::Scissors => c!(Scissors),
+        Icon::ExternalLink => c!(ExternalLink),
+        Icon::Sun => c!(Sun),
+        Icon::Moon => c!(Moon),
+        Icon::Ellipsis => c!(Ellipsis),
+        Icon::CircleEllipsis => c!(CircleEllipsis),
+        Icon::Eye => c!(Eye),
+        Icon::EyeOff => c!(EyeOff),
         // ── Keyboard ────────────────────────────────────
-        Icon::Keyboard => ic!(Keyboard),
+        Icon::Keyboard => c!(Keyboard),
+    }
+}
+
+/// Plain function form of the icon renderer — returns a themed SVG view
+/// directly (no wrapping span), for use inside other `view!` blocks as
+/// `{render_icon_view(Icon::Foo)}`.
+pub fn render_icon_view(icon: Icon) -> AnyView {
+    icon_component(icon)
+}
+
+/// Render an [`Icon`] inside an optional wrapping `<span>` so callers can drop
+/// it in place of a text emoji node inside a `view!` block:
+/// `{render_icon(Icon::Search, Some("text-2xl"))}`.
+///
+/// The wrapping span carries `aria-hidden="true"` so decorative icons are
+/// excluded from the screen-reader tree. Icon-only controls that use this
+/// helper already carry an `aria-label` on their host element.
+///
+/// The SVG scales with the parent's `font-size` (via the global `.lucide`
+/// CSS rule) so existing `text-*` / `text-[...]` sizing classes still control
+/// the icon footprint, exactly like the emoji glyphs they replace.
+pub fn render_icon(icon: Icon, class: Option<&'static str>) -> AnyView {
+    match class {
+        Some(extra) => view! {
+            <span class=format!("lucide-icon {extra}") aria-hidden="true">
+                {icon_component(icon)}
+            </span>
+        }
+        .into_any(),
+        None => view! {
+            <span class="lucide-icon" aria-hidden="true">
+                {icon_component(icon)}
+            </span>
+        }
+        .into_any(),
     }
 }
 
 /// Convenience wrapper: render an [`Icon`] inside a sized, theme-coloured span.
-/// This mirrors the previous emoji pattern (`<span class="…">{emoji}</span>`)
-/// so call sites can drop a single component in place of a text emoji node.
+/// Mirrors the previous emoji pattern (`<span class="…">{emoji}</span>`).
 ///
 /// When `label` is `None` the icon is decorative (`aria-hidden="true"`); when
 /// `Some` the icon carries meaning and the label is exposed to assistive
@@ -699,11 +708,11 @@ pub fn IconEl(
     let aria = label.is_none();
     view! {
         <span
-            class=move || format!("{}{}", "inline-flex items-center justify-center ", class.unwrap_or(""))
+            class=move || format!("{}{}", "lucide-icon ", class.unwrap_or(""))
             aria-hidden=aria
             title=label
         >
-            {render_icon(icon, class)}
+            {icon_component(icon)}
         </span>
     }
 }

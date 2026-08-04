@@ -3,6 +3,7 @@
 //! All inputs are controlled: pass an `RwSignal` for two-way binding. Each
 //! supports a label, hint, and error state (`.field-error` / `.input-error`).
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Renders the field chrome (label + control + hint/error) around any control.
@@ -12,9 +13,8 @@ fn field_chrome(
     hint: Option<&'static str>,
     error: Option<&'static str>,
 ) -> impl IntoView {
-    let error_view = error.map(|e| {
-        view! { <span class="field-error" role="alert">{e}</span> }.into_any()
-    });
+    let error_view =
+        error.map(|e| view! { <span class="field-error" role="alert">{e}</span> }.into_any());
     view! {
         <label class="field">
             {label.map(|l| view! { <span class="field-label">{l}</span> }.into_any())}
@@ -190,7 +190,7 @@ pub fn SearchInput(
     view! {
         <div class="relative w-full">
             <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs" aria-hidden="true">
-                "🔍"
+                {render_icon_view(Icon::Search)}
             </span>
             <input
                 type="search"
@@ -255,7 +255,11 @@ pub fn PasswordInput(
                 aria-label=move || if revealed.get() { "Hide password" } else { "Show password" }
                 on:click=move |_| set_revealed.update(|r| *r = !*r)
             >
-                {move || if revealed.get() { "🙈" } else { "👁️" }}
+                {move || if revealed.get() {
+                    render_icon_view(Icon::EyeOff)
+                } else {
+                    render_icon_view(Icon::Eye)
+                }}
             </button>
         </div>
     };

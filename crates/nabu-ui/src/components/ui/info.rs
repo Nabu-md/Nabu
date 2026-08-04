@@ -1,5 +1,6 @@
 //! Informational primitives — tooltip, empty state, callout, help text.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Tooltip — wraps a child and shows text on hover / focus.
@@ -30,9 +31,9 @@ pub fn Tooltip(
 /// Empty state — a placeholder for empty lists / panels.
 #[component]
 pub fn EmptyState(
-    /// Optional icon (emoji or glyph).
+    /// Optional icon.
     #[prop(optional)]
-    icon: Option<&'static str>,
+    icon: Option<Icon>,
     /// Title text.
     title: String,
     /// Optional description.
@@ -48,7 +49,7 @@ pub fn EmptyState(
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     view! {
         <div class=format!("empty-state{extra}")>
-            {icon.map(|i| view! { <div class="empty-state-icon" aria-hidden="true">{i}</div> }.into_any())}
+            {icon.map(|ic| view! { <div class="empty-state-icon" aria-hidden="true">{render_icon_view(ic)}</div> }.into_any())}
             <div class="empty-state-title">{title}</div>
             {description.map(|d| view! { <div class="empty-state-desc">{d}</div> }.into_any())}
             {children.map(|c| c())}

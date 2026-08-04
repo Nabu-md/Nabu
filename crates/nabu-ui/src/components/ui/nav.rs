@@ -1,6 +1,7 @@
 //! Navigation primitives — tabs, breadcrumbs, sidebar items, toolbar buttons,
 //! navigation groups.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// One tab definition.
@@ -8,6 +9,8 @@ use leptos::prelude::*;
 pub struct TabDef {
     pub id: String,
     pub label: String,
+    /// Optional icon rendered in the tab header.
+    pub icon: Option<Icon>,
 }
 
 impl TabDef {
@@ -15,7 +18,14 @@ impl TabDef {
         Self {
             id: id.into(),
             label: label.into(),
+            icon: None,
         }
+    }
+
+    /// Attach an icon to the tab.
+    pub fn with_icon(mut self, icon: Icon) -> Self {
+        self.icon = Some(icon);
+        self
     }
 }
 
@@ -57,6 +67,7 @@ pub fn Tabs(
                             }
                         }
                     >
+                        {tab.icon.map(|ic| render_icon_view(ic))}
                         {label}
                     </button>
                 }
@@ -133,9 +144,9 @@ pub fn SidebarItem(
     /// Optional count badge on the right.
     #[prop(optional)]
     count: Option<usize>,
-    /// Optional icon / emoji prefix.
+    /// Optional icon prefix.
     #[prop(optional)]
-    icon: Option<&'static str>,
+    icon: Option<Icon>,
     /// Optional nested indent level (in multiples of `space-4`).
     #[prop(optional)]
     indent: Option<u32>,
@@ -164,7 +175,7 @@ pub fn SidebarItem(
                 if let Some(cb) = on_click.as_ref() { cb.run(()); }
             }
         >
-            {icon.map(|i| view! { <span class="text-sm" aria-hidden="true">{i}</span> }.into_any())}
+            {icon.map(|ic| render_icon_view(ic))}
             <span class="flex-1 text-left truncate">{label}</span>
             {count.map(|c| view! { <span class="sidebar-item-count">{c}</span> }.into_any())}
         </button>

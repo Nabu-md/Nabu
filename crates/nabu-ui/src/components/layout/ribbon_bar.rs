@@ -1,4 +1,5 @@
 use crate::components::ui::button::IconButton;
+use crate::components::ui::icons::{Icon, IconEl};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -68,20 +69,20 @@ pub fn RibbonBar(
 
     view! {
         <div class="w-12 h-screen border-r border-gray-700 bg-gray-900 flex flex-col items-center py-4 space-y-4">
-            <IconButton title="Vault Explorer" on_click=open_sidebar>"📁"</IconButton>
-            <IconButton title="Global Search">"🔍"</IconButton>
-            <IconButton title="Graph View" on_click=open_graph>"🕸️"</IconButton>
+            <IconButton title="Vault Explorer" on_click=open_sidebar><IconEl icon=Icon::Folder /></IconButton>
+            <IconButton title="Global Search"><IconEl icon=Icon::Search /></IconButton>
+            <IconButton title="Graph View" on_click=open_graph><IconEl icon=Icon::Network /></IconButton>
             {move || if enabled.get() {
                 view! {
-                    <IconButton title="Daily Note" on_click=daily_note>"📅"</IconButton>
+                    <IconButton title="Daily Note" on_click=daily_note><IconEl icon=Icon::Calendar /></IconButton>
                 }.into_any()
             } else {
                 view! {}.into_any()
             }}
-            <IconButton title="Dictation" on_click=toggle_dictation>"🎤"</IconButton>
-            <IconButton title="Canvas" on_click=open_canvas>"🎨"</IconButton>
+            <IconButton title="Dictation" on_click=toggle_dictation><IconEl icon=Icon::Mic /></IconButton>
+            <IconButton title="Canvas" on_click=open_canvas><IconEl icon=Icon::Palette /></IconButton>
             <div class="flex-grow"></div>
-            <IconButton title="Settings" on_click=open_settings>"⚙️"</IconButton>
+            <IconButton title="Settings" on_click=open_settings><IconEl icon=Icon::Settings /></IconButton>
         </div>
     }
 }

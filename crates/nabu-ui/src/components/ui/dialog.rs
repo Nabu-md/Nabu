@@ -5,6 +5,7 @@
 //! handler, and click-outside-to-close (except alert).
 
 use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Sizes for [`Dialog`].
@@ -81,7 +82,7 @@ pub fn Dialog(
                                     cb.run(());
                                 }
                             }>
-                                "✕"
+                                {render_icon_view(Icon::X)}
                             </button>
                         </div>
                         <div class="dialog-body">
