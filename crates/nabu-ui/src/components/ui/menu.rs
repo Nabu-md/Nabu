@@ -4,6 +4,7 @@
 //! Escape closes; menu items are focusable buttons (Tab / Enter / Space).
 
 use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Menu item. Use inside [`DropdownMenu`], [`ContextMenu`] or [`CommandMenu`].
@@ -11,6 +12,9 @@ use leptos::prelude::*;
 pub fn MenuItem(
     /// Label text.
     label: String,
+    /// Optional icon rendered before the label (replaces leading emoji).
+    #[prop(optional)]
+    icon: Option<Icon>,
     /// Optional hint / shortcut shown on the right.
     #[prop(optional)]
     hint: Option<String>,
@@ -37,6 +41,7 @@ pub fn MenuItem(
                 }
             }
         >
+            {icon.map(|ic| view! { <span class="menu-item-icon" aria-hidden="true">{render_icon_view(ic)}</span> }.into_any())}
             <span class="flex-1 text-left">{label}</span>
             {hint.map(|h| view! { <span class="text-xs text-gray-500">{h}</span> }.into_any())}
         </button>
@@ -81,7 +86,7 @@ pub fn DropdownMenu(
                 on_click=Callback::new(move |_| set_open.update(|o| *o = !*o))
             >
                 {trigger.clone()}
-                <span class="text-xs text-gray-500" aria-hidden="true">"▾"</span>
+                <span class="text-xs text-gray-500" aria-hidden="true">{render_icon_view(Icon::ChevronDown)}</span>
             </Button>
             {move || if open.get() {
                 view! {

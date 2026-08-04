@@ -207,7 +207,7 @@ pub fn RelationEditor(
                                                         <span class="text-sm text-gray-200">{title}</span>
                                                         <span class="text-xs text-gray-500 ml-2">{obj_type}</span>
                                                     </div>
-                                                    <span class="text-xs text-blue-400">"Add →"</span>
+                                                    <span class="text-xs text-blue-400">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Plus)} Add</span>
                                                 </div>
                                             }
                                         }).collect_view()}

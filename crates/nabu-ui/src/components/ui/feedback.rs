@@ -698,7 +698,7 @@ pub fn ErrorPanel(
                                     class="btn btn-sm"
                                     on:click=move |_| retry.run(())
                                 >
-                                    "↻ Retry"
+                                    {render_icon_view(Icon::RefreshCw)} Retry
                                 </button>
                             </div>
                         }.into_any()

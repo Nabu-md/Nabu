@@ -11,6 +11,7 @@
 //! files the editor edits.
 
 use crate::components::navigation::state::use_nav;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::use_workspace;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -428,13 +429,13 @@ pub fn ReaderView() -> impl IntoView {
                         on:click=toggle_focus
                         title="Toggle focus mode"
                     >
-                        "🎯 Focus"
+                        {render_icon_view(Icon::Target)} Focus
                     </button>
                     <button
                         class="px-2 py-1 text-xs rounded border border-gray-700 text-gray-400 hover:text-gray-200"
                         on:click=move |_| set_show_settings.set(!show_settings.get())
                     >
-                        "⚙️"
+                        {render_icon_view(Icon::Settings)}
                     </button>
                 </div>
             </div>
@@ -520,7 +521,7 @@ pub fn ReaderView() -> impl IntoView {
                         view! {
                             <div class="flex items-center justify-center py-20 text-gray-500">
                                 <div class="text-center">
-                                    <div class="text-4xl mb-2">"📖"</div>
+                                    <div class="text-4xl mb-2">{render_icon_view(Icon::BookOpen)}</div>
                                     <p class="text-sm">"Open a note to start reading"</p>
                                 </div>
                             </div>

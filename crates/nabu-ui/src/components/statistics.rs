@@ -7,6 +7,7 @@
 //! command — no persistent index to maintain.
 
 use crate::components::navigation::state::use_nav;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::{open_tab, use_workspace};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -133,7 +134,7 @@ pub fn StatisticsView() -> impl IntoView {
                         class="px-3 py-1.5 text-sm bg-gray-800 rounded hover:bg-gray-700 border border-gray-700"
                         on:click=move |_| load_stats.run(())
                     >
-                        "↻ Refresh"
+                        {render_icon_view(Icon::RefreshCw)} Refresh
                     </button>
                 </div>
 
@@ -211,21 +212,21 @@ pub fn StatisticsView() -> impl IntoView {
                         // Writing streak & storage
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">"🔥"</span>
+                                <span class="text-3xl">{render_icon_view(Icon::Flame)}</span>
                                 <div>
                                     <div class="text-2xl font-bold text-red-400">{s.writing_streak_days}</div>
                                     <div class="text-xs text-gray-500">"Day writing streak"</div>
                                 </div>
                             </div>
                             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">"📅"</span>
+                                <span class="text-3xl">{render_icon_view(Icon::Calendar)}</span>
                                 <div>
                                     <div class="text-2xl font-bold text-green-400">{s.active_days_last_30}</div>
                                     <div class="text-xs text-gray-500">"Active days (last 30)"</div>
                                 </div>
                             </div>
                             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">"💾"</span>
+                                <span class="text-3xl">{render_icon_view(Icon::HardDrive)}</span>
                                 <div>
                                     <div class="text-2xl font-bold text-blue-400">{format_bytes(s.storage_bytes)}</div>
                                     <div class="text-xs text-gray-500">"Storage usage"</div>

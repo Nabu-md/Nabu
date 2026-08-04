@@ -125,7 +125,7 @@ pub fn ArchivePage() -> impl IntoView {
                                             variant=ButtonVariant::Primary
                                             on_click=Callback::new(move |_| restore.run(archive_path.clone()))
                                         >
-                                            "↩ Restore"
+                                            {render_icon_view(Icon::Undo)} Restore
                                         </Button>
                                     </div>
                                 </div>

@@ -1,5 +1,6 @@
 use crate::components::ui::card::{Card, CardVariant};
 use crate::components::ui::feedback::{Alert, Spinner, SpinnerSize, ToastKind};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -62,7 +63,7 @@ where
             <div class="max-w-md w-full bg-gray-900 border border-gray-800 rounded-xl p-8 shadow-2xl space-y-6">
                 <div class="text-center space-y-2">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 text-blue-400 text-3xl mb-2">
-                        "📖"
+                        {render_icon_view(Icon::BookOpen)}
                     </div>
                     <h1 class="text-2xl font-bold tracking-tight text-white">"Welcome to Nabu"</h1>
                     <p class="text-sm text-gray-400">
@@ -77,23 +78,23 @@ where
                 <div class="space-y-4 pt-2">
                     <Card variant=CardVariant::Interactive class="w-full" on_click=handle_select_vault>
                         <div class="flex items-center space-x-3 text-left w-full">
-                            <span class="text-2xl">"📂"</span>
+                            <span class="text-2xl">{render_icon_view(Icon::FolderOpen)}</span>
                             <div class="flex-1">
                                 <div class="text-sm font-semibold text-white">"Select Existing Vault"</div>
                                 <div class="text-xs text-gray-400">"Open an existing folder with notes"</div>
                             </div>
-                            <span class="text-gray-500">"→"</span>
+                            <span class="text-gray-500">{render_icon_view(Icon::ExternalLink)}</span>
                         </div>
                     </Card>
 
                     <Card variant=CardVariant::Interactive class="w-full" on_click=handle_create_vault>
                         <div class="flex items-center space-x-3 text-left w-full">
-                            <span class="text-2xl">"✨"</span>
+                            <span class="text-2xl">{render_icon_view(Icon::Sparkles)}</span>
                             <div class="flex-1">
                                 <div class="text-sm font-semibold text-white">"Create New Vault"</div>
                                 <div class="text-xs text-gray-400">"Initialize a new directory for Nabu"</div>
                             </div>
-                            <span class="text-gray-500">"→"</span>
+                            <span class="text-gray-500">{render_icon_view(Icon::ExternalLink)}</span>
                         </div>
                     </Card>
                 </div>

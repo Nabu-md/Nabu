@@ -953,7 +953,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                         class=move || format!("btn btn-sm {}", if focus_mode.get() { "btn-primary" } else { "btn-ghost" })
                         title="Focus mode: highlight a node and its neighbours"
                         on:click=move |_| set_focus_mode.update(|v| *v = !*v)
-                    >"◎"</button>
+                    >{render_icon_view(Icon::Circle)}</button>
                 </div>
                 <div class="flex gap-2 text-xs">
                     <select
@@ -1030,7 +1030,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                     {if node.folder.is_empty() { "vault root".to_string() } else { node.folder.clone() }}
                                 </div>
                             </div>
-                            <button class="btn btn-xs btn-ghost" on:click=move |_| set_selected.set(None)>"✕"</button>
+                            <button class="btn btn-xs btn-ghost" aria-label="Close selection" on:click=move |_| set_selected.set(None)>{render_icon_view(Icon::X)}</button>
                         </div>
 
                         <div class="px-3 py-2 border-b border-gray-800 grid grid-cols-3 gap-2 text-center">
@@ -1078,7 +1078,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
 
                         <GraphPanelSection
                             title="Outgoing".to_string()
-                            icon="➡️"
+                            icon=Icon::Forward
                             loaded=links.get().is_some()
                         >
                             {move || {
@@ -1121,12 +1121,12 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                                         }}
                                                         {if kind == "external" {
                                                             view! {
-                                                                <button class="btn btn-xs btn-ghost" on:click=move |_| open_external_cb.run(target_external.clone())>"↗"</button>
+                                                                <button class="btn btn-xs btn-ghost" aria-label="Open externally" on:click=move |_| open_external_cb.run(target_external.clone())>{render_icon_view(Icon::ExternalLink)}</button>
                                                             }.into_any()
                                                         } else {
                                                             view! {}.into_any()
                                                         }}
-                                                        <button class="btn btn-xs btn-ghost" on:click=move |_| copy_wikilink_cb.run(target_wikilink.clone())>"⧉"</button>
+                                                        <button class="btn btn-xs btn-ghost" aria-label="Copy wikilink" on:click=move |_| copy_wikilink_cb.run(target_wikilink.clone())>{render_icon_view(Icon::Copy)}</button>
                                                     </div>
                                                 </div>
                                             }
@@ -1138,7 +1138,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
 
                         <GraphPanelSection
                             title="Unlinked mentions".to_string()
-                            icon="💬"
+                            icon=Icon::MessageCircle
                             loaded=links.get().is_some()
                         >
                             {move || {

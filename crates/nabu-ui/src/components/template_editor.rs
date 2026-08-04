@@ -17,6 +17,7 @@
 //! `spawn_local` future (no reactive owner on the failure path).
 
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::models::template::Template;
 use leptos::prelude::*;
 use std::collections::HashMap;
@@ -266,7 +267,7 @@ pub fn TemplateEditor() -> impl IntoView {
                                                         <div class="flex items-center gap-2">
                                                             <h4 class="text-sm font-medium text-gray-200 truncate">{name.clone()}</h4>
                                                             {if favourite {
-                                                                view! { <span class="text-xs text-yellow-400" title="Favourite">"★"</span> }.into_any()
+                                                                view! { <span class="text-xs text-yellow-400" title="Favourite">{render_icon_view(Icon::Star)}</span> }.into_any()
                                                             } else { view! {}.into_any() }}
                                                             {if !category.is_empty() {
                                                                 view! { <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-700 text-gray-400">{category}</span> }.into_any()
@@ -276,7 +277,7 @@ pub fn TemplateEditor() -> impl IntoView {
                                                             view! { <p class="text-xs text-gray-500 mt-1">{desc}</p> }.into_any()
                                                         } else { view! {}.into_any() }}
                                                         {if !folder.is_empty() {
-                                                            view! { <span class="text-xs text-blue-400 mt-1 block">"📁 " {folder}</span> }.into_any()
+                                                            view! { <span class="text-xs text-blue-400 mt-1 block">{render_icon_view(Icon::Folder)} {folder}</span> }.into_any()
                                                         } else { view! {}.into_any() }}
                                                     </div>
                                                     <div class="flex gap-1 flex-none">
@@ -287,7 +288,7 @@ pub fn TemplateEditor() -> impl IntoView {
                                                             aria-label=if favourite { "Unfavourite" } else { "Favourite" }
                                                             on:click={let n = name.clone(); move |_| toggle_favourite.run((n.clone(), !favourite))}
                                                         >
-                                                            {if favourite { "★" } else { "☆" }}
+                                                            {if favourite { render_icon_view(Icon::Star) } else { render_icon_view(Icon::StarHalf) }}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -296,7 +297,7 @@ pub fn TemplateEditor() -> impl IntoView {
                                                             aria-label="Duplicate"
                                                             on:click={let n = name.clone(); move |_| duplicate_template.run(n.clone())}
                                                         >
-                                                            "⧉"
+                                                            {render_icon_view(Icon::Copy)}
                                                         </button>
                                                         <button
                                                             type="button"

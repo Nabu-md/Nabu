@@ -22,6 +22,7 @@
 
 use crate::components::ui::dialog::ConfirmDialog;
 use crate::components::ui::feedback::{use_toast, ToastAction, ToastContext, ToastKind};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::menu::{MenuItem, MenuSeparator};
 use crate::components::workspace::{open_tab, refresh_tree, use_workspace, WorkspaceContext};
 use leptos::prelude::*;
@@ -567,7 +568,7 @@ pub fn FileTree() -> impl IntoView {
                                     create_value.set(String::new());
                                 }
                             >
-                                "➕ New Note"
+                                {render_icon_view(Icon::Plus)} New Note
                             </button>
                         </crate::components::ui::info::EmptyState>
                     </div>
@@ -617,7 +618,7 @@ pub fn FileTree() -> impl IntoView {
                         <button class="btn btn-sm" on:click=move |_| picker.run(())>"Move to…"</button>
                         <button class="btn btn-sm" on:click=move |_| copy.run(())>"Copy Paths"</button>
                         <button class="btn btn-sm btn-danger" on:click=move |_| del.run(())>"Delete"</button>
-                        <button class="btn btn-sm btn-ghost" on:click=move |_| clear.run(())>"✕"</button>
+                        <button class="btn btn-sm btn-ghost" aria-label="Clear selection" on:click=move |_| clear.run(())>{render_icon_view(Icon::X)}</button>
                     </div>
                 }.into_any()
             }}
@@ -639,7 +640,7 @@ pub fn FileTree() -> impl IntoView {
                     <div class="dialog-overlay" on:click=move |_| close.run(())>
                         <div class="menu move-picker" on:click=move |ev| ev.stop_propagation()>
                             <div class="px-2 py-1 text-xs font-medium text-gray-400">{format!("Move {} item(s) to…", items_count)}</div>
-                            <MenuItem label="📁 Vault root".to_string() on_select=pick_root />
+                            <MenuItem icon=Some(Icon::Folder) label="Vault root".to_string() on_select=pick_root />
                             <MenuSeparator />
                             {folders.into_iter().map(|(path, depth)| {
                                 let path_c = path.clone();
@@ -649,7 +650,7 @@ pub fn FileTree() -> impl IntoView {
                                     do_move_items(ctx, workspace, items_c.clone(), path_c.clone());
                                 });
                                 view! {
-                                    <MenuItem label=format!("{}{} {}", "  ".repeat(depth), path, "📁") on_select=pick />
+                                    <MenuItem icon=Some(Icon::Folder) label=format!("{}{} {}", "  ".repeat(depth), path) on_select=pick />
                                 }
                             }).collect_view()}
                         </div>
@@ -970,12 +971,12 @@ fn TreeNodeView(node: TreeNode) -> impl IntoView {
                 >
                     {let p = path.clone();
                      move || if is_folder {
-                        if ctx.expanded.get().contains(&p) { "▼" } else { "▶" }
+                        if ctx.expanded.get().contains(&p) { render_icon_view(Icon::ChevronDown) } else { render_icon_view(Icon::ChevronRight) }
                     } else {
                         "•"
                     }}
                 </span>
-                <span class="tree-icon" aria-hidden="true">{if is_folder { "📁" } else { "📄" }}</span>
+                <span class="tree-icon" aria-hidden="true">{render_icon_view(if is_folder { Icon::Folder } else { Icon::FileText })}</span>
                 {let p = path.clone();
                  move || if ctx.renaming.get().as_deref() == Some(p.as_str()) {
                     // Clone `p`/`is_folder` into locals BEFORE the inner `move`

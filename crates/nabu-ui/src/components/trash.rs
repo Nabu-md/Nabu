@@ -59,13 +59,13 @@ impl TrashRecord {
             .unwrap_or_else(|| "item".to_string())
     }
 
-    fn icon(&self) -> &'static str {
+    fn icon(&self) -> crate::components::ui::icons::Icon {
         if self.is_folder {
-            "📁"
+            crate::components::ui::icons::Icon::Folder
         } else if self.original_path.ends_with(".md") {
-            "📄"
+            crate::components::ui::icons::Icon::FileText
         } else {
-            "🗎"
+            crate::components::ui::icons::Icon::File
         }
     }
 }
@@ -491,7 +491,7 @@ pub fn Trash() -> impl IntoView {
             // ── Left: item list ──
             <div class="flex-none w-96 border-r border-gray-800 flex flex-col min-w-0">
                 <div class="px-4 py-3 border-b border-gray-800 flex items-center gap-2">
-                    <span class="text-lg" aria-hidden="true">"🗑️"</span>
+                    <span class="text-lg" aria-hidden="true">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Trash2)}</span>
                     <div class="flex-1 min-w-0">
                         <h2 class="text-base font-semibold text-gray-50">"Trash"</h2>
                         <p class="text-xs text-gray-500">{move || format!("{} item(s) · {} file(s)", state.get().items.len(), total_files())}</p>
@@ -567,14 +567,14 @@ pub fn Trash() -> impl IntoView {
                                 <span class="text-xs text-blue-400">{move || format!("{count} selected")}</span>
                                 <div class="flex-1" />
                                 <Button size=ButtonSize::Sm on_click=Callback::new(move |_| restore_selected(state, toasts, history))>
-                                    "↩ Restore"
+                                    {crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Undo)} Restore
                                 </Button>
                                 <Button
                                     variant=ButtonVariant::Destructive
                                     size=ButtonSize::Sm
                                     on_click=Callback::new(move |_| state.update(|s| s.confirm_delete_selected = true))
                                 >
-                                    "🗑 Delete"
+                                    {crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Trash2)} Delete
                                 </Button>
                                 <span class="text-xs text-gray-500 max-w-40 truncate" title=preview_text.clone()>{preview_text.clone()}</span>
                             </div>
@@ -591,7 +591,7 @@ pub fn Trash() -> impl IntoView {
                         if items.is_empty() {
                             view! {
                                 <div class="empty-state">
-                                    <div class="empty-state-icon">"🗑️"</div>
+                                    <div class="empty-state-icon">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Trash2)}</div>
                                     <div class="empty-state-title">"Trash is empty"</div>
                                     <div class="empty-state-desc">"Deleted notes and folders appear here and can be restored before they are permanently removed."</div>
                                 </div>
@@ -633,7 +633,7 @@ pub fn Trash() -> impl IntoView {
                                                         label="".to_string()
                                                         on_change=Callback::new(move |_| toggle_select(path_checkbox.clone()))
                                                     />
-                                                    <span aria-hidden="true">{icon}</span>
+                                                    <span aria-hidden="true">{crate::components::ui::icons::render_icon_view(icon)}</span>
                                                     <span class="text-sm font-medium truncate flex-1">{name.clone()}</span>
                                                     {if is_folder {
                                                         view! { <span class="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">"Folder"</span> }.into_any()
@@ -704,7 +704,7 @@ pub fn Trash() -> impl IntoView {
                         }
                         None => view! {
                             <div class="empty-state">
-                                <div class="empty-state-icon">"👁️"</div>
+                                <div class="empty-state-icon">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Eye)}</div>
                                 <div class="empty-state-title">"Select an item"</div>
                                 <div class="empty-state-desc">"Preview the item, see where it came from, restore it, or remove it permanently."</div>
                             </div>
@@ -820,7 +820,7 @@ fn TrashPreview(record: TrashRecord, state: RwSignal<TrashState>) -> impl IntoVi
     view! {
         <div class="trash-preview space-y-4">
             <div class="flex items-start gap-3">
-                <span class="text-3xl" aria-hidden="true">{record.icon()}</span>
+                <span class="text-3xl" aria-hidden="true">{crate::components::ui::icons::render_icon_view(record.icon())}</span>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-lg font-semibold text-gray-50 truncate">{name.clone()}</h3>
                     <p class="text-xs text-gray-500 truncate" title=original.clone()>{original.clone()}</p>
@@ -867,10 +867,10 @@ fn TrashPreview(record: TrashRecord, state: RwSignal<TrashState>) -> impl IntoVi
 
             <div class="flex items-center gap-2 pt-3 border-t border-gray-800">
                 <Button on_click=restore_cb>
-                    "↩ Restore"
+                    {crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Undo)} Restore
                 </Button>
                 <Button variant=ButtonVariant::Destructive on_click=delete_cb>
-                    "🗑 Delete Forever"
+                    {crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::Trash2)} Delete Forever
                 </Button>
             </div>
         </div>

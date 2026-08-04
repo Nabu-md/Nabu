@@ -4,8 +4,8 @@
 //! column configuration, and saved views.
 //! Views are projections of existing KnowledgeObjects — views never own data.
 
-use leptos::prelude::*;
 use crate::models::knowledge_object::KnowledgeObject;
+use leptos::prelude::*;
 
 #[derive(Clone, PartialEq)]
 pub struct ColumnConfig {
@@ -43,7 +43,10 @@ pub fn table_view(props: &Props) -> Html {
         if !f.query.is_empty() {
             let q = f.query.to_lowercase();
             result.retain(|obj| {
-                obj.metadata.title.as_ref().map_or(false, |t| t.to_lowercase().contains(&q))
+                obj.metadata
+                    .title
+                    .as_ref()
+                    .map_or(false, |t| t.to_lowercase().contains(&q))
                     || obj.object_type.to_string().to_lowercase().contains(&q)
             });
         }
@@ -61,7 +64,11 @@ pub fn table_view(props: &Props) -> Html {
                 let a_val = get_sort_value(a, &sort_key);
                 let b_val = get_sort_value(b, &sort_key);
                 let ord = a_val.cmp(&b_val);
-                if asc { ord } else { ord.reverse() }
+                if asc {
+                    ord
+                } else {
+                    ord.reverse()
+                }
             });
         }
 
@@ -69,7 +76,12 @@ pub fn table_view(props: &Props) -> Html {
     };
 
     let visible_columns = move || {
-        props.columns.iter().filter(|c| c.visible).cloned().collect::<Vec<_>>()
+        props
+            .columns
+            .iter()
+            .filter(|c| c.visible)
+            .cloned()
+            .collect::<Vec<_>>()
     };
 
     let on_sort = move |key: String| {
@@ -104,9 +116,9 @@ pub fn table_view(props: &Props) -> Html {
                                         {move || {
                                             if sortable && props.filter.get().sort_by == key {
                                                 if props.filter.get().sort_ascending {
-                                                    view! { <span class="text-blue-400">▲</span> }.into_any()
+                                                    view! { <span class="text-blue-400">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::ChevronUp)}</span> }.into_any()
                                                 } else {
-                                                    view! { <span class="text-blue-400">▼</span> }.into_any()
+                                                    view! { <span class="text-blue-400">{crate::components::ui::icons::render_icon_view(crate::components::ui::icons::Icon::ChevronDown)}</span> }.into_any()
                                                 }
                                             } else {
                                                 view! {}.into_any()
@@ -173,7 +185,10 @@ fn get_column_value(obj: &KnowledgeObject, key: &str) -> String {
         "author" => obj.metadata.author.clone().unwrap_or_default(),
         "language" => obj.metadata.language.clone().unwrap_or_default(),
         "source" => obj.metadata.source_url.clone().unwrap_or_default(),
-        "words" => obj.metadata.word_count.map_or_default(|| format!("{}", obj.metadata.word_count.unwrap_or(0))),
+        "words" => obj
+            .metadata
+            .word_count
+            .map_or_default(|| format!("{}", obj.metadata.word_count.unwrap_or(0))),
         _ => obj.metadata.title.clone().unwrap_or_default(),
     }
 }

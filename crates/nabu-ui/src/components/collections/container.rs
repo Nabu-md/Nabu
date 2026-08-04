@@ -127,7 +127,7 @@ pub fn CollectionContainer() -> impl IntoView {
                 view! {
                     <div class="p-10 flex justify-center">
                         <crate::components::ui::info::EmptyState
-                            icon="🗂️"
+                            icon=crate::components::ui::icons::Icon::FolderTree
                             title="No knowledge objects yet".to_string()
                             description="Collections show your structured knowledge once you start adding objects.".to_string()
                         ></crate::components::ui::info::EmptyState>

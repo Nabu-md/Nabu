@@ -9,7 +9,7 @@
 
 use crate::components::graph_view::MentionSnippet;
 use crate::components::ui::feedback::{use_toast, LoadingBlock, SpinnerSize};
-use crate::components::ui::icons::Icon;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
 use crate::components::ui::nav::{TabDef, Tabs};
 use crate::components::workspace::{open_tab, use_workspace};
@@ -242,12 +242,12 @@ pub fn RightInspector() -> impl IntoView {
                                 }}
                                 {if kind == "external" {
                                     view! {
-                                        <button class="btn btn-xs btn-ghost" on:click=move |_| open_external(o.target.clone())>"↗"</button>
+                                        <button class="btn btn-xs btn-ghost" aria-label="Open externally" on:click=move |_| open_external(o.target.clone())>{render_icon_view(Icon::ExternalLink)}</button>
                                     }.into_any()
                                 } else {
                                     view! {}.into_any()
                                 }}
-                                <button class="btn btn-xs btn-ghost" on:click=move |_| copy_wikilink(target.clone())>"⧉"</button>
+                                <button class="btn btn-xs btn-ghost" aria-label="Copy wikilink" on:click=move |_| copy_wikilink(target.clone())>{render_icon_view(Icon::Copy)}</button>
                             </div>
                         </div>
                     }

@@ -101,6 +101,8 @@ pub use lucide_leptos::FolderTree;
 pub use lucide_leptos::GalleryVerticalEnd;
 pub use lucide_leptos::Globe;
 pub use lucide_leptos::Grid2X2;
+pub use lucide_leptos::HardDrive;
+pub use lucide_leptos::Hash;
 pub use lucide_leptos::History;
 pub use lucide_leptos::House;
 pub use lucide_leptos::Inbox;
@@ -312,6 +314,7 @@ pub enum Icon {
     Tablet,
     Laptop,
     MapPin,
+    HardDrive,
     MapPin,
     // Charts & stats
     ChartBar,
@@ -482,6 +485,7 @@ impl Icon {
             Icon::Tablet => "tablet",
             Icon::Laptop => "laptop",
             Icon::MapPin => "map-pin",
+            Icon::HardDrive => "hard-drive",
             // Charts & stats
             Icon::ChartBar => "chart-bar",
             Icon::ChartColumn => "chart-column",
@@ -666,6 +670,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Tablet => c!(Tablet),
         Icon::Laptop => c!(Laptop),
         Icon::MapPin => c!(MapPin),
+        Icon::HardDrive => c!(HardDrive),
         // ── Charts & stats ──────────────────────────────
         Icon::ChartBar => c!(ChartBar),
         Icon::ChartColumn => c!(ChartColumn),

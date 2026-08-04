@@ -109,7 +109,7 @@ fn PinnedSection() -> impl IntoView {
                                         record_recent_note(nav, &path);
                                     }
                                 >
-                                    <span class="dash-note-icon" aria-hidden="true">"📌"</span>
+                                    <span class="dash-note-icon" aria-hidden="true">{render_icon_view(Icon::MapPin)}</span>
                                     <span class="dash-note-main">
                                         <span class="dash-note-title">{title}</span>
                                         <span class="dash-note-folder">"pinned tab"</span>
@@ -160,7 +160,7 @@ fn RecentSearchesSection() -> impl IntoView {
                                                 nav.view_mode.set(crate::components::navigation::state::ViewMode::Search);
                                             }
                                         >
-                                            "🔍 " {s}
+                                            >{render_icon_view(Icon::Search)} {s}
                                         </button>
                                     }
                                 }).collect_view()}
@@ -217,7 +217,7 @@ fn InboxSection() -> impl IntoView {
                     class="btn btn-sm mt-2"
                     on:click=move |_| nav.view_mode.set(crate::components::navigation::state::ViewMode::Inbox)
                 >
-                    "Open Inbox →"
+                    {render_icon_view(Icon::Inbox)} Open Inbox
                 </button>
             </div>
         </div>

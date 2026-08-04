@@ -1,4 +1,5 @@
 use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::selection::{Segmented, SegmentedOption};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -80,8 +81,8 @@ pub fn DictationPill() -> impl IntoView {
 
             <Segmented options=mode_options selected=mode class="mode-selector" />
 
-            <Button variant=ButtonVariant::Ghost aria_label="Copy to clipboard">"📋"</Button>
-            <Button variant=ButtonVariant::Ghost aria_label="Open settings" on_click=open_settings>"⚙️"</Button>
+            <Button variant=ButtonVariant::Ghost aria_label="Copy to clipboard">{render_icon_view(Icon::Copy)}</Button>
+            <Button variant=ButtonVariant::Ghost aria_label="Open settings" on_click=open_settings>{render_icon_view(Icon::Settings)}</Button>
             {move || match mode.get().as_str() {
                 "dictation" => view! {
                     <Button

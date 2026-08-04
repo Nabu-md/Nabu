@@ -1,5 +1,6 @@
 //! Card primitives — standard, outlined, elevated, interactive, collapsible.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Visual variants for [`Card`].
@@ -133,7 +134,7 @@ pub fn CollapsibleCard(
             >
                 <h3 class="card-title">{title}</h3>
                 <span class="ml-auto text-gray-500" aria-hidden="true">
-                    {move || if open.get() { "▾" } else { "▸" }}
+                    {move || if open.get() { render_icon_view(Icon::ChevronDown) } else { render_icon_view(Icon::ChevronRight) }}
                 </span>
             </button>
             {move || if open.get() {

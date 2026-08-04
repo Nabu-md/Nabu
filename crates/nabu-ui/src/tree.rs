@@ -1,3 +1,4 @@
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +30,7 @@ pub fn TreeNodeView(node: TreeNode) -> impl IntoView {
     view! {
         <li class="tree-node">
             <div on:click=move |_| set_expanded.update(|e| *e = !*e)>
-                {move || if node.is_folder { if expanded.get() { "▼ " } else { "▶ " } } else { "  " }}
+                {move || if node.is_folder { if expanded.get() { render_icon_view(Icon::ChevronDown) } else { render_icon_view(Icon::ChevronRight) } } else { "" }}
                 {node.name.clone()}
             </div>
             {move || if node.is_folder && expanded.get() {
