@@ -739,6 +739,20 @@
    ========================================================================== */
 
 @layer components {
+  /* ---- Lucide icon baseline ---- */
+  /* SVGs scale with the parent's font-size (like the emoji glyphs they
+     replace) so existing text-* / text-[...] sizing classes still control
+     the icon footprint. colour is inherited via currentColor so the icon
+     adapts to light / dark / system themes automatically. */
+  .lucide {
+    width: 1em;
+    height: 1em;
+    flex: none;
+    vertical-align: text-bottom;
+    color: inherit;
+    stroke: currentColor;
+  }
+
   /* ---- Button variants (beyond .btn base) ---- */
   .btn-outline {
     background-color: transparent;
