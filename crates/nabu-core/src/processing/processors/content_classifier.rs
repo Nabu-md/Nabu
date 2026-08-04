@@ -48,7 +48,7 @@ impl Processor for ContentClassifier {
         progress.set_progress(0.3);
 
         // Classification heuristics
-        let classification = classify_content(&text, &object.metadata);
+        let (classification, confidence) = classify_content(&text, &object.metadata).unwrap_or_else(|| (String::new(), 0.0));
 
         progress.set_progress(0.6);
 
@@ -57,6 +57,10 @@ impl Processor for ContentClassifier {
             object.custom_properties.insert(
                 "classification".to_string(),
                 crate::models::CustomPropertyValue::Text(class),
+            );
+            object.custom_properties.insert(
+                "classification_confidence".to_string(),
+                crate::models::CustomPropertyValue::Number(confidence),
             );
         }
 
@@ -77,98 +81,105 @@ impl Processor for ContentClassifier {
     }
 }
 
-fn classify_content(text: &str, _metadata: &ObjectMetadata) -> Option<String> {
+/// Classifies content into categories and returns the category plus a
+/// confidence score (0.0–1.0). The score reflects the strength of the
+/// matching heuristic — a longer text with more keyword hits scores higher.
+fn classify_content(text: &str, _metadata: &ObjectMetadata) -> Option<(String, f64)> {
     let lower = text.to_lowercase();
 
     // Invoice detection
-    if contains_any(
-        &lower,
-        &[
-            "invoice",
-            "invoice number",
-            "invoice date",
-            "total due",
-            "amount due",
-            "payment terms",
-            "bill to",
-        ],
-    ) {
-        return Some("invoice".to_string());
+    if let Some(score) = match_score(&lower, &[
+        "invoice",
+        "invoice number",
+        "invoice date",
+        "total due",
+        "amount due",
+        "payment terms",
+        "bill to",
+    ]) {
+        return Some(("invoice".to_string(), score));
     }
 
     // Receipt detection
-    if contains_any(
-        &lower,
-        &[
-            "receipt",
-            "total",
-            "tax",
-            "subtotal",
-            "payment method",
-            "card ending",
-            "thank you for your purchase",
-        ],
-    ) && contains_any(&lower, &["$", "€", "£", "¥"])
+    if contains_any(&lower, &[
+        "receipt",
+        "total",
+        "tax",
+        "subtotal",
+        "payment method",
+        "card ending",
+        "thank you for your purchase",
+    ]) && contains_any(&lower, &["$", "€", "£", "¥"])
     {
-        return Some("receipt".to_string());
+        let score = match_score(&lower, &[
+            "receipt", "total", "tax", "subtotal",
+            "payment method", "card ending", "thank you for your purchase",
+        ]).map(|s| (s + 0.2).min(1.0)).unwrap_or(0.5);
+        return Some(("receipt".to_string(), score));
     }
 
     // Meeting notes
-    if contains_any(
-        &lower,
-        &[
-            "meeting notes",
-            "agenda",
-            "action items",
-            "minutes",
-            "attendees",
-            "discussion points",
-            "next steps",
-        ],
-    ) {
-        return Some("meeting_note".to_string());
+    if let Some(score) = match_score(&lower, &[
+        "meeting notes",
+        "agenda",
+        "action items",
+        "minutes",
+        "attendees",
+        "discussion points",
+        "next steps",
+    ]) {
+        return Some(("meeting_note".to_string(), score));
     }
 
     // Code snippet (heuristic: check raw text for code patterns)
     if text.contains("```") || text.contains("function ") || text.contains("def ") {
-        return Some("code".to_string());
+        let score = 0.8;
+        return Some(("code".to_string(), score));
     }
 
     // Email
-    if contains_any(
-        &lower,
-        &[
-            "subject:",
-            "from:",
-            "to:",
-            "cc:",
-            "bcc:",
-            "forwarded message",
-            "original message",
-        ],
-    ) && text.contains('@')
+    if contains_any(&lower, &[
+        "subject:",
+        "from:",
+        "to:",
+        "cc:",
+        "bcc:",
+        "forwarded message",
+        "original message",
+    ]) && text.contains('@')
     {
-        return Some("email".to_string());
+        let score = 0.85;
+        return Some(("email".to_string(), score));
     }
 
     // Article
     if text.len() > 500
-        && contains_any(
-            &lower,
-            &[
-                "introduction",
-                "conclusion",
-                "summary",
-                "abstract",
-                "published",
-                "author",
-            ],
-        )
+        && contains_any(&lower, &[
+        "introduction",
+        "conclusion",
+        "summary",
+        "abstract",
+        "published",
+        "author",
+    ])
     {
-        return Some("article".to_string());
+        let score = 0.7;
+        return Some(("article".to_string(), score));
     }
 
     None
+}
+
+/// Computes a confidence score (0.0–1.0) based on how many of the given
+/// patterns appear in the text. Each hit contributes 0.15 up to a max of 0.9.
+/// A minimum threshold of 2 hits is required for a match (returns `None` otherwise).
+fn match_score(text: &str, patterns: &[&str]) -> Option<f64> {
+    let hits = patterns.iter().filter(|p| text.contains(**p)).count();
+    if hits >= 2 {
+        Some((hits as f64 * 0.15).min(0.9))
+    } else {
+        None
+    }
 }
 
 fn contains_any(text: &str, patterns: &[&str]) -> bool {
@@ -225,6 +236,19 @@ mod tests {
                 }
             });
         assert_eq!(class, Some("invoice".to_string()));
+
+        let confidence = result
+            .object
+            .custom_properties
+            .get("classification_confidence")
+            .and_then(|v| {
+                if let crate::models::CustomPropertyValue::Number(n) = v {
+                    Some(*n)
+                } else {
+                    None
+                }
+            });
+        assert!(confidence.is_some_and(|c| (0.3..=0.9).contains(&c)));
     }
 
     #[tokio::test]
@@ -254,5 +278,18 @@ mod tests {
                 }
             });
         assert_eq!(class, Some("meeting_note".to_string()));
+
+        let confidence = result
+            .object
+            .custom_properties
+            .get("classification_confidence")
+            .and_then(|v| {
+                if let crate::models::CustomPropertyValue::Number(n) = v {
+                    Some(*n)
+                } else {
+                    None
+                }
+            });
+        assert!(confidence.is_some_and(|c| (0.3..=0.9).contains(&c)));
     }
 }

@@ -1,14 +1,14 @@
-use yew::prelude::*;
+use leptos::prelude::*;
 use crate::components::collections::shared::types::CollectionView;
 
-#[derive(Properties, PartialEq)]
+#[derive(Props, PartialEq)]
 pub struct Props {
     pub current_view: CollectionView,
     pub on_change: Callback<CollectionView>,
 }
 
-#[function_component(ViewSwitcher)]
-pub fn view_switcher(props: &Props) -> Html {
+#[component]
+pub fn ViewSwitcher(props: &Props) -> impl IntoView {
     let views = [
         CollectionView::Table,
         CollectionView::Board,
@@ -16,27 +16,24 @@ pub fn view_switcher(props: &Props) -> Html {
         CollectionView::Calendar,
     ];
 
-    html! {
-        <div class="view-switcher">
-            { for views.iter().map(|view| {
+    view! {
+        <div class="view-switcher flex items-center gap-1 p-2 bg-gray-800 border-b border-gray-700">
+            {move || views.iter().map(move |view| {
                 let view = *view;
-                let on_click = props.on_change.reform(move |_| view);
-                let class = if props.current_view == view { "active" } else { "" };
-                html! {
-                    <button class={class} onclick={on_click}>
-                        { format!("{:?}", view) }
+                let class = if props.current_view == view {
+                    "view-btn bg-blue-600 text-white"
+                } else {
+                    "view-btn text-gray-400 hover:text-gray-200"
+                };
+                let on_click = move |_| {
+                    props.on_change.call(view);
+                };
+                view! {
+                    <button class=class on_click=on_click>
+                        {format!("{:?}", view)}
                     </button>
                 }
             })}
         </div>
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_view_switcher_renders() {
-        // Just a basic test to ensure it compiles
     }
 }

@@ -1,9 +1,8 @@
-use yew::prelude::*;
+use leptos::prelude::*;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct SearchState {
     pub query: String,
-    // Add filters/sort later
 }
 
-pub type ViewContext = UseStateHandle<SearchState>;
+pub type ViewContext = Signal<SearchState>;

@@ -98,14 +98,13 @@ pub use lucide_leptos::Flame;
 pub use lucide_leptos::Folder;
 pub use lucide_leptos::FolderOpen;
 pub use lucide_leptos::FolderTree;
-pub use lucide_leptos::GalleryVerticalEnd;
-pub use lucide_leptos::GitCompare;
 pub use lucide_leptos::Globe;
 pub use lucide_leptos::Grid2X2;
 pub use lucide_leptos::HardDrive;
 pub use lucide_leptos::Hash;
 pub use lucide_leptos::History;
 pub use lucide_leptos::House;
+pub use lucide_leptos::Image;
 pub use lucide_leptos::Inbox;
 pub use lucide_leptos::Info;
 pub use lucide_leptos::Kanban;
@@ -129,6 +128,7 @@ pub use lucide_leptos::MessageSquare;
 pub use lucide_leptos::Mic;
 pub use lucide_leptos::Monitor;
 pub use lucide_leptos::Moon;
+pub use lucide_leptos::Music;
 pub use lucide_leptos::Network;
 pub use lucide_leptos::NotebookPen;
 pub use lucide_leptos::NotebookText;
@@ -173,6 +173,7 @@ pub use lucide_leptos::TrendingUp;
 pub use lucide_leptos::TriangleAlert;
 pub use lucide_leptos::Undo;
 pub use lucide_leptos::Upload;
+pub use lucide_leptos::User;
 pub use lucide_leptos::Wand;
 pub use lucide_leptos::Zap;
 pub use lucide_leptos::X;
@@ -249,7 +250,7 @@ pub enum Icon {
     ClipboardList,
     Tag,
     PenLine,
-    // Status & feedback
+    Image,    // Status & feedback
     ToastSuccess,
     ToastWarning,
     ToastError,
@@ -309,6 +310,7 @@ pub enum Icon {
     Brush,
     Mic,
     Camera,
+    Music,
     Play,
     Package,
     Target,
@@ -317,6 +319,7 @@ pub enum Icon {
     Smartphone,
     Tablet,
     Laptop,
+    User,
     MapPin,
     HardDrive,
     // Charts & stats
@@ -419,6 +422,7 @@ impl Icon {
             Icon::ClipboardList => "clipboard-list",
             Icon::Tag => "tag",
             Icon::PenLine => "pen-line",
+            Icon::Image => "image",
             // Status & feedback
             Icon::ToastSuccess => "toast-success",
             Icon::ToastWarning => "toast-warning",
@@ -479,14 +483,16 @@ impl Icon {
             Icon::Brush => "brush",
             Icon::Mic => "mic",
             Icon::Camera => "camera",
+            Icon::Music => "music",
             Icon::Play => "play",
             Icon::Package => "package",
             Icon::Target => "target",
-            Icon::Command => "command",
+                           Icon::Command => "command",
             Icon::Monitor => "monitor",
             Icon::Smartphone => "smartphone",
             Icon::Tablet => "tablet",
             Icon::Laptop => "laptop",
+            Icon::User => "user",
             Icon::MapPin => "map-pin",
             Icon::HardDrive => "hard-drive",
             // Charts & stats
@@ -601,6 +607,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::ClipboardList => c!(ClipboardList),
         Icon::Tag => c!(Tag),
         Icon::PenLine => c!(PenLine),
+        Icon::Image => c!(Image),
         // ── Status & feedback ───────────────────────────
         Icon::ToastSuccess => c!(CircleCheck),
         Icon::ToastWarning => c!(TriangleAlert),
@@ -664,6 +671,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Brush => c!(Brush),
         Icon::Mic => c!(Mic),
         Icon::Camera => c!(Camera),
+        Icon::Music => c!(Music),
         Icon::Play => c!(Play),
         Icon::Package => c!(Package),
         Icon::Target => c!(Target),
@@ -672,6 +680,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Smartphone => c!(Smartphone),
         Icon::Tablet => c!(Tablet),
         Icon::Laptop => c!(Laptop),
+        Icon::User => c!(User),
         Icon::MapPin => c!(MapPin),
         Icon::HardDrive => c!(HardDrive),
         // ── Charts & stats ──────────────────────────────

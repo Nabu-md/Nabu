@@ -175,6 +175,14 @@ pub struct InboxItem {
     pub status: InboxStatus,
     pub mime_type: Option<String>,
     pub source_file: Option<String>,
+    /// Icon name (Lucide) suitable for use as a thumbnail in list/grid views.
+    /// Derived from the object type and MIME type when the object carries no
+    /// inline binary preview.
+    pub thumbnail: Option<String>,
+    /// Confidence score (0.0–1.0) from the ContentClassifier, if classified.
+    pub confidence: Option<f64>,
+    /// Suggested vault folder from the AutoFiler, if a classification matches.
+    pub suggested_folder: Option<String>,
     pub metadata: InboxMetadata,
     pub duplicate_info: Option<DuplicateInfo>,
     pub timeline_info: Option<TimelineInfo>,
@@ -902,6 +910,15 @@ fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
         .map(|(k, v)| (k.clone(), serde_json::to_value(v).unwrap_or_default()))
         .collect();
 
+    // Derive thumbnail icon from the object type + MIME type.
+    let thumbnail = Some(thumbnail_for_object(&obj.object_type, obj.metadata.mime_type.as_deref()).to_string());
+
+    // Confidence score (0.0–1.0) stored by the ContentClassifier.
+    let confidence = custom_number(obj, "classification_confidence");
+
+    // Suggested destination folder from the AutoFiler.
+    let suggested_folder = custom_text(obj, "suggested_folder");
+
     InboxItem {
         id: obj.id.to_string(),
         title: obj.metadata.title.clone().unwrap_or_default(),
@@ -910,6 +927,9 @@ fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
         status,
         mime_type: obj.metadata.mime_type.clone(),
         source_file: obj.metadata.original_filename.clone(),
+        thumbnail,
+        confidence,
+        suggested_folder,
         metadata: InboxMetadata {
             title: obj.metadata.title.clone(),
             author: obj.metadata.authors.first().cloned(),
@@ -924,6 +944,55 @@ fn knowledge_object_to_inbox_item(obj: &KnowledgeObject) -> InboxItem {
         processing_history,
         warnings,
         selected: false,
+    }
+}
+
+/// Maps an object type (+ optional MIME type) to a Lucide icon name suitable
+/// for display as a 16×16 thumbnail in the inbox list.
+fn thumbnail_for_object(object_type: &nabu_core::models::ObjectType, mime_type: Option<&str>) -> &'static str {
+    use nabu_core::models::ObjectType;
+    match object_type {
+        ObjectType::Image | ObjectType::Screenshot | ObjectType::Scan => "image",
+        ObjectType::AudioRecording => "music-3",
+        ObjectType::VideoRecording | ObjectType::YouTubeVideo => "play",
+        ObjectType::CodeSnippet | ObjectType::Repository => "code-block",
+        ObjectType::Email => "mail",
+        ObjectType::Bookmark => "bookmark",
+        ObjectType::Article => "book-text",
+        ObjectType::Document => {
+            if let Some(mime) = mime_type {
+                if mime.starts_with("application/pdf") {
+                    return "file-text";
+                }
+            }
+            "file-text"
+        }
+        ObjectType::Whiteboard => "pen-line",
+        ObjectType::Contact => "user",
+        ObjectType::Event => "calendar",
+        ObjectType::Task => "list-checks",
+        ObjectType::Project => "folder",
+        ObjectType::Template => "file-pen",
+        ObjectType::Note => "sticky-note",
+        ObjectType::Collection => "folder-tree",
+        ObjectType::Dashboard => "layout-dashboard",
+        ObjectType::Attachment => {
+            if let Some(mime) = mime_type {
+                if mime.starts_with("image/") {
+                    return "image";
+                }
+                if mime.starts_with("video/") {
+                    return "play";
+                }
+                if mime.starts_with("audio/") {
+                    return "music-3";
+                }
+                if mime.starts_with("text/") {
+                    return "file-text";
+                }
+            }
+            "file"
+        }
     }
 }
 
@@ -1168,6 +1237,40 @@ pub fn inbox_move(
     set_custom_text(&mut obj, "destination_folder", &destination);
     manager.save(&obj).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Drag-and-drop (or file-open) capture entry point.
+///
+/// Routes the file bytes through the canonical `CaptureEngine` → `FileDropHandler`
+/// → `CaptureData::Binary`, exactly the same path as every other capture source.
+/// The returned object ID will appear in the Knowledge Inbox once processing
+/// completes.
+#[tauri::command]
+pub async fn capture_file_drop(
+    ctx: State<'_, ApplicationContext>,
+    filename: String,
+    mime_type: String,
+    data: Vec<u8>,
+) -> Result<String, String> {
+    let engine = ctx
+        .capture_engine()
+        .ok_or_else(|| "CaptureEngine is not registered in the application context".to_string())?;
+
+    let request = nabu_core::capture::CaptureRequest::new(
+        nabu_core::capture::CaptureData::Binary {
+            mime_type: mime_type.clone(),
+            data,
+            filename: Some(filename.clone()),
+        },
+    )
+    .with_mime_type(mime_type)
+    .with_title(filename.clone());
+
+    let object_id = engine.ingest(request).await.map_err(|e| e.to_string())?;
+    match object_id {
+        Some(id) => Ok(id.to_string()),
+        None => Err("FileDropHandler could not process the dropped file".to_string()),
+    }
 }
 
 // ── Reading Queue Commands ────────────────────────────────────────

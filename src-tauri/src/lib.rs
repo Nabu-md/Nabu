@@ -273,6 +273,7 @@ pub fn run() {
             crate::commands::inbox_batch_retry,
             crate::commands::inbox_edit_metadata,
             crate::commands::inbox_move,
+            crate::commands::capture_file_drop,
             crate::commands::queue_get_all,
             crate::commands::queue_set_status,
             crate::commands::queue_set_priority,
