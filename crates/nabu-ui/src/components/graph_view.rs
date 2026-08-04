@@ -15,6 +15,7 @@
 //! - keyboard navigation (arrows, Enter, Esc, +/−)
 
 use crate::components::ui::feedback::{use_toast, LoadingBlock, SpinnerSize};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
 use crate::components::workspace::{open_tab, use_workspace};
 use crate::models::graph::{BacklinkEntry, GraphData, GraphEdgeData, GraphNodeData, NoteLinks};
@@ -925,7 +926,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                     view! {
                         <div class="absolute inset-0 flex items-center justify-center">
                             <EmptyState
-                                icon="🕸️"
+                                icon=crate::components::ui::icons::Icon::Network
                                 title="No connections yet".to_string()
                                 description="Create a few notes with [[links]] and they will appear here as a knowledge graph.".to_string()
                             ></EmptyState>
@@ -1057,7 +1058,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
 
                         <GraphPanelSection
                             title="Backlinks".to_string()
-                            icon="🔗"
+                            icon=Icon::Link
                             loaded=links.get().is_some()
                         >
                             {move || {
@@ -1184,7 +1185,7 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
 #[component]
 fn GraphPanelSection(
     title: String,
-    icon: &'static str,
+    icon: Icon,
     loaded: bool,
     children: ChildrenFn,
 ) -> impl IntoView {
@@ -1195,8 +1196,8 @@ fn GraphPanelSection(
                 class="w-full px-3 py-2 flex items-center justify-between text-xs font-semibold text-gray-400 hover:text-gray-200"
                 on:click=move |_| set_open.update(|v| *v = !*v)
             >
-                <span>{icon} " " {title}</span>
-                <span class="text-gray-600">{move || if open.get() { "▾" } else { "▸" }}</span>
+                <span>{render_icon_view(icon)} " " {title}</span>
+                <span class="text-gray-600">{move || if open.get() { render_icon_view(Icon::ChevronDown) } else { render_icon_view(Icon::ChevronRight) }}</span>
             </button>
             {move || if open.get() {
                 if loaded {

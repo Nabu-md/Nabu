@@ -555,7 +555,7 @@ pub fn FileTree() -> impl IntoView {
                 view! {
                     <div class="px-2 py-3">
                         <crate::components::ui::info::EmptyState
-                            icon="🗒️"
+                            icon=crate::components::ui::icons::Icon::FolderOpen
                             title="Your vault is empty".to_string()
                             description="Create your first note to start building your knowledge base.".to_string()
                         >

@@ -8,6 +8,7 @@
 use crate::components::recovery::session::{RecoveryStatus, SessionState};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// The recovery banner, driven by an optional pending recovery status.
@@ -44,7 +45,7 @@ pub fn RecoveryBanner(
         {move || if let Some(status) = recovery.get() {
             view! {
                 <div class="recovery-banner" role="status" aria-live="polite">
-                    <div class="recovery-banner-icon" aria-hidden="true">"🛟"</div>
+                    <div class="recovery-banner-icon" aria-hidden="true">{render_icon_view(Icon::LifeBuoy)}</div>
                     <div class="flex-1 min-w-0">
                         <div class="text-sm font-semibold text-gray-100">"Recover previous session?"</div>
                         <div class="text-xs text-gray-400">

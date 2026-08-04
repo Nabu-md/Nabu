@@ -11,7 +11,10 @@
 //! Focused purely on *navigation* — it opens notes and never executes
 //! commands. The Command Palette is the command surface.
 
-use crate::components::navigation::state::{fuzzy_score, record_recent_note, use_nav, NoteIndexEntry};
+use crate::components::navigation::state::{
+    fuzzy_score, record_recent_note, use_nav, NoteIndexEntry,
+};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::{use_workspace, WorkspaceContext};
 use leptos::prelude::*;
 
@@ -56,7 +59,10 @@ fn build_rows(
                 rows.push(Row::Note(note));
             }
         }
-        let mut rest: Vec<NoteIndexEntry> = notes.into_iter().filter(|n| !seen.contains(&n.path)).collect();
+        let mut rest: Vec<NoteIndexEntry> = notes
+            .into_iter()
+            .filter(|n| !seen.contains(&n.path))
+            .collect();
         rest.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
         if !rest.is_empty() {
             rows.push(Row::Header("All notes".to_string()));
@@ -113,12 +119,17 @@ fn folder_of(note: &NoteIndexEntry) -> &str {
 }
 
 /// Opens a note in the workspace, records it as recent and closes the overlay.
-fn open_note(nav: crate::components::navigation::state::NavContext, ws: WorkspaceContext, path: String) {
+fn open_note(
+    nav: crate::components::navigation::state::NavContext,
+    ws: WorkspaceContext,
+    path: String,
+) {
     crate::components::workspace::open_tab(ws, &path);
     record_recent_note(nav, &path);
     nav.switcher_open.set(false);
     // Make sure we're in the editor view so the note is visible.
-    nav.view_mode.set(crate::components::navigation::state::ViewMode::Editor);
+    nav.view_mode
+        .set(crate::components::navigation::state::ViewMode::Editor);
 }
 
 /// The Quick Switcher overlay. Rendered once at the app root.
@@ -214,7 +225,7 @@ pub fn QuickSwitcher() -> impl IntoView {
                         on:click=move |ev| ev.stop_propagation()
                     >
                         <div class="palette-search-wrap">
-                            <span class="palette-search-icon" aria-hidden="true">"⚡"</span>
+                            <span class="palette-search-icon" aria-hidden="true">{render_icon_view(Icon::Zap)}</span>
                             <input
                                 node_ref=input_ref
                                 class="palette-input"
@@ -263,7 +274,7 @@ pub fn QuickSwitcher() -> impl IntoView {
                                                     on:mouseenter=move |_| set_active.set(this_idx)
                                                     on:click=move |_| open_note(nav, workspace, path.clone())
                                                 >
-                                                    <span class="palette-item-icon" aria-hidden="true">"📄"</span>
+                                                    <span class="palette-item-icon" aria-hidden="true">{render_icon_view(Icon::FileText)}</span>
                                                     <span class="palette-item-body">
                                                         <span class="palette-item-label">{title}</span>
                                                         <span class="palette-item-desc">{folder}</span>

@@ -19,6 +19,7 @@ use crate::components::recovery::diff_view::{DiffRow, DiffView};
 use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
 use crate::components::ui::dialog::{ConfirmDialog, PromptDialog};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -314,7 +315,7 @@ pub fn VersionHistory() -> impl IntoView {
                         if notes.is_empty() {
                             view! {
                                 <EmptyState
-                                    icon="🕘"
+                                    icon=Icon::History
                                     title="No snapshots yet".to_string()
                                     description="Save a note and it will appear here with version history.".to_string()
                                 ></EmptyState>
@@ -417,7 +418,7 @@ pub fn VersionHistory() -> impl IntoView {
                                 <div class="flex items-center justify-between gap-2">
                                     <h3 class="text-sm font-semibold text-gray-300">"Diff"</h3>
                                     <Button size=ButtonSize::Sm variant=ButtonVariant::Ghost on_click=Callback::new(move |_| state.update(|s| s.diff = None))>
-                                        "✕ Close"
+                                        {render_icon_view(Icon::X)} Close
                                     </Button>
                                 </div>
                                 <DiffView rows=rows old_label="Version".to_string() new_label="Current / Other".to_string() />
@@ -452,7 +453,7 @@ pub fn VersionHistory() -> impl IntoView {
                     } else {
                         view! {
                             <EmptyState
-                                icon="👁️"
+                                icon=Icon::Eye
                                 title="Select a note and a version".to_string()
                                 description="Preview the content, compare revisions, restore, or duplicate it.".to_string()
                             ></EmptyState>

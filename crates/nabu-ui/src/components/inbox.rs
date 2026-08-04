@@ -4,6 +4,7 @@
 //! captured knowledge before final storage. State is driven by EventBus events
 //! via Tauri IPC — no polling.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
@@ -372,7 +373,7 @@ pub fn Inbox() -> impl IntoView {
                             view! {
                                 <div class="h-full flex items-center justify-center p-6">
                                     <crate::components::ui::info::EmptyState
-                                        icon="📥"
+                                        icon=Icon::Inbox
                                         title="Inbox is empty".to_string()
                                         description="Captured knowledge appears here, ready to review and file into your vault.".to_string()
                                     ></crate::components::ui::info::EmptyState>
@@ -485,11 +486,11 @@ fn InboxPreview(item: InboxItem) -> impl IntoView {
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Details { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
                     on:click=move |_| set_active_tab.set(InboxPreviewTab::Details)>"Details"</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Duplicate { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Duplicate)>{move || format!("Duplicate{}", if has_duplicate { " ⚠" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Duplicate)>{move || view! { <span class="inline-flex items-center gap-1">{render_icon_view(if has_duplicate { Icon::CircleAlert } else { Icon::History })} " Duplicate"</span> }.into_any()}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Timeline { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Timeline)>{move || format!("Timeline{}", if has_timeline { " 📅" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Timeline)>{move || view! { <span class="inline-flex items-center gap-1">{if has_timeline { render_icon_view(Icon::Calendar) } else { view!{}.into_any() }} " Timeline"</span> }.into_any()}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::Ocr { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
-                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Ocr)>{move || format!("OCR{}", if has_ocr { " 🔍" } else { "" })}</button>
+                    on:click=move |_| set_active_tab.set(InboxPreviewTab::Ocr)>{move || view! { <span class="inline-flex items-center gap-1">{if has_ocr { render_icon_view(Icon::Search) } else { view!{}.into_any() }} " OCR"</span> }.into_any()}</button>
                 <button class=move || format!("px-3 py-1 text-sm rounded {}", if active_tab.get() == InboxPreviewTab::History { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" })
                     on:click=move |_| set_active_tab.set(InboxPreviewTab::History)>"History"</button>
             </div>
@@ -501,10 +502,10 @@ fn InboxPreview(item: InboxItem) -> impl IntoView {
                 InboxPreviewTab::History => view! { <InboxHistory item=item.clone() /> }.into_any(),
             }}
             <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-800">
-                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(approve_id.clone(), toasts)>"✓ Approve"</button>
-                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(reject_id.clone(), toasts)>"✗ Reject"</button>
-                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(retry_id.clone(), toasts)>"↻ Retry"</button>
-                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(delete_id.clone(), toasts)>"🗑 Delete"</button>
+                <button class="px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600" on:click=move |_| approve_item(approve_id.clone(), toasts)>{render_icon_view(Icon::CircleCheck)} Approve</button>
+                <button class="px-3 py-1.5 text-sm bg-red-700 rounded hover:bg-red-600" on:click=move |_| reject_item(reject_id.clone(), toasts)>{render_icon_view(Icon::CircleX)} Reject</button>
+                <button class="px-3 py-1.5 text-sm bg-yellow-700 rounded hover:bg-yellow-600" on:click=move |_| retry_item(retry_id.clone(), toasts)>{render_icon_view(Icon::RefreshCw)} Retry</button>
+                <button class="px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600" on:click=move |_| delete_item(delete_id.clone(), toasts)>{render_icon_view(Icon::Trash2)} Delete</button>
             </div>
         </div>
     }
@@ -545,7 +546,7 @@ fn InboxDuplicateReview(item: InboxItem) -> impl IntoView {
                 Some(dup) => view! {
                     <div class="space-y-3">
                         <div class="p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
-                            <div class="flex items-center gap-2"><span class="text-yellow-400">"⚠"</span><span class="text-sm font-medium text-yellow-300">Potential Duplicate Detected</span></div>
+                            <div class="flex items-center gap-2"><span class="text-yellow-400">{render_icon_view(Icon::Warning)}</span><span class="text-sm font-medium text-yellow-300">Potential Duplicate Detected</span></div>
                             <p class="text-xs text-yellow-400/70 mt-1">{dup.reason.clone().unwrap_or_default()}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3 text-sm">
@@ -612,7 +613,7 @@ fn InboxOcrReview(item: InboxItem) -> impl IntoView {
                         }}
                         {move || {
                             if let Some(warn) = &ocr.warning {
-                                view! { <div class="text-sm text-orange-400">{"⚠ "}{warn.clone()}</div> }.into_any()
+                                view! { <div class="text-sm text-orange-400 flex items-center gap-1">{render_icon_view(Icon::Warning)} {warn.clone()}</div> }.into_any()
                             } else { view! {}.into_any() }
                         }}
                     </div>
@@ -643,7 +644,7 @@ fn InboxHistory(item: InboxItem) -> impl IntoView {
                             view! {
                                 <div class="flex items-start gap-3 p-2 rounded-lg bg-gray-900/50 text-sm">
                                     <span class=move || format!("mt-0.5 {}", if success { "text-green-400" } else { "text-red-400" })>
-                                        {if success { "✓" } else { "✗" }}
+                                        {if success { render_icon_view(Icon::CircleCheck) } else { render_icon_view(Icon::CircleX) }}
                                     </span>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between">

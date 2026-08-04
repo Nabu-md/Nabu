@@ -17,6 +17,7 @@ use crate::components::navigation::commands::{all_commands, AppCommand, CommandC
 use crate::components::navigation::state::{
     fuzzy_score, record_recent_command, toggle_favourite_command, use_nav,
 };
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// One row in the palette list — a category header or a command entry.
@@ -39,10 +40,8 @@ fn build_rows(
         let mut rows = Vec::new();
         let mut seen = std::collections::HashSet::new();
 
-        let recents = crate::components::navigation::commands::resolve_commands_by_id(
-            &catalog,
-            recent_ids,
-        );
+        let recents =
+            crate::components::navigation::commands::resolve_commands_by_id(&catalog, recent_ids);
         if !recents.is_empty() {
             rows.push(Row::Header("Recent".to_string()));
             for cmd in recents {
@@ -51,7 +50,8 @@ fn build_rows(
             }
         }
 
-        let favs = crate::components::navigation::commands::resolve_commands_by_id(&catalog, fav_ids);
+        let favs =
+            crate::components::navigation::commands::resolve_commands_by_id(&catalog, fav_ids);
         let favs: Vec<AppCommand> = favs.into_iter().filter(|c| !seen.contains(c.id)).collect();
         if !favs.is_empty() {
             rows.push(Row::Header("Favourites".to_string()));
@@ -277,7 +277,7 @@ pub fn CommandPalette() -> impl IntoView {
                                                     on:mouseenter=move |_| set_active.set(this_idx)
                                                     on:click=move |_| run_command.run(cmd_for_run.clone())
                                                 >
-                                                    <span class="palette-item-icon" aria-hidden="true">{icon}</span>
+                                                    <span class="palette-item-icon" aria-hidden="true">{render_icon_view(icon)}</span>
                                                     <span class="palette-item-body">
                                                         <span class="palette-item-label">{label}</span>
                                                         <span class="palette-item-desc">{description}</span>
@@ -291,7 +291,7 @@ pub fn CommandPalette() -> impl IntoView {
                                                             toggle_favourite_command(nav, id);
                                                         }
                                                     >
-                                                        {move || if is_fav { "★" } else { "☆" }}
+                                                        {move || if is_fav { render_icon_view(Icon::Star) } else { render_icon_view(Icon::StarHalf) }}
                                                     </span>
                                                 </button>
                                             }.into_any()
@@ -303,7 +303,7 @@ pub fn CommandPalette() -> impl IntoView {
                         <div class="palette-footer">
                             <span>"↑↓" " navigate"</span>
                             <span>"↵" " run"</span>
-                            <span>"★" " favourite"</span>
+                            <span>{render_icon_view(Icon::Star)} " favourite"</span>
                             <span>"esc" " close"</span>
                         </div>
                     </div>

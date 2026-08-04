@@ -411,7 +411,7 @@ pub fn ReadingQueue() -> impl IntoView {
                             view! {
                                 <div class="h-full flex items-center justify-center p-6">
                                     <crate::components::ui::info::EmptyState
-                                        icon="📚"
+                                        icon=crate::components::ui::icons::Icon::BookOpen
                                         title="Nothing in the queue".to_string()
                                         description="Add documents or web articles to your reading queue and track progress here.".to_string()
                                     ></crate::components::ui::info::EmptyState>

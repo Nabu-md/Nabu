@@ -27,8 +27,8 @@ pub struct AppCommand {
     pub description: &'static str,
     /// Keyboard shortcut hint shown on the right (display only).
     pub shortcut: Option<&'static str>,
-    /// Icon / emoji prefix.
-    pub icon: &'static str,
+    /// Icon prefix.
+    pub icon: crate::components::ui::icons::Icon,
     /// Executes the command.
     pub run: Callback<()>,
 }
@@ -194,7 +194,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the home dashboard",
             shortcut: Some("⌘1"),
-            icon: "🏠",
+            icon: Icon::House,
             run: set_view(nav, ViewMode::Dashboard),
         },
         AppCommand {
@@ -204,7 +204,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the note editor",
             shortcut: Some("⌘2"),
-            icon: "📝",
+            icon: Icon::FilePen,
             run: set_view(nav, ViewMode::Editor),
         },
         AppCommand {
@@ -214,7 +214,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the knowledge graph view",
             shortcut: Some("⌘3"),
-            icon: "🕸️",
+            icon: Icon::Network,
             run: set_view(nav, ViewMode::Graph),
         },
         AppCommand {
@@ -224,7 +224,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Review captured knowledge",
             shortcut: None,
-            icon: "📥",
+            icon: Icon::Inbox,
             run: set_view(nav, ViewMode::Inbox),
         },
         AppCommand {
@@ -234,7 +234,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the reading queue",
             shortcut: None,
-            icon: "📚",
+            icon: Icon::BookOpen,
             run: set_view(nav, ViewMode::ReadingQueue),
         },
         AppCommand {
@@ -244,7 +244,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Manage note templates",
             shortcut: None,
-            icon: "📋",
+            icon: Icon::ClipboardList,
             run: set_view(nav, ViewMode::Templates),
         },
         AppCommand {
@@ -254,7 +254,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Restore or permanently delete notes",
             shortcut: None,
-            icon: "🗑️",
+            icon: Icon::Trash2,
             run: set_view(nav, ViewMode::Trash),
         },
         AppCommand {
@@ -264,7 +264,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Browse note snapshots",
             shortcut: None,
-            icon: "🕘",
+            icon: Icon::History,
             run: set_view(nav, ViewMode::History),
         },
         AppCommand {
@@ -274,7 +274,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Inspect and restore saved sessions",
             shortcut: None,
-            icon: "🛟",
+            icon: Icon::LifeBuoy,
             run: set_view(nav, ViewMode::Recovery),
         },
         AppCommand {
@@ -284,7 +284,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Browse notes by date",
             shortcut: None,
-            icon: "📅",
+            icon: Icon::Calendar,
             run: set_view(nav, ViewMode::Calendar),
         },
         AppCommand {
@@ -294,7 +294,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Restore archived notes",
             shortcut: None,
-            icon: "🗃️",
+            icon: Icon::Archive,
             run: set_view(nav, ViewMode::Archive),
         },
         AppCommand {
@@ -304,7 +304,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Manage query-powered folders",
             shortcut: None,
-            icon: "🗂️",
+            icon: Icon::FolderTree,
             run: set_view(nav, ViewMode::SmartFolders),
         },
         AppCommand {
@@ -314,7 +314,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Configure Nabu",
             shortcut: Some("⌘,"),
-            icon: "⚙️",
+            icon: Icon::Settings,
             run: set_view(nav, ViewMode::Settings),
         },
         AppCommand {
@@ -324,7 +324,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the infinite visual canvas",
             shortcut: None,
-            icon: "🎨",
+            icon: Icon::Palette,
             run: set_view(nav, ViewMode::Canvas),
         },
         AppCommand {
@@ -334,7 +334,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the distraction-free reader",
             shortcut: None,
-            icon: "📖",
+            icon: Icon::BookText,
             run: set_view(nav, ViewMode::Reader),
         },
         AppCommand {
@@ -344,7 +344,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Compare two notes or revisions",
             shortcut: None,
-            icon: "📊",
+            icon: Icon::GitCompare,
             run: set_view(nav, ViewMode::Comparison),
         },
         AppCommand {
@@ -354,7 +354,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "View vault-wide metrics and insights",
             shortcut: None,
-            icon: "📈",
+            icon: Icon::TrendingUp,
             run: set_view(nav, ViewMode::Statistics),
         },
         AppCommand {
@@ -364,7 +364,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Capture",
             description: "Add a pending note to the Inbox for review",
             shortcut: None,
-            icon: "⚡",
+            icon: Icon::Zap,
             run: quick_capture(ctx.nav, ctx.toasts),
         },
         AppCommand {
@@ -374,7 +374,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the full-text search page",
             shortcut: Some("⌘⇧F"),
-            icon: "🔍",
+            icon: Icon::Search,
             run: open_search(nav),
         },
         AppCommand {
@@ -384,7 +384,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Run any command by name",
             shortcut: Some("⌘K"),
-            icon: "⌘",
+            icon: Icon::Command,
             run: open_palette(nav),
         },
         AppCommand {
@@ -394,7 +394,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Jump to any note by name",
             shortcut: Some("⌘P"),
-            icon: "⚡",
+            icon: Icon::Zap,
             run: open_switcher(nav),
         },
         AppCommand {
@@ -404,7 +404,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Browse every keyboard shortcut",
             shortcut: None,
-            icon: "⌨️",
+            icon: Icon::Keyboard,
             run: open_shortcuts(nav),
         },
         // ── Notes ──────────────────────────────────────────────────
@@ -415,7 +415,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Notes",
             description: "Create a note in the vault root and open it",
             shortcut: Some("⌘N"),
-            icon: "➕",
+            icon: Icon::Plus,
             run: create_new_note(ws, toasts),
         },
         AppCommand {
@@ -425,7 +425,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Notes",
             description: "Open (or create) today's dated note",
             shortcut: None,
-            icon: "📅",
+            icon: Icon::Calendar,
             run: open_daily_note(ws, toasts),
         },
         // ── View ───────────────────────────────────────────────────
@@ -436,7 +436,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "View",
             description: "Show or hide the file explorer",
             shortcut: Some("⌘\\"),
-            icon: "📁",
+            icon: Icon::Folder,
             run: toggle_sidebar(nav),
         },
         AppCommand {
@@ -446,7 +446,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "View",
             description: "Show or hide the inspector sidebar",
             shortcut: Some("⌘⇧\\"),
-            icon: "📋",
+            icon: Icon::ClipboardList,
             run: toggle_inspector(nav),
         },
         // ── Command palette utilities (discoverable but hidden from

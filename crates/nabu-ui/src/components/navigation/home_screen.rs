@@ -6,6 +6,7 @@
 
 use crate::components::navigation::state::{record_recent_note, use_nav, NoteIndexEntry, ViewMode};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::use_workspace;
 use leptos::prelude::*;
 
@@ -63,16 +64,16 @@ pub fn HomeScreen() -> impl IntoView {
                 </p>
                 <div class="home-actions">
                     <button type="button" class="dash-action" on:click=move |_| create_note.run(())>
-                        "➕" <span>"Create Note"</span>
+                        {render_icon_view(Icon::Plus)} <span>"Create Note"</span>
                     </button>
                     <button type="button" class="dash-action" on:click=move |_| daily_note.run(())>
-                        "📅" <span>"Open Daily Note"</span>
+                        {render_icon_view(Icon::Calendar)} <span>"Open Daily Note"</span>
                     </button>
                     <button type="button" class="dash-action" on:click=move |_| continue_working.run(())>
-                        "▶️" <span>"Continue Working"</span>
+                        {render_icon_view(Icon::Play)} <span>"Continue Working"</span>
                     </button>
                     <button type="button" class="dash-action" on:click=move |_| open_vault.run(())>
-                        "📂" <span>"Open Vault"</span>
+                        {render_icon_view(Icon::FolderOpen)} <span>"Open Vault"</span>
                     </button>
                     <button
                         type="button"
@@ -82,7 +83,7 @@ pub fn HomeScreen() -> impl IntoView {
                             nav.view_mode.set(ViewMode::Search);
                         }
                     >
-                        "🔍" <span>"Search"</span>
+                        {render_icon_view(Icon::Search)} <span>"Search"</span>
                     </button>
                 </div>
             </div>
@@ -110,7 +111,7 @@ pub fn HomeScreen() -> impl IntoView {
                                         record_recent_note(nav, &path);
                                     }
                                 >
-                                    <span class="dash-note-icon" aria-hidden="true">"📄"</span>
+                                    <span class="dash-note-icon" aria-hidden="true">{render_icon_view(Icon::FileText)}</span>
                                     <span class="dash-note-main">
                                         <span class="dash-note-title">{title}</span>
                                         <span class="dash-note-folder">{folder_display}</span>

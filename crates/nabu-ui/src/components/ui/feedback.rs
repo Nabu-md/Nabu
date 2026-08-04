@@ -29,7 +29,7 @@ impl ToastKind {
         match self {
             ToastKind::Info => crate::components::ui::icons::Icon::Info,
             ToastKind::Success => crate::components::ui::icons::Icon::CircleCheck,
-            ToastKind::Warning => crate::components::ui::icons::Icon::TriangleAlert,
+            ToastKind::Warning => crate::components::ui::icons::Icon::Warning,
             ToastKind::Error => crate::components::ui::icons::Icon::CircleX,
         }
     }

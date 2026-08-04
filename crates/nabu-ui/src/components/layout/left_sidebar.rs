@@ -1,5 +1,6 @@
 use crate::components::file_tree::FileTree;
 use crate::components::navigation::state::{use_nav, ViewMode};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 
 /// Left sidebar — the vault file explorer plus organisational shortcuts.
@@ -41,7 +42,7 @@ pub fn LeftSidebar() -> impl IntoView {
                         aria-label="Manage smart folders"
                         on:click=open_smart_folders
                     >
-                        "🗂️"
+                        {render_icon_view(Icon::FolderTree)}
                     </button>
                 </div>
 
@@ -68,7 +69,7 @@ pub fn LeftSidebar() -> impl IntoView {
                                             <span aria-hidden="true">{icon}</span>
                                             <span class="flex-1 truncate">{name}</span>
                                             {if pinned {
-                                                view! { <span class="text-[10px] text-yellow-500" aria-hidden="true">"📌"</span> }.into_any()
+                                                view! { <span class="text-[10px] text-yellow-500" aria-hidden="true">{render_icon_view(Icon::MapPin)}</span> }.into_any()
                                             } else { view! {}.into_any() }}
                                         </button>
                                     }
@@ -96,7 +97,7 @@ pub fn LeftSidebar() -> impl IntoView {
                                             title=format!("Search: {}", query)
                                             on:click=move |_| run_saved_search(query.clone())
                                         >
-                                            <span aria-hidden="true">"🔍"</span>
+                                            <span aria-hidden="true">{render_icon_view(Icon::Search)}</span>
                                             <span class="flex-1 truncate">{name}</span>
                                         </button>
                                     }

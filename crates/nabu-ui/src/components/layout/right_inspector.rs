@@ -9,6 +9,7 @@
 
 use crate::components::graph_view::MentionSnippet;
 use crate::components::ui::feedback::{use_toast, LoadingBlock, SpinnerSize};
+use crate::components::ui::icons::Icon;
 use crate::components::ui::info::EmptyState;
 use crate::components::ui::nav::{TabDef, Tabs};
 use crate::components::workspace::{open_tab, use_workspace};
@@ -27,7 +28,7 @@ async fn fetch_links(path: String) -> Option<NoteLinks> {
 pub fn RightInspector() -> impl IntoView {
     let ws = use_workspace();
     let toasts = use_toast();
-    let active_tab = RwSignal::new("🏷️".to_string());
+    let active_tab = RwSignal::new("tags".to_string());
 
     let (links, set_links) = signal(None::<NoteLinks>);
     let (version, set_version) = signal(0u32);
@@ -109,10 +110,10 @@ pub fn RightInspector() -> impl IntoView {
     };
 
     let tabs = vec![
-        TabDef::new("🏷️", "Tags"),
-        TabDef::new("🔗", "Backlinks"),
-        TabDef::new("➡️", "Outgoing"),
-        TabDef::new("💬", "Mentions"),
+        TabDef::new("tags", "Tags").with_icon(Icon::Tag),
+        TabDef::new("backlinks", "Backlinks").with_icon(Icon::Link),
+        TabDef::new("outgoing", "Outgoing").with_icon(Icon::Forward),
+        TabDef::new("mentions", "Mentions").with_icon(Icon::MessageCircle),
     ];
 
     // ── Per-tab render ───────────────────────────────────────────────
@@ -126,7 +127,7 @@ pub fn RightInspector() -> impl IntoView {
         if links.tags.is_empty() {
             return view! {
                 <EmptyState
-                    icon="🏷️"
+                    icon=Icon::Tag
                     title="No tags yet".to_string()
                     description="Tags in this note's frontmatter will appear here.".to_string()
                 ></EmptyState>
@@ -155,7 +156,7 @@ pub fn RightInspector() -> impl IntoView {
         if links.backlinks.is_empty() {
             return view! {
                 <EmptyState
-                    icon="🔗"
+                    icon=Icon::Link
                     title="No backlinks yet".to_string()
                     description="Other notes that link to this one will appear here.".to_string()
                 ></EmptyState>
@@ -206,7 +207,7 @@ pub fn RightInspector() -> impl IntoView {
         if links.outgoing.is_empty() {
             return view! {
                 <EmptyState
-                    icon="➡️"
+                    icon=Icon::Forward
                     title="No outgoing links".to_string()
                     description="Links you write in this note will appear here.".to_string()
                 ></EmptyState>
@@ -265,7 +266,7 @@ pub fn RightInspector() -> impl IntoView {
         if links.mentions.is_empty() {
             return view! {
                 <EmptyState
-                    icon="💬"
+                    icon=Icon::MessageCircle
                     title="No unlinked mentions".to_string()
                     description="Other notes referenced by plain text will appear here — link them with one click.".to_string()
                 ></EmptyState>
@@ -307,10 +308,10 @@ pub fn RightInspector() -> impl IntoView {
             </div>
             <div class="flex-1 overflow-y-auto text-gray-300 text-sm">
                 {move || match active_tab.get().as_str() {
-                    "🏷️" => tags_tab(),
-                    "🔗" => backlinks_tab(),
-                    "➡️" => outgoing_tab(),
-                    "💬" => mentions_tab(),
+                    "tags" => tags_tab(),
+                    "backlinks" => backlinks_tab(),
+                    "outgoing" => outgoing_tab(),
+                    "mentions" => mentions_tab(),
                     _ => view! {}.into_any(),
                 }}
             </div>

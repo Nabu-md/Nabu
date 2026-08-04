@@ -11,6 +11,7 @@
 use crate::components::navigation::breadcrumb::BreadcrumbBar;
 use crate::components::navigation::state::{use_nav, ViewMode};
 use crate::components::recovery::save_status::SaveStatusIndicator;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::history::{redo, undo, use_history};
 use leptos::prelude::*;
 
@@ -37,7 +38,7 @@ pub fn NavBar() -> impl IntoView {
                             nav.view_mode.set(ViewMode::Search);
                         }
                     >
-                        "🔍"
+                        {render_icon_view(Icon::Search)}
                     </button>
                     <button
                         type="button"
@@ -46,7 +47,7 @@ pub fn NavBar() -> impl IntoView {
                         aria-label="Command palette"
                         on:click=move |_| nav.palette_open.set(true)
                     >
-                        "⌘"
+                        {render_icon_view(Icon::Command)}
                     </button>
                     <button
                         type="button"
@@ -55,7 +56,7 @@ pub fn NavBar() -> impl IntoView {
                         aria-label="Quick switcher"
                         on:click=move |_| nav.switcher_open.set(true)
                     >
-                        "⚡"
+                        {render_icon_view(Icon::Zap)}
                     </button>
                     <button
                         type="button"
@@ -64,7 +65,7 @@ pub fn NavBar() -> impl IntoView {
                         aria-label="Shortcuts reference"
                         on:click=move |_| nav.shortcuts_open.set(true)
                     >
-                        "⌨️"
+                        {render_icon_view(Icon::Keyboard)}
                     </button>
                     <span class="navbar-sep"></span>
                     <button
@@ -78,7 +79,7 @@ pub fn NavBar() -> impl IntoView {
                         disabled=move || !history.can_undo.get()
                         on:click=move |_| undo(history, toasts)
                     >
-                        "↶"
+                        {render_icon_view(Icon::Undo)}
                     </button>
                     <button
                         type="button"
@@ -91,7 +92,7 @@ pub fn NavBar() -> impl IntoView {
                         disabled=move || !history.can_redo.get()
                         on:click=move |_| redo(history, toasts)
                     >
-                        "↷"
+                        {render_icon_view(Icon::Redo)}
                     </button>
                     <span class="navbar-sep"></span>
                     <crate::components::ui::feedback::TaskIndicator />
@@ -104,7 +105,7 @@ pub fn NavBar() -> impl IntoView {
                         aria-label="Toggle left sidebar"
                         on:click=move |_| nav.show_left_sidebar.update(|v| *v = !*v)
                     >
-                        "📁"
+                        {render_icon_view(Icon::Folder)}
                     </button>
                     <button
                         type="button"
@@ -113,7 +114,7 @@ pub fn NavBar() -> impl IntoView {
                         aria-label="Toggle right inspector"
                         on:click=move |_| nav.show_right_inspector.update(|v| *v = !*v)
                     >
-                        "📋"
+                        {render_icon_view(Icon::ClipboardList)}
                     </button>
                 </div>
             </div>

@@ -24,6 +24,7 @@ use crate::components::navigation::state::{
 use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
 use crate::components::ui::card::{Card, CardBody, CardHeader};
 use crate::components::ui::feedback::{use_toast, ToastContext};
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
 use crate::components::ui::input::{TextInput, Textarea};
 use crate::components::workspace::{open_tab, use_workspace};
@@ -181,7 +182,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                 if folders.is_empty() {
                                     view! {
                                         <EmptyState
-                                            icon="🗂️"
+                                            icon=Icon::FolderTree
                                             title="No smart folders yet".to_string()
                                             description="Create one to surface a query as a folder.".to_string()
                                         />
@@ -227,7 +228,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                         toggle_pin.run(folder_pin.clone());
                                                     }
                                                 >
-                                                    {if pinned { "📌" } else { "📍" }}
+                                                        {if pinned { render_icon_view(Icon::MapPin) } else { render_icon_view(Icon::Circle) }}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -239,7 +240,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                         on_edit.run(folder_edit.clone());
                                                     }
                                                 >
-                                                    "✎"
+                                                    {render_icon_view(Icon::PenLine)}
                                                 </button>
                                             </div>
                                         }
@@ -267,7 +268,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                         />
                                         <TextInput
                                             value=icon
-                                            label="Icon (emoji)"
+                                            label="Icon (Unicode)"
                                             placeholder="📁"
                                         />
                                     </div>
@@ -317,7 +318,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                         if hits.is_empty() && !evaluating.get() {
                                             view! {
                                                 <EmptyState
-                                                    icon="🔍"
+                                                    icon=Icon::Search
                                                     title="No matches".to_string()
                                                     description="Try widening the query.".to_string()
                                                 />
@@ -333,7 +334,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                         class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-800 flex items-center gap-2"
                                                         on:click=move |_| open_tab(ws, &path)
                                                     >
-                                                        <span aria-hidden="true">"📄"</span>
+                                                        <span aria-hidden="true">{render_icon_view(Icon::FileText)}</span>
                                                         <span class="flex-1 min-w-0">
                                                             <span class="block text-sm text-gray-200 truncate">{title}</span>
                                                             <span class="block text-xs text-gray-500 truncate">{folder}</span>

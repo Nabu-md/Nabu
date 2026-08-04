@@ -131,7 +131,7 @@ pub fn RecoveryManager() -> impl IntoView {
                         if notes.is_empty() {
                             view! {
                                 <EmptyState
-                                    icon="🛟"
+                                    icon=crate::components::ui::icons::Icon::LifeBuoy
                                     title="Nothing to recover yet".to_string()
                                     description="Notes appear here once they have been saved at least once.".to_string()
                                 ></EmptyState>

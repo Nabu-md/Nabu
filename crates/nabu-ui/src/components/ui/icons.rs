@@ -67,9 +67,11 @@ pub use lucide_leptos::ChevronRight;
 pub use lucide_leptos::ChevronUp;
 pub use lucide_leptos::ChevronsLeft;
 pub use lucide_leptos::ChevronsRight;
+pub use lucide_leptos::Circle;
 pub use lucide_leptos::CircleAlert;
 pub use lucide_leptos::CircleCheck;
 pub use lucide_leptos::CircleEllipsis;
+pub use lucide_leptos::CircleHelp;
 pub use lucide_leptos::CircleX;
 pub use lucide_leptos::Clipboard;
 pub use lucide_leptos::ClipboardList;
@@ -135,6 +137,7 @@ pub use lucide_leptos::Paperclip;
 pub use lucide_leptos::PenLine;
 pub use lucide_leptos::Play;
 pub use lucide_leptos::Plus;
+pub use lucide_leptos::Redo;
 pub use lucide_leptos::RefreshCcw;
 pub use lucide_leptos::RefreshCw;
 pub use lucide_leptos::Reply;
@@ -165,6 +168,7 @@ pub use lucide_leptos::Trash2;
 pub use lucide_leptos::TrendingDown;
 pub use lucide_leptos::TrendingUp;
 pub use lucide_leptos::TriangleAlert;
+pub use lucide_leptos::Undo;
 pub use lucide_leptos::Upload;
 pub use lucide_leptos::Wand;
 pub use lucide_leptos::Zap;
@@ -228,10 +232,18 @@ pub enum Icon {
     FilePen,
     FilePlus,
     StickyNote,
+    NotebookText,
     NotebookPen,
+    BookCheck,
+    BookOpen,
+    BookText,
+    BookMarked,
     Save,
     Copy,
     Clipboard,
+    ClipboardList,
+    Tag,
+    PenLine,
     // Status & feedback
     ToastSuccess,
     ToastWarning,
@@ -241,6 +253,7 @@ pub enum Icon {
     BellRing,
     Warning,
     CircleAlert,
+    Circle,
     Info,
     Check,
     CircleCheck,
@@ -257,6 +270,8 @@ pub enum Icon {
     Pin,
     Edit,
     Delete,
+    Undo,
+    Redo,
     // Communication
     Mail,
     Send,
@@ -296,6 +311,8 @@ pub enum Icon {
     Smartphone,
     Tablet,
     Laptop,
+    MapPin,
+    MapPin,
     // Charts & stats
     ChartBar,
     ChartColumn,
@@ -317,6 +334,9 @@ pub enum Icon {
     Sparkles,
     Wand,
     Globe,
+    GalleryVerticalEnd,
+    CircleHelp,
+    Bookmark,
     CloudUpload,
     Upload,
     Download,
@@ -382,10 +402,18 @@ impl Icon {
             Icon::FilePen => "file-pen",
             Icon::FilePlus => "file-plus",
             Icon::StickyNote => "sticky-note",
+            Icon::NotebookText => "notebook-text",
             Icon::NotebookPen => "notebook-pen",
+            Icon::BookCheck => "book-check",
+            Icon::BookOpen => "book-open",
+            Icon::BookText => "book-text",
+            Icon::BookMarked => "book-marked",
             Icon::Save => "save",
             Icon::Copy => "copy",
             Icon::Clipboard => "clipboard",
+            Icon::ClipboardList => "clipboard-list",
+            Icon::Tag => "tag",
+            Icon::PenLine => "pen-line",
             // Status & feedback
             Icon::ToastSuccess => "toast-success",
             Icon::ToastWarning => "toast-warning",
@@ -395,6 +423,7 @@ impl Icon {
             Icon::BellRing => "bell-ring",
             Icon::Warning => "warning",
             Icon::CircleAlert => "circle-alert",
+            Icon::Circle => "circle",
             Icon::Info => "info",
             Icon::Check => "check",
             Icon::CircleCheck => "circle-check",
@@ -411,6 +440,8 @@ impl Icon {
             Icon::Pin => "pin",
             Icon::Edit => "edit",
             Icon::Delete => "delete",
+            Icon::Undo => "undo",
+            Icon::Redo => "redo",
             // Communication
             Icon::Mail => "mail",
             Icon::Send => "send",
@@ -450,6 +481,7 @@ impl Icon {
             Icon::Smartphone => "smartphone",
             Icon::Tablet => "tablet",
             Icon::Laptop => "laptop",
+            Icon::MapPin => "map-pin",
             // Charts & stats
             Icon::ChartBar => "chart-bar",
             Icon::ChartColumn => "chart-column",
@@ -471,6 +503,9 @@ impl Icon {
             Icon::Sparkles => "sparkles",
             Icon::Wand => "wand",
             Icon::Globe => "globe",
+            Icon::GalleryVerticalEnd => "gallery-vertical-end",
+            Icon::CircleHelp => "circle-help",
+            Icon::Bookmark => "bookmark",
             Icon::CloudUpload => "cloud-upload",
             Icon::Upload => "upload",
             Icon::Download => "download",
@@ -548,10 +583,18 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::FilePen => c!(FilePen),
         Icon::FilePlus => c!(FilePlus),
         Icon::StickyNote => c!(StickyNote),
+        Icon::NotebookText => c!(NotebookText),
         Icon::NotebookPen => c!(NotebookPen),
+        Icon::BookCheck => c!(BookCheck),
+        Icon::BookOpen => c!(BookOpen),
+        Icon::BookText => c!(BookText),
+        Icon::BookMarked => c!(BookMarked),
         Icon::Save => c!(Save),
         Icon::Copy => c!(Copy),
         Icon::Clipboard => c!(Clipboard),
+        Icon::ClipboardList => c!(ClipboardList),
+        Icon::Tag => c!(Tag),
+        Icon::PenLine => c!(PenLine),
         // ── Status & feedback ───────────────────────────
         Icon::ToastSuccess => c!(CircleCheck),
         Icon::ToastWarning => c!(TriangleAlert),
@@ -561,6 +604,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::BellRing => c!(BellRing),
         Icon::Warning => c!(TriangleAlert),
         Icon::CircleAlert => c!(CircleAlert),
+        Icon::Circle => c!(Circle),
         Icon::Info => c!(Info),
         Icon::Check => c!(Check),
         Icon::CircleCheck => c!(CircleCheck),
@@ -577,6 +621,8 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Pin => c!(MapPin),
         Icon::Edit => c!(PenLine),
         Icon::Delete => c!(Trash2),
+        Icon::Undo => c!(Undo),
+        Icon::Redo => c!(Redo),
         // ── Communication ───────────────────────────────
         Icon::Mail => c!(Mail),
         Icon::Send => c!(Send),
@@ -601,6 +647,9 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Table => c!(Table),
         Icon::Kanban => c!(Kanban),
         Icon::Gallery => c!(GalleryVerticalEnd),
+        Icon::GalleryVerticalEnd => c!(GalleryVerticalEnd),
+        Icon::CircleHelp => c!(CircleHelp),
+        Icon::Bookmark => c!(Bookmark),
         Icon::Palette => c!(Palette),
         Icon::Layers => c!(Layers),
         Icon::Library => c!(Library),
@@ -616,6 +665,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Smartphone => c!(Smartphone),
         Icon::Tablet => c!(Tablet),
         Icon::Laptop => c!(Laptop),
+        Icon::MapPin => c!(MapPin),
         // ── Charts & stats ──────────────────────────────
         Icon::ChartBar => c!(ChartBar),
         Icon::ChartColumn => c!(ChartColumn),

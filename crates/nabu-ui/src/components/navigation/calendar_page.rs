@@ -12,6 +12,7 @@
 //! `spawn_local` future (no reactive owner on the failure path).
 
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::selection::{Segmented, SegmentedOption};
 use crate::components::workspace::{open_tab, use_workspace};
 use crate::models::organisation::CalendarEntry;
@@ -247,7 +248,7 @@ pub fn CalendarPage() -> impl IntoView {
                         aria-label="Previous"
                         on:click=move |_| shift_month.run(-1)
                     >
-                        "◀"
+                        {render_icon_view(Icon::ChevronLeft)}
                     </button>
                     <div class="text-sm font-medium text-gray-200 min-w-24 text-center">
                         {move || {
@@ -265,7 +266,7 @@ pub fn CalendarPage() -> impl IntoView {
                         aria-label="Next"
                         on:click=move |_| shift_month.run(1)
                     >
-                        "▶"
+                        {render_icon_view(Icon::ChevronRight)}
                     </button>
                     {move || if loading.get() {
                         view! { <span class="text-xs text-gray-400">"…"</span> }.into_any()
@@ -412,7 +413,7 @@ pub fn CalendarPage() -> impl IntoView {
                                                 class="w-full text-left px-3 py-2 rounded-md border border-gray-800 hover:border-gray-600 hover:bg-gray-800/60"
                                                 on:click=move |_| open_tab(ws, &path)
                                             >
-                                                <div class="text-sm text-gray-200">"📄 " {title}</div>
+                                                <div class="text-sm text-gray-200">{render_icon_view(Icon::FileText)} {title}</div>
                                                 <div class="text-xs text-gray-500">{folder}</div>
                                             </button>
                                         }

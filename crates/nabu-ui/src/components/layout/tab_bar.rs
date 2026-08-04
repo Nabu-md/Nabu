@@ -11,6 +11,7 @@
 //! Tabs are driven by the shared workspace signal so the file tree (open
 //! note), editor (active note) and session restore all stay in sync.
 
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::menu::{ContextMenu, MenuItem, MenuSeparator};
 use crate::components::workspace::{
     activate_tab, close_all, close_others, close_tab, open_tab, pin_tab, refresh_tree, reorder_tab,
@@ -165,7 +166,7 @@ pub fn TabBar() -> impl IntoView {
                                 aria-selected=move || is_active
                             >
                                 {if pinned {
-                                    view! { <span class="text-gray-500" title="Pinned">"📌"</span> }.into_any()
+                                    view! { <span class="text-gray-500" title="Pinned">{render_icon_view(Icon::MapPin)}</span> }.into_any()
                                 } else {
                                     view! {}.into_any()
                                 }}
@@ -177,7 +178,7 @@ pub fn TabBar() -> impl IntoView {
                                         ev.stop_propagation();
                                         close_tab(workspace, &p);
                                     }}
-                                >"✕"</button>
+                                >{render_icon_view(Icon::X)}</button>
                             </div>
                         </ContextMenu>
                     }
@@ -188,7 +189,7 @@ pub fn TabBar() -> impl IntoView {
                 title="New note"
                 aria-label="New note"
                 on:click=new_note
-            >"+"</button>
+            >{render_icon_view(Icon::Plus)}</button>
         </div>
     }
 }

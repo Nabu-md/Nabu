@@ -12,6 +12,7 @@ use crate::components::navigation::state::{
     clear_recent_searches, record_recent_search, remove_saved_search, save_search, use_nav,
 };
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::selection::{Select, SelectOption};
 use crate::components::workspace::use_workspace;
 use leptos::prelude::*;
@@ -187,7 +188,7 @@ pub fn SearchPage() -> impl IntoView {
     view! {
         <div class="search-page">
             <div class="search-header">
-                <h1 class="dashboard-title">"🔍 Search"</h1>
+                <h1 class="dashboard-title">{render_icon_view(Icon::Search)} Search</h1>
                 <p class="search-hint">"Search every note in the vault — case-insensitive full-text matching."</p>
             </div>
 
@@ -312,7 +313,7 @@ pub fn SearchPage() -> impl IntoView {
                                             class="saved-chip-run"
                                             on:click=move |_| run.run(query.clone())
                                         >
-                                            "🔖 " {name}
+                                            {render_icon_view(Icon::Bookmark)} {name}
                                         </button>
                                         <button
                                             type="button"
@@ -320,7 +321,7 @@ pub fn SearchPage() -> impl IntoView {
                                             aria-label="Remove saved search"
                                             on:click=move |_| remove_saved_search(nav, &name_for_remove)
                                         >
-                                            "✕"
+                                            {render_icon_view(Icon::X)}
                                         </button>
                                     </span>
                                 }
@@ -362,7 +363,7 @@ pub fn SearchPage() -> impl IntoView {
                                 let hits_clone = hits.clone();
                                 view! {
                                     <div class="search-group">
-                                        <div class="palette-category">"📁 " {folder_display}</div>
+                                        <div class="palette-category">{render_icon_view(Icon::Folder)} {folder_display}</div>
                                         {hits_clone.into_iter().map(|hit| {
                                             let (before, matched, after) = split_snippet(&hit.snippet, hit.match_start, hit.match_end);
                                             let path = hit.path.clone();
@@ -375,7 +376,7 @@ pub fn SearchPage() -> impl IntoView {
                                                         crate::components::workspace::open_tab(ws, &path);
                                                     }
                                                 >
-                                                    <div class="search-hit-title">"📄 " {title}</div>
+                                                    <div class="search-hit-title">{render_icon_view(Icon::FileText)} {title}</div>
                                                     <div class="search-hit-path">{folder}</div>
                                                     <div class="search-hit-snippet">
                                                         {before}

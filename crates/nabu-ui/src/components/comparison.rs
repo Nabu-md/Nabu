@@ -367,7 +367,7 @@ pub fn ComparisonView() -> impl IntoView {
                         view! {
                             <div class="h-full flex items-center justify-center">
                                 <crate::components::ui::info::EmptyState
-                                    icon="📊"
+                                    icon=crate::components::ui::icons::Icon::TrendingUp
                                     title="No differences".to_string()
                                     description="Select two notes or versions and click Compare to see the diff.".to_string()
                                 />

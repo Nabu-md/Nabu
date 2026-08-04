@@ -11,6 +11,7 @@
 
 use crate::components::navigation::state::{use_nav, ViewMode};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::use_workspace;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::JsCast;
@@ -32,34 +33,134 @@ pub struct Shortcut {
 /// for discoverability.
 pub const SHORTCUTS: &[Shortcut] = &[
     // ── Command palette / navigation ──────────────────────────────
-    Shortcut { category: "Navigation", keys: "⌘K", description: "Open the command palette" },
-    Shortcut { category: "Navigation", keys: "⌘P", description: "Open the quick switcher" },
-    Shortcut { category: "Navigation", keys: "⌘⇧F", description: "Open full-text search" },
-    Shortcut { category: "Navigation", keys: "⌘1", description: "Go to Dashboard" },
-    Shortcut { category: "Navigation", keys: "⌘2", description: "Go to Editor" },
-    Shortcut { category: "Navigation", keys: "⌘3", description: "Go to Graph" },
-    Shortcut { category: "Navigation", keys: "⌘,", description: "Open Settings" },
-    Shortcut { category: "Navigation", keys: "⌘⇧C", description: "Open Canvas" },
-    Shortcut { category: "Navigation", keys: "⌘⇧1", description: "Open Reader Mode" },
-    Shortcut { category: "Navigation", keys: "⌘⇧M", description: "Open Comparison View" },
-    Shortcut { category: "Navigation", keys: "⌘⇧S", description: "Open Statistics" },
-    Shortcut { category: "Navigation", keys: "⌘⇧?", description: "Open shortcuts reference" },
-    Shortcut { category: "Navigation", keys: "Esc", description: "Close any overlay / palette" },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘K",
+        description: "Open the command palette",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘P",
+        description: "Open the quick switcher",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧F",
+        description: "Open full-text search",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘1",
+        description: "Go to Dashboard",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘2",
+        description: "Go to Editor",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘3",
+        description: "Go to Graph",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘,",
+        description: "Open Settings",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧C",
+        description: "Open Canvas",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧1",
+        description: "Open Reader Mode",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧M",
+        description: "Open Comparison View",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧S",
+        description: "Open Statistics",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "⌘⇧?",
+        description: "Open shortcuts reference",
+    },
+    Shortcut {
+        category: "Navigation",
+        keys: "Esc",
+        description: "Close any overlay / palette",
+    },
     // ── Note management ───────────────────────────────────────────
-    Shortcut { category: "Notes", keys: "⌘N", description: "Create a new note" },
-    Shortcut { category: "Notes", keys: "⌘⇧D", description: "Open the daily note" },
-    Shortcut { category: "Notes", keys: "⌘⇧R", description: "Restore selection (Trash screen)" },
-    Shortcut { category: "Notes", keys: "⌘⇧⌫", description: "Empty trash (Trash screen)" },
+    Shortcut {
+        category: "Notes",
+        keys: "⌘N",
+        description: "Create a new note",
+    },
+    Shortcut {
+        category: "Notes",
+        keys: "⌘⇧D",
+        description: "Open the daily note",
+    },
+    Shortcut {
+        category: "Notes",
+        keys: "⌘⇧R",
+        description: "Restore selection (Trash screen)",
+    },
+    Shortcut {
+        category: "Notes",
+        keys: "⌘⇧⌫",
+        description: "Empty trash (Trash screen)",
+    },
     // ── Workspace / panels ────────────────────────────────────────
-    Shortcut { category: "Workspace", keys: "⌘\\", description: "Toggle the left sidebar" },
-    Shortcut { category: "Workspace", keys: "⌘⇧\\", description: "Toggle the right inspector" },
-    Shortcut { category: "Workspace", keys: "⌘Z", description: "Undo" },
-    Shortcut { category: "Workspace", keys: "⌘⇧Z / Ctrl+Y", description: "Redo" },
+    Shortcut {
+        category: "Workspace",
+        keys: "⌘\\",
+        description: "Toggle the left sidebar",
+    },
+    Shortcut {
+        category: "Workspace",
+        keys: "⌘⇧\\",
+        description: "Toggle the right inspector",
+    },
+    Shortcut {
+        category: "Workspace",
+        keys: "⌘Z",
+        description: "Undo",
+    },
+    Shortcut {
+        category: "Workspace",
+        keys: "⌘⇧Z / Ctrl+Y",
+        description: "Redo",
+    },
     // ── Editor ────────────────────────────────────────────────────
-    Shortcut { category: "Editor", keys: "⌘B", description: "Bold selection (markdown ** **)" },
-    Shortcut { category: "Editor", keys: "⌘I", description: "Italic selection (markdown * *)" },
-    Shortcut { category: "Editor", keys: "/", description: "Open the slash (block) menu" },
-    Shortcut { category: "Editor", keys: "Cmd/Ctrl + Z", description: "Undo typing (native)" },
+    Shortcut {
+        category: "Editor",
+        keys: "⌘B",
+        description: "Bold selection (markdown ** **)",
+    },
+    Shortcut {
+        category: "Editor",
+        keys: "⌘I",
+        description: "Italic selection (markdown * *)",
+    },
+    Shortcut {
+        category: "Editor",
+        keys: "/",
+        description: "Open the slash (block) menu",
+    },
+    Shortcut {
+        category: "Editor",
+        keys: "Cmd/Ctrl + Z",
+        description: "Undo typing (native)",
+    },
 ];
 
 /// Returns `true` when keyboard focus is inside an editable element so
@@ -120,7 +221,9 @@ pub fn install_global_shortcuts() -> WindowListenerHandle {
         }
 
         // When typing in an input/textarea, only overlay toggles apply.
-        if focus_is_editable() && !(meta && (key.eq_ignore_ascii_case("k") || key.eq_ignore_ascii_case("p"))) {
+        if focus_is_editable()
+            && !(meta && (key.eq_ignore_ascii_case("k") || key.eq_ignore_ascii_case("p")))
+        {
             return;
         }
 
@@ -241,14 +344,14 @@ pub fn ShortcutReference() -> impl IntoView {
                         on:click=move |ev| ev.stop_propagation()
                     >
                         <div class="shortcut-dialog-header">
-                            <h2 class="shortcut-dialog-title">"⌨️ Keyboard Shortcuts"</h2>
+                            <h2 class="shortcut-dialog-title">{render_icon_view(Icon::Keyboard)} Keyboard Shortcuts</h2>
                             <button
                                 type="button"
                                 class="dialog-close"
                                 aria-label="Close"
                                 on:click=move |_| close.run(())
                             >
-                                "✕"
+                                {render_icon_view(Icon::X)}
                             </button>
                         </div>
                         <div class="shortcut-dialog-search">

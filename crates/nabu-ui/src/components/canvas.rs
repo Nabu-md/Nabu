@@ -15,6 +15,7 @@
 use crate::components::navigation::state::{use_nav, NoteIndexEntry};
 use crate::components::workspace::{open_tab, use_workspace};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
@@ -384,8 +385,7 @@ pub fn CanvasView() -> impl IntoView {
                                                 ev.stop_propagation();
                                                 delete_canvas(id_del.clone());
                                             }
-                                        >
-                                            "✕"
+                                        >{render_icon_view(Icon::X)}
                                         </button>
                                     </div>
                                 }
@@ -524,8 +524,7 @@ pub fn CanvasView() -> impl IntoView {
                                                 ev.stop_propagation();
                                                 remove_node(id_close.clone());
                                             }
-                                        >
-                                            "✕"
+                                        >{render_icon_view(Icon::X)}
                                         </button>
                                     </div>
                                     <div class="px-2 py-1 text-xs text-gray-500">
@@ -555,7 +554,7 @@ pub fn CanvasView() -> impl IntoView {
                         view! {
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div class="text-center text-gray-500">
-                                    <div class="text-4xl mb-2">"🎨"</div>
+                                    <div class="text-4xl mb-2">{render_icon_view(Icon::Palette)}</div>
                                     <p class="text-sm">"Double-click notes from the sidebar to add them"</p>
                                 </div>
                             </div>

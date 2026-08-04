@@ -13,6 +13,7 @@
 
 use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
 use crate::components::workspace::{refresh_tree, use_workspace};
 use crate::models::organisation::ArchiveEntry;
@@ -93,7 +94,7 @@ pub fn ArchivePage() -> impl IntoView {
             } else if entries.get().is_empty() {
                 view! {
                     <EmptyState
-                        icon="🗃️"
+                        icon=Icon::Archive
                         title="Archive is empty".to_string()
                         description="Notes you archive (right-click a note in the file tree → Archive) will appear here.".to_string()
                     />
@@ -109,7 +110,7 @@ pub fn ArchivePage() -> impl IntoView {
                             view! {
                                 <div class="rounded-md border border-gray-800 p-3 flex flex-col gap-2 hover:border-gray-600 transition-colors">
                                     <div class="flex items-center gap-2 min-w-0">
-                                        <span aria-hidden="true">"📄"</span>
+                                        <span aria-hidden="true">{render_icon_view(Icon::FileText)}</span>
                                         <span class="text-sm font-medium text-gray-200 truncate" title=title.clone()>{title.clone()}</span>
                                     </div>
                                     <div class="text-xs text-gray-500 truncate">"Original: " {folder}</div>

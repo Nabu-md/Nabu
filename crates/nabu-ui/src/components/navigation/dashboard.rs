@@ -10,6 +10,7 @@ use crate::components::navigation::state::{
     toggle_favourite, use_nav, NoteIndexEntry, DASHBOARD_SECTIONS,
 };
 use crate::components::ui::feedback::use_toast;
+use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::workspace::{use_workspace, WorkspaceContext};
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -18,7 +19,7 @@ use wasm_bindgen_futures::spawn_local;
 #[component]
 fn NoteListSection(
     title: String,
-    icon: String,
+    icon: Icon,
     empty: &'static str,
     notes: Vec<NoteIndexEntry>,
     highlight_paths: Vec<String>,
@@ -30,7 +31,7 @@ fn NoteListSection(
     view! {
         <div class="dash-card">
             <div class="dash-card-header">
-                <span class="dash-card-title">{icon} {title}</span>
+                <span class="dash-card-title">{render_icon_view(icon)} {title}</span>
             </div>
             <div class="dash-card-body">
                 {move || if notes.is_empty() {
@@ -56,7 +57,7 @@ fn NoteListSection(
                                     record_recent_note(nav, &path);
                                 }
                             >
-                                <span class="dash-note-icon" aria-hidden="true">"📄"</span>
+                                <span class="dash-note-icon" aria-hidden="true">{render_icon_view(Icon::FileText)}</span>
                                 <span class="dash-note-main">
                                     <span class="dash-note-title">{title}</span>
                                     <span class="dash-note-folder">{folder_display}</span>
@@ -69,7 +70,7 @@ fn NoteListSection(
                                         toggle_favourite(nav, &path_for_star);
                                     }
                                 >
-                                    {move || if is_fav { "★" } else { "☆" }}
+                                    {move || if is_fav { render_icon_view(Icon::Star) } else { render_icon_view(Icon::StarHalf) }}
                                 </span>
                             </div>
                         }
@@ -89,7 +90,7 @@ fn PinnedSection() -> impl IntoView {
     view! {
         <div class="dash-card">
             <div class="dash-card-header">
-                <span class="dash-card-title">"📌 Pinned"</span>
+                <span class="dash-card-title">{render_icon_view(Icon::MapPin)} Pinned</span>
             </div>
             <div class="dash-card-body">
                 {move || {
@@ -130,7 +131,7 @@ fn RecentSearchesSection() -> impl IntoView {
     view! {
         <div class="dash-card">
             <div class="dash-card-header">
-                <span class="dash-card-title">"🔎 Recent Searches"</span>
+                <span class="dash-card-title">{render_icon_view(Icon::Search)} Recent Searches</span>
                 <button
                     type="button"
                     class="btn btn-sm btn-ghost"
@@ -198,7 +199,7 @@ fn InboxSection() -> impl IntoView {
     view! {
         <div class="dash-card">
             <div class="dash-card-header">
-                <span class="dash-card-title">"📥 Inbox"</span>
+                <span class="dash-card-title">{render_icon_view(Icon::Inbox)} Inbox</span>
             </div>
             <div class="dash-card-body">
                 <div class="dash-inbox-row">
@@ -248,7 +249,7 @@ fn SummarySection() -> impl IntoView {
     view! {
         <div class="dash-card">
             <div class="dash-card-header">
-                <span class="dash-card-title">"🗂️ Workspace Summary"</span>
+                <span class="dash-card-title">{render_icon_view(Icon::FolderTree)} Workspace Summary</span>
             </div>
             <div class="dash-card-body">
                 {move || {
@@ -370,7 +371,7 @@ pub fn Dashboard() -> impl IntoView {
                         class="btn btn-sm btn-ghost"
                         on:click=move |_| set_show_customize.update(|v| *v = !*v)
                     >
-                        "⚙ Customize"
+                        {render_icon_view(Icon::Settings)} Customize
                     </button>
                     {move || if show_customize.get() {
                         view! {
@@ -402,10 +403,10 @@ pub fn Dashboard() -> impl IntoView {
             {move || if is_enabled("quick_actions") {
                 view! {
                     <div class="dash-actions">
-                        <button type="button" class="dash-action" on:click=move |_| new_note.run(())> "➕" <span>"New Note"</span></button>
-                        <button type="button" class="dash-action" on:click=move |_| daily_note.run(())> "📅" <span>"Daily Note"</span></button>
-                        <button type="button" class="dash-action" on:click=move |_| continue_working.run(())> "▶️" <span>"Continue Working"</span></button>
-                        <button type="button" class="dash-action" on:click=move |_| open_vault.run(())> "📂" <span>"Open Vault"</span></button>
+                        <button type="button" class="dash-action" on:click=move |_| new_note.run(())> {render_icon_view(Icon::Plus)} <span>"New Note"</span></button>
+                        <button type="button" class="dash-action" on:click=move |_| daily_note.run(())> {render_icon_view(Icon::Calendar)} <span>"Daily Note"</span></button>
+                        <button type="button" class="dash-action" on:click=move |_| continue_working.run(())> {render_icon_view(Icon::Play)} <span>"Continue Working"</span></button>
+                        <button type="button" class="dash-action" on:click=move |_| open_vault.run(())> {render_icon_view(Icon::FolderOpen)} <span>"Open Vault"</span></button>
                         <button
                             type="button"
                             class="dash-action"
@@ -414,7 +415,7 @@ pub fn Dashboard() -> impl IntoView {
                                 nav.view_mode.set(crate::components::navigation::state::ViewMode::Search);
                             }
                         >
-                            "🔍" <span>"Search"</span>
+                            {render_icon_view(Icon::Search)} <span>"Search"</span>
                         </button>
                     </div>
                 }.into_any()
@@ -427,7 +428,7 @@ pub fn Dashboard() -> impl IntoView {
                     view! {
                         <NoteListSection
                             title="Recently Modified".to_string()
-                            icon="🕒".to_string()
+                            icon=Icon::Clock
                             empty="No notes yet — create one with ⌘N."
                             notes=recently_modified.get()
                             highlight_paths=nav.favourites.get()
@@ -440,7 +441,7 @@ pub fn Dashboard() -> impl IntoView {
                     view! {
                         <NoteListSection
                             title="Favourites".to_string()
-                            icon="⭐".to_string()
+                            icon=Icon::Star
                             empty="Star notes to pin them here."
                             notes=favourites.get()
                             highlight_paths=nav.favourites.get()
@@ -453,7 +454,7 @@ pub fn Dashboard() -> impl IntoView {
                     view! {
                         <NoteListSection
                             title="Recently Opened".to_string()
-                            icon="📂".to_string()
+                            icon=Icon::Folder
                             empty="Notes you open will show up here."
                             notes=recently_opened.get()
                             highlight_paths=Vec::new()
