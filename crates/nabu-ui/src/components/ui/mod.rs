@@ -20,6 +20,7 @@ pub mod button;
 pub mod card;
 pub mod dialog;
 pub mod feedback;
+pub mod icons;
 pub mod info;
 pub mod input;
 pub mod layout;

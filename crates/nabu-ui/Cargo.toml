@@ -28,3 +28,4 @@ wasm-bindgen-futures = "0.4.50"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 getrandom = { version = "0.2", features = ["js"] }
 console_error_panic_hook = "0.1.7"
+lucide-leptos = { version = "3.26.0", features = ["all-icons"] }
