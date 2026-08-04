@@ -30,17 +30,32 @@ Grab the latest `Nabu-Universal.dmg` installer from the [Releases Page](../../re
 <summary>Click here if you want to compile Nabu locally</summary>
 
 ### Prerequisites
-- Rust (latest stable)
-- Tauri CLI (`cargo install tauri-cli`)
-- CMake (for Whisper.cpp native compilation)
+- Rust (latest stable; MSRV `1.97.1`)
+- Node.js ≥ 20 + npm
+- Trunk (`cargo install trunk`)
+- Tauri CLI v2 (`cargo install tauri-cli --version ^2`)
 - Xcode Command Line Tools (`xcode-select --install`)
 
-### Local Build & Dev Mode
+Run `scripts/check-env.sh` any time to verify your toolchain — it reports
+missing tools, targets, and npm dependencies with exact install commands.
+
+### Dev Mode (hot-reload)
 ```bash
 git clone https://github.com/Nabu-md/Nabu.git
 cd Nabu
+npm install
 cargo tauri dev
 ```
+
+### Release Build
+```bash
+scripts/build.sh               # native release for this machine
+scripts/build.sh --universal   # macOS universal DMG (Intel + Apple Silicon)
+```
+
+The script detects your platform/architecture, validates prerequisites, and
+prints the produced artifacts. Full instructions, prerequisites, expected
+outputs, and troubleshooting live in **[docs/BUILDING.md](docs/BUILDING.md)**.
 
 </details>
 

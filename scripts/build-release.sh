@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
+# Deprecated — use `scripts/build.sh` instead.
+#
+# Historical wrapper that built a universal macOS DMG. Kept for back-compat;
+# delegates to the full pipeline (prerequisite checks, arch detection,
+# frontend build, packaging).
 set -e
 
-echo "Adding Rust target architectures..."
-rustup target add x86_64-apple-darwin
-rustup target add aarch64-apple-darwin
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-echo "Building Universal macOS DMG installer..."
-cargo tauri build --target universal-apple-darwin --bundles dmg
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "error: build-release.sh builds a universal macOS DMG and must run on macOS." >&2
+  echo "       On this platform use:  scripts/build.sh" >&2
+  exit 1
+fi
 
-echo "Done! Installer located in target/universal-apple-darwin/release/bundle/dmg/"
+echo "Note: build-release.sh is deprecated — use scripts/build.sh (or scripts/build.sh --universal)."
+exec "$ROOT/scripts/build.sh" --universal
