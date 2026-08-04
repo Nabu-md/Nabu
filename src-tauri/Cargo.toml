@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Nabu — a Markdown-native knowledge base for the desktop"
+authors = ["Nabu Labs <hello@nabu.app>"]
 license = "AGPL-3.0"
-repository = ""
+repository = "https://github.com/Nabu-md/Nabu.git"
 edition = "2024"
 rust-version = "1.97.1"
 default-run = "app"
