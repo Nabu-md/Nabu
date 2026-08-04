@@ -110,7 +110,7 @@ pub fn ArchivePage() -> impl IntoView {
                                 <div class="rounded-md border border-gray-800 p-3 flex flex-col gap-2 hover:border-gray-600 transition-colors">
                                     <div class="flex items-center gap-2 min-w-0">
                                         <span aria-hidden="true">"📄"</span>
-                                        <span class="text-sm font-medium text-gray-200 truncate" title=title.clone()>{title}</span>
+                                        <span class="text-sm font-medium text-gray-200 truncate" title=title.clone()>{title.clone()}</span>
                                     </div>
                                     <div class="text-xs text-gray-500 truncate">"Original: " {folder}</div>
                                     {if !modified.is_empty() {

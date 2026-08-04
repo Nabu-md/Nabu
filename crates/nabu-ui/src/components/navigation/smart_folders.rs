@@ -189,10 +189,15 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                 } else {
                                     folders.into_iter().map(|f| {
                                         let is_active = selected_id.get().as_deref() == Some(f.id.as_str());
-                                        let folder = f.clone();
                                         let icon = f.icon.clone();
                                         let name = f.name.clone();
                                         let pinned = f.pinned;
+                                        // Each `move` handler owns its own copy of the
+                                        // folder so no closure steals it from the others.
+                                        let folder_select = f.clone();
+                                        let folder_keydown = f.clone();
+                                        let folder_pin = f.clone();
+                                        let folder_edit = f.clone();
                                         view! {
                                             <div
                                                 class=format!(
@@ -202,11 +207,11 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                 role="button"
                                                 tabindex="0"
                                                 aria-pressed=is_active
-                                                on:click=move |_| on_select.run(folder.clone())
+                                                on:click=move |_| on_select.run(folder_select.clone())
                                                 on:keydown=move |ev: web_sys::KeyboardEvent| {
                                                     if ev.key() == "Enter" || ev.key() == " " {
                                                         ev.prevent_default();
-                                                        on_select.run(folder.clone());
+                                                        on_select.run(folder_keydown.clone());
                                                     }
                                                 }
                                             >
@@ -219,7 +224,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                     aria-label="Toggle pinned"
                                                     on:click=move |ev: web_sys::MouseEvent| {
                                                         ev.stop_propagation();
-                                                        toggle_pin.run(folder.clone());
+                                                        toggle_pin.run(folder_pin.clone());
                                                     }
                                                 >
                                                     {if pinned { "📌" } else { "📍" }}
@@ -231,7 +236,7 @@ pub fn SmartFoldersPage() -> impl IntoView {
                                                     aria-label="Edit"
                                                     on:click=move |ev: web_sys::MouseEvent| {
                                                         ev.stop_propagation();
-                                                        on_edit.run(folder.clone());
+                                                        on_edit.run(folder_edit.clone());
                                                     }
                                                 >
                                                     "✎"

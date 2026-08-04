@@ -849,6 +849,17 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
         });
     };
 
+    // Callback wrappers so the relationship panel's reactive children
+    // closures only capture Copy values (keeps the view closure `Fn` — a
+    // non-Copy closure moved into a nested `move` child would make it FnOnce
+    // and break Leptos' `ToChildren`/`ChildrenFn` bounds).
+    let open_note_cb = Callback::new(open_note);
+    let link_mention_action_cb =
+        Callback::new(move |(path, title): (String, String)| link_mention_action(path, title));
+    let ignore_mention_cb = Callback::new(ignore_mention_action);
+    let open_external_cb = Callback::new(open_external);
+    let copy_wikilink_cb = Callback::new(copy_wikilink);
+
     // ── Folder / tag filter options ──────────────────────────────────
     let folders = move || {
         let mut set = std::collections::BTreeSet::new();
@@ -997,7 +1008,18 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
             {move || {
                 let node = selected_node();
                 let Some(node) = node else { return view! {}.into_any() };
-                let links = links.get();
+                // Per-node clones threaded through Copy callbacks so the
+                // reactive children closures never move `node`/`links` out of
+                // this closure's environment (which would make it FnOnce).
+                let node_path_open = node.path.clone();
+                let node_path_link = node.path.clone();
+                let node_title_copy = node.title.clone();
+                let open_node_cb = Callback::new(move |_| open_note_cb.run(node_path_open.clone()));
+                let copy_link_cb =
+                    Callback::new(move |_| copy_wikilink_cb.run(node_title_copy.clone()));
+                let link_mention_cb = Callback::new(move |title: String| {
+                    link_mention_action_cb.run((node_path_link.clone(), title))
+                });
                 view! {
                     <div class="graph-side-panel absolute right-3 top-3 bottom-3 z-10 w-80 bg-gray-900/95 border border-gray-800 rounded-lg shadow-xl overflow-y-auto">
                         <div class="px-3 py-2 border-b border-gray-800 flex items-center justify-between">
@@ -1026,27 +1048,27 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                         </div>
 
                         <div class="px-3 py-2 flex flex-wrap gap-1">
-                            <button class="btn btn-sm btn-primary" on:click=move |_| open_note(node.path.clone())>"Open note"</button>
+                            <button class="btn btn-sm btn-primary" on:click=move |_| open_node_cb.run(())>"Open note"</button>
                             <button
                                 class="btn btn-sm btn-ghost"
-                                on:click=move |_| copy_wikilink(node.title.clone())
+                                on:click=move |_| copy_link_cb.run(())
                             >"Copy [[link]]"</button>
                         </div>
 
                         <GraphPanelSection
                             title="Backlinks".to_string()
                             icon="🔗"
-                            loaded=links.is_some()
+                            loaded=links.get().is_some()
                         >
                             {move || {
-                                let Some(links) = links.clone() else { return view! {}.into_any() };
+                                let Some(links) = links.get() else { return view! {}.into_any() };
                                 if links.backlinks.is_empty() {
                                     return view! { <div class="px-3 py-2 text-xs text-gray-500">"No notes link to this one yet."</div> }.into_any();
                                 }
                                 view! {
                                     <div class="divide-y divide-gray-800/60">
                                         {links.backlinks.into_iter().map(|b| {
-                                            view! { <BacklinkRow backlink=b open_note=Callback::new(open_note) /> }
+                                            view! { <BacklinkRow backlink=b open_note=open_note_cb /> }
                                         }).collect_view()}
                                     </div>
                                 }.into_any()
@@ -1056,10 +1078,10 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                         <GraphPanelSection
                             title="Outgoing".to_string()
                             icon="➡️"
-                            loaded=links.is_some()
+                            loaded=links.get().is_some()
                         >
                             {move || {
-                                let Some(links) = links.clone() else { return view! {}.into_any() };
+                                let Some(links) = links.get() else { return view! {}.into_any() };
                                 if links.outgoing.is_empty() {
                                     return view! { <div class="px-3 py-2 text-xs text-gray-500">"No links written in this note."</div> }.into_any();
                                 }
@@ -1068,6 +1090,10 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                         {links.outgoing.into_iter().map(|o| {
                                             let kind = o.kind.clone();
                                             let target = o.target.clone();
+                                            // Each `move` handler owns its own copy of the
+                                            // target so no closure steals it from the others.
+                                            let target_external = o.target.clone();
+                                            let target_wikilink = o.target.clone();
                                             let count = o.count;
                                             view! {
                                                 <div class="px-3 py-2 flex items-center justify-between gap-2">
@@ -1087,19 +1113,19 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                                     <div class="flex gap-1 shrink-0">
                                                         {if let Some(path) = o.path.clone() {
                                                             view! {
-                                                                <button class="btn btn-xs btn-ghost" on:click=move |_| open_note(path.clone())>"Open"</button>
+                                                                <button class="btn btn-xs btn-ghost" on:click=move |_| open_note_cb.run(path.clone())>"Open"</button>
                                                             }.into_any()
                                                         } else {
                                                             view! {}.into_any()
                                                         }}
                                                         {if kind == "external" {
                                                             view! {
-                                                                <button class="btn btn-xs btn-ghost" on:click=move |_| open_external(o.target.clone())>"↗"</button>
+                                                                <button class="btn btn-xs btn-ghost" on:click=move |_| open_external_cb.run(target_external.clone())>"↗"</button>
                                                             }.into_any()
                                                         } else {
                                                             view! {}.into_any()
                                                         }}
-                                                        <button class="btn btn-xs btn-ghost" on:click=move |_| copy_wikilink(o.target.clone())>"⧉"</button>
+                                                        <button class="btn btn-xs btn-ghost" on:click=move |_| copy_wikilink_cb.run(target_wikilink.clone())>"⧉"</button>
                                                     </div>
                                                 </div>
                                             }
@@ -1112,10 +1138,10 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                         <GraphPanelSection
                             title="Unlinked mentions".to_string()
                             icon="💬"
-                            loaded=links.is_some()
+                            loaded=links.get().is_some()
                         >
                             {move || {
-                                let Some(links) = links.clone() else { return view! {}.into_any() };
+                                let Some(links) = links.get() else { return view! {}.into_any() };
                                 if links.mentions.is_empty() {
                                     return view! { <div class="px-3 py-2 text-xs text-gray-500">"No plain-text mentions of other notes."</div> }.into_any();
                                 }
@@ -1133,8 +1159,8 @@ pub fn GraphView(_mode: GraphMode) -> impl IntoView {
                                                     <div class="flex items-center justify-between gap-2">
                                                         <span class="text-xs font-medium text-gray-300 truncate">{title}</span>
                                                         <div class="flex gap-1 shrink-0">
-                                                            <button class="btn btn-xs btn-primary" on:click=move |_| link_mention_action(node.path.clone(), title_link.clone())>"Link"</button>
-                                                            <button class="btn btn-xs btn-ghost" on:click=move |_| ignore_mention_action(title_ignore.clone())>"Ignore"</button>
+                                                            <button class="btn btn-xs btn-primary" on:click=move |_| link_mention_cb.run(title_link.clone())>"Link"</button>
+                                                            <button class="btn btn-xs btn-ghost" on:click=move |_| ignore_mention_cb.run(title_ignore.clone())>"Ignore"</button>
                                                         </div>
                                                     </div>
                                                     <div class="text-[11px] text-gray-500 mt-1 leading-snug">

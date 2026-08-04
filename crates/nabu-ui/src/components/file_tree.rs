@@ -952,13 +952,19 @@ fn TreeNodeView(node: TreeNode) -> impl IntoView {
                 aria-expanded={let p = path.clone(); move || is_folder && ctx.expanded.get().contains(&p)}
             >
                 <span
-                    class=move || {
-                        let p = path.clone();
-                        let mut c = "tree-chevron w-4 text-center text-xs text-gray-500".to_string();
-                        if is_folder && ctx.expanded.get().contains(&p) {
-                            c.push_str(" tree-chevron-open");
+                    class={
+                        // Clone `path` BEFORE the reactive class closure so the
+                        // closure owns its own copy; the children block below
+                        // still needs the component-scope `path` String.
+                        let p_class = path.clone();
+                        move || {
+                            let p = p_class.clone();
+                            let mut c = "tree-chevron w-4 text-center text-xs text-gray-500".to_string();
+                            if is_folder && ctx.expanded.get().contains(&p) {
+                                c.push_str(" tree-chevron-open");
+                            }
+                            c
                         }
-                        c
                     }
                     aria-hidden="true"
                 >

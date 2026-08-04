@@ -308,7 +308,7 @@ pub fn CalendarPage() -> impl IntoView {
                                                     aria-label=format!("Open daily note for {}", date)
                                                     on:click=move |_| open_daily.run(date_open.clone())
                                                 >
-                                                    {date.split('-').next_back().unwrap_or("")}
+                                                    {date.split('-').next_back().unwrap_or("").to_string()}
                                                 </button>
                                                 {day_notes.iter().take(3).map(|n| {
                                                     let path = n.path.clone();
@@ -319,7 +319,7 @@ pub fn CalendarPage() -> impl IntoView {
                                                             title=title.clone()
                                                             on:click=move |_| open_tab(ws, &path)
                                                         >
-                                                            {title}
+                                                            {title.clone()}
                                                         </div>
                                                     }
                                                 }).collect_view()}
@@ -361,7 +361,7 @@ pub fn CalendarPage() -> impl IntoView {
                                         class="text-xs text-gray-300 hover:text-gray-100"
                                         on:click=move |_| open_daily.run(date_open.clone())
                                     >
-                                        {date.split('-').next_back().unwrap_or("")}
+                                        {date.split('-').next_back().unwrap_or("").to_string()}
                                     </button>
                                     {day_notes.iter().take(6).map(|n| {
                                         let path = n.path.clone();
@@ -372,7 +372,7 @@ pub fn CalendarPage() -> impl IntoView {
                                                 title=title.clone()
                                                 on:click=move |_| open_tab(ws, &path)
                                             >
-                                                {title}
+                                                {title.clone()}
                                             </div>
                                         }
                                     }).collect_view()}
@@ -387,7 +387,7 @@ pub fn CalendarPage() -> impl IntoView {
                 let day_notes = day_notes_for(date.clone());
                 view! {
                     <div class="max-w-2xl">
-                        <h2 class="text-lg font-semibold text-gray-100 mb-3">{date}</h2>
+                        <h2 class="text-lg font-semibold text-gray-100 mb-3">{date.clone()}</h2>
                         <button
                             type="button"
                             class="btn btn-primary btn-sm mb-4"
