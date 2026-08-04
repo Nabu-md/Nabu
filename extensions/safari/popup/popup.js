@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const capturePageBtn = document.getElementById('capture-page');
   const captureSelectionBtn = document.getElementById('capture-selection');
   const captureFullBtn = document.getElementById('capture-full');
+  const captureScreenshotBtn = document.getElementById('capture-screenshot');
+  const captureReaderBtn = document.getElementById('capture-reader');
   const statusEl = document.getElementById('status');
   const resultEl = document.getElementById('result');
   const resultContent = document.getElementById('result-content');
@@ -36,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
     capturePageBtn.disabled = !enabled;
     captureSelectionBtn.disabled = !enabled;
     captureFullBtn.disabled = !enabled;
+    captureScreenshotBtn.disabled = !enabled;
+    captureReaderBtn.disabled = !enabled;
   }
 
   async function capture(captureType, payload = {}) {
@@ -103,5 +107,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   captureFullBtn.addEventListener('click', () => {
     capture('document');
+  });
+
+  captureScreenshotBtn.addEventListener('click', () => {
+    capture('screen_capture', { text: '', title: 'Screen Capture' });
+  });
+
+  captureReaderBtn.addEventListener('click', () => {
+    capture('reader_mode');
   });
 });

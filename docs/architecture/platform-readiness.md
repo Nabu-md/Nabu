@@ -64,7 +64,7 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 | Criteria | Status | Notes |
 |----------|--------|-------|
 | Registration point | ✅ | `CATEGORY_AI_PROVIDERS` category ready |
-| Capability discovery | ✅ | `CapabilityRegistry` supports `nabu:llm` |
+| Capability discovery | ✅ | `CapabilityRegistry` supports `nabu:ai` |
 | Plugin infrastructure | ✅ | `PluginManifest` supports provider declaration |
 | EventBus integration | ✅ | Plugins can subscribe to events |
 | **Ready for implementation** | **Yes** | |
@@ -105,7 +105,7 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 | Capability discovery | ✅ | `CapabilityRegistry` with built-in capabilities |
 | Dependency resolution | ✅ | `DependencyGraph` with cycle detection |
 | Version negotiation | ✅ | Semantic versioning with bounds |
-| Lifecycle hooks | ✅ | 6-stage lifecycle state machine |
+| Lifecycle hooks | ✅ | 7-stage lifecycle state machine |
 | Feature flags | ✅ | `FeatureFlags` with runtime toggles |
 | Security sandboxing | 🔲 | Not implemented — out of scope for v0 |
 | Plugin loading | 🔲 | Not implemented — out of scope for v0 |
@@ -135,10 +135,10 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 |--------|-------|
 | Services registered in ApplicationContext | 8 |
 | Registry categories defined | 8 |
-| Capture handlers registered | 6 |
+| Capture handlers registered | 8 |
 | Processing processors registered | 14 |
 | Built-in capabilities registered | 14 |
-| Plugin lifecycle stages | 6 |
+| Plugin lifecycle stages | 7 |
 | Architecture violations (all low/info) | 3 |
 | Platform readiness (fully ready categories) | 7/7 |
 

@@ -155,9 +155,27 @@ impl NativeMessagingHost {
                     ));
                 }
 
-                // Validate capture type
+                // Validate capture type — must match the set accepted by the
+                // socket server and the CaptureEngine handler names.
                 if let Some(ref capture_type) = message.capture_type {
-                    if !["bookmark", "note", "document"].contains(&capture_type.as_str()) {
+                    let valid_capture_types = [
+                        "bookmark",
+                        "note",
+                        "document",
+                        "reader_mode",
+                        "safari_reader",
+                        "clipboard",
+                        "screenshot",
+                        "screen_capture",
+                        "file_drop",
+                        "watch_folder",
+                        "youtube",
+                        "github",
+                        "email",
+                        "article",
+                        "browser",
+                    ];
+                    if !valid_capture_types.contains(&capture_type.as_str()) {
                         return Err(NativeMessagingError::ValidationError(format!(
                             "Invalid capture type: {}",
                             capture_type

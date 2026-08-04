@@ -104,6 +104,7 @@ impl CaptureRequest {
     pub fn url(&self) -> Option<&str> {
         match &self.data {
             CaptureData::Uri(url) => Some(url),
+            CaptureData::Text(t) if is_url(t) => Some(t),
             _ => self.source_url.as_deref(),
         }
     }
@@ -134,6 +135,12 @@ pub enum CaptureData {
     },
     /// Existing file path
     File(String),
+    /// Request a live screen capture. The handler will invoke the native
+    /// screen-capture FFI (macOS `screencapture`) and produce a Screenshot.
+    /// The optional payload carries selection coordinates `[x, y, w, h]`.
+    ScreenCapture {
+        selection: Option<(i32, i32, u32, u32)>,
+    },
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -297,8 +304,32 @@ impl CaptureHandler for ScreenshotHandler {
     }
 
     async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
-        let object = create_binary_object(request, "image/png", ObjectType::Screenshot)?;
-        Some(CaptureResult::new(object, CaptureSource::Screenshot))
+        match &request.data {
+            // Live screen capture — delegates to the native FFI.
+            CaptureData::ScreenCapture { selection } => {
+                let opts = crate::native::screenshot::ScreenCaptureOptions {
+                    selection: selection.clone(),
+                    ..Default::default()
+                };
+                let image = crate::native::screenshot::capture_screen(&opts).ok()?;
+                let mut object = KnowledgeObject::new(
+                    ObjectType::Screenshot,
+                    ObjectContent::Binary {
+                        mime_type: "image/png".to_string(),
+                        data: image,
+                        filename: None,
+                    },
+                );
+                object.metadata.title = request.title.clone();
+                object.metadata.mime_type = Some("image/png".to_string());
+                Some(CaptureResult::new(object, CaptureSource::Screenshot))
+            }
+            // Pre-captured binary image data.
+            _ => {
+                let object = create_binary_object(request, "image/png", ObjectType::Screenshot)?;
+                Some(CaptureResult::new(object, CaptureSource::Screenshot))
+            }
+        }
     }
 }
 
@@ -419,7 +450,178 @@ impl CaptureHandler for GitHubRepositoryHandler {
     }
 }
 
-/// Handles generic URL / bookmark capture.
+/// Handles email capture (`.eml` files and structured email text).
+///
+/// Accepts:
+/// - `CaptureData::File` for `.eml` paths
+/// - `CaptureData::Text` containing RFC 5322-style headers (Subject:, From:, etc.)
+///
+/// Produces a [KnowledgeObject] of type [Email] with extracted headers
+/// (subject → title, from → authors, date → publication_date) and the
+/// remaining body text as Markdown.
+pub struct EmailCaptureHandler;
+
+#[async_trait]
+impl CaptureHandler for EmailCaptureHandler {
+    fn name(&self) -> &'static str {
+        "email"
+    }
+
+    fn source(&self) -> CaptureSource {
+        CaptureSource::Email
+    }
+
+    async fn capture(&self, request: &CaptureRequest) -> Option<CaptureResult> {
+        match &request.data {
+            // File path pointing at an .eml file.
+            CaptureData::File(path) => {
+                let lower = path.to_lowercase();
+                if !lower.ends_with(".eml") {
+                    return None;
+                }
+                // Read the file contents if accessible; otherwise create a
+                // pointer object and let the processing pipeline handle it.
+                let (object, body_text) = std::fs::read_to_string(path)
+                    .map(|s| {
+                        let obj = parse_email_to_object(&s, request);
+                        (obj, Some(s))
+                    })
+                    .unwrap_or_else(|_| {
+                        (
+                            KnowledgeObject::new(
+                                ObjectType::Email,
+                                ObjectContent::Uri(path.clone()),
+                            ),
+                            None,
+                        )
+                    });
+
+                let mut object = object;
+                if body_text.is_none() {
+                    object.metadata.title = request.title.clone();
+                }
+                object.metadata.source_url = request.source_url.clone();
+                object.metadata.mime_type = Some("message/rfc822".to_string());
+                object.metadata.original_filename = Some(
+                    std::path::Path::new(path)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("email.eml")
+                        .to_string(),
+                );
+                Some(CaptureResult::new(object, CaptureSource::Email))
+            }
+
+            // Raw email text with RFC 5322 headers.
+            CaptureData::Text(text) => {
+                if parsed_email_headers(text).is_none() {
+                    return None;
+                }
+                let mut object = parse_email_to_object(text, request);
+                object.metadata.source_url = request.source_url.clone();
+                object.metadata.mime_type = Some("message/rfc822".to_string());
+                Some(CaptureResult::new(object, CaptureSource::Email))
+            }
+
+            _ => None,
+        }
+    }
+}
+
+/// Extract email headers (subject, from, date) from RFC 5322-style text.
+///
+/// Returns `None` when the text does not look like an email. The body is
+/// everything after the first blank line.
+fn parsed_email_headers(
+    text: &str,
+) -> Option<(
+    Option<String>,
+    Vec<String>,
+    Option<chrono::DateTime<Utc>>,
+    Option<String>,
+)> {
+    let lower = text.to_lowercase();
+    let has_headers = lower.contains("subject:")
+        || lower.contains("from:")
+        || lower.contains("to:")
+        || lower.contains("date:")
+        || lower.contains("cc:")
+        || lower.contains("bcc:");
+
+    if !has_headers {
+        return None;
+    }
+
+    let mut title: Option<String> = None;
+    let mut authors: Vec<String> = Vec::new();
+    let mut date: Option<chrono::DateTime<Utc>> = None;
+
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            break;
+        }
+        let lower_line = line.to_lowercase();
+        if let Some(val) = lower_line.strip_prefix("subject:") {
+            let subject = val.trim().to_string();
+            if !subject.is_empty() {
+                title = Some(subject);
+            }
+        } else if let Some(val) = lower_line.strip_prefix("from:") {
+            let from_str = val.trim();
+            let name = from_str
+                .trim_start_matches(|c: char| c == '"' || c == '\'')
+                .split('<')
+                .next()
+                .unwrap_or(from_str)
+                .trim()
+                .to_string();
+            if !name.is_empty() {
+                authors.push(name);
+            }
+        } else if let Some(val) = lower_line.strip_prefix("date:") {
+            let date_str = val.trim();
+            date = chrono::DateTime::parse_from_rfc2822(date_str)
+                .ok()
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .or_else(|| {
+                    chrono::DateTime::parse_from_iso8601(date_str)
+                        .ok()
+                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                });
+        }
+    }
+
+    let body = text.split("\n\n").nth(1).unwrap_or("");
+    let description = if !body.is_empty() {
+        Some(body.lines().take(3).collect::<Vec<_>>().join(" "))
+    } else {
+        None
+    };
+
+    Some((title, authors, date, description))
+}
+
+/// Split an email into its body (after headers) and return the body text.
+fn email_body(text: &str) -> String {
+    text.split("\n\n")
+        .nth(1)
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| text.to_string())
+}
+
+/// Parse an email text, extracting headers and producing a Markdown object.
+fn parse_email_to_object(text: &str, request: &CaptureRequest) -> KnowledgeObject {
+    let (title, authors, date, desc) =
+        parsed_email_headers(text).unwrap_or((None, Vec::new(), None, None));
+    let body = email_body(text);
+    let mut object = KnowledgeObject::new(ObjectType::Email, ObjectContent::Markdown(body));
+    object.metadata.title = title.or(request.title.clone());
+    object.metadata.authors = authors;
+    object.metadata.publication_date = date;
+    object.metadata.description = desc;
+    object
+}
+
 ///
 /// Captures a URL (text pasted into the command palette, browser extension
 /// "bookmark" button, etc.) as a [Bookmark] object. The title is extracted
@@ -444,6 +646,7 @@ impl CaptureHandler for BookmarkCaptureHandler {
                 object.metadata.title = request.title.clone();
                 object.metadata.source_url = Some(url.clone());
                 object.metadata.mime_type = request.mime_type.clone();
+                mark_for_reading_queue(&mut object);
                 Some(CaptureResult::new(object, CaptureSource::Url))
             }
             CaptureData::Text(text) if is_url(text) => {
@@ -452,6 +655,7 @@ impl CaptureHandler for BookmarkCaptureHandler {
                     KnowledgeObject::new(ObjectType::Bookmark, ObjectContent::Uri(url.clone()));
                 object.metadata.title = request.title.clone();
                 object.metadata.source_url = Some(url);
+                mark_for_reading_queue(&mut object);
                 Some(CaptureResult::new(object, CaptureSource::Url))
             }
             _ => None,
@@ -514,6 +718,7 @@ impl ArticleCaptureHandler {
         object.metadata.title = object.metadata.title.or(request.title.clone());
         object.metadata.source_url = request.source_url.clone();
         object.metadata.mime_type = request.mime_type.clone();
+        mark_for_reading_queue(&mut object);
         Some(CaptureResult::new(object, source))
     }
 }
@@ -533,7 +738,57 @@ impl CaptureHandler for ArticleCaptureHandler {
     }
 }
 
-// ── Extraction helpers ────────────────────────────────────────────────
+// ── Reading queue integration ─────────────────────────────────────────
+
+/// Marks a KnowledgeObject for the reading queue by setting the custom
+/// properties that the UI's `queue_get_all` command reads.
+///
+/// Called by capture handlers that produce readable content (bookmarks,
+/// articles) so that newly-captured items appear in the Reading Queue with
+/// "pending" status — mirroring Karakeep's reading-list behaviour while
+/// staying within the existing CaptureEngine → ProcessingPipeline →
+/// Knowledge Inbox → Storage flow.
+fn mark_for_reading_queue(object: &mut KnowledgeObject) {
+    use crate::models::CustomPropertyValue;
+
+    // Only mark bookmarks/articles (skip screenshots, notes, etc.)
+    let readable = matches!(
+        object.object_type,
+        ObjectType::Bookmark | ObjectType::Article
+    );
+    if !readable {
+        return;
+    }
+
+    // Avoid double-marking if already set.
+    let already_queued = object
+        .custom_properties
+        .get("reading_status")
+        .map(|v| {
+            matches!(
+                v,
+                CustomPropertyValue::Text(t) if t == "pending" || t == "in_progress" || t == "completed"
+            )
+        })
+        .unwrap_or(false);
+
+    if !already_queued {
+        object.custom_properties.insert(
+            "reading_status".to_string(),
+            CustomPropertyValue::Text("pending".to_string()),
+        );
+        object.custom_properties.insert(
+            "reading_priority".to_string(),
+            CustomPropertyValue::Text("medium".to_string()),
+        );
+        object.custom_properties.insert(
+            "reading_progress".to_string(),
+            CustomPropertyValue::Number(0.0),
+        );
+    }
+}
+
+// ── Extraction helpers ───────────────────────────────────────────────────────
 
 /// Minimal readability-style HTML → Markdown conversion.
 ///

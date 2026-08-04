@@ -155,7 +155,7 @@ impl ObjectType {
 }
 
 /// Five content variants for how KnowledgeObject stores its primary data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ObjectContent {
     /// Markdown body text
     Markdown(String),
@@ -267,8 +267,8 @@ pub enum CaptureSource {
     SafariReader,
     YouTube,
     GitHub,
-    /// URL entered or pasted directly (e.g. from the command palette or a
-    /// non-browser source) for bookmarking.
+    /// Email capture (`.eml` files, email text, forwarded messages)
+    Email,
     Url,
     /// Reader-mode / readability-extracted article content.
     Article,

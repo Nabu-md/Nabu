@@ -10,6 +10,7 @@
 
 pub mod error;
 pub mod pdfkit;
+pub mod screenshot;
 pub mod vision;
 pub mod whisper;
 

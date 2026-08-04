@@ -173,6 +173,7 @@ pub fn build_default_capture_engine(
     engine.register(Arc::new(super::handler::SafariReaderHandler));
     engine.register(Arc::new(super::handler::YouTubeCaptureHandler));
     engine.register(Arc::new(super::handler::GitHubRepositoryHandler));
+    engine.register(Arc::new(super::handler::EmailCaptureHandler));
     engine.register(Arc::new(super::handler::BookmarkCaptureHandler));
     engine.register(Arc::new(super::handler::ArticleCaptureHandler));
 
@@ -216,12 +217,12 @@ mod tests {
     async fn test_default_engine_registers_all_handlers() {
         let engine = build_default_capture_engine(None, None);
         let names = engine.handler_names();
-        // 10 built-in handlers: browser, clipboard, screenshot, file_drop,
-        // watch_folder, safari_reader, youtube, github, bookmark, article.
+        // 11 built-in handlers: browser, clipboard, screenshot, file_drop,
+        // watch_folder, safari_reader, youtube, github, email, bookmark, article.
         assert_eq!(
             engine.handler_count(),
-            10,
-            "Expected 10 handlers: {:?}",
+            11,
+            "Expected 11 handlers: {:?}",
             names
         );
         assert!(names.contains(&"browser".to_string()));
@@ -230,6 +231,7 @@ mod tests {
         assert!(names.contains(&"safari_reader".to_string()));
         assert!(names.contains(&"youtube".to_string()));
         assert!(names.contains(&"github".to_string()));
+        assert!(names.contains(&"email".to_string()));
         assert!(names.contains(&"bookmark".to_string()));
         assert!(names.contains(&"article".to_string()));
     }

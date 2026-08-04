@@ -28,7 +28,7 @@ Nabu is a local-first, Markdown-canonical, privacy-first knowledge management ap
 │  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐    │   │
 │  │  │ EventBus   │  │ CaptureEngine│  │ ProcessingPipeline │    │   │
 │  │  ├────────────┤  ├──────────────┤  ├────────────────────┤    │   │
-│  │  │ JobQueue   │  │ StorageManager│  │ Indexer (in-memory) │    │   │
+│  │  │ JobQueue   │  │ StorageManager│  │ Indexer  │                     │   │
 │  │  ├────────────┤  ├──────────────┤  ├────────────────────┤    │   │
 │  │  │ VaultGraph │  │ WorkerPool   │  │ OcrProcessor      │    │   │
 │  │  └────────────┘  └──────────────┘  └────────────────────┘    │   │
@@ -38,7 +38,7 @@ Nabu is a local-first, Markdown-canonical, privacy-first knowledge management ap
 │  │                  CapabilityRegistry                           │   │
 │  │  nabu:event_bus │ nabu:storage │ nabu:capture │ nabu:processor │   │
 │  │  nabu:graph     │ nabu:export  │ nabu:search  │ nabu:import   │   │
-│  │  nabu:content_provider │ nabu:theme                           │   │
+│  │  nabu:ocr       │ nabu:embedding │ nabu:ai    │ nabu:content_provider │ nabu:theme  │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
@@ -51,7 +51,7 @@ Nabu is a local-first, Markdown-canonical, privacy-first knowledge management ap
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         Event Bus                                    │
 │                                                                      │
-│  ItemCaptured ──► ItemProcessed ──► ItemStored                       │
+│  ItemCaptured ──► ItemProcessingStarted ──► ItemProcessingCompleted ──► ItemStored  │
 │       │               │                  │                           │
 │       ▼               ▼                  ▼                           │
 │  ProcessingP.    StorageMgr.       Indexer, Graph,                   │
@@ -83,7 +83,7 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 
 | Category | Description | Services |
 |----------|-------------|----------|
-| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, FileDropHandler, WatchFolderHandler, SafariReaderHandler |
+| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, FileDropHandler, WatchFolderHandler, SafariReaderHandler, YouTubeCaptureHandler, GitHubRepositoryHandler |
 | `processors` | Processing pipeline processors implementing `Processor` trait | ContentClassifier, DuplicateDetector, TimelineExtractor, MetadataExtractor, MetadataEnricher, OcrProcessor, PdfTextProcessor, PdfMetadataProcessor, PdfAnnotationProcessor, WhisperProcessor, EmbeddingGenerator, SemanticEnricher, AiSummariser, AutoFiler |
 | `ai_providers` | Future AI provider services | — (reserved) |
 | `ocr_providers` | Future OCR engine services | — (reserved) |
@@ -99,7 +99,7 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 | `event_bus` | `Arc<EventBus>` | Yes | Central pub/sub event bus |
 | `capture_engine` | `Arc<CaptureEngine>` | Yes | Routes capture requests to handlers |
 | `pipeline` | `Arc<ProcessingPipeline>` | Yes | Processor chain execution |
-| `storage_manager` | `Arc<StorageManager>` | Yes | SQLite-based object persistence |
+| `storage_manager` | `Arc<StorageManager>` | Yes | Markdown + JSON sidecar file persistence |
 | `job_queue` | `Arc<JobQueue>` | No | Async background job queue |
 | `worker_pool` | `Arc<WorkerPool>` | No | Tokio-based worker thread pool |
 | `vault_graph` | `Arc<RwLock<VaultGraph>>` | No | Knowledge relationship graph |
@@ -111,8 +111,8 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 |-----------|------|-------------|
 | CaptureEngine | Handler registry, dispatch logic | KnowledgeObjects, Storage |
 | ProcessingPipeline | Processor chain, processing history | Storage, Search, Graph |
-| StorageManager | SQLite database, object persistence | Objects in memory, processing state |
-| Indexer | In-memory index | Object metadata, graphs |
+| StorageManager | Markdown + JSON sidecar persistence, object storage | Objects in memory, processing state |
+| Indexer | Persistent inverted index (`.nabu/search_index.json`) | Object metadata, graphs |
 | VaultGraph | In-memory adjacency list + `.nabu/graph/` persistence | Object storage, indexes |
 | JobQueue | Tokio channel, worker pool | Processing logic, storage |
 | EventBus | Subscriber registry, event dispatch | Business logic, state |
@@ -125,24 +125,21 @@ User action
     ▼
 CaptureEngine.ingest(request)
     │
-    ▼  EVENT_ITEM_CAPTURED
-IngestionPipeline
-    │
-    ▼  EVENT_ITEM_PROCESSED
+    ▼  ITEM_CAPTURED
 JobQueue.enqueue() ──► WorkerPool (async)
                          │
                          ▼  ProcessingPipeline.run()
                          │
-                         ├── EVENT_ITEM_PROCESSING_STARTED
-                         ├── EVENT_ITEM_PROCESSING_COMPLETED
-                         └── EVENT_ITEM_PROCESSED (re-published)
+                         ├── ITEM_PROCESSING_STARTED
+                         ├── ITEM_PROCESSING_COMPLETED
+                         └── (object flows to StorageManager.save())
                               │
                               ▼
-                         StorageManager.save_object()
+                         StorageManager.save()
                               │
-                              ▼  EVENT_ITEM_STORED
-                              ├── Indexer.index_document()
-                              └── VaultGraph.update_node()
+                              ▼  ITEM_STORED
+                              ├── Indexer.index_object()
+                              └── VaultGraph.add_node()
 ```
 
 ## Dependency Injection
@@ -161,9 +158,9 @@ build_application_context() in src-tauri/src/lib.rs
     │   └── Registered in CATEGORY_CAPTURE_HANDLERS
     ├── JobQueue::new(pipeline, event_bus)
     ├── WorkerPool::new(4, job_queue)
-    ├── Indexer::new(path)  →  EVENT_ITEM_STORED subscriber
-    ├── VaultGraph::with_storage(path)  →  EVENT_ITEM_STORED subscriber
-    └── StorageManager::new(vault_path, event_bus)  →  EVENT_ITEM_PROCESSED subscriber
+    ├── Indexer::new()  →  EVENT_ITEM_STORED subscriber
+    ├── VaultGraph::with_persistence(None, path)  →  EVENT_ITEM_STORED subscriber
+    └── StorageManager::with_event_bus(vault_path, event_bus)  →  EVENT_ITEM_STORED subscriber
 ```
 
 ## Plugin Infrastructure (v0)
@@ -216,13 +213,13 @@ Shutdown
 
 ### Supported Now
 - ✅ Single AI provider (via EventBus subscription)
-- ✅ Multiple capture handlers (6 built-in)
+- ✅ Multiple capture handlers (8 built-in)
 - ✅ Multiple processing processors (14 built-in)
 - ✅ EventBus publish/subscribe
 - ✅ Async job queue with worker pool
-- ✅ SQLite persistence
-- ✅ In-memory search index
-- ✅ VaultGraph relationship graph (no petgraph dependency)
+- ✅ Markdown + JSON sidecar file persistence
+- ✅ Persistent inverted search index (`.nabu/search_index.json`)
+- ✅ VaultGraph relationship graph (`.nabu/graph/` persistence)
 - ✅ Diagnostics with structured tracing
 - ✅ Service registry with dependency injection
 - ✅ Plugin infrastructure (metadata only)

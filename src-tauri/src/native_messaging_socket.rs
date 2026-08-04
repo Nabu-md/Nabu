@@ -64,14 +64,18 @@ fn validate_capture_message(message: &Message) -> SocketResult<()> {
     let valid_sources = [
         "clipboard",
         "screenshot",
+        "screen_capture",
         "browser",
         "watch_folder",
         "reader_mode",
+        "safari_reader",
         "youtube",
         "github",
+        "email",
         "bookmark",
         "note",
         "document",
+        "article",
     ];
     if !valid_sources.contains(&capture_type) {
         return Err(SocketError::ValidationError(format!(
@@ -123,10 +127,28 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
 
     let capture_type = message.capture_type.as_deref().unwrap_or("note");
 
-    let data = if let Some(url) = url.clone() {
+    let data = if capture_type == "screen_capture" {
+        // Trigger a live screen capture via the ScreenshotHandler.
+        let selection = payload
+            .get("selection")
+            .and_then(|v| v.as_array())
+            .and_then(|arr| {
+                if arr.len() == 4 {
+                    Some((
+                        arr[0].as_i64()? as i32,
+                        arr[1].as_i64()? as i32,
+                        arr[2].as_i64()? as u32,
+                        arr[3].as_i64()? as u32,
+                    ))
+                } else {
+                    None
+                }
+            });
+        CaptureData::ScreenCapture { selection }
+    } else if let Some(url) = url.clone() {
         if matches!(
             capture_type,
-            "bookmark" | "browser" | "reader_mode" | "youtube" | "github"
+            "bookmark" | "browser" | "reader_mode" | "safari_reader" | "youtube" | "github" | "email"
         ) {
             CaptureData::Uri(url)
         } else {
