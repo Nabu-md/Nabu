@@ -43,6 +43,58 @@ pub struct KnowledgeObject {
 }
 
 impl KnowledgeObject {
+    /// Returns the word count of the primary text content (Markdown / plain /
+    /// HTML / URI), or `0` when the content carries no text body. Reused by
+    /// views and the indexer so the count is derived from canonical content
+    /// rather than stored independently.
+    pub fn count_words(&self) -> usize {
+        match &self.content {
+            ObjectContent::Markdown(s)
+            | ObjectContent::RichHtml(s)
+            | ObjectContent::PlainText(s)
+            | ObjectContent::Uri(s) => s.split_whitespace().count(),
+            ObjectContent::Binary { .. } => 0,
+        }
+    }
+
+    /// Reads a custom property typed as a plain text variant (`Text`, `Select`,
+    /// `Url`, `Date`) as a borrowed string slice. Mirrors the backend
+    /// `custom_text` helper so UI and core share the same coercion rules.
+    pub fn custom_property_text(&self, key: &str) -> Option<String> {
+        match self.custom_properties.get(key) {
+            Some(CustomPropertyValue::Text(s))
+            | Some(CustomPropertyValue::Select(s))
+            | Some(CustomPropertyValue::Url(s))
+            | Some(CustomPropertyValue::Date(s)) => Some(s.clone()),
+            _ => None,
+        }
+    }
+
+    /// Reads a custom property and projects it into a `serde_json::Value`, so
+    /// callers that expect JSON semantics (e.g. `.as_str()`) work regardless of
+    /// the underlying `CustomPropertyValue` variant. Mirrors the backend
+    /// `custom_json` helper.
+    pub fn custom_property_json(&self, key: &str) -> Option<serde_json::Value> {
+        self.custom_properties
+            .get(key)
+            .map(|v| v.to_json_value())
+    }
+
+    /// True when this object declares a relation (of any type) pointing at
+    /// `target_id`. Backlinks/edges are stored on `relations`; the graph
+    /// (`VaultGraph`) is the authority for traversal.
+    pub fn has_relation(&self, target_id: uuid::Uuid) -> bool {
+        self.relations.iter().any(|r| r.target_id == target_id)
+    }
+}
+
+impl std::fmt::Display for ObjectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.variant_name())
+    }
+}
+
+impl KnowledgeObject {
     pub fn new(object_type: ObjectType, content: ObjectContent) -> Self {
         let now = Utc::now();
         Self {
@@ -212,6 +264,8 @@ pub struct ObjectMetadata {
     pub vault_path: Option<String>,
     /// Extended description / excerpt
     pub description: Option<String>,
+    /// Word count of the primary content body (derived, persisted for views).
+    pub word_count: Option<usize>,
 }
 
 /// Extensible custom property value types
@@ -225,6 +279,30 @@ pub enum CustomPropertyValue {
     Select(String),
     MultiSelect(Vec<String>),
     Url(String),
+    /// A typed relation to another KnowledgeObject, stored by id. Reuses the
+    /// existing relation model rather than introducing a parallel one.
+    Relation(uuid::Uuid),
+}
+
+impl CustomPropertyValue {
+    /// Project this value into a `serde_json::Value` so callers that expect
+    /// JSON semantics (e.g. `.as_str()`, `.as_f64()`) work for every variant.
+    pub fn to_json_value(&self) -> serde_json::Value {
+        match self {
+            CustomPropertyValue::Text(s) => serde_json::Value::String(s.clone()),
+            CustomPropertyValue::Number(n) => serde_json::Value::from(*n),
+            CustomPropertyValue::Bool(b) => serde_json::Value::Bool(*b),
+            CustomPropertyValue::Date(s) => serde_json::Value::String(s.clone()),
+            CustomPropertyValue::Select(s) => serde_json::Value::String(s.clone()),
+            CustomPropertyValue::MultiSelect(v) => {
+                serde_json::Value::Array(v.iter().cloned().map(serde_json::Value::String).collect())
+            }
+            CustomPropertyValue::Url(s) => serde_json::Value::String(s.clone()),
+            CustomPropertyValue::Relation(id) => {
+                serde_json::Value::String(id.to_string())
+            }
+        }
+    }
 }
 
 /// A relationship between this object and another
@@ -275,4 +353,63 @@ pub enum CaptureSource {
     Manual,
     Api,
     Plugin,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn object_metadata_has_word_count_field() {
+        let meta = ObjectMetadata::default();
+        assert_eq!(meta.word_count, None);
+
+        let meta = ObjectMetadata {
+            word_count: Some(42),
+            ..Default::default()
+        };
+        assert_eq!(meta.word_count, Some(42));
+    }
+
+    #[test]
+    fn custom_property_value_relation_to_json() {
+        let id = Uuid::nil();
+        let rel = CustomPropertyValue::Relation(id);
+        let json = rel.to_json_value();
+        assert!(json.is_string());
+        assert_eq!(json.as_str(), Some(id.to_string().as_str()));
+    }
+
+    #[test]
+    fn to_json_value_projects_each_variant() {
+        assert_eq!(
+            CustomPropertyValue::Text("hi".into()).to_json_value(),
+            serde_json::Value::String("hi".into())
+        );
+        assert_eq!(
+            CustomPropertyValue::Number(3.5).to_json_value(),
+            serde_json::Value::from(3.5)
+        );
+        assert_eq!(
+            CustomPropertyValue::Bool(true).to_json_value(),
+            serde_json::Value::Bool(true)
+        );
+        assert_eq!(
+            CustomPropertyValue::MultiSelect(vec!["a".into(), "b".into()]).to_json_value(),
+            serde_json::Value::Array(vec![
+                serde_json::Value::String("a".into()),
+                serde_json::Value::String("b".into())
+            ])
+        );
+    }
+
+    #[test]
+    fn custom_property_json_uses_to_json_value() {
+        let mut obj = KnowledgeObject::new(ObjectType::Note, ObjectContent::PlainText("hello world".into()));
+        let id = Uuid::nil();
+        obj.custom_properties.insert("related".into(), CustomPropertyValue::Relation(id));
+        let json = obj.custom_property_json("related");
+        assert_eq!(json, Some(serde_json::Value::String(id.to_string())));
+        assert_eq!(obj.custom_property_json("missing"), None);
+    }
 }

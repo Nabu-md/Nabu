@@ -244,19 +244,17 @@ fn capture_file_drop(file: web_sys::File, toasts: crate::components::ui::feedbac
             }
         };
         let data = js_sys::Uint8Array::new(&array_buffer).to_vec();
-        let mime = if mime_type.is_empty() { "application/octet-stream" } else { &mime_type };
-        let result = crate::ipc::tauri_invoke(
-            "capture_file_drop",
-            serde_wasm_bindgen::to_value(&serde_json::json!({
-                "filename": filename,
-                "mime_type": mime,
-                "data": serde_wasm_bindgen::to_value(&data).unwrap(),
-            }))
-            .unwrap(),
-        )
-        .await;
+        #[derive(serde::Serialize)]
+        struct FileDropArgs {
+            filename: String,
+            mime_type: String,
+            data: Vec<u8>,
+        }
+        let mime = if mime_type.is_empty() { "application/octet-stream".to_string() } else { mime_type };
+        let args = serde_wasm_bindgen::to_value(&FileDropArgs { filename: filename.clone(), mime_type: mime, data }).unwrap();
+        let result = crate::ipc::tauri_invoke("capture_file_drop", args).await;
         match serde_wasm_bindgen::from_value::<String>(result) {
-            Ok(id) => toasts.success("File Drop", format!("Captured '{}' to inbox", filename)),
+            Ok(id) => toasts.success("File Drop", format!("Captured '{}' to inbox", id)),
             Err(_) => toasts.error("File Drop", "Could not capture the dropped file"),
         }
     });
@@ -435,7 +433,10 @@ pub fn Inbox() -> impl IntoView {
     // Works when the inbox container has focus and no text editor is focused.
     let on_keydown = move |ev: web_sys::KeyboardEvent| {
         // Skip if typing in an input — the search box handles its own keys.
-        let tag = ev.target().and_then(|t| t.dyn_ref::<web_sys::Element>()).map(|e| e.tag_name().to_ascii_lowercase());
+        let tag = ev.target().and_then(|t| {
+            let el: web_sys::Element = t.dyn_into().ok()?;
+            Some(el.tag_name().to_ascii_lowercase())
+        });
         if tag.as_deref() == Some("input") || tag.as_deref() == Some("textarea") {
             return;
         }
@@ -561,7 +562,7 @@ pub fn Inbox() -> impl IntoView {
             on:dragover=on_dragover
             on:dragleave=on_dragleave
             on:drop=on_drop
-            tabIndex=0>
+            tabindex="0">
             // Left panel: Queue
             <div class="flex-none w-96 border-r border-gray-800 flex flex-col">
                 <div class="flex items-center gap-2 p-3 border-b border-gray-800">
@@ -968,6 +969,18 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
     let (destination, set_destination) =
         signal(item.suggested_folder.clone().unwrap_or_default());
 
+    let suggested_folder_view: AnyView = if let Some(folder) = item.suggested_folder.clone() {
+        view! {
+            <div class="flex items-center gap-1 mb-1">
+                {render_icon_view(Icon::MapPin)}
+                <span class="text-xs text-blue-400">{folder}</span>
+                <span class="text-xs text-gray-500">(suggested)</span>
+            </div>
+        }.into_any()
+    } else {
+        view! {}.into_any()
+    };
+
     let save_metadata = move |_| {
         let item_for_ipc = item.clone();
         let id = item_for_ipc.id.clone();
@@ -1050,17 +1063,7 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
             </div>
             <div>
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Destination Folder"</label>
-                {move || {
-                    if item.suggested_folder.is_some() {
-                        view! {
-                            <div class="flex items-center gap-1 mb-1">
-                                {render_icon_view(Icon::MapPin)}
-                                <span class="text-xs text-blue-400">"{item.suggested_folder.clone().unwrap_or_default()}"</span>
-                                <span class="text-xs text-gray-500">(suggested)</span>
-                            </div>
-                        }.into_any()
-                    } else { view! {}.into_any() }
-                }}
+                {suggested_folder_view}
                 <input type="text" value=destination on:input=move |ev| set_destination.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none"
                     placeholder="e.g. Finance/Invoices" />

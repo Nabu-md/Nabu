@@ -293,6 +293,52 @@ fn EditorSettings(
                 get=Callback::new(|s: AppSettings| s.enable_notion_slash_menu)
                 set=Callback::new(|(mut s, v): (AppSettings, bool)| s.enable_notion_slash_menu = v)
             />
+            <label class="field">
+                <span class="field-label">"Tab Size"</span>
+                <input
+                    type="number"
+                    class="input"
+                    min="1"
+                    max="16"
+                    prop:value=move || settings.get().tab_size.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.tab_size = event_target_value(&ev).parse().unwrap_or(4);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Word Wrap"
+                get=Callback::new(|s: AppSettings| s.word_wrap)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.word_wrap = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Spell Check"
+                get=Callback::new(|s: AppSettings| s.spell_check)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.spell_check = v)
+            />
+            <label class="field">
+                <span class="field-label">"Auto-Save Interval (seconds)"</span>
+                <input
+                    type="number"
+                    class="input"
+                    min="5"
+                    max="300"
+                    prop:value=move || settings.get().auto_save_interval_secs.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.auto_save_interval_secs = event_target_value(&ev).parse().unwrap_or(30);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
         </div>
     }
 }
@@ -399,6 +445,88 @@ fn AppearanceSettings(
                 get=Callback::new(|s: AppSettings| s.pill_hover_boost_opacity)
                 set=Callback::new(|(mut s, v): (AppSettings, bool)| s.pill_hover_boost_opacity = v)
             />
+            <label class="field">
+                <span class="field-label">"Font Size"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="0.75"
+                    max="1.5"
+                    step="0.05"
+                    prop:value=move || settings.get().font_size.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.font_size = event_target_value(&ev).parse().unwrap_or(1.0);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
+            <label class="field">
+                <span class="field-label">"Line Height"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="1.0"
+                    max="2.0"
+                    step="0.1"
+                    prop:value=move || settings.get().line_height.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.line_height = event_target_value(&ev).parse().unwrap_or(1.5);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Reduced Motion"
+                get=Callback::new(|s: AppSettings| s.reduced_motion)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.reduced_motion = v)
+            />
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="High Contrast"
+                get=Callback::new(|s: AppSettings| s.high_contrast)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.high_contrast = v)
+            />
+            <label class="field">
+                <span class="field-label">"Sidebar Width"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="200"
+                    max="600"
+                    step="10"
+                    prop:value=move || settings.get().sidebar_width.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.sidebar_width = event_target_value(&ev).parse().unwrap_or(280.0);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
+            <label class="field">
+                <span class="field-label">"Inspector Width"</span>
+                <input
+                    type="range"
+                    class="input w-full"
+                    min="200"
+                    max="600"
+                    step="10"
+                    prop:value=move || settings.get().inspector_width.to_string()
+                    on:change=move |ev| {
+                        let mut s = settings.get();
+                        s.inspector_width = event_target_value(&ev).parse().unwrap_or(320.0);
+                        settings.set(s.clone());
+                        save.run(s);
+                    }
+                />
+            </label>
         </div>
     }
 }
@@ -498,6 +626,13 @@ fn GraphSettings(
                     }
                 />
             </label>
+            <SettingCheckbox
+                settings=settings
+                save=save
+                label="Show Tags as Badges"
+                get=Callback::new(|s: AppSettings| s.graph_show_tags_as_badges)
+                set=Callback::new(|(mut s, v): (AppSettings, bool)| s.graph_show_tags_as_badges = v)
+            />
         </div>
     }
 }

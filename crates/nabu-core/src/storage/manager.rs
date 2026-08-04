@@ -124,6 +124,7 @@ impl StorageManager {
             created_at: object.created_at,
             updated_at: object.updated_at,
             content_ext: content_extension_for(&object.content).to_string(),
+            word_count: object.metadata.word_count.or_else(|| Some(object.count_words())),
             custom_properties: object.custom_properties.clone(),
         };
         serde_json::to_string_pretty(&sidecar).map_err(|e| e.to_string())
@@ -292,6 +293,7 @@ impl StorageManager {
             original_filename: sidecar.original_filename.clone(),
             vault_path: sidecar.vault_path.clone(),
             description: sidecar.description.clone(),
+            word_count: sidecar.word_count,
         };
 
         Some(KnowledgeObject {
@@ -481,6 +483,10 @@ struct Sidecar {
     created_at: chrono::DateTime<chrono::Utc>,
     updated_at: chrono::DateTime<chrono::Utc>,
     content_ext: String,
+    /// Word count of the primary content body. Defaults to `None` for sidecars
+    /// written before this field existed, so older vaults keep loading.
+    #[serde(default)]
+    word_count: Option<usize>,
     /// Extensible custom properties (classification, inbox status, filing
     /// suggestions, duplicate info, …). Defaults to empty for sidecars written
     /// before this field existed, so older vaults keep loading.
