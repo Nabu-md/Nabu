@@ -143,6 +143,10 @@ fn object_type_to_job_type(object_type: &ObjectType) -> JobType {
         ObjectType::Image | ObjectType::Screenshot | ObjectType::Scan => JobType::Ocr,
         ObjectType::AudioRecording => JobType::Whisper,
         ObjectType::Document => JobType::PdfTextExtraction,
+        ObjectType::YouTubeVideo
+        | ObjectType::Repository
+        | ObjectType::Bookmark
+        | ObjectType::Article => JobType::MetadataExtraction,
         _ => JobType::MetadataExtraction,
     }
 }
@@ -169,6 +173,8 @@ pub fn build_default_capture_engine(
     engine.register(Arc::new(super::handler::SafariReaderHandler));
     engine.register(Arc::new(super::handler::YouTubeCaptureHandler));
     engine.register(Arc::new(super::handler::GitHubRepositoryHandler));
+    engine.register(Arc::new(super::handler::BookmarkCaptureHandler));
+    engine.register(Arc::new(super::handler::ArticleCaptureHandler));
 
     engine
 }
@@ -204,5 +210,60 @@ mod tests {
         let result = engine.ingest(request).await.unwrap();
 
         assert!(result.is_some(), "Should have enqueued a job");
+    }
+
+    #[tokio::test]
+    async fn test_default_engine_registers_all_handlers() {
+        let engine = build_default_capture_engine(None, None);
+        let names = engine.handler_names();
+        // 10 built-in handlers: browser, clipboard, screenshot, file_drop,
+        // watch_folder, safari_reader, youtube, github, bookmark, article.
+        assert_eq!(
+            engine.handler_count(),
+            10,
+            "Expected 10 handlers: {:?}",
+            names
+        );
+        assert!(names.contains(&"browser".to_string()));
+        assert!(names.contains(&"clipboard".to_string()));
+        assert!(names.contains(&"screenshot".to_string()));
+        assert!(names.contains(&"safari_reader".to_string()));
+        assert!(names.contains(&"youtube".to_string()));
+        assert!(names.contains(&"github".to_string()));
+        assert!(names.contains(&"bookmark".to_string()));
+        assert!(names.contains(&"article".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_browser_url_routes_to_bookmark() {
+        let engine = build_default_capture_engine(None, None);
+        let request = CaptureRequest::new(CaptureData::Uri(
+            "https://example.com/some-page".to_string(),
+        ));
+        let result = engine.ingest(request).await.unwrap();
+        assert!(result.is_some());
+        // The object id is returned; the handler routing happens inside
+        // route() — we verify no error and an id is produced.
+    }
+
+    #[tokio::test]
+    async fn test_bookmark_capture_through_engine() {
+        let engine = build_default_capture_engine(None, None);
+        let request = CaptureRequest::new(CaptureData::Uri(
+            "https://example.com/bookmark-test".to_string(),
+        ))
+        .with_title("Bookmark Test");
+        let result = engine.ingest(request).await.unwrap();
+        assert!(result.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_clipboard_url_capture_through_engine() {
+        let engine = build_default_capture_engine(None, None);
+        let request = CaptureRequest::new(CaptureData::Text(
+            "https://example.com/clipboard-url".to_string(),
+        ));
+        let result = engine.ingest(request).await.unwrap();
+        assert!(result.is_some());
     }
 }

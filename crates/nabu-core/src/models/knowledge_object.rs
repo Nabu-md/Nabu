@@ -267,6 +267,11 @@ pub enum CaptureSource {
     SafariReader,
     YouTube,
     GitHub,
+    /// URL entered or pasted directly (e.g. from the command palette or a
+    /// non-browser source) for bookmarking.
+    Url,
+    /// Reader-mode / readability-extracted article content.
+    Article,
     Manual,
     Api,
     Plugin,

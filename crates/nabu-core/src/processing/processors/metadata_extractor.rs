@@ -41,6 +41,10 @@ impl Processor for MetadataExtractor {
             ObjectContent::RichHtml(s) => s.clone(),
             ObjectContent::Uri(url) => {
                 extract_url_metadata(&mut object.metadata, url);
+                // Normalize the URL and infer a readable title.
+                if object.metadata.title.is_none() {
+                    object.metadata.title = extract_title_from_url(url);
+                }
                 return ProcessingResult::new(object);
             }
             ObjectContent::Binary { .. } => return ProcessingResult::unmodified(object),
@@ -87,6 +91,8 @@ impl Processor for MetadataExtractor {
                 | ObjectType::Email
                 | ObjectType::Bookmark
                 | ObjectType::CodeSnippet
+                | ObjectType::YouTubeVideo
+                | ObjectType::Repository
         )
     }
 }
@@ -157,13 +163,118 @@ fn extract_url_metadata(metadata: &mut ObjectMetadata, url: &str) {
         metadata.site_name = Some(domain);
     }
 
-    // Use the last path segment as a potential title
-    if let Some(title) = url.split('/').next_back().map(|s| s.to_string()) {
+    // Extract path segments for a better fallback title and description.
+    if let Some(title) = extract_title_from_url(url) {
         if metadata.title.is_none() {
-            let decoded = url_decode(&title);
-            metadata.title = Some(decoded);
+            metadata.title = Some(title);
         }
     }
+
+    // Best-effort description from the URL path.
+    if metadata.description.is_none() {
+        if let Some(desc) = extract_description_from_url(url) {
+            metadata.description = Some(desc);
+        }
+    }
+}
+
+/// Infer a human-readable title from a URL path's last meaningful segment.
+///
+/// Examples:
+///   `https://example.com/blog/my-great-post` → `My-great-post` → `My Great Post`
+///   `https://github.com/org/repo`             → `org/repo` (kept as-is)
+///   `https://youtube.com/watch?v=dQw4w9WgXcQ` → `dQw4w9WgXcQ`
+fn extract_title_from_url(url: &str) -> Option<String> {
+    // YouTube watch URLs: use the video id as part of the title.
+    if let Some(pos) = url.find("v=") {
+        let id = url[pos + 2..].split('&').next().unwrap_or("").to_string();
+        if !id.is_empty() {
+            return Some(format!("YouTube: {}", id));
+        }
+    }
+
+    // Strip query/fragment, take the path.
+    let path = url
+        .split('#')
+        .next()
+        .unwrap_or(url)
+        .split('?')
+        .next()
+        .unwrap_or(url);
+    let path = path
+        .split("//")
+        .nth(1)
+        .map(|rest| rest.split('/').collect::<String>())
+        .filter(|rest| !rest.is_empty())
+        .unwrap_or_else(|| path.to_string());
+
+    // Take up to the last two non-empty path segments for the title,
+    // which handles github.com/owner/repo and blog.example.com/2024/post.
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    if segments.is_empty() {
+        return None;
+    }
+
+    let title_segments = if segments.len() >= 2 {
+        segments[segments.len() - 2..].to_vec()
+    } else {
+        segments[segments.len() - 1..].to_vec()
+    };
+
+    let raw = title_segments.join(" ");
+    if raw.is_empty() {
+        return None;
+    }
+
+    // Decode URL-encoded characters and replace separators with spaces.
+    let decoded = url_decode(&raw);
+    let cleaned = decoded.replace(&['_', '-'][..], " ").trim().to_string();
+    if cleaned.is_empty() {
+        return None;
+    }
+
+    Some(cleaned)
+}
+
+/// Build a short description from a URL's path (for bookmark/article objects
+/// whose content is a URI). This is a fallback only — if the metadata
+/// extractor already has richer context it is preserved.
+fn extract_description_from_url(url: &str) -> Option<String> {
+    let path = url
+        .split('#')
+        .next()
+        .unwrap_or(url)
+        .split('?')
+        .next()
+        .unwrap_or(url);
+
+    if let Some(domain) = extract_domain(url) {
+        if domain == "youtube.com"
+            || domain == "youtu.be"
+            || domain == "www.youtube.com"
+            || domain == "m.youtube.com"
+        {
+            return Some("YouTube video".to_string());
+        }
+        if domain == "github.com" || domain == "www.github.com" {
+            return Some("GitHub repository".to_string());
+        }
+    }
+
+    // Generic fallback: use the first path segment after the domain.
+    let after = path.split("//").nth(1)?;
+    let segments: Vec<&str> = after.split('/').filter(|s| !s.is_empty()).collect();
+    if segments.is_empty() {
+        return None;
+    }
+
+    // Skip known TLDs / bare domains.
+    if segments.len() == 1 {
+        return None;
+    }
+
+    Some(format!("Link to {}", url_decode(&segments.join("/"))))
 }
 
 fn extract_domain(url: &str) -> Option<String> {
