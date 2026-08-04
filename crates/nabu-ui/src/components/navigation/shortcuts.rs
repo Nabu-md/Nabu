@@ -119,6 +119,42 @@ pub const SHORTCUTS: &[Shortcut] = &[
         keys: "⌘⇧⌫",
         description: "Empty trash (Trash screen)",
     },
+    // ── Knowledge Inbox ───────────────────────────────────
+    Shortcut {
+        category: "Inbox",
+        keys: "A",
+        description: "Approve selected items",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "R",
+        description: "Reject selected items",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "D",
+        description: "Delete selected items",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "Space",
+        description: "Toggle selection of previewed item",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "Enter",
+        description: "Approve previewed item",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "⌘A",
+        description: "Select / deselect all inbox items",
+    },
+    Shortcut {
+        category: "Inbox",
+        keys: "⌘⇧F",
+        description: "Open inbox search",
+    },
     // ── Workspace / panels ────────────────────────────────────────
     Shortcut {
         category: "Workspace",

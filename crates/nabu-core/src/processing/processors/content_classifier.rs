@@ -48,12 +48,12 @@ impl Processor for ContentClassifier {
         progress.set_progress(0.3);
 
         // Classification heuristics
-        let (classification, confidence) = classify_content(&text, &object.metadata).unwrap_or_else(|| (String::new(), 0.0));
+        let classification = classify_content(&text, &object.metadata);
 
         progress.set_progress(0.6);
 
-        // Store classification in custom properties
-        if let Some(class) = classification {
+        // Store classification + confidence in custom properties
+        if let Some((class, confidence)) = classification {
             object.custom_properties.insert(
                 "classification".to_string(),
                 crate::models::CustomPropertyValue::Text(class),

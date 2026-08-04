@@ -7,6 +7,7 @@
 use crate::components::ui::icons::{render_icon_view, Icon};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -171,6 +172,92 @@ fn delete_item(id: String, toasts: crate::components::ui::feedback::ToastContext
         .await;
         if serde_wasm_bindgen::from_value::<()>(result).is_err() {
             toasts.error("Delete", "Could not delete that capture");
+        }
+    });
+}
+
+/// Maps a thumbnail icon name (from the backend) to the frontend [`Icon`] enum.
+fn thumbnail_to_icon(thumbnail: &str) -> Icon {
+    match thumbnail {
+        "image" => Icon::Image,
+        "music-3" => Icon::Music,
+        "play" => Icon::Play,
+        "code-block" => Icon::CodeBlock,
+        "code" => Icon::CodeBlock,
+        "mail" => Icon::Mail,
+        "bookmark" => Icon::Bookmark,
+        "book-text" => Icon::BookText,
+        "file-text" => Icon::FileText,
+        "pen-line" => Icon::PenLine,
+        "user" => Icon::User,
+        "calendar" => Icon::Calendar,
+        "list-checks" => Icon::ListChecks,
+        "folder" => Icon::Folder,
+        "file-pen" => Icon::FilePen,
+        "sticky-note" => Icon::StickyNote,
+        "folder-tree" => Icon::FolderTree,
+        "layout-dashboard" => Icon::Dashboard,
+        "dashboard" => Icon::Dashboard,
+        "file" => Icon::File,
+        _ => Icon::File,
+    }
+}
+
+/// Returns a Tailwind colour class for a confidence score (0.0–1.0).
+fn confidence_color(score: f64) -> &'static str {
+    match score {
+        s if s >= 0.8 => "text-green-400",
+        s if s >= 0.5 => "text-amber-400",
+        s if s >= 0.3 => "text-orange-400",
+        _ => "text-red-400",
+    }
+}
+
+/// Renders the confidence bar — a small horizontal bar with a width
+/// proportional to the score, coloured by confidence level.
+fn confidence_bar(score: f64) -> AnyView {
+    let pct = ((score * 100.0).round() as i64).clamp(0, 100);
+    let bar_class = match score {
+        s if s >= 0.8 => "bg-green-400",
+        s if s >= 0.5 => "bg-amber-400",
+        s if s >= 0.3 => "bg-orange-400",
+        _ => "bg-red-400",
+    };
+    view! {
+        <div class="w-full bg-gray-700 rounded h-1.5 mt-1 overflow-hidden">
+            <div class=format!("{bar_class} h-1.5 rounded transition-all") style=format!("width: {}%", pct)></div>
+        </div>
+    }.into_any()
+}
+
+/// Captures a file dropped onto the inbox, routing it through the canonical
+/// CaptureEngine via the `capture_file_drop` Tauri command.
+fn capture_file_drop(file: web_sys::File, toasts: crate::components::ui::feedback::ToastContext) {
+    let filename = file.name();
+    let mime_type = file.type_();
+    spawn_local(async move {
+        let array_buffer = match file.array_buffer().await {
+            Ok(buf) => buf,
+            Err(_) => {
+                toasts.error("File Drop", "Could not read the dropped file");
+                return;
+            }
+        };
+        let data = js_sys::Uint8Array::new(&array_buffer).to_vec();
+        let mime = if mime_type.is_empty() { "application/octet-stream" } else { &mime_type };
+        let result = crate::ipc::tauri_invoke(
+            "capture_file_drop",
+            serde_wasm_bindgen::to_value(&serde_json::json!({
+                "filename": filename,
+                "mime_type": mime,
+                "data": serde_wasm_bindgen::to_value(&data).unwrap(),
+            }))
+            .unwrap(),
+        )
+        .await;
+        match serde_wasm_bindgen::from_value::<String>(result) {
+            Ok(id) => toasts.success("File Drop", format!("Captured '{}' to inbox", filename)),
+            Err(_) => toasts.error("File Drop", "Could not capture the dropped file"),
         }
     });
 }
@@ -344,8 +431,137 @@ pub fn Inbox() -> impl IntoView {
         set_state.set(s);
     };
 
+    // ── Keyboard shortcuts (inbox-scoped) ────────────────────────────
+    // Works when the inbox container has focus and no text editor is focused.
+    let on_keydown = move |ev: web_sys::KeyboardEvent| {
+        // Skip if typing in an input — the search box handles its own keys.
+        let tag = ev.target().and_then(|t| t.dyn_ref::<web_sys::Element>()).map(|e| e.tag_name().to_ascii_lowercase());
+        if tag.as_deref() == Some("input") || tag.as_deref() == Some("textarea") {
+            return;
+        }
+        let meta = ev.meta_key() || ev.ctrl_key();
+        let shift = ev.shift_key();
+        let key = ev.key();
+
+        if meta && key.eq_ignore_ascii_case("a") {
+            ev.prevent_default();
+            let mut s = state.get();
+            let all_selected = s.items.iter().all(|i| i.selected);
+            for item in &mut s.items {
+                item.selected = !all_selected;
+            }
+            set_state.set(s);
+        } else if !meta && key.eq_ignore_ascii_case("a") {
+            ev.prevent_default();
+            let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
+            if !ids.is_empty() {
+                let toasts = toasts;
+                spawn_local(async move {
+                    let result = crate::ipc::tauri_invoke(
+                        "inbox_batch_approve",
+                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                    )
+                    .await;
+                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                        toasts.error("Approve", "Could not approve the selected captures");
+                    }
+                });
+            }
+        } else if !meta && key == "r" {
+            ev.prevent_default();
+            let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
+            if !ids.is_empty() {
+                let toasts = toasts;
+                spawn_local(async move {
+                    let result = crate::ipc::tauri_invoke(
+                        "inbox_batch_reject",
+                        serde_wasm_bindgen::to_value(&serde_json::json!({
+                            "ids": ids,
+                            "reason": "User rejected"
+                        }))
+                        .unwrap(),
+                    )
+                    .await;
+                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                        toasts.error("Reject", "Could not reject the selected captures");
+                    }
+                });
+            }
+        } else if !meta && key == "d" {
+            ev.prevent_default();
+            let ids: Vec<String> = state.get().items.iter().filter(|i| i.selected).map(|i| i.id.clone()).collect();
+            if !ids.is_empty() {
+                let toasts = toasts;
+                spawn_local(async move {
+                    let result = crate::ipc::tauri_invoke(
+                        "inbox_batch_delete",
+                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                    )
+                    .await;
+                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                        toasts.error("Delete", "Could not delete the selected captures");
+                    }
+                });
+            }
+        } else if !meta && key == " " {
+            ev.prevent_default();
+            let id = state.get().preview_id.clone();
+            if let Some(id) = id {
+                toggle_select_item(id);
+            }
+        } else if !meta && (key == "Enter" || key == "ArrowRight") {
+            ev.prevent_default();
+            let preview_id = state.get().preview_id.clone();
+            if let Some(id) = preview_id {
+                approve_item(id.clone(), toasts);
+            }
+        } else if meta && shift && (key == "ArrowLeft" || key == "ArrowRight") {
+            ev.prevent_default();
+            let mut s = state.get();
+            s.sort_ascending = !s.sort_ascending;
+            set_state.set(s);
+        }
+    };
+
+    // ── Drag & drop over the inbox container ─────────────────────────
+    let (drag_over, set_drag_over) = signal(false);
+
+    let on_dragover = move |ev: web_sys::DragEvent| {
+        ev.prevent_default();
+        ev.stop_propagation();
+        set_drag_over.set(true);
+    };
+    let on_dragleave = move |ev: web_sys::DragEvent| {
+        ev.prevent_default();
+        ev.stop_propagation();
+        set_drag_over.set(false);
+    };
+    let on_drop = move |ev: web_sys::DragEvent| {
+        ev.prevent_default();
+        ev.stop_propagation();
+        set_drag_over.set(false);
+        let Some(data_transfer) = ev.data_transfer() else { return; };
+        let files = match data_transfer.files() {
+            Some(f) => f,
+            None => return,
+        };
+        for i in 0..files.length() {
+            if let Some(file) = files.item(i) {
+                capture_file_drop(file, toasts);
+            }
+        }
+    };
+
     view! {
-        <div class="inbox flex h-full bg-gray-950 text-gray-100 overflow-hidden">
+        <div class=move || format!(
+            "inbox flex h-full bg-gray-950 text-gray-100 overflow-hidden relative {}",
+            if drag_over.get() { "drag-over" } else { "" }
+        )
+            on:keydown=on_keydown
+            on:dragover=on_dragover
+            on:dragleave=on_dragleave
+            on:drop=on_drop
+            tabIndex=0>
             // Left panel: Queue
             <div class="flex-none w-96 border-r border-gray-800 flex flex-col">
                 <div class="flex items-center gap-2 p-3 border-b border-gray-800">
@@ -386,37 +602,60 @@ pub fn Inbox() -> impl IntoView {
                             view! {
                                 <div class="divide-y divide-gray-800">
                                     { items.iter().map(|item| {
-                                        let id = item.id.clone();
-                                        let dbl_id = id.clone();
-                                        let title = item.title.clone();
-                                        let status = item.status;
-                                        let source = item.source.clone();
-                                        let object_type = item.object_type.clone();
-                                        let selected = item.selected;
-                                        let warnings = item.warnings.clone();
-                                        let duplicate_info = item.duplicate_info.clone();
-                                        let ocr_info = item.ocr_info.clone();
-                                        view! {
-                                            <div class=move || format!(
-                                                "inbox-item px-3 py-2 cursor-pointer hover:bg-gray-800 border-l-2 {} {}",
-                                                if selected { "bg-gray-800 border-l-blue-500" } else { "border-l-transparent" },
-                                                if warnings.is_empty() { "" } else if duplicate_info.is_some() { "border-l-yellow-500" } else if ocr_info.as_ref().map_or(false, |o| o.warning.is_some()) { "border-l-orange-500" } else { "border-l-green-500" }
-                                            )
-                                                on:click=move |_| toggle_select_item(id.clone())
-                                                on:dblclick=move |_| set_preview(dbl_id.clone())>
-                                                <div class="flex items-center justify-between">
-                                                    <span class="text-sm font-medium truncate max-w-48">{title}</span>
-                                                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">
-                                                        {move || format!("{:?}", status)}
-                                                    </span>
-                                                </div>
-                                                <div class="flex items-center gap-2 mt-1">
-                                                    <span class="text-xs text-gray-500">{source}</span>
-                                                    <span class="text-xs text-gray-600">"•"</span>
-                                                    <span class="text-xs text-gray-500">{object_type}</span>
-                                                </div>
-                                            </div>
-                                        }
+                                         let id = item.id.clone();
+                                         let dbl_id = id.clone();
+                                         let title = item.title.clone();
+                                         let source = item.source.clone();
+                                         let object_type = item.object_type.clone();
+                                         let selected = item.selected;
+                                         let warnings = item.warnings.clone();
+                                         let duplicate_info = item.duplicate_info.clone();
+                                         let ocr_info = item.ocr_info.clone();
+                                         let thumbnail = item.thumbnail.clone();
+                                         let confidence = item.confidence;
+                                         let suggested_folder = item.suggested_folder.clone();
+                                         view! {
+                                             <div class=move || format!(
+                                                 "inbox-item px-3 py-2 cursor-pointer hover:bg-gray-800 border-l-2 {} {}",
+                                                 if selected { "bg-gray-800 border-l-blue-500" } else { "border-l-transparent" },
+                                                 if warnings.is_empty() { "" } else if duplicate_info.is_some() { "border-l-yellow-500" } else if ocr_info.as_ref().map_or(false, |o| o.warning.is_some()) { "border-l-orange-500" } else { "border-l-green-500" }
+                                             )
+                                                 on:click=move |_| toggle_select_item(id.clone())
+                                                 on:dblclick=move |_| set_preview(dbl_id.clone())>
+                                                 <div class="flex items-center gap-2">
+                                                     <span class="flex-shrink-0 w-5 h-5 text-gray-400">
+                                                         {move || render_icon_view(thumbnail.as_deref().map(thumbnail_to_icon).unwrap_or(Icon::File))}
+                                                     </span>
+                                                     <span class="text-sm font-medium truncate max-w-36">{title}</span>
+                                                 </div>
+                                                 <div class="flex items-center gap-2 mt-1 ml-7">
+                                                     <span class="text-xs text-gray-500">{source}</span>
+                                                     <span class="text-xs text-gray-600">"•"</span>
+                                                     <span class="text-xs text-gray-500">{object_type}</span>
+                                                     {move || {
+                                                         if let Some(folder) = suggested_folder.as_ref() {
+                                                             view! {
+                                                                 <span class="text-xs text-blue-400">
+                                                                     {render_icon_view(Icon::MapPin)}
+                                                                     {folder.clone()}
+                                                                 </span>
+                                                             }.into_any()
+                                                         } else { view! {}.into_any() }
+                                                     }}
+                                                 </div>
+                                                 {move || {
+                                                     if let Some(score) = confidence {
+                                                         let colour = confidence_color(score);
+                                                         view! {
+                                                             <div class="ml-7 mt-1 w-full max-w-[120px]">
+                                                                 {confidence_bar(score)}
+                                                                 <span class=format!("text-xs {}", colour)>{format!("Confidence: {:.0}%", score * 100.0)}</span>
+                                                             </div>
+                                                         }.into_any()
+                                                     } else { view! {}.into_any() }
+                                                 }}
+                                             </div>
+                                         }
                                     }).collect_view()}
                                 </div>
                             }.into_any()
@@ -527,6 +766,48 @@ fn InboxDetails(item: InboxItem) -> impl IntoView {
                 <div><label class="text-xs text-gray-500 uppercase tracking-wide">"MIME Type"</label><p class="text-sm">{item.mime_type.clone().unwrap_or_default()}</p></div>
                 <div><label class="text-xs text-gray-500 uppercase tracking-wide">"Source File"</label><p class="text-sm text-gray-400 truncate">{item.source_file.clone().unwrap_or_default()}</p></div>
             </div>
+            {move || {
+                let classification = item.metadata.custom.get("classification")
+                    .and_then(|v| v.as_str().map(|s| s.to_string()));
+                if classification.is_some() {
+                    view! {
+                        <div class="mt-3">
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">"Classification"</label>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-sm font-medium text-blue-300">{classification.clone().unwrap_or_default()}</span>
+                                {move || {
+                                    if let Some(score) = item.confidence {
+                                        let colour = confidence_color(score);
+                                        let pct = ((score * 100.0).round() as i64).clamp(0, 100);
+                                        view! {
+                                            <span class=format!("text-xs {}", colour)>{format!("{}% confidence", pct)}</span>
+                                        }.into_any()
+                                    } else { view! {}.into_any() }
+                                }}
+                            </div>
+                            {move || {
+                                if let Some(score) = item.confidence {
+                                    view! { {confidence_bar(score)} }.into_any()
+                                } else { view! {}.into_any() }
+                            }}
+                        </div>
+                    }.into_any()
+                } else { view! {}.into_any() }
+            }}
+            {move || {
+                if let Some(folder) = item.suggested_folder.clone() {
+                    view! {
+                        <div class="mt-3">
+                            <label class="text-xs text-gray-500 uppercase tracking-wide">"Suggested Destination"</label>
+                            <div class="flex items-center gap-2 mt-1 p-2 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                                {render_icon_view(Icon::MapPin)}
+                                <span class="text-sm text-blue-300">{folder}</span>
+                                <button class="ml-auto px-2 py-1 text-xs bg-blue-700 rounded hover:bg-blue-600">Apply</button>
+                            </div>
+                        </div>
+                    }.into_any()
+                } else { view! {}.into_any() }
+            }}
             {move || {
                 if !item.warnings.is_empty() {
                     view! {
@@ -684,6 +965,8 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
     let (author, set_author) = signal(item.metadata.author.clone().unwrap_or_default());
     let (language, set_language) = signal(item.metadata.language.clone().unwrap_or_default());
     let (tags, set_tags) = signal(item.metadata.tags.join(", "));
+    let (destination, set_destination) =
+        signal(item.suggested_folder.clone().unwrap_or_default());
 
     let save_metadata = move |_| {
         let item_for_ipc = item.clone();
@@ -710,6 +993,7 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
             .filter(|s| !s.is_empty())
             .collect();
         let toasts = crate::components::ui::feedback::use_toast();
+        let dest_clone = destination.get();
         spawn_local(async move {
             let result = crate::ipc::tauri_invoke(
                 "inbox_edit_metadata",
@@ -723,6 +1007,20 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
             .await;
             if serde_wasm_bindgen::from_value::<()>(result).is_err() {
                 toasts.error("Metadata", "Could not save the updated metadata");
+            }
+        });
+        spawn_local(async move {
+            let result = crate::ipc::tauri_invoke(
+                "inbox_move",
+                serde_wasm_bindgen::to_value(&serde_json::json!({
+                    "id": item_for_ipc.id,
+                    "destination": dest_clone,
+                }))
+                .unwrap(),
+            )
+            .await;
+            if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                toasts.error("Destination", "Could not set the destination folder");
             }
         });
     };
@@ -749,6 +1047,23 @@ fn InboxMetadataSidebar(item: InboxItem) -> impl IntoView {
                 <label class="text-xs text-gray-500 uppercase tracking-wide">"Tags (comma-separated)"</label>
                 <input type="text" value=tags on:input=move |ev| set_tags.set(event_target_value(&ev))
                     class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none" />
+            </div>
+            <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide">"Destination Folder"</label>
+                {move || {
+                    if item.suggested_folder.is_some() {
+                        view! {
+                            <div class="flex items-center gap-1 mb-1">
+                                {render_icon_view(Icon::MapPin)}
+                                <span class="text-xs text-blue-400">"{item.suggested_folder.clone().unwrap_or_default()}"</span>
+                                <span class="text-xs text-gray-500">(suggested)</span>
+                            </div>
+                        }.into_any()
+                    } else { view! {}.into_any() }
+                }}
+                <input type="text" value=destination on:input=move |ev| set_destination.set(event_target_value(&ev))
+                    class="w-full bg-gray-800 text-gray-100 rounded px-2 py-1 text-sm border border-gray-700 focus:border-blue-500 focus:outline-none"
+                    placeholder="e.g. Finance/Invoices" />
             </div>
             <button class="w-full px-3 py-1.5 text-sm bg-blue-700 rounded hover:bg-blue-600" on:click=save_metadata>"Save Metadata"</button>
         </div>
