@@ -1,6 +1,6 @@
 use crate::event_bus::kinds::ITEM_STORED;
 use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
-use crate::models::{KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType, ProcessingState};
+use crate::models::{CustomPropertyValue, KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType, ProcessingState};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -124,6 +124,7 @@ impl StorageManager {
             created_at: object.created_at,
             updated_at: object.updated_at,
             content_ext: content_extension_for(&object.content).to_string(),
+            custom_properties: object.custom_properties.clone(),
         };
         serde_json::to_string_pretty(&sidecar).map_err(|e| e.to_string())
     }
@@ -298,7 +299,7 @@ impl StorageManager {
             object_type: sidecar.object_type.clone(),
             content,
             metadata,
-            custom_properties: HashMap::new(),
+            custom_properties: sidecar.custom_properties.clone(),
             tags: sidecar.tags.clone(),
             relations: vec![],
             processing_state: ProcessingState::Completed,
@@ -480,6 +481,11 @@ struct Sidecar {
     created_at: chrono::DateTime<chrono::Utc>,
     updated_at: chrono::DateTime<chrono::Utc>,
     content_ext: String,
+    /// Extensible custom properties (classification, inbox status, filing
+    /// suggestions, duplicate info, …). Defaults to empty for sidecars written
+    /// before this field existed, so older vaults keep loading.
+    #[serde(default)]
+    custom_properties: HashMap<String, CustomPropertyValue>,
 }
 
 /// Compute a content hash for change detection.

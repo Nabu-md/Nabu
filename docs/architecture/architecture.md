@@ -83,7 +83,7 @@ The `ApplicationContext` is the central composition point. Every major subsystem
 
 | Category | Description | Services |
 |----------|-------------|----------|
-| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, FileDropHandler, WatchFolderHandler, SafariReaderHandler, YouTubeCaptureHandler, GitHubRepositoryHandler |
+| `capture_handlers` | Capture handlers implementing `CaptureHandler` trait | BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, FileDropHandler, WatchFolderHandler, SafariReaderHandler, YouTubeCaptureHandler, GitHubRepositoryHandler, EmailCaptureHandler, BookmarkCaptureHandler, ArticleCaptureHandler |
 | `processors` | Processing pipeline processors implementing `Processor` trait | ContentClassifier, DuplicateDetector, TimelineExtractor, MetadataExtractor, MetadataEnricher, OcrProcessor, PdfTextProcessor, PdfMetadataProcessor, PdfAnnotationProcessor, WhisperProcessor, EmbeddingGenerator, SemanticEnricher, AiSummariser, AutoFiler |
 | `ai_providers` | Future AI provider services | — (reserved) |
 | `ocr_providers` | Future OCR engine services | — (reserved) |
@@ -154,7 +154,7 @@ build_application_context() in src-tauri/src/lib.rs
     │   ├── ContentClassifier, DuplicateDetector, ...
     │   └── Registered in CATEGORY_PROCESSORS
     ├── CaptureEngine::new(event_bus)
-    │   ├── BrowserCaptureHandler, ClipboardHandler, ...
+    │   ├── BrowserCaptureHandler, ClipboardHandler, ScreenshotHandler, ...EmailCaptureHandler
     │   └── Registered in CATEGORY_CAPTURE_HANDLERS
     ├── JobQueue::new(pipeline, event_bus)
     ├── WorkerPool::new(4, job_queue)
@@ -213,7 +213,7 @@ Shutdown
 
 ### Supported Now
 - ✅ Single AI provider (via EventBus subscription)
-- ✅ Multiple capture handlers (8 built-in)
+- ✅ Multiple capture handlers (11 built-in)
 - ✅ Multiple processing processors (14 built-in)
 - ✅ EventBus publish/subscribe
 - ✅ Async job queue with worker pool

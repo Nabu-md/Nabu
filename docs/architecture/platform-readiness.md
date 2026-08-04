@@ -42,7 +42,7 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 
 ### 1.6 Registry Integration
 - ✅ 8 category constants defined
-- ✅ 6 capture handlers registered in `CATEGORY_CAPTURE_HANDLERS`
+- ✅ 11 capture handlers registered in `CATEGORY_CAPTURE_HANDLERS`
 - ✅ 14 processors registered in `CATEGORY_PROCESSORS`
 - ✅ Slot reserved for `CATEGORY_AI_PROVIDERS`, `CATEGORY_OCR_PROVIDERS`, etc.
 
@@ -135,7 +135,7 @@ Phase 3 — Platform Composition & Future Architecture (Prompt 33)
 |--------|-------|
 | Services registered in ApplicationContext | 8 |
 | Registry categories defined | 8 |
-| Capture handlers registered | 8 |
+| Capture handlers registered | 11 |
 | Processing processors registered | 14 |
 | Built-in capabilities registered | 14 |
 | Plugin lifecycle stages | 7 |
