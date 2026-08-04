@@ -99,7 +99,13 @@ impl StorageManager {
     }
 
     /// Serialize the sidecar metadata for a KnowledgeObject.
-    fn serialize_sidecar(object: &KnowledgeObject) -> Result<String, String> {
+    ///
+    /// The `resolved_vault_path` parameter provides the canonical vault-relative
+    /// path computed by [`resolve_vault_path`](Self::resolve_vault_path),
+    /// ensuring that round-tripping through the JSON sidecar preserves the
+    /// content file location even when the object itself did not carry an
+    /// explicit `vault_path` in its metadata.
+    fn serialize_sidecar(object: &KnowledgeObject, resolved_vault_path: &str) -> Result<String, String> {
         let sidecar = Sidecar {
             id: object.id,
             object_type: object.object_type.clone(),
@@ -114,7 +120,7 @@ impl StorageManager {
             file_size: object.metadata.file_size,
             mime_type: object.metadata.mime_type.clone(),
             original_filename: object.metadata.original_filename.clone(),
-            vault_path: object.metadata.vault_path.clone(),
+            vault_path: Some(resolved_vault_path.to_string()),
             created_at: object.created_at,
             updated_at: object.updated_at,
             content_ext: content_extension_for(&object.content).to_string(),
@@ -159,7 +165,7 @@ impl StorageManager {
         }
 
         // Write JSON sidecar with structured metadata.
-        let sidecar = Self::serialize_sidecar(object)?;
+        let sidecar = Self::serialize_sidecar(object, &vault_rel)?;
         std::fs::write(self.sidecar_path(object.id), sidecar).map_err(|e| e.to_string())?;
 
         // Update in-memory cache.

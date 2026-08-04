@@ -55,9 +55,17 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('No active tab found');
       }
 
+      // Determine which content script message to send
+      let messageType = 'CAPTURE_PAGE';
+      if (captureType === 'note') {
+        messageType = 'CAPTURE_SELECTION';
+      } else if (captureType === 'reader_mode') {
+        messageType = 'CAPTURE_READER';
+      }
+
       // Send message to content script
       const response = await browser.tabs.sendMessage(tab.id, {
-        type: captureType === 'page' ? 'CAPTURE_PAGE' : 'CAPTURE_SELECTION'
+        type: messageType
       });
 
       if (!response.success) {
@@ -66,14 +74,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const captureData = response.data;
 
+      // For screen capture, don't send content script data
+      let nativePayload = { ...captureData, ...payload };
+      if (captureType === 'screen_capture') {
+        nativePayload = { ...payload, url: tab.url, title: payload.title || 'Screen Capture' };
+      }
+
       // Send to native host via background script
       const nativeResponse = await browser.runtime.sendMessage({
         command: 'capture',
         captureType: captureType,
-        payload: {
-          ...captureData,
-          ...payload
-        }
+        payload: nativePayload
       });
 
       if (nativeResponse.success) {

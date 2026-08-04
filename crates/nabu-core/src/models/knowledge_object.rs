@@ -215,7 +215,7 @@ pub struct ObjectMetadata {
 }
 
 /// Extensible custom property value types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CustomPropertyValue {
     Text(String),

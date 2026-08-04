@@ -43,6 +43,23 @@
       return true;
     }
     
+    if (message.type === 'CAPTURE_READER') {
+      try {
+        // Extract the main article content using readability heuristics.
+        // We pass the full HTML to the backend's article extraction pipeline.
+        const captureData = {
+          url: window.location.href,
+          title: document.title,
+          html: document.documentElement.outerHTML,
+          selectedText: window.getSelection().toString()
+        };
+        sendResponse({ success: true, data: captureData });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      return true;
+    }
+    
     return false;
   });
 

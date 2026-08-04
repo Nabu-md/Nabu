@@ -124,6 +124,11 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
         .or_else(|| payload.get("content"))
         .and_then(|v| v.as_str())
         .map(String::from);
+    // For reader-mode capture the Safari extension sends the full page HTML.
+    let html = payload
+        .get("html")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     let capture_type = message.capture_type.as_deref().unwrap_or("note");
 
@@ -145,10 +150,21 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
                 }
             });
         CaptureData::ScreenCapture { selection }
+    } else if capture_type == "reader_mode" || capture_type == "safari_reader" {
+        // Reader mode: prefer HTML content, fall back to text, then URL.
+        if let Some(html) = html {
+            CaptureData::Text(html)
+        } else if let Some(text) = text {
+            CaptureData::Text(text)
+        } else if let Some(url) = &url {
+            CaptureData::Uri(url.clone())
+        } else {
+            CaptureData::Text(payload.to_string())
+        }
     } else if let Some(url) = url.clone() {
         if matches!(
             capture_type,
-            "bookmark" | "browser" | "reader_mode" | "safari_reader" | "youtube" | "github" | "email"
+            "bookmark" | "browser" | "youtube" | "github" | "email"
         ) {
             CaptureData::Uri(url)
         } else {
@@ -159,6 +175,8 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
         }
     } else if let Some(text) = text {
         CaptureData::Text(text)
+    } else if let Some(html) = html {
+        CaptureData::Text(html)
     } else {
         // Fall back to a text representation of the payload.
         CaptureData::Text(payload.to_string())
