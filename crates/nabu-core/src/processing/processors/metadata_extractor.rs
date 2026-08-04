@@ -187,8 +187,8 @@ fn extract_url_metadata(metadata: &mut ObjectMetadata, url: &str) {
 fn extract_title_from_url(url: &str) -> Option<String> {
     // YouTube watch URLs: use the video id as part of the title.
     if let Some(pos) = url.find("v=") {
-        let id = url[pos + 2..].split('&').next().unwrap_or("").to_string();
-        if !id.is_empty() {
+        let id = url[pos + 2..].split('&').next().unwrap_or("");
+        if !id.is_empty() && !id.contains('=') {
             return Some(format!("YouTube: {}", id));
         }
     }

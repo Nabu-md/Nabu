@@ -1,6 +1,24 @@
 # ADR-004 — Typed Event Bus
 
-**Status:** Accepted
+> ⚠️ **Legacy Architecture Warning**
+>
+> This ADR describes a **TypeScript** `EventBus<Events extends EventMap>`
+> with `bus.ts`, `events.ts`, `index.ts`, and an `appEventBus` singleton
+> emitting 8 events (VaultOpened, VaultClosed, IndexUpdated,
+> WidgetRegistered, DictationFinished, …).  That TypeScript implementation
+> **does not exist** in the current repository.
+>
+> In the current Pure-Rust architecture the EventBus is a generic Rust
+> struct: `crate::event_bus::EventBus<PipelineEvent>` defined in
+> `crates/nabu-core/src/event_bus/bus.rs`.  It emits 10 `PipelineEvent`
+> variants (ItemCaptured, ItemProcessingStarted, ItemProcessingCompleted,
+> ItemProcessingFailed, ItemProcessingProgress, ItemStored, IndexUpdated,
+> GraphUpdated, ItemCancelled, ItemRetried).  The TypeScript-only events
+> mentioned in this ADR (`SearchCompleted`, `NoteSaved`, `NoteDeleted`) do
+> not exist — their intent is covered by the Rust `PipelineEvent`
+> variants.
+
+**Status:** Accepted (legacy — describes pre-migration architecture)
 **Date:** 2026-07-19
 **Phase:** Phase 1.5
 

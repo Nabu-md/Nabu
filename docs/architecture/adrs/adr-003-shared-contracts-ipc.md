@@ -1,6 +1,26 @@
 # ADR-003 — Shared Contracts & Typed IPC Registry
 
-**Status:** Accepted
+> ⚠️ **Legacy Architecture Warning**
+>
+> This ADR describes the **TypeScript** shared-contracts / typed-IPC
+> registry for Electron's `contextBridge` IPC layer (`src/preload/`,
+> `src/shared/`).  **There is no Electron IPC layer in the current
+> repository.**
+>
+> In the current Pure-Rust architecture (Migration Option B, see
+> `MIGRATION_OPTION_B.md`) the equivalent boundaries are:
+>
+> - **Shared contracts**: `crates/nabu-core/src/models/` — the
+>   `KnowledgeObject` and related domain types, shared across all layers.
+> - **Typed IPC**: Tauri v2 `invoke()` from the Leptos WASM frontend
+>   (`crates/nabu-ui/`) → Rust `#[tauri::command]` handlers in
+>   `src-tauri/src/commands.rs`.
+>
+> The principle of "no string-keyed IPC" is preserved — all communication
+> is statically typed via Rust structs and serde.  The exact TypeScript
+> file paths in this ADR do not exist.
+
+**Status:** Accepted (legacy — describes pre-migration architecture)
 **Date:** 2026-07-19
 **Phase:** Phase 1.4
 

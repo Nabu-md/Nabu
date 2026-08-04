@@ -1,6 +1,23 @@
 # ADR-002 — Service Layer Extraction
 
-**Status:** Accepted
+> ⚠️ **Legacy Architecture Warning**
+>
+> This ADR describes the extraction of a **TypeScript service layer** from
+> the legacy Electron + React codebase.  While the *concept* of a service
+> layer is still valid, the implementation has been fully ported to Rust.
+>
+> In the current codebase the service layer lives in **two places**:
+>
+> - `crates/nabu-core/src/` — Rust domain services (StorageManager,
+>   Indexer, VaultGraph, CaptureEngine, ProcessingPipeline, ServiceRegistry,
+>   DurableJobQueue, VaultGraph, etc.)
+> - `src-tauri/src/lib.rs` — the `build_application_context()` composition
+>   root that wires all services together and registers EventBus subscribers.
+>
+> There is no TypeScript service layer.  See `architecture.md` for the
+> current Rust service table.
+
+**Status:** Accepted (legacy — describes pre-migration architecture)
 **Date:** 2026-07-19
 **Phase:** Phase 1.3
 

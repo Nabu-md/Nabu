@@ -1,5 +1,30 @@
 # Architecture Decision Records (ADRs)
 
+> ⚠️ **Important — Legacy Architecture ADRs**
+>
+> The five ADRs in this directory (ADR-001 through ADR-005) were authored
+> during Phase 1 of the Nabu Recovery Program and describe the **legacy
+> Electron + TypeScript** architecture (`src/main/`, `src/preload/`,
+> `src/renderer/`, `tsconfig.*` path aliases, `contextBridge` IPC, React
+> renderer, TypeScript `EventBus`).
+>
+> **None of those TypeScript source paths exist in the current repository.**
+> The codebase has been migrated to the **Pure-Rust Architecture** (Migration
+> Option B — see [`../../MIGRATION_OPTION_B.md`](../../MIGRATION_OPTION_B.md)):
+> Tauri v2 desktop shell, a Rust core library (`crates/nabu-core/`), and a
+> Leptos WASM frontend (`crates/nabu-ui/`).
+>
+> The *decisions* captured in these ADRs — folder-layer separation, service
+> extraction, typed IPC contracts, typed event bus, and layer ownership rules
+> — are still architecturally valid.  However, the *implementations* they
+> describe (TypeScript modules, Electron contexts, `contextBridge`) have been
+> reimplemented in Rust.  Each ADR carries its own "Legacy Architecture
+> Warning" header that maps the old TypeScript concepts to their current Rust
+> equivalents.
+>
+> For the current Rust crate dependency graph and service table, see
+> [`../architecture.md`](../architecture.md).
+
 This directory holds the Architecture Decision Records (ADRs) that capture the
 major architectural decisions made during **Phase 1** of the Nabu Recovery
 Program.
@@ -29,6 +54,12 @@ Each ADR follows a consistent format:
 ---
 
 ## Alias Convention (established during Phase 1)
+
+> ⚠️ **Legacy note**: The path-alias strategy below was defined for the
+> TypeScript/Electron build system (`tsconfig.node.json`,
+> `tsconfig.web.json`, `electron.vite.config.ts`).  In the current Pure-Rust
+> architecture there are no TypeScript path aliases — Rust's module system
+> (`crate::`, `super::`, `use`) replaces them entirely.
 
 The approved path-alias strategy, defined in `tsconfig.node.json`,
 `tsconfig.web.json`, and `electron.vite.config.ts`:

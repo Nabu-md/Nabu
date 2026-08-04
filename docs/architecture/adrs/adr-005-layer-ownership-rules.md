@@ -1,6 +1,25 @@
 # ADR-005 — Layer Ownership Rules
 
-**Status:** Accepted
+> ⚠️ **Legacy Architecture Warning**
+>
+> This ADR describes TypeScript layer ownership rules for the legacy
+> Electron folder layout (`src/main/`, `src/preload/`, `src/renderer/`).
+> Those TypeScript layers **do not exist** in the current repository.
+>
+> The equivalent **Rust** layer ownership rules are documented in
+> `architecture.md` (lines 244–257):
+>
+> - **`nabu-core`** (`crates/nabu-core/`) — no dependency on `src-tauri`
+>   or `nabu-ui`.  Contains all domain logic.
+> - **`src-tauri`** (`src-tauri/`) — depends on `nabu-core`.  Provides the
+>   Tauri v2 shell and Rust backend commands (`#[tauri::command]`).
+> - **`nabu-ui`** (`crates/nabu-ui/`) — depends on `nabu-core`.  Leptos
+>   WASM frontend (when present in the workspace).
+>
+> The principle of unidirectional dependencies is preserved: core has no
+> knowledge of the shell or UI.
+
+**Status:** Accepted (legacy — describes pre-migration architecture)
 **Date:** 2026-07-19
 **Phase:** Phase 1.1 → enforced through Phase 1.5, documented in Phase 1.6
 

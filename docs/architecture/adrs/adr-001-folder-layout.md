@@ -1,6 +1,31 @@
 # ADR-001 — Architecture Folder Layout
 
-**Status:** Accepted
+> ⚠️ **Legacy Architecture Warning**
+>
+> This ADR describes the **legacy Electron + TypeScript** folder layout
+> (`src/main/`, `src/preload/`, `src/renderer/`, TypeScript path aliases
+> `@main/*`, `@shared/*`, `@renderer/*`).  That layout **does not exist** in
+> the current repository.
+>
+> The repository has been migrated to **Migration Option B — Pure Rust
+> Architecture** (see `MIGRATION_OPTION_B.md`).  The current layout is:
+>
+> ```text
+> /
+> ├── Cargo.toml              # Workspace (crates/nabu-core only)
+> ├── crates/
+> │   └── nabu-core/          # Rust core library (vault logic, indexing, graph)
+> ├── src-tauri/              # Tauri v2 desktop shell + Rust backend commands
+> └── docs/                   # Architecture documentation
+> ```
+>
+> The layer boundaries from this ADR are **still valid** — only the
+> language/runtime changed: there is still a backend layer (`src-tauri`),
+> a core library (`crates/nabu-core`), and a frontend layer (`crates/nabu-ui`
+> when present).  See `architecture.md` for the current Rust crate dependency
+> graph.
+
+**Status:** Accepted (legacy — describes pre-migration architecture)
 **Date:** 2026-07-19
 **Phase:** Phase 1.1 (recovered & documented in Phase 1.6)
 
@@ -8,7 +33,7 @@
 
 ## Context
 
-Nabu is an Electron application with three runtime contexts: the **main
+Nabu was historically an Electron application with three runtime contexts: the **main
 process** (Node), the **preload** bridge, and the **renderer** (React). Before
 the recovery program, source files were organized ad-hoc, mixing process
 concerns and making it difficult to reason about which code runs where, which

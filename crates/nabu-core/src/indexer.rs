@@ -2,19 +2,31 @@ use crate::event_bus::kinds::INDEX_UPDATED;
 use crate::event_bus::{EventBus, IndexOperation, IndexUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use uuid::Uuid;
+
+/// Sub-directory under the vault root where the Indexer persists its
+/// inverted index between sessions.
+const INDEX_DIR_NAME: &str = ".nabu";
+
+/// File name for the JSON-serialized inverted index.
+const INDEX_FILE_NAME: &str = "search_index.json";
 
 /// The Indexer is the SINGLE search index for the Nabu platform.
 ///
 /// No duplicate indexing systems exist.
 /// All search operations go through the Indexer.
 ///
-/// Currently uses in-memory inverted index as a stub.
-/// In production, this would use Tantivy for full-text search.
+/// The inverted index is kept in memory for fast queries and is also
+/// persisted to disk (JSON, under `.nabu/search_index.json`) so that
+/// the index survives application restarts.  `load()` restores a
+/// previously persisted index; `persist()` flushes the current in-memory
+/// index to disk.
 pub struct Indexer {
     index: RwLock<HashMap<String, Vec<String>>>,
     event_bus: Option<EventBus<PipelineEvent>>,
+    vault_path: Option<PathBuf>,
 }
 
 impl Indexer {
@@ -22,6 +34,17 @@ impl Indexer {
         Self {
             index: RwLock::new(HashMap::new()),
             event_bus: None,
+            vault_path: None,
+        }
+    }
+
+    /// Create an Indexer rooted at the given vault path so that the
+    /// inverted index can be persisted to and loaded from disk.
+    pub fn with_vault_path(vault_path: impl Into<PathBuf>) -> Self {
+        Self {
+            index: RwLock::new(HashMap::new()),
+            event_bus: None,
+            vault_path: Some(vault_path.into()),
         }
     }
 
@@ -29,7 +52,86 @@ impl Indexer {
         Self {
             index: RwLock::new(HashMap::new()),
             event_bus: Some(event_bus),
+            vault_path: None,
         }
+    }
+
+    /// Create an Indexer with both a vault path (for persistence) and an
+    /// event bus (for publishing index-updated events).
+    pub fn with_vault_path_and_event_bus(
+        vault_path: impl Into<PathBuf>,
+        event_bus: EventBus<PipelineEvent>,
+    ) -> Self {
+        Self {
+            index: RwLock::new(HashMap::new()),
+            event_bus: Some(event_bus),
+            vault_path: Some(vault_path.into()),
+        }
+    }
+
+    /// The vault path, if configured.
+    pub fn vault_path(&self) -> Option<&Path> {
+        self.vault_path.as_deref()
+    }
+
+    /// Resolve the on-disk path of the persisted inverted index.
+    fn index_file_path(&self) -> Option<PathBuf> {
+        self.vault_path
+            .as_ref()
+            .map(|p| p.join(INDEX_DIR_NAME).join(INDEX_FILE_NAME))
+    }
+
+    /// Ensure the `.nabu` directory exists so the index file can be written.
+    fn ensure_dir(&self) -> Result<(), String> {
+        if let Some(path) = self.index_file_path() {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Persist the in-memory inverted index to disk as JSON.
+    ///
+    /// This is the bridge between the in-memory index and durable
+    /// storage.  When a vault path is configured the index is written to
+    /// `.nabu/search_index.json` inside the vault root.
+    pub fn persist(&self) -> Result<(), String> {
+        let path = self
+            .index_file_path()
+            .ok_or_else(|| "Indexer has no vault path configured".to_string())?;
+        self.ensure_dir()?;
+
+        let snapshot: HashMap<String, Vec<String>> = {
+            let index = self.index.read().map_err(|e| e.to_string())?;
+            index.clone()
+        };
+
+        let json = serde_json::to_string(&snapshot).map_err(|e| e.to_string())?;
+        std::fs::write(&path, json).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Load a previously persisted inverted index from disk, replacing
+    /// the in-memory index.  If no vault path is configured or the index
+    /// file does not yet exist this is a no-op.
+    pub fn load(&self) -> Result<(), String> {
+        let path = match self.index_file_path() {
+            Some(p) => p,
+            None => return Ok(()),
+        };
+
+        if !path.exists() {
+            return Ok(());
+        }
+
+        let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let snapshot: HashMap<String, Vec<String>> =
+            serde_json::from_str(&json).map_err(|e| e.to_string())?;
+
+        let mut index = self.index.write().map_err(|e| e.to_string())?;
+        *index = snapshot;
+        Ok(())
     }
 
     /// Index a KnowledgeObject for search.
@@ -200,5 +302,46 @@ mod tests {
             !results.contains(&obj.id.to_string()),
             "Should not find removed object"
         );
+    }
+
+    #[test]
+    fn test_persist_and_load() {
+        let dir = tempfile::tempdir().unwrap();
+        let obj = KnowledgeObject::new(
+            crate::models::ObjectType::Note,
+            ObjectContent::Markdown("Persistent search content".to_string()),
+        )
+        .with_metadata(ObjectMetadata {
+            title: Some("Persistent Search Test".to_string()),
+            ..Default::default()
+        });
+
+        // Index and persist
+        {
+            let indexer = Indexer::with_vault_path(dir.path());
+            indexer.index_object(&obj).unwrap();
+            indexer.persist().unwrap();
+        }
+
+        // Load into a new indexer and verify the index survives
+        {
+            let indexer = Indexer::with_vault_path(dir.path());
+            indexer.load().unwrap();
+
+            let results = indexer.search("persistent");
+            assert!(
+                results.contains(&obj.id.to_string()),
+                "Index should survive restart"
+            );
+            assert!(indexer.token_count() > 0);
+        }
+    }
+
+    #[test]
+    fn test_load_without_persisting_is_noop() {
+        let dir = tempfile::tempdir().unwrap();
+        let indexer = Indexer::with_vault_path(dir.path());
+        indexer.load().unwrap();
+        assert_eq!(indexer.token_count(), 0);
     }
 }

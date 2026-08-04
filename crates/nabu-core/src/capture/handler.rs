@@ -657,7 +657,6 @@ fn strip_boilerplate_tags(html: &str) -> String {
                 result.drain(start..end_abs.min(result.len()));
             } else {
                 // No closing tag — remove just the opening tag.
-                let end_abs = (start + tag_end - start).min(result.len());
                 let mut remove_end = tag_end;
                 // Skip to end of self-closing tag.
                 if result[tag_end..].starts_with("/>") {
