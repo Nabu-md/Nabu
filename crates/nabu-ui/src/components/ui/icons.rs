@@ -99,6 +99,7 @@ pub use lucide_leptos::Folder;
 pub use lucide_leptos::FolderOpen;
 pub use lucide_leptos::FolderTree;
 pub use lucide_leptos::GalleryVerticalEnd;
+pub use lucide_leptos::GitCompare;
 pub use lucide_leptos::Globe;
 pub use lucide_leptos::Grid2X2;
 pub use lucide_leptos::HardDrive;
@@ -197,6 +198,7 @@ pub enum Icon {
     ReadingQueue,
     Templates,
     Trash,
+    Trash2,
     History,
     Recovery,
     Calendar,
@@ -230,6 +232,7 @@ pub enum Icon {
     Folder,
     FolderOpen,
     FolderTree,
+    File,
     FileText,
     FilePen,
     FilePlus,
@@ -287,6 +290,7 @@ pub enum Icon {
     Link2,
     MessageCircle,
     MessageSquare,
+    Comparison,
     // Calendar & time
     Clock,
     Timer,
@@ -315,7 +319,6 @@ pub enum Icon {
     Laptop,
     MapPin,
     HardDrive,
-    MapPin,
     // Charts & stats
     ChartBar,
     ChartColumn,
@@ -324,10 +327,6 @@ pub enum Icon {
     TrendingUp,
     TrendingDown,
     Flame,
-    // Reader
-    BookOpen,
-    BookText,
-    BookMarked,
     // Editor slash menu
     KanbanBoard,
     VisionOcr,
@@ -336,6 +335,7 @@ pub enum Icon {
     // Misc
     Sparkles,
     Wand,
+    Zap,
     Globe,
     GalleryVerticalEnd,
     CircleHelp,
@@ -368,6 +368,7 @@ impl Icon {
             Icon::ReadingQueue => "reading-queue",
             Icon::Templates => "templates",
             Icon::Trash => "trash",
+            Icon::Trash2 => "trash-2",
             Icon::History => "history",
             Icon::Recovery => "recovery",
             Icon::Calendar => "calendar",
@@ -401,6 +402,7 @@ impl Icon {
             Icon::Folder => "folder",
             Icon::FolderOpen => "folder-open",
             Icon::FolderTree => "folder-tree",
+            Icon::File => "file",
             Icon::FileText => "file-text",
             Icon::FilePen => "file-pen",
             Icon::FilePlus => "file-plus",
@@ -458,6 +460,7 @@ impl Icon {
             Icon::Link2 => "link-2",
             Icon::MessageCircle => "message-circle",
             Icon::MessageSquare => "message-square",
+            Icon::Comparison => "comparison",
             // Calendar & time
             Icon::Clock => "clock",
             Icon::Timer => "timer",
@@ -494,10 +497,6 @@ impl Icon {
             Icon::TrendingUp => "trending-up",
             Icon::TrendingDown => "trending-down",
             Icon::Flame => "flame",
-            // Reader
-            Icon::BookOpen => "book-open",
-            Icon::BookText => "book-text",
-            Icon::BookMarked => "book-marked",
             // Editor slash menu
             Icon::KanbanBoard => "kanban-board",
             Icon::VisionOcr => "vision-ocr",
@@ -505,6 +504,7 @@ impl Icon {
             Icon::Callout => "callout",
             // Misc
             Icon::Sparkles => "sparkles",
+            Icon::Zap => "zap",
             Icon::Wand => "wand",
             Icon::Globe => "globe",
             Icon::GalleryVerticalEnd => "gallery-vertical-end",
@@ -550,6 +550,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::ReadingQueue => c!(BookCheck),
         Icon::Templates => c!(ClipboardList),
         Icon::Trash => c!(Trash2),
+        Icon::Trash2 => c!(Trash2),
         Icon::History => c!(History),
         Icon::Recovery => c!(LifeBuoy),
         Icon::Calendar => c!(Calendar),
@@ -583,6 +584,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Folder => c!(Folder),
         Icon::FolderOpen => c!(FolderOpen),
         Icon::FolderTree => c!(FolderTree),
+        Icon::File => c!(File),
         Icon::FileText => c!(FileText),
         Icon::FilePen => c!(FilePen),
         Icon::FilePlus => c!(FilePlus),
@@ -640,6 +642,7 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::Link2 => c!(Link2),
         Icon::MessageCircle => c!(MessageCircle),
         Icon::MessageSquare => c!(MessageSquare),
+        Icon::Comparison => c!(GitCompare),
         // ── Calendar & time ─────────────────────────────
         Icon::Clock => c!(Clock),
         Icon::Timer => c!(Clock),
@@ -679,17 +682,14 @@ fn icon_component(icon: Icon) -> AnyView {
         Icon::TrendingUp => c!(TrendingUp),
         Icon::TrendingDown => c!(TrendingDown),
         Icon::Flame => c!(Flame),
-        // ── Reader ──────────────────────────────────────
-        Icon::BookOpen => c!(BookOpen),
-        Icon::BookText => c!(BookText),
-        Icon::BookMarked => c!(BookMarked),
-        // ── Editor slash menu ───────────────────────────
+        // ── Editor slash menu ───────────────────────────        // ── Editor slash menu ───────────────────────────
         Icon::KanbanBoard => c!(Kanban),
         Icon::VisionOcr => c!(ScanText),
         Icon::CodeBlock => c!(Code),
         Icon::Callout => c!(Lightbulb),
         // ── Misc ────────────────────────────────────────
         Icon::Sparkles => c!(Sparkles),
+        Icon::Zap => c!(Zap),
         Icon::Wand => c!(Wand),
         Icon::Globe => c!(Globe),
         Icon::CloudUpload => c!(CloudUpload),

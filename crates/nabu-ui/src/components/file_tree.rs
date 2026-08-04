@@ -640,7 +640,7 @@ pub fn FileTree() -> impl IntoView {
                     <div class="dialog-overlay" on:click=move |_| close.run(())>
                         <div class="menu move-picker" on:click=move |ev| ev.stop_propagation()>
                             <div class="px-2 py-1 text-xs font-medium text-gray-400">{format!("Move {} item(s) to…", items_count)}</div>
-                            <MenuItem icon=Some(Icon::Folder) label="Vault root".to_string() on_select=pick_root />
+                            <MenuItem icon=Icon::Folder label="Vault root".to_string() on_select=pick_root />
                             <MenuSeparator />
                             {folders.into_iter().map(|(path, depth)| {
                                 let path_c = path.clone();
@@ -650,7 +650,7 @@ pub fn FileTree() -> impl IntoView {
                                     do_move_items(ctx, workspace, items_c.clone(), path_c.clone());
                                 });
                                 view! {
-                                    <MenuItem icon=Some(Icon::Folder) label=format!("{}{} {}", "  ".repeat(depth), path) on_select=pick />
+                                    <MenuItem icon=Icon::Folder label=format!("{}{}", "  ".repeat(depth), path) on_select=pick />
                                 }
                             }).collect_view()}
                         </div>
@@ -973,7 +973,7 @@ fn TreeNodeView(node: TreeNode) -> impl IntoView {
                      move || if is_folder {
                         if ctx.expanded.get().contains(&p) { render_icon_view(Icon::ChevronDown) } else { render_icon_view(Icon::ChevronRight) }
                     } else {
-                        "•"
+                        view! { <span>"•"</span> }.into_any()
                     }}
                 </span>
                 <span class="tree-icon" aria-hidden="true">{render_icon_view(if is_folder { Icon::Folder } else { Icon::FileText })}</span>

@@ -8,6 +8,7 @@
 
 use crate::components::navigation::state::{NavContext, ViewMode};
 use crate::components::ui::feedback::ToastContext;
+use crate::components::ui::icons::Icon;
 use crate::components::workspace::WorkspaceContext;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -194,7 +195,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the home dashboard",
             shortcut: Some("⌘1"),
-            icon: Icon::House,
+            icon: Icon::Home,
             run: set_view(nav, ViewMode::Dashboard),
         },
         AppCommand {
@@ -344,7 +345,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Compare two notes or revisions",
             shortcut: None,
-            icon: Icon::GitCompare,
+            icon: Icon::Comparison,
             run: set_view(nav, ViewMode::Comparison),
         },
         AppCommand {
