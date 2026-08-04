@@ -1,0 +1,21 @@
+# macOS deployment target for all builds (src-tauri, nabu-core, nabu-ui).
+#
+# WHY: the vendored whisper.cpp/ggml C++ code in `whisper-rs-sys` uses
+# `<filesystem>` APIs that only exist on macOS 10.15+. Without this pin, the
+# compiler falls back to the SDK default deployment target (10.13), which is
+# too low, and the ggml build fails with "unavailable: introduced in macOS
+# 10.15".
+#
+# WHY CONFIG [env] AT THE REPO ROOT (not src-tauri/, not an exported shell
+# var): Cargo's `.cargo/config.toml` discovery is anchored to the current
+# working directory and walks UP the tree. Release builds run
+# `cargo tauri build` from the repo root, so the config must live here to be
+# seen. Also, whisper-rs-sys's build.rs does NOT declare
+# `cargo:rerun-if-env-changed=MACOSX_DEPLOYMENT_TARGET`, so Cargo does not
+# fingerprint the variable — changing it on the command line silently reuses
+# cached C++ artifacts built for 10.13. Setting it here applies it
+# deterministically on every invocation (fresh clones and CI included).
+#
+# Only affects Apple targets; harmless elsewhere.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "11.0"
