@@ -1,0 +1,98 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs</file>
+  <line>154</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>25</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs</file>
+  <line>1277</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>24</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/metadata_enricher.rs</file>
+  <line>118</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/metadata_enricher.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>25</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs</file>
+  <line>95</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>44</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs</file>
+  <line>96</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>134</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs</file>
+  <line>283</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>58</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs</file>
+  <line>284</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/src/components/property_editor.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>130</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/src/commands.rs</file>
+  <line>2254</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/src/commands.rs" />
+  <problem_class id="HttpUrlsUsage" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Link with unencrypted protocol</problem_class>
+  <description>HTTP links are not secure</description>
+  <highlighted_element>http://</highlighted_element>
+  <language>Rust</language>
+  <offset>31</offset>
+  <length>7</length>
+</problem>
+</problems>

@@ -1,0 +1,26 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/registry/context.rs</file>
+  <line>652</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/registry/context.rs" />
+  <problem_class id="RsAssertEqual" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Equality assertion can be simplified</problem_class>
+  <description>`assert!(a == b)` can be replaced with `assert_eq!(a, b)`</description>
+  <highlighted_element>assert!(ctx.capability_registry.capability_count() == 0)</highlighted_element>
+  <language>Rust</language>
+  <offset>8</offset>
+  <length>56</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/tests/graph_persistence_integration.rs</file>
+  <line>110</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/tests/graph_persistence_integration.rs" />
+  <problem_class id="RsAssertEqual" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Equality assertion can be simplified</problem_class>
+  <description>`assert!(a == b)` can be replaced with `assert_eq!(a, b)`</description>
+  <highlighted_element>assert!(report.checksum_valid == Some(true))</highlighted_element>
+  <language>Rust</language>
+  <offset>4</offset>
+  <length>44</length>
+</problem>
+</problems>

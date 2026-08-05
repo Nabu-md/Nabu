@@ -1,0 +1,38 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNonIntegerLengthInPixels" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Non-integer length in pixels</problem_class>
+  <description>Float px values may render differently on different browsers</description>
+  <highlighted_element>.5</highlighted_element>
+  <language>CSS</language>
+  <offset>4785</offset>
+  <length>2</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNonIntegerLengthInPixels" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Non-integer length in pixels</problem_class>
+  <description>Float px values may render differently on different browsers</description>
+  <highlighted_element>.5</highlighted_element>
+  <language>CSS</language>
+  <offset>15559</offset>
+  <length>2</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>274</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNonIntegerLengthInPixels" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Non-integer length in pixels</problem_class>
+  <description>Float px values may render differently on different browsers</description>
+  <highlighted_element>0.5</highlighted_element>
+  <language>CSS</language>
+  <offset>26</offset>
+  <length>3</length>
+</problem>
+</problems>

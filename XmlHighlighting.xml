@@ -1,0 +1,54 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/static.files/favicon-044be391.svg</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/static.files/favicon-044be391.svg" />
+  <problem_class id="XmlHighlighting" severity="ERROR" attribute_key="WRONG_REFERENCES_ATTRIBUTES">XML highlighting</problem_class>
+  <hints />
+  <description>URI is not registered (Settings | Languages &amp; Frameworks | Schemas and DTDs) #loc</description>
+  <highlighted_element>http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd</highlighted_element>
+  <language>SVG</language>
+  <offset>102</offset>
+  <length>48</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/static.files/favicon-044be391.svg</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/static.files/favicon-044be391.svg" />
+  <problem_class id="XmlHighlighting" severity="ERROR" attribute_key="WRONG_REFERENCES_ATTRIBUTES">XML highlighting</problem_class>
+  <hints />
+  <description>URI is not registered (Settings | Languages &amp; Frameworks | Schemas and DTDs) #loc</description>
+  <highlighted_element>http://www.serif.com/</highlighted_element>
+  <language>SVG</language>
+  <offset>330</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml</file>
+  <line>2</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml" />
+  <problem_class id="XmlHighlighting" severity="ERROR" attribute_key="WRONG_REFERENCES_ATTRIBUTES">XML highlighting</problem_class>
+  <hints />
+  <description>URI is not registered (Settings | Languages &amp; Frameworks | Schemas and DTDs) #loc</description>
+  <highlighted_element>http://schemas.android.com/apk/res/android</highlighted_element>
+  <language>XML</language>
+  <offset>30</offset>
+  <length>42</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/bundle/share/create-dmg/support/eula-resources-template.xml</file>
+  <line>2</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/bundle/share/create-dmg/support/eula-resources-template.xml" />
+  <problem_class id="XmlHighlighting" severity="ERROR" attribute_key="WRONG_REFERENCES_ATTRIBUTES">XML highlighting</problem_class>
+  <hints />
+  <description>URI is not registered (Settings | Languages &amp; Frameworks | Schemas and DTDs) #loc</description>
+  <highlighted_element>http://www.apple.com/DTDs/PropertyList-1.0.dtd</highlighted_element>
+  <language>XML</language>
+  <offset>54</offset>
+  <length>46</length>
+</problem>
+</problems>

@@ -1,0 +1,302 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/app-213f8ca1a247262c/out/__global-api-script.js</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/app-213f8ca1a247262c/out/__global-api-script.js" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>[&quot;/Users/macbook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/scripts/bundle.gl...</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>0</offset>
+  <length>109</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/app-3ea02497fe481544/out/__global-api-script.js</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/app-3ea02497fe481544/out/__global-api-script.js" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>[&quot;/Users/macbook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/scripts/bundle.gl...</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>0</offset>
+  <length>109</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/app-b8aed96ae02e29ab/out/__global-api-script.js</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/app-b8aed96ae02e29ab/out/__global-api-script.js" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>[&quot;/Users/macbook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/scripts/bundle.gl...</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>0</offset>
+  <length>109</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/app-95f836334d4576f9/out/__global-api-script.js</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/app-95f836334d4576f9/out/__global-api-script.js" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>[&quot;/Users/macbook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/scripts/bundle.gl...</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>0</offset>
+  <length>109</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/app-b75615791b8c673b/out/__global-api-script.js</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/app-b75615791b8c673b/out/__global-api-script.js" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>[&quot;/Users/macbook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.11.5/scripts/bundle.gl...</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>0</offset>
+  <length>109</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/src/CMakeFiles/whisper.dir/compiler_depend.ts" />
+  <problem_class id="BadExpressionStatementJS" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Expression statement which is not assignment or call</problem_class>
+  <description>Expression statement is not assignment or call</description>
+  <highlighted_element>EDIT!</highlighted_element>
+  <language>TypeScript</language>
+  <offset>25</offset>
+  <length>5</length>
+</problem>
+</problems>

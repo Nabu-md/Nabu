@@ -1,0 +1,266 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>85</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 6.</description>
+  <highlighted_element>6.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>85</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 6.</description>
+  <highlighted_element>6.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>86</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 2, but got 7.</description>
+  <highlighted_element>7.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>86</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 2, but got 7.</description>
+  <highlighted_element>7.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>87</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 3, but got 8.</description>
+  <highlighted_element>8.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>87</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 3, but got 8.</description>
+  <highlighted_element>8.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>88</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 4, but got 9.</description>
+  <highlighted_element>9.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>88</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 4, but got 9.</description>
+  <highlighted_element>9.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>89</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 5, but got 10.</description>
+  <highlighted_element>10.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>89</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 5, but got 10.</description>
+  <highlighted_element>10.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>90</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 6, but got 11.</description>
+  <highlighted_element>11.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>90</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 6, but got 11.</description>
+  <highlighted_element>11.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>93</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 12.</description>
+  <highlighted_element>12.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>93</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 12.</description>
+  <highlighted_element>12.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>94</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 2, but got 13.</description>
+  <highlighted_element>13.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>94</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 2, but got 13.</description>
+  <highlighted_element>13.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>95</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 3, but got 14.</description>
+  <highlighted_element>14.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>95</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 3, but got 14.</description>
+  <highlighted_element>14.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>98</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 15.</description>
+  <highlighted_element>15.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/README.md</file>
+  <line>98</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/README.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 15.</description>
+  <highlighted_element>15.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/docs/USER_GUIDE.md</file>
+  <line>391</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/docs/USER_GUIDE.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 1, but got 4.</description>
+  <highlighted_element>4.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/docs/USER_GUIDE.md</file>
+  <line>392</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/docs/USER_GUIDE.md" />
+  <problem_class id="MarkdownIncorrectlyNumberedListItem" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Incorrectly numbered list item</problem_class>
+  <description>Item is not correctly numbered. Expected item number 2, but got 5.</description>
+  <highlighted_element>5.</highlighted_element>
+  <language>Markdown</language>
+  <offset>0</offset>
+  <length>3</length>
+</problem>
+</problems>

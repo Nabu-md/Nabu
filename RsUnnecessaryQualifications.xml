@@ -1,0 +1,266 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs</file>
+  <line>590</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>chrono::</highlighted_element>
+  <language>Rust</language>
+  <offset>44</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs</file>
+  <line>594</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>chrono::</highlighted_element>
+  <language>Rust</language>
+  <offset>52</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/diagnostics/spans.rs</file>
+  <line>348</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/diagnostics/spans.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>tracing::</highlighted_element>
+  <language>Rust</language>
+  <offset>28</offset>
+  <length>9</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>69</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>persistence::</highlighted_element>
+  <language>Rust</language>
+  <offset>26</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>74</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>persistence::</highlighted_element>
+  <language>Rust</language>
+  <offset>22</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>88</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>40</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>98</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>persistence::</highlighted_element>
+  <language>Rust</language>
+  <offset>28</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>135</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>persistence::</highlighted_element>
+  <language>Rust</language>
+  <offset>20</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>181</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>persistence::</highlighted_element>
+  <language>Rust</language>
+  <offset>24</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>181</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>66</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>192</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>recovery::</highlighted_element>
+  <language>Rust</language>
+  <offset>23</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>194</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>recovery::</highlighted_element>
+  <language>Rust</language>
+  <offset>12</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>203</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>44</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>243</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>29</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>249</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>27</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>254</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>recovery::</highlighted_element>
+  <language>Rust</language>
+  <offset>27</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs</file>
+  <line>263</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>serializer::</highlighted_element>
+  <language>Rust</language>
+  <offset>20</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/history/mod.rs</file>
+  <line>397</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/history/mod.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>std::sync::</highlighted_element>
+  <language>Rust</language>
+  <offset>22</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/jobs/worker_channel.rs</file>
+  <line>50</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/jobs/worker_channel.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>std::mem::</highlighted_element>
+  <language>Rust</language>
+  <offset>12</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/models/knowledge_object.rs</file>
+  <line>86</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/models/knowledge_object.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>uuid::</highlighted_element>
+  <language>Rust</language>
+  <offset>42</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/models/knowledge_object.rs</file>
+  <line>284</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/models/knowledge_object.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>uuid::</highlighted_element>
+  <language>Rust</language>
+  <offset>13</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/src/registry/context.rs</file>
+  <line>259</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/src/registry/context.rs" />
+  <problem_class id="RsUnnecessaryQualifications" severity="WEAK WARNING" attribute_key="NOT_USED_ELEMENT_ATTRIBUTES">Unnecessary path prefix</problem_class>
+  <description>Path prefix not necessary</description>
+  <highlighted_element>std::sync::</highlighted_element>
+  <language>Rust</language>
+  <offset>48</offset>
+  <length>11</length>
+</problem>
+</problems>

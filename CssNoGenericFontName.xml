@@ -1,0 +1,146 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-sans)</highlighted_element>
+  <language>CSS</language>
+  <offset>2730</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>8108</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-mono,ui-monospace,SFMono-Regular,Menlo,monospace)</highlighted_element>
+  <language>CSS</language>
+  <offset>53365</offset>
+  <length>72</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>59851</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>66750</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family:var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>67914</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>171</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-sans)</highlighted_element>
+  <language>CSS</language>
+  <offset>4</offset>
+  <length>29</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>426</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>4</offset>
+  <length>29</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>1619</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)</highlighted_element>
+  <language>CSS</language>
+  <offset>2</offset>
+  <length>77</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>1962</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>2</offset>
+  <length>29</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>2365</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>2</offset>
+  <length>29</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>2441</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssNoGenericFontName" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Missing generic font family name</problem_class>
+  <description>Font property font-family does not have generic default</description>
+  <highlighted_element>font-family: var(--font-mono)</highlighted_element>
+  <language>CSS</language>
+  <offset>2</offset>
+  <length>29</length>
+</problem>
+</problems>

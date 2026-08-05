@@ -1,0 +1,74 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/content/content.js</file>
+  <line>68</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/content/content.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property capturePage</description>
+  <highlighted_element>capturePage</highlighted_element>
+  <language>JavaScript</language>
+  <offset>4</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/content/content.js</file>
+  <line>82</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/content/content.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property captureSelection</description>
+  <highlighted_element>captureSelection</highlighted_element>
+  <language>JavaScript</language>
+  <offset>4</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/shared/messages.js</file>
+  <line>52</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/shared/messages.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property validateMessage</description>
+  <highlighted_element>validateMessage</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>4</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/shared/messages.js</file>
+  <line>53</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/shared/messages.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property createCaptureMessage</description>
+  <highlighted_element>createCaptureMessage</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>4</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/shared/messages.js</file>
+  <line>54</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/shared/messages.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property createSuccessResponse</description>
+  <highlighted_element>createSuccessResponse</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>4</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/shared/messages.js</file>
+  <line>55</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/shared/messages.js" />
+  <problem_class id="JSUnusedGlobalSymbols" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unused global symbol</problem_class>
+  <description>Unused property createErrorResponse</description>
+  <highlighted_element>createErrorResponse</highlighted_element>
+  <language>ECMAScript 6</language>
+  <offset>4</offset>
+  <length>19</length>
+</problem>
+</problems>

@@ -1,0 +1,67 @@
+<root>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" line="414" start="13395" end="13927" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/capture/handler.rs" line="441" start="14214" end="14743" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/graph/mod.rs" line="311" start="10066" end="10656" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/graph/recovery.rs" line="195" start="6694" end="7220" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/ai_summariser.rs" line="78" start="2636" end="2890" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="70" start="2229" end="2435" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="179" start="5830" end="6036" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="210" start="6822" end="7028" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="231" start="6903" end="7109" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="273" start="8270" end="8476" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/duplicate_detector.rs" line="140" start="4228" end="4434" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/metadata_enricher.rs" line="59" start="2007" end="2213" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/ai_summariser.rs" line="143" start="4372" end="4614" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="193" start="5882" end="6124" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="67" start="2122" end="2436" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/metadata_enricher.rs" line="56" start="1900" end="2214" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="175" start="5709" end="6037" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/auto_filer.rs" line="206" start="6701" end="7029" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="227" start="6785" end="7110" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="269" start="8152" end="8477" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="240" start="7176" end="7512" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/content_classifier.rs" line="282" start="8548" end="8884" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/pdf_annotation_processor.rs" line="34" start="1193" end="1465" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/pdf_metadata_processor.rs" line="29" start="927" end="1199" />
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-core/src/processing/processors/pdf_text_processor.rs" line="30" start="951" end="1223" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-base.dir/compiler_depend.ts" line="0" start="0" end="116" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" line="0" start="0" end="115" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" line="0" start="0" end="115" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" line="0" start="0" end="115" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/CMakeFiles/ggml-cpu.dir/compiler_depend.ts" line="0" start="0" end="115" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" line="0" start="0" end="116" />
+  <fragment file="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/build/ggml/src/ggml-blas/CMakeFiles/ggml-blas.dir/compiler_depend.ts" line="0" start="0" end="116" />
+</duplicate>
+<duplicate cost="1" hash="0">
+  <fragment file="file://$PROJECT_DIR$/src/styles/app.css" line="110" start="4489" end="5548" />
+  <fragment file="file://$PROJECT_DIR$/src/styles/app.css" line="134" start="5686" end="6421" />
+</duplicate>
+</root>

@@ -1,0 +1,50 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml</file>
+  <line>13</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml" />
+  <problem_class id="NewCrateVersionAvailable" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Newer crate version available</problem_class>
+  <description>A newer version is available for crate `thiserror`: 2.0.19</description>
+  <highlighted_element>&quot;1&quot;</highlighted_element>
+  <language>TOML</language>
+  <offset>12</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml</file>
+  <line>14</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml" />
+  <problem_class id="NewCrateVersionAvailable" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Newer crate version available</problem_class>
+  <description>A newer version is available for crate `sha2`: 0.11.0</description>
+  <highlighted_element>&quot;0.10&quot;</highlighted_element>
+  <language>TOML</language>
+  <offset>7</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml</file>
+  <line>38</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-core/Cargo.toml" />
+  <problem_class id="NewCrateVersionAvailable" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Newer crate version available</problem_class>
+  <description>A newer version is available for crate `whisper-rs`: 0.16.0</description>
+  <highlighted_element>&quot;0.14.4&quot;</highlighted_element>
+  <language>TOML</language>
+  <offset>13</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/Cargo.toml</file>
+  <line>33</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/Cargo.toml" />
+  <problem_class id="NewCrateVersionAvailable" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Newer crate version available</problem_class>
+  <description>A newer version is available for crate `rfd`: 0.17.2</description>
+  <highlighted_element>&quot;0.15&quot;</highlighted_element>
+  <language>TOML</language>
+  <offset>6</offset>
+  <length>6</length>
+</problem>
+</problems>

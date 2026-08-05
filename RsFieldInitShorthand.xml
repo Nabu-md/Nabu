@@ -1,0 +1,14 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/src/commands.rs</file>
+  <line>3504</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/src/commands.rs" />
+  <problem_class id="RsFieldInitShorthand" severity="WEAK WARNING" attribute_key="INFO_ATTRIBUTES">Non-shorthand field initialization</problem_class>
+  <description>Expression can be simplified</description>
+  <highlighted_element>target: target</highlighted_element>
+  <language>Rust</language>
+  <offset>24</offset>
+  <length>14</length>
+</problem>
+</problems>

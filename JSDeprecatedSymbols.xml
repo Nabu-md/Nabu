@@ -1,0 +1,62 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/background/background.js</file>
+  <line>17</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/background/background.js" />
+  <problem_class id="JSDeprecatedSymbols" severity="WEAK WARNING" attribute_key="DEPRECATED_ATTRIBUTES">Deprecated symbol used</problem_class>
+  <description>Deprecated symbol used, consult docs for better alternative</description>
+  <highlighted_element>addListener</highlighted_element>
+  <language>JavaScript</language>
+  <offset>19</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/background/background.js</file>
+  <line>25</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/background/background.js" />
+  <problem_class id="JSDeprecatedSymbols" severity="WEAK WARNING" attribute_key="DEPRECATED_ATTRIBUTES">Deprecated symbol used</problem_class>
+  <description>Deprecated symbol used, consult docs for better alternative</description>
+  <highlighted_element>addListener</highlighted_element>
+  <language>JavaScript</language>
+  <offset>22</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/background/background.js</file>
+  <line>66</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/background/background.js" />
+  <problem_class id="JSDeprecatedSymbols" severity="WEAK WARNING" attribute_key="DEPRECATED_ATTRIBUTES">Deprecated symbol used</problem_class>
+  <description>Deprecated symbol used, consult docs for better alternative</description>
+  <highlighted_element>addListener</highlighted_element>
+  <language>JavaScript</language>
+  <offset>26</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/background/background.js</file>
+  <line>78</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/background/background.js" />
+  <problem_class id="JSDeprecatedSymbols" severity="WEAK WARNING" attribute_key="DEPRECATED_ATTRIBUTES">Deprecated symbol used</problem_class>
+  <description>Deprecated symbol used, consult docs for better alternative</description>
+  <highlighted_element>addListener</highlighted_element>
+  <language>JavaScript</language>
+  <offset>26</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/content/content.js</file>
+  <line>8</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/content/content.js" />
+  <problem_class id="JSDeprecatedSymbols" severity="WEAK WARNING" attribute_key="DEPRECATED_ATTRIBUTES">Deprecated symbol used</problem_class>
+  <description>Deprecated symbol used, consult docs for better alternative</description>
+  <highlighted_element>addListener</highlighted_element>
+  <language>JavaScript</language>
+  <offset>28</offset>
+  <length>11</length>
+</problem>
+</problems>

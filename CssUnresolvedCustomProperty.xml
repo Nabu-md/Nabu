@@ -1,0 +1,182 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--grid-min&lt;/code&gt; custom property</description>
+  <highlighted_element>--grid-min</highlighted_element>
+  <language>CSS</language>
+  <offset>30476</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>46477</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>46515</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>46753</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>46898</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>46936</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>47203</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--tw-shadow-color&lt;/code&gt; custom property</description>
+  <highlighted_element>--tw-shadow-color</highlighted_element>
+  <language>CSS</language>
+  <offset>47242</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>67370</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>67410</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/generated/tailwind.css</file>
+  <line>3</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/generated/tailwind.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>68266</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>1472</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--grid-min&lt;/code&gt; custom property</description>
+  <highlighted_element>--grid-min</highlighted_element>
+  <language>CSS</language>
+  <offset>56</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>2414</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>24</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>2415</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>22</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src/styles/app.css</file>
+  <line>2461</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src/styles/app.css" />
+  <problem_class id="CssUnresolvedCustomProperty" severity="ERROR" attribute_key="ERRORS_ATTRIBUTES">Unresolved custom property</problem_class>
+  <description>Cannot resolve &lt;code&gt;--color-danger&lt;/code&gt; custom property</description>
+  <highlighted_element>--color-danger</highlighted_element>
+  <language>CSS</language>
+  <offset>22</offset>
+  <length>14</length>
+</problem>
+</problems>

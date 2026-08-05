@@ -1,0 +1,26 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/popup/popup.js</file>
+  <line>55</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/popup/popup.js" />
+  <problem_class id="ExceptionCaughtLocallyJS" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Exception used for local control-flow</problem_class>
+  <description>'throw' of exception caught locally</description>
+  <highlighted_element>throw</highlighted_element>
+  <language>JavaScript</language>
+  <offset>8</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/extensions/safari/popup/popup.js</file>
+  <line>72</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/extensions/safari/popup/popup.js" />
+  <problem_class id="ExceptionCaughtLocallyJS" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Exception used for local control-flow</problem_class>
+  <description>'throw' of exception caught locally</description>
+  <highlighted_element>throw</highlighted_element>
+  <language>JavaScript</language>
+  <offset>8</offset>
+  <length>5</length>
+</problem>
+</problems>

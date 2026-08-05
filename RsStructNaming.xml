@@ -1,0 +1,2546 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>546</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__mbstate_t` should have a camel case name such as `MbstateT`</description>
+  <highlighted_element>__mbstate_t</highlighted_element>
+  <language>Rust</language>
+  <offset>10</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>592</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__darwin_pthread_handler_rec` should have a camel case name such as `DarwinPthreadHandlerRec`</description>
+  <highlighted_element>__darwin_pthread_handler_rec</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_attr_t` should have a camel case name such as `OpaquePthreadAttrT`</description>
+  <highlighted_element>_opaque_pthread_attr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>628</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_cond_t` should have a camel case name such as `OpaquePthreadCondT`</description>
+  <highlighted_element>_opaque_pthread_cond_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>644</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_condattr_t` should have a camel case name such as `OpaquePthreadCondattrT`</description>
+  <highlighted_element>_opaque_pthread_condattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>26</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>661</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutex_t` should have a camel case name such as `OpaquePthreadMutexT`</description>
+  <highlighted_element>_opaque_pthread_mutex_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>677</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutexattr_t` should have a camel case name such as `OpaquePthreadMutexattrT`</description>
+  <highlighted_element>_opaque_pthread_mutexattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>27</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>694</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_once_t` should have a camel case name such as `OpaquePthreadOnceT`</description>
+  <highlighted_element>_opaque_pthread_once_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>710</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlock_t` should have a camel case name such as `OpaquePthreadRwlockT`</description>
+  <highlighted_element>_opaque_pthread_rwlock_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>727</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlockattr_t` should have a camel case name such as `OpaquePthreadRwlockattrT`</description>
+  <highlighted_element>_opaque_pthread_rwlockattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>744</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_t` should have a camel case name such as `OpaquePthreadT`</description>
+  <highlighted_element>_opaque_pthread_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>819</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sbuf` should have a camel case name such as `Sbuf`</description>
+  <highlighted_element>__sbuf</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>832</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILEX` should have a camel case name such as `Sfilex`</description>
+  <highlighted_element>__sFILEX</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>837</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILE` should have a camel case name such as `Sfile`</description>
+  <highlighted_element>__sFILE</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1390</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_bf16_t` should have a camel case name such as `GgmlBf16T`</description>
+  <highlighted_element>ggml_bf16_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1416</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_object` should have a camel case name such as `GgmlObject`</description>
+  <highlighted_element>ggml_object</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1421</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_context` should have a camel case name such as `GgmlContext`</description>
+  <highlighted_element>ggml_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1426</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cgraph` should have a camel case name such as `GgmlCgraph`</description>
+  <highlighted_element>ggml_cgraph</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_init_params` should have a camel case name such as `GgmlInitParams`</description>
+  <highlighted_element>ggml_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>1630</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tensor` should have a camel case name such as `GgmlTensor`</description>
+  <highlighted_element>ggml_tensor</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3423</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_context` should have a camel case name such as `GgufContext`</description>
+  <highlighted_element>gguf_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3428</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_init_params` should have a camel case name such as `GgufInitParams`</description>
+  <highlighted_element>gguf_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3676</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits` should have a camel case name such as `GgmlTypeTraits`</description>
+  <highlighted_element>ggml_type_traits</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool_params` should have a camel case name such as `GgmlThreadpoolParams`</description>
+  <highlighted_element>ggml_threadpool_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3742</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool` should have a camel case name such as `GgmlThreadpool`</description>
+  <highlighted_element>ggml_threadpool</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3765</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer_type` should have a camel case name such as `GgmlBackendBufferType`</description>
+  <highlighted_element>ggml_backend_buffer_type</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3772</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend` should have a camel case name such as `GgmlBackend`</description>
+  <highlighted_element>ggml_backend</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3778</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tallocr` should have a camel case name such as `GgmlTallocr`</description>
+  <highlighted_element>ggml_tallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3804</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_gallocr` should have a camel case name such as `GgmlGallocr`</description>
+  <highlighted_element>ggml_gallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3854</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_event` should have a camel case name such as `GgmlBackendEvent`</description>
+  <highlighted_element>ggml_backend_event</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3861</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_reg` should have a camel case name such as `GgmlBackendReg`</description>
+  <highlighted_element>ggml_backend_reg</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>3867</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_device` should have a camel case name such as `GgmlBackendDevice`</description>
+  <highlighted_element>ggml_backend_device</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4104</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_caps` should have a camel case name such as `GgmlBackendDevCaps`</description>
+  <highlighted_element>ggml_backend_dev_caps</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4126</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_props` should have a camel case name such as `GgmlBackendDevProps`</description>
+  <highlighted_element>ggml_backend_dev_props</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4246</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_feature` should have a camel case name such as `GgmlBackendFeature`</description>
+  <highlighted_element>ggml_backend_feature</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4312</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_sched` should have a camel case name such as `GgmlBackendSched`</description>
+  <highlighted_element>ggml_backend_sched</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4408</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_graph_copy` should have a camel case name such as `GgmlBackendGraphCopy`</description>
+  <highlighted_element>ggml_backend_graph_copy</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4475</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cplan` should have a camel case name such as `GgmlCplan`</description>
+  <highlighted_element>ggml_cplan</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4691</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits_cpu` should have a camel case name such as `GgmlTypeTraitsCpu`</description>
+  <highlighted_element>ggml_type_traits_cpu</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4747</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context` should have a camel case name such as `WhisperContext`</description>
+  <highlighted_element>whisper_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4752</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_state` should have a camel case name such as `WhisperState`</description>
+  <highlighted_element>whisper_state</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4783</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_ahead` should have a camel case name such as `WhisperAhead`</description>
+  <highlighted_element>whisper_ahead</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4798</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_aheads` should have a camel case name such as `WhisperAheads`</description>
+  <highlighted_element>whisper_aheads</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4813</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context_params` should have a camel case name such as `WhisperContextParams`</description>
+  <highlighted_element>whisper_context_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4847</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_token_data` should have a camel case name such as `WhisperTokenData`</description>
+  <highlighted_element>whisper_token_data</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4886</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_model_loader` should have a camel case name such as `WhisperModelLoader`</description>
+  <highlighted_element>whisper_model_loader</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>4921</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_grammar_element` should have a camel case name such as `WhisperGrammarElement`</description>
+  <highlighted_element>whisper_grammar_element</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5248</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_timings` should have a camel case name such as `WhisperTimings`</description>
+  <highlighted_element>whisper_timings</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5320</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params` should have a camel case name such as `WhisperFullParams`</description>
+  <highlighted_element>whisper_full_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5377</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_1` should have a camel case name such as `WhisperFullParamsBindgenTy1`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_1</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5391</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_2` should have a camel case name such as `WhisperFullParamsBindgenTy2`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_2</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__va_list_tag` should have a camel case name such as `VaListTag`</description>
+  <highlighted_element>__va_list_tag</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs</file>
+  <line>5735</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/debug/build/whisper-rs-sys-99419d7adb833100/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer` should have a camel case name such as `GgmlBackendBuffer`</description>
+  <highlighted_element>ggml_backend_buffer</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>546</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__mbstate_t` should have a camel case name such as `MbstateT`</description>
+  <highlighted_element>__mbstate_t</highlighted_element>
+  <language>Rust</language>
+  <offset>10</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>592</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__darwin_pthread_handler_rec` should have a camel case name such as `DarwinPthreadHandlerRec`</description>
+  <highlighted_element>__darwin_pthread_handler_rec</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_attr_t` should have a camel case name such as `OpaquePthreadAttrT`</description>
+  <highlighted_element>_opaque_pthread_attr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>628</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_cond_t` should have a camel case name such as `OpaquePthreadCondT`</description>
+  <highlighted_element>_opaque_pthread_cond_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>644</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_condattr_t` should have a camel case name such as `OpaquePthreadCondattrT`</description>
+  <highlighted_element>_opaque_pthread_condattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>26</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>661</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutex_t` should have a camel case name such as `OpaquePthreadMutexT`</description>
+  <highlighted_element>_opaque_pthread_mutex_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>677</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutexattr_t` should have a camel case name such as `OpaquePthreadMutexattrT`</description>
+  <highlighted_element>_opaque_pthread_mutexattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>27</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>694</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_once_t` should have a camel case name such as `OpaquePthreadOnceT`</description>
+  <highlighted_element>_opaque_pthread_once_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>710</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlock_t` should have a camel case name such as `OpaquePthreadRwlockT`</description>
+  <highlighted_element>_opaque_pthread_rwlock_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>727</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlockattr_t` should have a camel case name such as `OpaquePthreadRwlockattrT`</description>
+  <highlighted_element>_opaque_pthread_rwlockattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>744</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_t` should have a camel case name such as `OpaquePthreadT`</description>
+  <highlighted_element>_opaque_pthread_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>819</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sbuf` should have a camel case name such as `Sbuf`</description>
+  <highlighted_element>__sbuf</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>832</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILEX` should have a camel case name such as `Sfilex`</description>
+  <highlighted_element>__sFILEX</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>837</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILE` should have a camel case name such as `Sfile`</description>
+  <highlighted_element>__sFILE</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1390</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_bf16_t` should have a camel case name such as `GgmlBf16T`</description>
+  <highlighted_element>ggml_bf16_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1416</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_object` should have a camel case name such as `GgmlObject`</description>
+  <highlighted_element>ggml_object</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1421</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_context` should have a camel case name such as `GgmlContext`</description>
+  <highlighted_element>ggml_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1426</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cgraph` should have a camel case name such as `GgmlCgraph`</description>
+  <highlighted_element>ggml_cgraph</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_init_params` should have a camel case name such as `GgmlInitParams`</description>
+  <highlighted_element>ggml_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>1630</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tensor` should have a camel case name such as `GgmlTensor`</description>
+  <highlighted_element>ggml_tensor</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3423</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_context` should have a camel case name such as `GgufContext`</description>
+  <highlighted_element>gguf_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3428</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_init_params` should have a camel case name such as `GgufInitParams`</description>
+  <highlighted_element>gguf_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3676</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits` should have a camel case name such as `GgmlTypeTraits`</description>
+  <highlighted_element>ggml_type_traits</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool_params` should have a camel case name such as `GgmlThreadpoolParams`</description>
+  <highlighted_element>ggml_threadpool_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3742</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool` should have a camel case name such as `GgmlThreadpool`</description>
+  <highlighted_element>ggml_threadpool</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3765</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer_type` should have a camel case name such as `GgmlBackendBufferType`</description>
+  <highlighted_element>ggml_backend_buffer_type</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3772</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend` should have a camel case name such as `GgmlBackend`</description>
+  <highlighted_element>ggml_backend</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3778</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tallocr` should have a camel case name such as `GgmlTallocr`</description>
+  <highlighted_element>ggml_tallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3804</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_gallocr` should have a camel case name such as `GgmlGallocr`</description>
+  <highlighted_element>ggml_gallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3854</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_event` should have a camel case name such as `GgmlBackendEvent`</description>
+  <highlighted_element>ggml_backend_event</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3861</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_reg` should have a camel case name such as `GgmlBackendReg`</description>
+  <highlighted_element>ggml_backend_reg</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>3867</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_device` should have a camel case name such as `GgmlBackendDevice`</description>
+  <highlighted_element>ggml_backend_device</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4104</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_caps` should have a camel case name such as `GgmlBackendDevCaps`</description>
+  <highlighted_element>ggml_backend_dev_caps</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4126</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_props` should have a camel case name such as `GgmlBackendDevProps`</description>
+  <highlighted_element>ggml_backend_dev_props</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4246</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_feature` should have a camel case name such as `GgmlBackendFeature`</description>
+  <highlighted_element>ggml_backend_feature</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4312</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_sched` should have a camel case name such as `GgmlBackendSched`</description>
+  <highlighted_element>ggml_backend_sched</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4408</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_graph_copy` should have a camel case name such as `GgmlBackendGraphCopy`</description>
+  <highlighted_element>ggml_backend_graph_copy</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4475</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cplan` should have a camel case name such as `GgmlCplan`</description>
+  <highlighted_element>ggml_cplan</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4691</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits_cpu` should have a camel case name such as `GgmlTypeTraitsCpu`</description>
+  <highlighted_element>ggml_type_traits_cpu</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4747</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context` should have a camel case name such as `WhisperContext`</description>
+  <highlighted_element>whisper_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4752</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_state` should have a camel case name such as `WhisperState`</description>
+  <highlighted_element>whisper_state</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4783</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_ahead` should have a camel case name such as `WhisperAhead`</description>
+  <highlighted_element>whisper_ahead</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4798</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_aheads` should have a camel case name such as `WhisperAheads`</description>
+  <highlighted_element>whisper_aheads</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4813</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context_params` should have a camel case name such as `WhisperContextParams`</description>
+  <highlighted_element>whisper_context_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4847</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_token_data` should have a camel case name such as `WhisperTokenData`</description>
+  <highlighted_element>whisper_token_data</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4886</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_model_loader` should have a camel case name such as `WhisperModelLoader`</description>
+  <highlighted_element>whisper_model_loader</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>4921</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_grammar_element` should have a camel case name such as `WhisperGrammarElement`</description>
+  <highlighted_element>whisper_grammar_element</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5248</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_timings` should have a camel case name such as `WhisperTimings`</description>
+  <highlighted_element>whisper_timings</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5320</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params` should have a camel case name such as `WhisperFullParams`</description>
+  <highlighted_element>whisper_full_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5377</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_1` should have a camel case name such as `WhisperFullParamsBindgenTy1`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_1</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5391</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_2` should have a camel case name such as `WhisperFullParamsBindgenTy2`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_2</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__va_list_tag` should have a camel case name such as `VaListTag`</description>
+  <highlighted_element>__va_list_tag</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs</file>
+  <line>5735</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-43055551c8a14fb8/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer` should have a camel case name such as `GgmlBackendBuffer`</description>
+  <highlighted_element>ggml_backend_buffer</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>546</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__mbstate_t` should have a camel case name such as `MbstateT`</description>
+  <highlighted_element>__mbstate_t</highlighted_element>
+  <language>Rust</language>
+  <offset>10</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>592</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__darwin_pthread_handler_rec` should have a camel case name such as `DarwinPthreadHandlerRec`</description>
+  <highlighted_element>__darwin_pthread_handler_rec</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_attr_t` should have a camel case name such as `OpaquePthreadAttrT`</description>
+  <highlighted_element>_opaque_pthread_attr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>628</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_cond_t` should have a camel case name such as `OpaquePthreadCondT`</description>
+  <highlighted_element>_opaque_pthread_cond_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>644</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_condattr_t` should have a camel case name such as `OpaquePthreadCondattrT`</description>
+  <highlighted_element>_opaque_pthread_condattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>26</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>661</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutex_t` should have a camel case name such as `OpaquePthreadMutexT`</description>
+  <highlighted_element>_opaque_pthread_mutex_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>677</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutexattr_t` should have a camel case name such as `OpaquePthreadMutexattrT`</description>
+  <highlighted_element>_opaque_pthread_mutexattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>27</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>694</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_once_t` should have a camel case name such as `OpaquePthreadOnceT`</description>
+  <highlighted_element>_opaque_pthread_once_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>710</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlock_t` should have a camel case name such as `OpaquePthreadRwlockT`</description>
+  <highlighted_element>_opaque_pthread_rwlock_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>727</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlockattr_t` should have a camel case name such as `OpaquePthreadRwlockattrT`</description>
+  <highlighted_element>_opaque_pthread_rwlockattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>744</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_t` should have a camel case name such as `OpaquePthreadT`</description>
+  <highlighted_element>_opaque_pthread_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>819</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sbuf` should have a camel case name such as `Sbuf`</description>
+  <highlighted_element>__sbuf</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>832</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILEX` should have a camel case name such as `Sfilex`</description>
+  <highlighted_element>__sFILEX</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>837</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILE` should have a camel case name such as `Sfile`</description>
+  <highlighted_element>__sFILE</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1390</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_bf16_t` should have a camel case name such as `GgmlBf16T`</description>
+  <highlighted_element>ggml_bf16_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1416</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_object` should have a camel case name such as `GgmlObject`</description>
+  <highlighted_element>ggml_object</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1421</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_context` should have a camel case name such as `GgmlContext`</description>
+  <highlighted_element>ggml_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1426</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cgraph` should have a camel case name such as `GgmlCgraph`</description>
+  <highlighted_element>ggml_cgraph</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_init_params` should have a camel case name such as `GgmlInitParams`</description>
+  <highlighted_element>ggml_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>1630</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tensor` should have a camel case name such as `GgmlTensor`</description>
+  <highlighted_element>ggml_tensor</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3423</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_context` should have a camel case name such as `GgufContext`</description>
+  <highlighted_element>gguf_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3428</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_init_params` should have a camel case name such as `GgufInitParams`</description>
+  <highlighted_element>gguf_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3676</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits` should have a camel case name such as `GgmlTypeTraits`</description>
+  <highlighted_element>ggml_type_traits</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool_params` should have a camel case name such as `GgmlThreadpoolParams`</description>
+  <highlighted_element>ggml_threadpool_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3742</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool` should have a camel case name such as `GgmlThreadpool`</description>
+  <highlighted_element>ggml_threadpool</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3765</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer_type` should have a camel case name such as `GgmlBackendBufferType`</description>
+  <highlighted_element>ggml_backend_buffer_type</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3772</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend` should have a camel case name such as `GgmlBackend`</description>
+  <highlighted_element>ggml_backend</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3778</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tallocr` should have a camel case name such as `GgmlTallocr`</description>
+  <highlighted_element>ggml_tallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3804</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_gallocr` should have a camel case name such as `GgmlGallocr`</description>
+  <highlighted_element>ggml_gallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3854</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_event` should have a camel case name such as `GgmlBackendEvent`</description>
+  <highlighted_element>ggml_backend_event</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3861</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_reg` should have a camel case name such as `GgmlBackendReg`</description>
+  <highlighted_element>ggml_backend_reg</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>3867</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_device` should have a camel case name such as `GgmlBackendDevice`</description>
+  <highlighted_element>ggml_backend_device</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4104</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_caps` should have a camel case name such as `GgmlBackendDevCaps`</description>
+  <highlighted_element>ggml_backend_dev_caps</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4126</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_props` should have a camel case name such as `GgmlBackendDevProps`</description>
+  <highlighted_element>ggml_backend_dev_props</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4246</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_feature` should have a camel case name such as `GgmlBackendFeature`</description>
+  <highlighted_element>ggml_backend_feature</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4312</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_sched` should have a camel case name such as `GgmlBackendSched`</description>
+  <highlighted_element>ggml_backend_sched</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4408</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_graph_copy` should have a camel case name such as `GgmlBackendGraphCopy`</description>
+  <highlighted_element>ggml_backend_graph_copy</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4475</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cplan` should have a camel case name such as `GgmlCplan`</description>
+  <highlighted_element>ggml_cplan</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4691</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits_cpu` should have a camel case name such as `GgmlTypeTraitsCpu`</description>
+  <highlighted_element>ggml_type_traits_cpu</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4747</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context` should have a camel case name such as `WhisperContext`</description>
+  <highlighted_element>whisper_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4752</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_state` should have a camel case name such as `WhisperState`</description>
+  <highlighted_element>whisper_state</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4783</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_ahead` should have a camel case name such as `WhisperAhead`</description>
+  <highlighted_element>whisper_ahead</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4798</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_aheads` should have a camel case name such as `WhisperAheads`</description>
+  <highlighted_element>whisper_aheads</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4813</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context_params` should have a camel case name such as `WhisperContextParams`</description>
+  <highlighted_element>whisper_context_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4847</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_token_data` should have a camel case name such as `WhisperTokenData`</description>
+  <highlighted_element>whisper_token_data</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4886</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_model_loader` should have a camel case name such as `WhisperModelLoader`</description>
+  <highlighted_element>whisper_model_loader</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>4921</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_grammar_element` should have a camel case name such as `WhisperGrammarElement`</description>
+  <highlighted_element>whisper_grammar_element</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5248</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_timings` should have a camel case name such as `WhisperTimings`</description>
+  <highlighted_element>whisper_timings</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5320</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params` should have a camel case name such as `WhisperFullParams`</description>
+  <highlighted_element>whisper_full_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5377</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_1` should have a camel case name such as `WhisperFullParamsBindgenTy1`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_1</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5391</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_2` should have a camel case name such as `WhisperFullParamsBindgenTy2`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_2</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__va_list_tag` should have a camel case name such as `VaListTag`</description>
+  <highlighted_element>__va_list_tag</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs</file>
+  <line>5735</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/debug/build/whisper-rs-sys-d82ffda824598bb0/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer` should have a camel case name such as `GgmlBackendBuffer`</description>
+  <highlighted_element>ggml_backend_buffer</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>546</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__mbstate_t` should have a camel case name such as `MbstateT`</description>
+  <highlighted_element>__mbstate_t</highlighted_element>
+  <language>Rust</language>
+  <offset>10</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>592</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__darwin_pthread_handler_rec` should have a camel case name such as `DarwinPthreadHandlerRec`</description>
+  <highlighted_element>__darwin_pthread_handler_rec</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_attr_t` should have a camel case name such as `OpaquePthreadAttrT`</description>
+  <highlighted_element>_opaque_pthread_attr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>628</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_cond_t` should have a camel case name such as `OpaquePthreadCondT`</description>
+  <highlighted_element>_opaque_pthread_cond_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>644</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_condattr_t` should have a camel case name such as `OpaquePthreadCondattrT`</description>
+  <highlighted_element>_opaque_pthread_condattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>26</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>661</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutex_t` should have a camel case name such as `OpaquePthreadMutexT`</description>
+  <highlighted_element>_opaque_pthread_mutex_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>677</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_mutexattr_t` should have a camel case name such as `OpaquePthreadMutexattrT`</description>
+  <highlighted_element>_opaque_pthread_mutexattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>27</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>694</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_once_t` should have a camel case name such as `OpaquePthreadOnceT`</description>
+  <highlighted_element>_opaque_pthread_once_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>710</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlock_t` should have a camel case name such as `OpaquePthreadRwlockT`</description>
+  <highlighted_element>_opaque_pthread_rwlock_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>727</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_rwlockattr_t` should have a camel case name such as `OpaquePthreadRwlockattrT`</description>
+  <highlighted_element>_opaque_pthread_rwlockattr_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>28</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>744</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `_opaque_pthread_t` should have a camel case name such as `OpaquePthreadT`</description>
+  <highlighted_element>_opaque_pthread_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>17</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>819</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sbuf` should have a camel case name such as `Sbuf`</description>
+  <highlighted_element>__sbuf</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>832</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILEX` should have a camel case name such as `Sfilex`</description>
+  <highlighted_element>__sFILEX</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>8</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>837</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__sFILE` should have a camel case name such as `Sfile`</description>
+  <highlighted_element>__sFILE</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1390</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_bf16_t` should have a camel case name such as `GgmlBf16T`</description>
+  <highlighted_element>ggml_bf16_t</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1416</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_object` should have a camel case name such as `GgmlObject`</description>
+  <highlighted_element>ggml_object</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1421</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_context` should have a camel case name such as `GgmlContext`</description>
+  <highlighted_element>ggml_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1426</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cgraph` should have a camel case name such as `GgmlCgraph`</description>
+  <highlighted_element>ggml_cgraph</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1612</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_init_params` should have a camel case name such as `GgmlInitParams`</description>
+  <highlighted_element>ggml_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>1630</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tensor` should have a camel case name such as `GgmlTensor`</description>
+  <highlighted_element>ggml_tensor</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>11</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3423</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_context` should have a camel case name such as `GgufContext`</description>
+  <highlighted_element>gguf_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3428</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `gguf_init_params` should have a camel case name such as `GgufInitParams`</description>
+  <highlighted_element>gguf_init_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3676</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits` should have a camel case name such as `GgmlTypeTraits`</description>
+  <highlighted_element>ggml_type_traits</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool_params` should have a camel case name such as `GgmlThreadpoolParams`</description>
+  <highlighted_element>ggml_threadpool_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3742</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_threadpool` should have a camel case name such as `GgmlThreadpool`</description>
+  <highlighted_element>ggml_threadpool</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3765</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer_type` should have a camel case name such as `GgmlBackendBufferType`</description>
+  <highlighted_element>ggml_backend_buffer_type</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>24</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3772</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend` should have a camel case name such as `GgmlBackend`</description>
+  <highlighted_element>ggml_backend</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3778</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_tallocr` should have a camel case name such as `GgmlTallocr`</description>
+  <highlighted_element>ggml_tallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3804</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_gallocr` should have a camel case name such as `GgmlGallocr`</description>
+  <highlighted_element>ggml_gallocr</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>12</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3854</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_event` should have a camel case name such as `GgmlBackendEvent`</description>
+  <highlighted_element>ggml_backend_event</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3861</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_reg` should have a camel case name such as `GgmlBackendReg`</description>
+  <highlighted_element>ggml_backend_reg</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>16</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>3867</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_device` should have a camel case name such as `GgmlBackendDevice`</description>
+  <highlighted_element>ggml_backend_device</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4104</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_caps` should have a camel case name such as `GgmlBackendDevCaps`</description>
+  <highlighted_element>ggml_backend_dev_caps</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>21</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4126</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_dev_props` should have a camel case name such as `GgmlBackendDevProps`</description>
+  <highlighted_element>ggml_backend_dev_props</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4246</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_feature` should have a camel case name such as `GgmlBackendFeature`</description>
+  <highlighted_element>ggml_backend_feature</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4312</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_sched` should have a camel case name such as `GgmlBackendSched`</description>
+  <highlighted_element>ggml_backend_sched</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4408</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_graph_copy` should have a camel case name such as `GgmlBackendGraphCopy`</description>
+  <highlighted_element>ggml_backend_graph_copy</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4475</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_cplan` should have a camel case name such as `GgmlCplan`</description>
+  <highlighted_element>ggml_cplan</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>10</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4691</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_type_traits_cpu` should have a camel case name such as `GgmlTypeTraitsCpu`</description>
+  <highlighted_element>ggml_type_traits_cpu</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4747</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context` should have a camel case name such as `WhisperContext`</description>
+  <highlighted_element>whisper_context</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4752</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_state` should have a camel case name such as `WhisperState`</description>
+  <highlighted_element>whisper_state</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4783</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_ahead` should have a camel case name such as `WhisperAhead`</description>
+  <highlighted_element>whisper_ahead</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4798</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_aheads` should have a camel case name such as `WhisperAheads`</description>
+  <highlighted_element>whisper_aheads</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>14</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4813</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_context_params` should have a camel case name such as `WhisperContextParams`</description>
+  <highlighted_element>whisper_context_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>22</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4847</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_token_data` should have a camel case name such as `WhisperTokenData`</description>
+  <highlighted_element>whisper_token_data</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>18</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4886</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_model_loader` should have a camel case name such as `WhisperModelLoader`</description>
+  <highlighted_element>whisper_model_loader</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>20</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>4921</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_grammar_element` should have a camel case name such as `WhisperGrammarElement`</description>
+  <highlighted_element>whisper_grammar_element</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>23</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5248</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_timings` should have a camel case name such as `WhisperTimings`</description>
+  <highlighted_element>whisper_timings</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>15</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5320</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params` should have a camel case name such as `WhisperFullParams`</description>
+  <highlighted_element>whisper_full_params</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5377</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_1` should have a camel case name such as `WhisperFullParamsBindgenTy1`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_1</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5391</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `whisper_full_params__bindgen_ty_2` should have a camel case name such as `WhisperFullParamsBindgenTy2`</description>
+  <highlighted_element>whisper_full_params__bindgen_ty_2</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>33</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5714</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `__va_list_tag` should have a camel case name such as `VaListTag`</description>
+  <highlighted_element>__va_list_tag</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>13</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs</file>
+  <line>5735</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/src-tauri/target/release/build/whisper-rs-sys-383f45910be59342/out/bindings.rs" />
+  <problem_class id="RsStructNaming" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Struct naming convention</problem_class>
+  <description>Type `ggml_backend_buffer` should have a camel case name such as `GgmlBackendBuffer`</description>
+  <highlighted_element>ggml_backend_buffer</highlighted_element>
+  <language>Rust</language>
+  <offset>11</offset>
+  <length>19</length>
+</problem>
+</problems>

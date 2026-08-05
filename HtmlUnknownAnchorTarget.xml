@@ -1,0 +1,3110 @@
+<problems>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/app/enum.AppScreen.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/app/enum.AppScreen.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #42-46 in file app.rs.html</description>
+  <highlighted_element>42-46</highlighted_element>
+  <language>HTML</language>
+  <offset>6098</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/app/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/app/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-494 in file app.rs.html</description>
+  <highlighted_element>1-494</highlighted_element>
+  <language>HTML</language>
+  <offset>3282</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-605 in file canvas.rs.html</description>
+  <highlighted_element>1-605</highlighted_element>
+  <language>HTML</language>
+  <offset>3432</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasDef.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasDef.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #70-85 in file canvas.rs.html</description>
+  <highlighted_element>70-85</highlighted_element>
+  <language>HTML</language>
+  <offset>7816</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasEdge.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasEdge.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #49-55 in file canvas.rs.html</description>
+  <highlighted_element>49-55</highlighted_element>
+  <language>HTML</language>
+  <offset>7597</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasGroup.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasGroup.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #58-67 in file canvas.rs.html</description>
+  <highlighted_element>58-67</highlighted_element>
+  <language>HTML</language>
+  <offset>7775</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasNode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/canvas/struct.CanvasNode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #26-42 in file canvas.rs.html</description>
+  <highlighted_element>26-42</highlighted_element>
+  <language>HTML</language>
+  <offset>7945</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/comparison/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/comparison/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-423 in file comparison.rs.html</description>
+  <highlighted_element>1-423</highlighted_element>
+  <language>HTML</language>
+  <offset>3467</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/comparison/struct.VersionMeta.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/comparison/struct.VersionMeta.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #21-30 in file comparison.rs.html</description>
+  <highlighted_element>21-30</highlighted_element>
+  <language>HTML</language>
+  <offset>7845</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/dictation_pill/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/dictation_pill/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-110 in file dictation_pill.rs.html</description>
+  <highlighted_element>1-110</highlighted_element>
+  <language>HTML</language>
+  <offset>3244</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/editor/slash_menu/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/editor/slash_menu/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-30 in file slash_menu.rs.html</description>
+  <highlighted_element>1-30</highlighted_element>
+  <language>HTML</language>
+  <offset>3331</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-1028 in file file_tree.rs.html</description>
+  <highlighted_element>1-1028</highlighted_element>
+  <language>HTML</language>
+  <offset>3306</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.MenuState.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.MenuState.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #45-50 in file file_tree.rs.html</description>
+  <highlighted_element>45-50</highlighted_element>
+  <language>HTML</language>
+  <offset>5836</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.TreeContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.TreeContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #55-73 in file file_tree.rs.html</description>
+  <highlighted_element>55-73</highlighted_element>
+  <language>HTML</language>
+  <offset>6821</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.TreeNode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/file_tree/struct.TreeNode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #35-41 in file file_tree.rs.html</description>
+  <highlighted_element>35-41</highlighted_element>
+  <language>HTML</language>
+  <offset>7052</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/graph_view/enum.GraphMode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/graph_view/enum.GraphMode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #29-33 in file graph_view.rs.html</description>
+  <highlighted_element>29-33</highlighted_element>
+  <language>HTML</language>
+  <offset>6055</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/graph_view/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/graph_view/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-1267 in file graph_view.rs.html</description>
+  <highlighted_element>1-1267</highlighted_element>
+  <language>HTML</language>
+  <offset>3380</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #17-24 in file inbox.rs.html</description>
+  <highlighted_element>17-24</highlighted_element>
+  <language>HTML</language>
+  <offset>8711</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html</file>
+  <line>8</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #26-30 in file inbox.rs.html</description>
+  <highlighted_element>26-30</highlighted_element>
+  <language>HTML</language>
+  <offset>4998</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html</file>
+  <line>8</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.InboxStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #27-29 in file inbox.rs.html</description>
+  <highlighted_element>27-29</highlighted_element>
+  <language>HTML</language>
+  <offset>5592</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.SortField.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/enum.SortField.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #115-122 in file inbox.rs.html</description>
+  <highlighted_element>115-122</highlighted_element>
+  <language>HTML</language>
+  <offset>6599</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-1074 in file inbox.rs.html</description>
+  <highlighted_element>1-1074</highlighted_element>
+  <language>HTML</language>
+  <offset>3196</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.DuplicateInfo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.DuplicateInfo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #64-70 in file inbox.rs.html</description>
+  <highlighted_element>64-70</highlighted_element>
+  <language>HTML</language>
+  <offset>7999</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxItem.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #33-51 in file inbox.rs.html</description>
+  <highlighted_element>33-51</highlighted_element>
+  <language>HTML</language>
+  <offset>8794</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxMetadata.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxMetadata.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #54-61 in file inbox.rs.html</description>
+  <highlighted_element>54-61</highlighted_element>
+  <language>HTML</language>
+  <offset>8069</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxState.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.InboxState.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #105-112 in file inbox.rs.html</description>
+  <highlighted_element>105-112</highlighted_element>
+  <language>HTML</language>
+  <offset>6111</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.OcrInfo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.OcrInfo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #82-90 in file inbox.rs.html</description>
+  <highlighted_element>82-90</highlighted_element>
+  <language>HTML</language>
+  <offset>8153</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.ProcessingHistoryEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.ProcessingHistoryEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #93-100 in file inbox.rs.html</description>
+  <highlighted_element>93-100</highlighted_element>
+  <language>HTML</language>
+  <offset>8208</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.TimelineInfo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/inbox/struct.TimelineInfo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #73-79 in file inbox.rs.html</description>
+  <highlighted_element>73-79</highlighted_element>
+  <language>HTML</language>
+  <offset>8121</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-27 in file mod.rs.html</description>
+  <highlighted_element>1-27</highlighted_element>
+  <language>HTML</language>
+  <offset>3052</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-4 in file mod.rs.html</description>
+  <highlighted_element>1-4</highlighted_element>
+  <language>HTML</language>
+  <offset>3129</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/left_sidebar/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/left_sidebar/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-123 in file left_sidebar.rs.html</description>
+  <highlighted_element>1-123</highlighted_element>
+  <language>HTML</language>
+  <offset>3343</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/ribbon_bar/enum.RibbonAction.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/ribbon_bar/enum.RibbonAction.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #7-13 in file ribbon_bar.rs.html</description>
+  <highlighted_element>7-13</highlighted_element>
+  <language>HTML</language>
+  <offset>6459</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/ribbon_bar/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/ribbon_bar/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-88 in file ribbon_bar.rs.html</description>
+  <highlighted_element>1-88</highlighted_element>
+  <language>HTML</language>
+  <offset>3380</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/right_inspector/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/right_inspector/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-320 in file right_inspector.rs.html</description>
+  <highlighted_element>1-320</highlighted_element>
+  <language>HTML</language>
+  <offset>3614</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/tab_bar/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/layout/tab_bar/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-195 in file tab_bar.rs.html</description>
+  <highlighted_element>1-195</highlighted_element>
+  <language>HTML</language>
+  <offset>3365</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/archive_page/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/archive_page/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-139 in file archive_page.rs.html</description>
+  <highlighted_element>1-139</highlighted_element>
+  <language>HTML</language>
+  <offset>3655</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/breadcrumb/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/breadcrumb/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-101 in file breadcrumb.rs.html</description>
+  <highlighted_element>1-101</highlighted_element>
+  <language>HTML</language>
+  <offset>3452</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/calendar_page/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/calendar_page/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-451 in file calendar_page.rs.html</description>
+  <highlighted_element>1-451</highlighted_element>
+  <language>HTML</language>
+  <offset>3648</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/command_palette/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/command_palette/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-316 in file command_palette.rs.html</description>
+  <highlighted_element>1-316</highlighted_element>
+  <language>HTML</language>
+  <offset>3463</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.all_commands.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.all_commands.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #184-456 in file commands.rs.html</description>
+  <highlighted_element>184-456</highlighted_element>
+  <language>HTML</language>
+  <offset>3179</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.create_new_note.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.create_new_note.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #98-116 in file commands.rs.html</description>
+  <highlighted_element>98-116</highlighted_element>
+  <language>HTML</language>
+  <offset>3266</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.open_daily_note.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.open_daily_note.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #167-180 in file commands.rs.html</description>
+  <highlighted_element>167-180</highlighted_element>
+  <language>HTML</language>
+  <offset>3188</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.open_vault_folder.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.open_vault_folder.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #156-163 in file commands.rs.html</description>
+  <highlighted_element>156-163</highlighted_element>
+  <language>HTML</language>
+  <offset>3150</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.quick_capture.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.quick_capture.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #123-153 in file commands.rs.html</description>
+  <highlighted_element>123-153</highlighted_element>
+  <language>HTML</language>
+  <offset>3416</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.resolve_commands_by_id.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/fn.resolve_commands_by_id.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #460-464 in file commands.rs.html</description>
+  <highlighted_element>460-464</highlighted_element>
+  <language>HTML</language>
+  <offset>3232</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-464 in file commands.rs.html</description>
+  <highlighted_element>1-464</highlighted_element>
+  <language>HTML</language>
+  <offset>3418</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/struct.AppCommand.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/struct.AppCommand.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #18-35 in file commands.rs.html</description>
+  <highlighted_element>18-35</highlighted_element>
+  <language>HTML</language>
+  <offset>6205</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/struct.CommandContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/commands/struct.CommandContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #39-43 in file commands.rs.html</description>
+  <highlighted_element>39-43</highlighted_element>
+  <language>HTML</language>
+  <offset>6037</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/dashboard/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/dashboard/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-489 in file dashboard.rs.html</description>
+  <highlighted_element>1-489</highlighted_element>
+  <language>HTML</language>
+  <offset>3494</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/home_screen/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/home_screen/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-127 in file home_screen.rs.html</description>
+  <highlighted_element>1-127</highlighted_element>
+  <language>HTML</language>
+  <offset>3427</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-42 in file mod.rs.html</description>
+  <highlighted_element>1-42</highlighted_element>
+  <language>HTML</language>
+  <offset>3388</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/navbar/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/navbar/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-123 in file navbar.rs.html</description>
+  <highlighted_element>1-123</highlighted_element>
+  <language>HTML</language>
+  <offset>3494</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/quick_switcher/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/quick_switcher/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-301 in file quick_switcher.rs.html</description>
+  <highlighted_element>1-301</highlighted_element>
+  <language>HTML</language>
+  <offset>3454</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/search_page/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/search_page/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-422 in file search_page.rs.html</description>
+  <highlighted_element>1-422</highlighted_element>
+  <language>HTML</language>
+  <offset>3542</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/search_page/struct.SearchHit.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/search_page/struct.SearchHit.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #23-31 in file search_page.rs.html</description>
+  <highlighted_element>23-31</highlighted_element>
+  <language>HTML</language>
+  <offset>7416</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/constant.SHORTCUTS.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/constant.SHORTCUTS.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #34-200 in file shortcuts.rs.html</description>
+  <highlighted_element>34-200</highlighted_element>
+  <language>HTML</language>
+  <offset>3297</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/fn.install_global_shortcuts.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/fn.install_global_shortcuts.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #226-325 in file shortcuts.rs.html</description>
+  <highlighted_element>226-325</highlighted_element>
+  <language>HTML</language>
+  <offset>3267</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-439 in file shortcuts.rs.html</description>
+  <highlighted_element>1-439</highlighted_element>
+  <language>HTML</language>
+  <offset>3677</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/struct.Shortcut.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/shortcuts/struct.Shortcut.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #21-28 in file shortcuts.rs.html</description>
+  <highlighted_element>21-28</highlighted_element>
+  <language>HTML</language>
+  <offset>6120</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/smart_folders/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/smart_folders/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-366 in file smart_folders.rs.html</description>
+  <highlighted_element>1-366</highlighted_element>
+  <language>HTML</language>
+  <offset>3696</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/smart_folders/struct.SmartFolderResult.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/smart_folders/struct.SmartFolderResult.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #37-46 in file smart_folders.rs.html</description>
+  <highlighted_element>37-46</highlighted_element>
+  <language>HTML</language>
+  <offset>7415</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/constant.DASHBOARD_SECTIONS.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/constant.DASHBOARD_SECTIONS.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #149-158 in file state.rs.html</description>
+  <highlighted_element>149-158</highlighted_element>
+  <language>HTML</language>
+  <offset>3130</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/enum.ViewMode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/enum.ViewMode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #32-56 in file state.rs.html</description>
+  <highlighted_element>32-56</highlighted_element>
+  <language>HTML</language>
+  <offset>7524</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.clear_recent_searches.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.clear_recent_searches.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #348-354 in file state.rs.html</description>
+  <highlighted_element>348-354</highlighted_element>
+  <language>HTML</language>
+  <offset>3122</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.dashboard_section_label.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.dashboard_section_label.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #437-439 in file state.rs.html</description>
+  <highlighted_element>437-439</highlighted_element>
+  <language>HTML</language>
+  <offset>3132</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.fuzzy_score.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.fuzzy_score.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #490-522 in file state.rs.html</description>
+  <highlighted_element>490-522</highlighted_element>
+  <language>HTML</language>
+  <offset>3111</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.load_all_nav_state.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.load_all_nav_state.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #265-290 in file state.rs.html</description>
+  <highlighted_element>265-290</highlighted_element>
+  <language>HTML</language>
+  <offset>3209</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.load_notes_index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.load_notes_index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #442-481 in file state.rs.html</description>
+  <highlighted_element>442-481</highlighted_element>
+  <language>HTML</language>
+  <offset>3132</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.parse_view_mode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.parse_view_mode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #59-80 in file state.rs.html</description>
+  <highlighted_element>59-80</highlighted_element>
+  <language>HTML</language>
+  <offset>3124</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.provide_navigation.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.provide_navigation.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #214-236 in file state.rs.html</description>
+  <highlighted_element>214-236</highlighted_element>
+  <language>HTML</language>
+  <offset>3133</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_command.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_command.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #408-412 in file state.rs.html</description>
+  <highlighted_element>408-412</highlighted_element>
+  <language>HTML</language>
+  <offset>3148</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_note.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_note.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #311-315 in file state.rs.html</description>
+  <highlighted_element>311-315</highlighted_element>
+  <language>HTML</language>
+  <offset>3136</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_search.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.record_recent_search.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #338-345 in file state.rs.html</description>
+  <highlighted_element>338-345</highlighted_element>
+  <language>HTML</language>
+  <offset>3136</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.remove_saved_search.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.remove_saved_search.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #378-382 in file state.rs.html</description>
+  <highlighted_element>378-382</highlighted_element>
+  <language>HTML</language>
+  <offset>3112</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.remove_smart_folder.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.remove_smart_folder.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #401-405 in file state.rs.html</description>
+  <highlighted_element>401-405</highlighted_element>
+  <language>HTML</language>
+  <offset>3123</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.save_search.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.save_search.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #357-375 in file state.rs.html</description>
+  <highlighted_element>357-375</highlighted_element>
+  <language>HTML</language>
+  <offset>3090</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.save_smart_folder.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.save_smart_folder.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #385-398 in file state.rs.html</description>
+  <highlighted_element>385-398</highlighted_element>
+  <language>HTML</language>
+  <offset>3149</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.set_dashboard_sections.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.set_dashboard_sections.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #431-434 in file state.rs.html</description>
+  <highlighted_element>431-434</highlighted_element>
+  <language>HTML</language>
+  <offset>3144</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.toggle_favourite.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.toggle_favourite.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #318-335 in file state.rs.html</description>
+  <highlighted_element>318-335</highlighted_element>
+  <language>HTML</language>
+  <offset>3105</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.toggle_favourite_command.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.toggle_favourite_command.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #415-428 in file state.rs.html</description>
+  <highlighted_element>415-428</highlighted_element>
+  <language>HTML</language>
+  <offset>3148</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.use_nav.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.use_nav.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #240-242 in file state.rs.html</description>
+  <highlighted_element>240-242</highlighted_element>
+  <language>HTML</language>
+  <offset>3129</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.view_mode_key.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.view_mode_key.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #83-104 in file state.rs.html</description>
+  <highlighted_element>83-104</highlighted_element>
+  <language>HTML</language>
+  <offset>3133</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.view_mode_label.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/fn.view_mode_label.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #107-128 in file state.rs.html</description>
+  <highlighted_element>107-128</highlighted_element>
+  <language>HTML</language>
+  <offset>3106</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-522 in file state.rs.html</description>
+  <highlighted_element>1-522</highlighted_element>
+  <language>HTML</language>
+  <offset>3794</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.NavContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.NavContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #176-211 in file state.rs.html</description>
+  <highlighted_element>176-211</highlighted_element>
+  <language>HTML</language>
+  <offset>7216</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.NoteIndexEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.NoteIndexEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #132-139 in file state.rs.html</description>
+  <highlighted_element>132-139</highlighted_element>
+  <language>HTML</language>
+  <offset>8156</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.SavedSearch.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/navigation/state/struct.SavedSearch.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #143-146 in file state.rs.html</description>
+  <highlighted_element>143-146</highlighted_element>
+  <language>HTML</language>
+  <offset>7558</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/note_editor/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/note_editor/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-372 in file note_editor.rs.html</description>
+  <highlighted_element>1-372</highlighted_element>
+  <language>HTML</language>
+  <offset>3226</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/note_view/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/note_view/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-16 in file note_view.rs.html</description>
+  <highlighted_element>1-16</highlighted_element>
+  <language>HTML</language>
+  <offset>3214</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/pdf_viewer/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/pdf_viewer/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-15 in file pdf_viewer.rs.html</description>
+  <highlighted_element>1-15</highlighted_element>
+  <language>HTML</language>
+  <offset>3220</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reader/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reader/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-545 in file reader.rs.html</description>
+  <highlighted_element>1-545</highlighted_element>
+  <language>HTML</language>
+  <offset>3416</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #30-34 in file reading_queue.rs.html</description>
+  <highlighted_element>30-34</highlighted_element>
+  <language>HTML</language>
+  <offset>8575</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #36-40 in file reading_queue.rs.html</description>
+  <highlighted_element>36-40</highlighted_element>
+  <language>HTML</language>
+  <offset>4643</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueuePriority.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #37-39 in file reading_queue.rs.html</description>
+  <highlighted_element>37-39</highlighted_element>
+  <language>HTML</language>
+  <offset>5261</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueSortField.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueSortField.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #66-73 in file reading_queue.rs.html</description>
+  <highlighted_element>66-73</highlighted_element>
+  <language>HTML</language>
+  <offset>6739</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #15-20 in file reading_queue.rs.html</description>
+  <highlighted_element>15-20</highlighted_element>
+  <language>HTML</language>
+  <offset>8622</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #22-26 in file reading_queue.rs.html</description>
+  <highlighted_element>22-26</highlighted_element>
+  <language>HTML</language>
+  <offset>4784</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/enum.QueueStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #23-25 in file reading_queue.rs.html</description>
+  <highlighted_element>23-25</highlighted_element>
+  <language>HTML</language>
+  <offset>5394</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-573 in file reading_queue.rs.html</description>
+  <highlighted_element>1-573</highlighted_element>
+  <language>HTML</language>
+  <offset>3244</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/struct.QueueFilter.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/struct.QueueFilter.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #57-63 in file reading_queue.rs.html</description>
+  <highlighted_element>57-63</highlighted_element>
+  <language>HTML</language>
+  <offset>6077</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/struct.QueueItem.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/reading_queue/struct.QueueItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #43-54 in file reading_queue.rs.html</description>
+  <highlighted_element>43-54</highlighted_element>
+  <language>HTML</language>
+  <offset>8230</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/enum.DiffKind.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/enum.DiffKind.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #13-17 in file diff_view.rs.html</description>
+  <highlighted_element>13-17</highlighted_element>
+  <language>HTML</language>
+  <offset>8236</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-71 in file diff_view.rs.html</description>
+  <highlighted_element>1-71</highlighted_element>
+  <language>HTML</language>
+  <offset>3510</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/struct.DiffRow.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/diff_view/struct.DiffRow.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #20-25 in file diff_view.rs.html</description>
+  <highlighted_element>20-25</highlighted_element>
+  <language>HTML</language>
+  <offset>7690</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-23 in file mod.rs.html</description>
+  <highlighted_element>1-23</highlighted_element>
+  <language>HTML</language>
+  <offset>3397</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/recovery_banner/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/recovery_banner/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-79 in file recovery_banner.rs.html</description>
+  <highlighted_element>1-79</highlighted_element>
+  <language>HTML</language>
+  <offset>3479</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/recovery_manager/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/recovery_manager/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-268 in file recovery_manager.rs.html</description>
+  <highlighted_element>1-268</highlighted_element>
+  <language>HTML</language>
+  <offset>3539</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/enum.SaveStatus.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/enum.SaveStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #16-28 in file save_status.rs.html</description>
+  <highlighted_element>16-28</highlighted_element>
+  <language>HTML</language>
+  <offset>6783</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/fn.provide_save_status.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/fn.provide_save_status.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #61-66 in file save_status.rs.html</description>
+  <highlighted_element>61-66</highlighted_element>
+  <language>HTML</language>
+  <offset>3162</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/fn.use_save_status.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/fn.use_save_status.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #69-71 in file save_status.rs.html</description>
+  <highlighted_element>69-71</highlighted_element>
+  <language>HTML</language>
+  <offset>3128</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-93 in file save_status.rs.html</description>
+  <highlighted_element>1-93</highlighted_element>
+  <language>HTML</language>
+  <offset>3745</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/struct.SaveStatusContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/save_status/struct.SaveStatusContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #54-58 in file save_status.rs.html</description>
+  <highlighted_element>54-58</highlighted_element>
+  <language>HTML</language>
+  <offset>6002</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.recovery_check.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.recovery_check.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #73-85 in file session.rs.html</description>
+  <highlighted_element>73-85</highlighted_element>
+  <language>HTML</language>
+  <offset>3136</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.recovery_discard.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.recovery_discard.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #88-93 in file session.rs.html</description>
+  <highlighted_element>88-93</highlighted_element>
+  <language>HTML</language>
+  <offset>3136</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_clear.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_clear.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #65-70 in file session.rs.html</description>
+  <highlighted_element>65-70</highlighted_element>
+  <language>HTML</language>
+  <offset>3127</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_load.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_load.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #55-62 in file session.rs.html</description>
+  <highlighted_element>55-62</highlighted_element>
+  <language>HTML</language>
+  <offset>3114</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_save.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/fn.session_save.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #47-52 in file session.rs.html</description>
+  <highlighted_element>47-52</highlighted_element>
+  <language>HTML</language>
+  <offset>3099</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-93 in file session.rs.html</description>
+  <highlighted_element>1-93</highlighted_element>
+  <language>HTML</language>
+  <offset>3496</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/struct.RecoveryStatus.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/struct.RecoveryStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #40-44 in file session.rs.html</description>
+  <highlighted_element>40-44</highlighted_element>
+  <language>HTML</language>
+  <offset>7719</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/struct.SessionState.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/session/struct.SessionState.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #14-36 in file session.rs.html</description>
+  <highlighted_element>14-36</highlighted_element>
+  <language>HTML</language>
+  <offset>8432</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-488 in file version_history.rs.html</description>
+  <highlighted_element>1-488</highlighted_element>
+  <language>HTML</language>
+  <offset>3571</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/struct.NoteSummary.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/struct.NoteSummary.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #45-49 in file version_history.rs.html</description>
+  <highlighted_element>45-49</highlighted_element>
+  <language>HTML</language>
+  <offset>7732</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/struct.VersionMeta.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/recovery/version_history/struct.VersionMeta.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #31-41 in file version_history.rs.html</description>
+  <highlighted_element>31-41</highlighted_element>
+  <language>HTML</language>
+  <offset>7952</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/relation_editor/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/relation_editor/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-276 in file relation_editor.rs.html</description>
+  <highlighted_element>1-276</highlighted_element>
+  <language>HTML</language>
+  <offset>3204</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/sandboxed_html/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/sandboxed_html/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-8 in file sandboxed_html.rs.html</description>
+  <highlighted_element>1-8</highlighted_element>
+  <language>HTML</language>
+  <offset>3244</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-2 in file mod.rs.html</description>
+  <highlighted_element>1-2</highlighted_element>
+  <language>HTML</language>
+  <offset>3206</offset>
+  <length>3</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/settings_panel/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/settings_panel/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-1223 in file settings_panel.rs.html</description>
+  <highlighted_element>1-1223</highlighted_element>
+  <language>HTML</language>
+  <offset>3363</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/settings_panel/struct.AppSettings.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/settings/settings_panel/struct.AppSettings.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #9-112 in file settings_panel.rs.html</description>
+  <highlighted_element>9-112</highlighted_element>
+  <language>HTML</language>
+  <offset>15225</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/statistics/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/statistics/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-337 in file statistics.rs.html</description>
+  <highlighted_element>1-337</highlighted_element>
+  <language>HTML</language>
+  <offset>3459</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/template_editor/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/template_editor/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-532 in file template_editor.rs.html</description>
+  <highlighted_element>1-532</highlighted_element>
+  <language>HTML</language>
+  <offset>3555</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/template_picker/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/template_picker/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-52 in file template_picker.rs.html</description>
+  <highlighted_element>1-52</highlighted_element>
+  <language>HTML</language>
+  <offset>3204</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/theme_toggle/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/theme_toggle/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-24 in file theme_toggle.rs.html</description>
+  <highlighted_element>1-24</highlighted_element>
+  <language>HTML</language>
+  <offset>3232</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/trash/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/trash/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-878 in file trash.rs.html</description>
+  <highlighted_element>1-878</highlighted_element>
+  <language>HTML</language>
+  <offset>3422</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/trash/struct.TrashRecord.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/trash/struct.TrashRecord.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #38-49 in file trash.rs.html</description>
+  <highlighted_element>38-49</highlighted_element>
+  <language>HTML</language>
+  <offset>8017</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/enum.ButtonSize.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/enum.ButtonSize.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #28-36 in file button.rs.html</description>
+  <highlighted_element>28-36</highlighted_element>
+  <language>HTML</language>
+  <offset>6563</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/enum.ButtonVariant.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/enum.ButtonVariant.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #10-24 in file button.rs.html</description>
+  <highlighted_element>10-24</highlighted_element>
+  <language>HTML</language>
+  <offset>6863</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/fn.button_classes.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/fn.button_classes.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #62-71 in file button.rs.html</description>
+  <highlighted_element>62-71</highlighted_element>
+  <language>HTML</language>
+  <offset>3109</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/button/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-167 in file button.rs.html</description>
+  <highlighted_element>1-167</highlighted_element>
+  <language>HTML</language>
+  <offset>3331</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/card/enum.CardVariant.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/card/enum.CardVariant.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #8-18 in file card.rs.html</description>
+  <highlighted_element>8-18</highlighted_element>
+  <language>HTML</language>
+  <offset>6709</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/card/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/card/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-147 in file card.rs.html</description>
+  <highlighted_element>1-147</highlighted_element>
+  <language>HTML</language>
+  <offset>3330</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/dialog/enum.DialogSize.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/dialog/enum.DialogSize.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #13-17 in file dialog.rs.html</description>
+  <highlighted_element>13-17</highlighted_element>
+  <language>HTML</language>
+  <offset>6514</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/dialog/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/dialog/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-389 in file dialog.rs.html</description>
+  <highlighted_element>1-389</highlighted_element>
+  <language>HTML</language>
+  <offset>3313</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.BadgeKind.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.BadgeKind.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #410-417 in file feedback.rs.html</description>
+  <highlighted_element>410-417</highlighted_element>
+  <language>HTML</language>
+  <offset>6700</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.SpinnerSize.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.SpinnerSize.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #480-485 in file feedback.rs.html</description>
+  <highlighted_element>480-485</highlighted_element>
+  <language>HTML</language>
+  <offset>6582</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.StatusKind.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.StatusKind.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #542-549 in file feedback.rs.html</description>
+  <highlighted_element>542-549</highlighted_element>
+  <language>HTML</language>
+  <offset>6723</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.ToastKind.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/enum.ToastKind.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #10-16 in file feedback.rs.html</description>
+  <highlighted_element>10-16</highlighted_element>
+  <language>HTML</language>
+  <offset>6674</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.provide_tasks.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.provide_tasks.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #764-768 in file feedback.rs.html</description>
+  <highlighted_element>764-768</highlighted_element>
+  <language>HTML</language>
+  <offset>3103</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.use_tasks.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.use_tasks.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #771-773 in file feedback.rs.html</description>
+  <highlighted_element>771-773</highlighted_element>
+  <language>HTML</language>
+  <offset>3064</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.use_toast.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/fn.use_toast.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #350-352 in file feedback.rs.html</description>
+  <highlighted_element>350-352</highlighted_element>
+  <language>HTML</language>
+  <offset>3093</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-822 in file feedback.rs.html</description>
+  <highlighted_element>1-822</highlighted_element>
+  <language>HTML</language>
+  <offset>3375</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #729-731 in file feedback.rs.html</description>
+  <highlighted_element>729-731</highlighted_element>
+  <language>HTML</language>
+  <offset>6153</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #733-761 in file feedback.rs.html</description>
+  <highlighted_element>733-761</highlighted_element>
+  <language>HTML</language>
+  <offset>854</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #735-745 in file feedback.rs.html</description>
+  <highlighted_element>735-745</highlighted_element>
+  <language>HTML</language>
+  <offset>1305</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #748-754 in file feedback.rs.html</description>
+  <highlighted_element>748-754</highlighted_element>
+  <language>HTML</language>
+  <offset>199</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html</file>
+  <line>7</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #757-760 in file feedback.rs.html</description>
+  <highlighted_element>757-760</highlighted_element>
+  <language>HTML</language>
+  <offset>197</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskInfo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.TaskInfo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #718-724 in file feedback.rs.html</description>
+  <highlighted_element>718-724</highlighted_element>
+  <language>HTML</language>
+  <offset>6012</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #64-67 in file feedback.rs.html</description>
+  <highlighted_element>64-67</highlighted_element>
+  <language>HTML</language>
+  <offset>5957</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #69-76 in file feedback.rs.html</description>
+  <highlighted_element>69-76</highlighted_element>
+  <language>HTML</language>
+  <offset>990</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastAction.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #70-75 in file feedback.rs.html</description>
+  <highlighted_element>70-75</highlighted_element>
+  <language>HTML</language>
+  <offset>1385</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #80-82 in file feedback.rs.html</description>
+  <highlighted_element>80-82</highlighted_element>
+  <language>HTML</language>
+  <offset>6734</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>4</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #84-186 in file feedback.rs.html</description>
+  <highlighted_element>84-186</highlighted_element>
+  <language>HTML</language>
+  <offset>861</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>4</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #86-88 in file feedback.rs.html</description>
+  <highlighted_element>86-88</highlighted_element>
+  <language>HTML</language>
+  <offset>1314</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>10</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #92-100 in file feedback.rs.html</description>
+  <highlighted_element>92-100</highlighted_element>
+  <language>HTML</language>
+  <offset>207</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>18</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #106-114 in file feedback.rs.html</description>
+  <highlighted_element>106-114</highlighted_element>
+  <language>HTML</language>
+  <offset>218</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>28</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #147-150 in file feedback.rs.html</description>
+  <highlighted_element>147-150</highlighted_element>
+  <language>HTML</language>
+  <offset>198</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>29</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #155-158 in file feedback.rs.html</description>
+  <highlighted_element>155-158</highlighted_element>
+  <language>HTML</language>
+  <offset>207</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>32</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #162-164 in file feedback.rs.html</description>
+  <highlighted_element>162-164</highlighted_element>
+  <language>HTML</language>
+  <offset>211</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>34</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #167-169 in file feedback.rs.html</description>
+  <highlighted_element>167-169</highlighted_element>
+  <language>HTML</language>
+  <offset>200</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>35</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #171-173 in file feedback.rs.html</description>
+  <highlighted_element>171-173</highlighted_element>
+  <language>HTML</language>
+  <offset>143</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>35</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #175-177 in file feedback.rs.html</description>
+  <highlighted_element>175-177</highlighted_element>
+  <language>HTML</language>
+  <offset>962</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>35</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #179-181 in file feedback.rs.html</description>
+  <highlighted_element>179-181</highlighted_element>
+  <language>HTML</language>
+  <offset>1787</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html</file>
+  <line>35</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #183-185 in file feedback.rs.html</description>
+  <highlighted_element>183-185</highlighted_element>
+  <language>HTML</language>
+  <offset>2610</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastItem.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/feedback/struct.ToastItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #49-60 in file feedback.rs.html</description>
+  <highlighted_element>49-60</highlighted_element>
+  <language>HTML</language>
+  <offset>6017</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #195-361 in file icons.rs.html</description>
+  <highlighted_element>195-361</highlighted_element>
+  <language>HTML</language>
+  <offset>16316</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html</file>
+  <line>162</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #363-536 in file icons.rs.html</description>
+  <highlighted_element>363-536</highlighted_element>
+  <language>HTML</language>
+  <offset>22038</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html</file>
+  <line>162</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/enum.Icon.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #366-535 in file icons.rs.html</description>
+  <highlighted_element>366-535</highlighted_element>
+  <language>HTML</language>
+  <offset>22448</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/fn.render_icon.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/fn.render_icon.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #740-755 in file icons.rs.html</description>
+  <highlighted_element>740-755</highlighted_element>
+  <language>HTML</language>
+  <offset>3215</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/fn.render_icon_view.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/fn.render_icon_view.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #725-727 in file icons.rs.html</description>
+  <highlighted_element>725-727</highlighted_element>
+  <language>HTML</language>
+  <offset>3209</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/icons/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-784 in file icons.rs.html</description>
+  <highlighted_element>1-784</highlighted_element>
+  <language>HTML</language>
+  <offset>3631</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-50 in file mod.rs.html</description>
+  <highlighted_element>1-50</highlighted_element>
+  <language>HTML</language>
+  <offset>3325</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/info/enum.CalloutKind.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/info/enum.CalloutKind.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #62-68 in file info.rs.html</description>
+  <highlighted_element>62-68</highlighted_element>
+  <language>HTML</language>
+  <offset>6659</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/info/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/info/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-104 in file info.rs.html</description>
+  <highlighted_element>1-104</highlighted_element>
+  <language>HTML</language>
+  <offset>3325</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-318 in file input.rs.html</description>
+  <highlighted_element>1-318</highlighted_element>
+  <language>HTML</language>
+  <offset>3273</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #30-37 in file input.rs.html</description>
+  <highlighted_element>30-37</highlighted_element>
+  <language>HTML</language>
+  <offset>6191</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html</file>
+  <line>9</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #39-50 in file input.rs.html</description>
+  <highlighted_element>39-50</highlighted_element>
+  <language>HTML</language>
+  <offset>4886</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html</file>
+  <line>9</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/input/struct.InputProps.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #40-49 in file input.rs.html</description>
+  <highlighted_element>40-49</highlighted_element>
+  <language>HTML</language>
+  <offset>5492</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.ContainerWidth.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.ContainerWidth.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #119-124 in file layout.rs.html</description>
+  <highlighted_element>119-124</highlighted_element>
+  <language>HTML</language>
+  <offset>6661</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.StackDirection.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.StackDirection.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #44-48 in file layout.rs.html</description>
+  <highlighted_element>44-48</highlighted_element>
+  <language>HTML</language>
+  <offset>6625</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.StackGap.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/enum.StackGap.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #52-59 in file layout.rs.html</description>
+  <highlighted_element>52-59</highlighted_element>
+  <language>HTML</language>
+  <offset>6624</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/layout/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-151 in file layout.rs.html</description>
+  <highlighted_element>1-151</highlighted_element>
+  <language>HTML</language>
+  <offset>3326</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-318 in file menu.rs.html</description>
+  <highlighted_element>1-318</highlighted_element>
+  <language>HTML</language>
+  <offset>3259</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #125-129 in file menu.rs.html</description>
+  <highlighted_element>125-129</highlighted_element>
+  <language>HTML</language>
+  <offset>6318</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #131-144 in file menu.rs.html</description>
+  <highlighted_element>131-144</highlighted_element>
+  <language>HTML</language>
+  <offset>1415</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #132-138 in file menu.rs.html</description>
+  <highlighted_element>132-138</highlighted_element>
+  <language>HTML</language>
+  <offset>1804</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html</file>
+  <line>6</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/menu/struct.CommandItem.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #140-143 in file menu.rs.html</description>
+  <highlighted_element>140-143</highlighted_element>
+  <language>HTML</language>
+  <offset>2619</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-236 in file nav.rs.html</description>
+  <highlighted_element>1-236</highlighted_element>
+  <language>HTML</language>
+  <offset>3296</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #81-84 in file nav.rs.html</description>
+  <highlighted_element>81-84</highlighted_element>
+  <language>HTML</language>
+  <offset>5896</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #86-93 in file nav.rs.html</description>
+  <highlighted_element>86-93</highlighted_element>
+  <language>HTML</language>
+  <offset>1121</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.Breadcrumb.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #87-92 in file nav.rs.html</description>
+  <highlighted_element>87-92</highlighted_element>
+  <language>HTML</language>
+  <offset>1502</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #9-14 in file nav.rs.html</description>
+  <highlighted_element>9-14</highlighted_element>
+  <language>HTML</language>
+  <offset>6032</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html</file>
+  <line>7</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #16-30 in file nav.rs.html</description>
+  <highlighted_element>16-30</highlighted_element>
+  <language>HTML</language>
+  <offset>330</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html</file>
+  <line>7</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #17-23 in file nav.rs.html</description>
+  <highlighted_element>17-23</highlighted_element>
+  <language>HTML</language>
+  <offset>695</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html</file>
+  <line>7</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/nav/struct.TabDef.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #26-29 in file nav.rs.html</description>
+  <highlighted_element>26-29</highlighted_element>
+  <language>HTML</language>
+  <offset>1559</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-274 in file selection.rs.html</description>
+  <highlighted_element>1-274</highlighted_element>
+  <language>HTML</language>
+  <offset>3305</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #134-137 in file selection.rs.html</description>
+  <highlighted_element>134-137</highlighted_element>
+  <language>HTML</language>
+  <offset>5997</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #139-146 in file selection.rs.html</description>
+  <highlighted_element>139-146</highlighted_element>
+  <language>HTML</language>
+  <offset>1016</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SegmentedOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #140-145 in file selection.rs.html</description>
+  <highlighted_element>140-145</highlighted_element>
+  <language>HTML</language>
+  <offset>1431</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #199-202 in file selection.rs.html</description>
+  <highlighted_element>199-202</highlighted_element>
+  <language>HTML</language>
+  <offset>6155</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #204-211 in file selection.rs.html</description>
+  <highlighted_element>204-211</highlighted_element>
+  <language>HTML</language>
+  <offset>1013</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html</file>
+  <line>5</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/ui/selection/struct.SelectOption.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #205-210 in file selection.rs.html</description>
+  <highlighted_element>205-210</highlighted_element>
+  <language>HTML</language>
+  <offset>1416</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/vault_setup_wizard/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/vault_setup_wizard/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-115 in file vault_setup_wizard.rs.html</description>
+  <highlighted_element>1-115</highlighted_element>
+  <language>HTML</language>
+  <offset>3278</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.activate_tab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.activate_tab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #89-91 in file workspace.rs.html</description>
+  <highlighted_element>89-91</highlighted_element>
+  <language>HTML</language>
+  <offset>3001</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.bump_content_version.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.bump_content_version.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #207-213 in file workspace.rs.html</description>
+  <highlighted_element>207-213</highlighted_element>
+  <language>HTML</language>
+  <offset>3334</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_all.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_all.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #129-134 in file workspace.rs.html</description>
+  <highlighted_element>129-134</highlighted_element>
+  <language>HTML</language>
+  <offset>2960</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_others.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_others.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #121-126 in file workspace.rs.html</description>
+  <highlighted_element>121-126</highlighted_element>
+  <language>HTML</language>
+  <offset>2993</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_tab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.close_tab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #94-118 in file workspace.rs.html</description>
+  <highlighted_element>94-118</highlighted_element>
+  <language>HTML</language>
+  <offset>3008</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.open_tab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.open_tab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #75-86 in file workspace.rs.html</description>
+  <highlighted_element>75-86</highlighted_element>
+  <language>HTML</language>
+  <offset>2999</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.pin_tab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.pin_tab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #137-143 in file workspace.rs.html</description>
+  <highlighted_element>137-143</highlighted_element>
+  <language>HTML</language>
+  <offset>2957</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.provide_workspace.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.provide_workspace.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #48-57 in file workspace.rs.html</description>
+  <highlighted_element>48-57</highlighted_element>
+  <language>HTML</language>
+  <offset>3057</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.refresh_tree.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.refresh_tree.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #198-200 in file workspace.rs.html</description>
+  <highlighted_element>198-200</highlighted_element>
+  <language>HTML</language>
+  <offset>3060</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.rename_tab_prefix.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.rename_tab_prefix.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #164-194 in file workspace.rs.html</description>
+  <highlighted_element>164-194</highlighted_element>
+  <language>HTML</language>
+  <offset>3280</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.reorder_tab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.reorder_tab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #146-157 in file workspace.rs.html</description>
+  <highlighted_element>146-157</highlighted_element>
+  <language>HTML</language>
+  <offset>2994</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.title_from_path.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.title_from_path.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #66-72 in file workspace.rs.html</description>
+  <highlighted_element>66-72</highlighted_element>
+  <language>HTML</language>
+  <offset>3021</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.use_workspace.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/fn.use_workspace.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #61-63 in file workspace.rs.html</description>
+  <highlighted_element>61-63</highlighted_element>
+  <language>HTML</language>
+  <offset>3039</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-213 in file workspace.rs.html</description>
+  <highlighted_element>1-213</highlighted_element>
+  <language>HTML</language>
+  <offset>3412</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/struct.OpenTab.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/struct.OpenTab.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #19-26 in file workspace.rs.html</description>
+  <highlighted_element>19-26</highlighted_element>
+  <language>HTML</language>
+  <offset>6324</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/struct.WorkspaceContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/components/workspace/struct.WorkspaceContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #30-44 in file workspace.rs.html</description>
+  <highlighted_element>30-44</highlighted_element>
+  <language>HTML</language>
+  <offset>6046</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.provide_theme.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.provide_theme.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #43-100 in file lib.rs.html</description>
+  <highlighted_element>43-100</highlighted_element>
+  <language>HTML</language>
+  <offset>2730</offset>
+  <length>6</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.start.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.start.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #13-23 in file lib.rs.html</description>
+  <highlighted_element>13-23</highlighted_element>
+  <language>HTML</language>
+  <offset>2693</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.use_theme.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/fn.use_theme.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #125-127 in file lib.rs.html</description>
+  <highlighted_element>125-127</highlighted_element>
+  <language>HTML</language>
+  <offset>2714</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.provide_history.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.provide_history.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #72-93 in file history.rs.html</description>
+  <highlighted_element>72-93</highlighted_element>
+  <language>HTML</language>
+  <offset>2885</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.redo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.redo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #132-146 in file history.rs.html</description>
+  <highlighted_element>132-146</highlighted_element>
+  <language>HTML</language>
+  <offset>2849</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.refresh_history_state.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.refresh_history_state.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #103-112 in file history.rs.html</description>
+  <highlighted_element>103-112</highlighted_element>
+  <language>HTML</language>
+  <offset>2917</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.undo.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.undo.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #115-129 in file history.rs.html</description>
+  <highlighted_element>115-129</highlighted_element>
+  <language>HTML</language>
+  <offset>2849</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.use_history.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/fn.use_history.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #96-98 in file history.rs.html</description>
+  <highlighted_element>96-98</highlighted_element>
+  <language>HTML</language>
+  <offset>2881</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-240 in file history.rs.html</description>
+  <highlighted_element>1-240</highlighted_element>
+  <language>HTML</language>
+  <offset>3379</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/struct.HistoryContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/struct.HistoryContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #48-53 in file history.rs.html</description>
+  <highlighted_element>48-53</highlighted_element>
+  <language>HTML</language>
+  <offset>5718</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/struct.HistoryStatus.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/history/struct.HistoryStatus.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #36-44 in file history.rs.html</description>
+  <highlighted_element>36-44</highlighted_element>
+  <language>HTML</language>
+  <offset>7045</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-127 in file lib.rs.html</description>
+  <highlighted_element>1-127</highlighted_element>
+  <language>HTML</language>
+  <offset>2950</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/ipc/fn.tauri_invoke.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/ipc/fn.tauri_invoke.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #9-11 in file ipc.rs.html</description>
+  <highlighted_element>9-11</highlighted_element>
+  <language>HTML</language>
+  <offset>2864</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/ipc/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/ipc/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-11 in file ipc.rs.html</description>
+  <highlighted_element>1-11</highlighted_element>
+  <language>HTML</language>
+  <offset>3014</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/enum.RelationType.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/enum.RelationType.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #14-22 in file models.rs.html</description>
+  <highlighted_element>14-22</highlighted_element>
+  <language>HTML</language>
+  <offset>8452</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.BacklinkEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.BacklinkEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #65-73 in file models.rs.html</description>
+  <highlighted_element>65-73</highlighted_element>
+  <language>HTML</language>
+  <offset>8021</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphData.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphData.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #56-61 in file models.rs.html</description>
+  <highlighted_element>56-61</highlighted_element>
+  <language>HTML</language>
+  <offset>7777</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphEdge.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphEdge.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #26-31 in file models.rs.html</description>
+  <highlighted_element>26-31</highlighted_element>
+  <language>HTML</language>
+  <offset>7731</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphEdgeData.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphEdgeData.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #48-52 in file models.rs.html</description>
+  <highlighted_element>48-52</highlighted_element>
+  <language>HTML</language>
+  <offset>7775</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphNodeData.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.GraphNodeData.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #35-44 in file models.rs.html</description>
+  <highlighted_element>35-44</highlighted_element>
+  <language>HTML</language>
+  <offset>8139</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.MentionEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.MentionEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #90-97 in file models.rs.html</description>
+  <highlighted_element>90-97</highlighted_element>
+  <language>HTML</language>
+  <offset>7943</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.NoteLinks.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.NoteLinks.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #102-108 in file models.rs.html</description>
+  <highlighted_element>102-108</highlighted_element>
+  <language>HTML</language>
+  <offset>7801</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.OutgoingLink.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/graph/struct.OutgoingLink.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #77-86 in file models.rs.html</description>
+  <highlighted_element>77-86</highlighted_element>
+  <language>HTML</language>
+  <offset>7782</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-176 in file models.rs.html</description>
+  <highlighted_element>1-176</highlighted_element>
+  <language>HTML</language>
+  <offset>2992</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.ArchiveEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.ArchiveEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #155-163 in file models.rs.html</description>
+  <highlighted_element>155-163</highlighted_element>
+  <language>HTML</language>
+  <offset>8010</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.CalendarEntry.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.CalendarEntry.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #167-175 in file models.rs.html</description>
+  <highlighted_element>167-175</highlighted_element>
+  <language>HTML</language>
+  <offset>7992</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.SmartFolder.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/organisation/struct.SmartFolder.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #143-151 in file models.rs.html</description>
+  <highlighted_element>143-151</highlighted_element>
+  <language>HTML</language>
+  <offset>7931</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/template/struct.Template.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/models/template/struct.Template.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #121-134 in file models.rs.html</description>
+  <highlighted_element>121-134</highlighted_element>
+  <language>HTML</language>
+  <offset>8244</offset>
+  <length>7</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/struct.ThemeContext.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/struct.ThemeContext.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #39-41 in file lib.rs.html</description>
+  <highlighted_element>39-41</highlighted_element>
+  <language>HTML</language>
+  <offset>5555</offset>
+  <length>5</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/tree/index.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/tree/index.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #1-49 in file tree.rs.html</description>
+  <highlighted_element>1-49</highlighted_element>
+  <language>HTML</language>
+  <offset>3073</offset>
+  <length>4</length>
+</problem>
+<problem>
+  <file>file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/tree/struct.TreeNode.html</file>
+  <line>1</line>
+  <module>Nabu</module>
+  <entry_point TYPE="file" FQNAME="file://$PROJECT_DIR$/crates/nabu-ui/target/doc/nabu_ui/tree/struct.TreeNode.html" />
+  <problem_class id="HtmlUnknownAnchorTarget" severity="WARNING" attribute_key="WARNING_ATTRIBUTES">Unresolved fragment in a link</problem_class>
+  <description>Cannot resolve anchor #6-11 in file tree.rs.html</description>
+  <highlighted_element>6-11</highlighted_element>
+  <language>HTML</language>
+  <offset>7445</offset>
+  <length>4</length>
+</problem>
+</problems>
