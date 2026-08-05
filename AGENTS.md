@@ -45,33 +45,44 @@ src-tauri/            — Tauri commands & settings
 
 | Gap                    | Status     | Fix                                             |
 |------------------------|------------|-------------------------------------------------|
-| Opacity loaded but not applied to DOM | **Open** | Bind opacity signal to inline style on root div |
-| Clipboard cache panel missing | **Open** | Add panel showing recent clipboard entries      |
-| Drop zone doesn't call IPC | **Open** | Wire `on:drop` to `capture_file_drop` command   |
-| Copy button does nothing | **Open** | Implement clipboard write on click              |
+| Opacity loaded but not applied to DOM | **Done** | Bound opacity signal to `style` attribute on root div |
+| Clipboard cache panel missing | **Done** | Added panel showing recent clipboard entries, with copy-to-restore on click |
+| Drop zone doesn't call IPC | **Done** | Wired `on:drop` to `capture_file_drop` command with file reading |
+| Copy button does nothing | **Done** | Implemented clipboard write via `navigator.clipboard().write_text()` |
 
 ### Settings Panel (`components/settings/settings_panel.rs`)
 
 | Gap                    | Status     | Fix                                             |
 |------------------------|------------|-------------------------------------------------|
-| font_size not exposed  | **Open**   | Add slider in AppearanceSettings                |
-| line_height not exposed | **Open**  | Add slider in AppearanceSettings                |
-| reduced_motion not exposed | **Open** | Add toggle in AppearanceSettings               |
-| high_contrast not exposed | **Open** | Add toggle in AppearanceSettings                |
-| sidebar_width not exposed | **Open** | Add slider in AppearanceSettings                |
-| inspector_width not exposed | **Open** | Add slider in AppearanceSettings              |
-| tab_size not exposed   | **Open**   | Add number input in EditorSettings              |
-| word_wrap not exposed  | **Open**   | Add toggle in EditorSettings                    |
-| spell_check not exposed | **Open**  | Add toggle in EditorSettings                    |
-| auto_save_interval not exposed | **Open** | Add number input in EditorSettings          |
-| graph_show_tags_as_badges not exposed | **Open** | Add toggle in GraphSettings       |
+| font_size not exposed  | **Done**   | Added slider in AppearanceSettings              |
+| line_height not exposed | **Done**  | Added slider in AppearanceSettings              |
+| reduced_motion not exposed | **Done** | Added toggle in AppearanceSettings               |
+| high_contrast not exposed | **Done** | Added toggle in AppearanceSettings                |
+| sidebar_width not exposed | **Done** | Added slider in AppearanceSettings                |
+| inspector_width not exposed | **Done** | Added slider in AppearanceSettings              |
+| tab_size not exposed   | **Done**   | Added number input in EditorSettings              |
+| word_wrap not exposed  | **Done**   | Added toggle in EditorSettings                    |
+| spell_check not exposed | **Done**  | Added toggle in EditorSettings                    |
+| auto_save_interval not exposed | **Done** | Added number input in EditorSettings          |
+| graph_show_tags_as_badges not exposed | **Done** | Added toggle in GraphSettings       |
+| font_size not exposed  | **Done**   | Added slider in AppearanceSettings              |
+| line_height not exposed | **Done**  | Added slider in AppearanceSettings              |
+| reduced_motion not exposed | **Done** | Added toggle in AppearanceSettings               |
+| high_contrast not exposed | **Done** | Added toggle in AppearanceSettings                |
+| sidebar_width not exposed | **Done** | Added slider in AppearanceSettings                |
+| inspector_width not exposed | **Done** | Added slider in AppearanceSettings              |
+| tab_size not exposed   | **Done**   | Added number input in EditorSettings              |
+| word_wrap not exposed  | **Done**   | Added toggle in EditorSettings                    |
+| spell_check not exposed | **Done**  | Added toggle in EditorSettings                    |
+| auto_save_interval not exposed | **Done** | Added number input in EditorSettings          |
+| graph_show_tags_as_badges not exposed | **Done** | Added toggle in GraphSettings       |
 | GeneralSettings / WhisprSettings / FileSettings are dead code | **Open** | Remove or wire into tabs |
 
 ### Notifications & Undo/Redo
 
 | Gap                    | Status     | Fix                                             |
 |------------------------|------------|-------------------------------------------------|
-| No toast on undo/redo  | **Open**   | Hook into history.rs to fire toasts             |
+| No toast on undo/redo  | **Done**   | `history.rs` already fires toasts via `use_toast()`; navbar.rs wired undo/redo buttons |
 | No background progress for long ops | **Open** | Add progress signal to toast system       |
 
 ### Context Menus

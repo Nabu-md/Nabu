@@ -54,7 +54,7 @@ pub fn DictationPill() -> impl IntoView {
         });
     });
 
-    let copy_to_clipboard = Callback::new(move |_: leptos::html::MouseEvent| {
+    let copy_to_clipboard = Callback::new(move |_: web_sys::MouseEvent| {
         let text = scratchpad.get();
         if text.is_empty() {
             toasts.warning("Clipboard", "Nothing to copy — scratchpad is empty");
@@ -121,14 +121,6 @@ pub fn DictationPill() -> impl IntoView {
         }
     };
 
-    let drop_zone_class = move || {
-        if is_dragging.get() {
-            "border-gray-600 bg-gray-800"
-        } else {
-            "border-gray-600"
-        }
-    };
-
     view! {
         <div
             class=move || format!("dictation-pill transition-all {}", drag_class())
@@ -189,16 +181,17 @@ pub fn DictationPill() -> impl IntoView {
                         <div class="text-xs text-gray-500 mb-1">"Recent clipboard:"</div>
                         <div class="max-h-32 overflow-y-auto space-y-1">
                             {move || clipboard_cache.get().iter().rev().map(|entry| {
-                                let entry_clone = entry.clone();
+                                let entry_display = entry.clone();
+                                let entry_click = entry.clone();
                                 view! {
                                     <div class="text-xs bg-gray-800 rounded px-2 py-1 truncate"
                                          on:click=move |_| {
                                         if let Some(window) = web_sys::window() {
                                             let clipboard = window.navigator().clipboard();
-                                            let _ = clipboard.write_text(&entry_clone);
+                                            let _ = clipboard.write_text(&entry_click);
                                         }
                                     }>
-                                        {entry_clone}
+                                        {entry_display}
                                     </div>
                                 }
                             }).collect_view()}
