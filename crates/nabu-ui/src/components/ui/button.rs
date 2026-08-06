@@ -1,37 +1,23 @@
 //! Button primitives — 6 variants, 3 sizes, loading and icon modes.
-//!
-//! Accessibility: native `<button>` semantics, `aria-busy` while loading,
-//! `disabled` handling, focus-visible ring from the design system.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
-/// Visual variants for [`Button`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ButtonVariant {
-    /// Solid accent (primary action).
     Primary,
-    /// Default neutral button.
     #[default]
     Secondary,
-    /// Borderless, low emphasis.
     Ghost,
-    /// Outlined neutral button.
     Outline,
-    /// Destructive action.
     Destructive,
-    /// Square icon-only button.
     Icon,
 }
 
-/// Sizing for [`Button`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ButtonSize {
-    /// Small (caption).
     Sm,
-    /// Default (body).
     #[default]
     Md,
-    /// Large.
     Lg,
 }
 
@@ -58,7 +44,6 @@ impl ButtonSize {
     }
 }
 
-/// Builds the full class list for a button from variant + size + extra classes.
 pub fn button_classes(variant: ButtonVariant, size: ButtonSize, extra: Option<&str>) -> String {
     let mut base = format!("btn {} {}", variant.classes(), size.classes());
     if let Some(extra) = extra {
@@ -70,98 +55,68 @@ pub fn button_classes(variant: ButtonVariant, size: ButtonSize, extra: Option<&s
     base.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Core button. Supports primary/secondary/ghost/outline/destructive/icon
-/// variants, sm/md/lg sizes, loading state and disabled state.
 #[component]
 pub fn Button(
-    /// Visual variant.
-    #[prop(optional)]
-    variant: ButtonVariant,
-    /// Size.
-    #[prop(optional)]
-    size: ButtonSize,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables interaction.
-    #[prop(optional)]
-    disabled: bool,
-    /// Shows a spinner and disables the button.
-    #[prop(optional)]
-    loading: bool,
-    /// Tooltip text.
-    #[prop(optional)]
-    title: Option<&'static str>,
-    /// Click handler.
-    #[prop(optional)]
-    on_click: Option<Callback<web_sys::MouseEvent>>,
-    /// Accessible name for icon-only buttons.
-    #[prop(optional)]
-    aria_label: Option<&'static str>,
-    /// ARIA haspopup (for menu triggers).
-    #[prop(optional)]
-    aria_haspopup: Option<&'static str>,
-    /// ARIA expanded (for menu triggers).
-    #[prop(optional, into)]
-    aria_expanded: Option<Signal<bool>>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] variant: ButtonVariant,
+    #[props(optional)] size: ButtonSize,
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] loading: bool,
+    #[props(optional)] title: Option<&'static str>,
+    #[props(optional)] on_click: Option<EventHandler<MouseEvent>>,
+    #[props(optional)] aria_label: Option<&'static str>,
+    #[props(optional)] aria_haspopup: Option<&'static str>,
+    #[props(optional)] aria_expanded: Option<Signal<bool>>,
+    children: Element,
+) -> Element {
     let classes = button_classes(variant, size, class);
-    let is_disabled = move || disabled || loading;
-    let on_click = on_click;
-    let aria_expanded = aria_expanded;
-
-    view! {
-        <button
-            class=classes
-            disabled=move || is_disabled()
-            aria-busy=move || loading
-            title=title
-            aria-label=aria_label
-            aria-haspopup=aria_haspopup
-            aria-expanded=move || aria_expanded.map(|s| s.get()).unwrap_or(false)
-            on:click=move |ev| {
-                if let Some(cb) = on_click.as_ref() {
-                    cb.run(ev);
-                }
-            }
-        >
-            {move || if loading {
-                view! { <span class="btn-spinner" aria-hidden="true"></span> }.into_any()
+    let is_disabled = disabled || loading;
+    let on_click_cb = on_click;
+    rsx! {
+        button {
+            class: classes,
+            disabled: is_disabled,
+            "aria-busy": loading,
+            title: title,
+            "aria-label": aria_label,
+            "aria-haspopup": aria_haspopup,
+            "aria-expanded": if let Some(sig) = aria_expanded {
+                "{*sig.read()}"
             } else {
-                view! {}.into_any()
-            }}
-            {children()}
-        </button>
+                ""
+            },
+            onclick: move |ev: MouseEvent| {
+                if !is_disabled {
+                    if let Some(cb) = on_click_cb.as_ref() {
+                        cb.call(ev);
+                    }
+                }
+            },
+            if loading {
+                span { class: "btn-spinner", "aria-hidden": "true" }
+            }
+            {children}
+        }
     }
 }
 
-/// Convenience icon-only button (ghost + square).
 #[component]
 pub fn IconButton(
-    /// Tooltip (also the accessible name for icon-only buttons).
     title: &'static str,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables interaction.
-    #[prop(optional)]
-    disabled: bool,
-    /// Click handler.
-    #[prop(optional)]
-    on_click: Option<Callback<web_sys::MouseEvent>>,
-    children: ChildrenFn,
-) -> impl IntoView {
-    view! {
-        <Button
-            variant=ButtonVariant::Icon
-            class=class.unwrap_or("")
-            title=title
-            disabled=disabled
-            on_click=on_click.unwrap_or_else(|| Callback::new(|_| {}))
-            aria_label=title
-        >
-            {children()}
-        </Button>
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_click: Option<EventHandler<MouseEvent>>,
+    children: Element,
+) -> Element {
+    rsx! {
+        Button {
+            variant: ButtonVariant::Icon,
+            class: class.unwrap_or(""),
+            title: title,
+            disabled: disabled,
+            on_click: on_click,
+            aria_label: Some(title),
+            {children}
+        }
     }
 }

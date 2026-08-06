@@ -1,57 +1,45 @@
 //! Layout primitives — panel, section, stack, grid, container.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
-/// Panel — a bordered container with standard padding.
 #[component]
 pub fn Panel(
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! { <div class=format!("panel{extra}")>{children()}</div> }
-}
-
-/// Section — a titled content block with vertical rhythm.
-#[component]
-pub fn Section(
-    /// Section title.
-    title: String,
-    /// Optional description under the title.
-    #[prop(optional)]
-    description: Option<String>,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
-    let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! {
-        <section class=format!("section{extra}")>
-            <header>
-                <h3 class="section-title">{title}</h3>
-                {description.map(|d| view! { <p class="section-desc">{d}</p> }.into_any())}
-            </header>
-            {children()}
-        </section>
+    rsx! {
+        div { class: "panel{extra}", {children} }
     }
 }
 
-/// Stack direction.
+#[component]
+pub fn Section(
+    title: String,
+    #[props(optional)] description: Option<String>,
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
+    let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
+    rsx! {
+        section { class: "section{extra}" }
+        header {
+            h3 { class: "section-title", "{title}" }
+            {description.map(|d| rsx! { p { class: "section-desc", "{d}" } })}
+        }
+        {children}
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum StackDirection {
-    #[default]
-    Vertical,
+    #[default] Vertical,
     Horizontal,
 }
 
-/// Stack gap size.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum StackGap {
-    #[default]
-    Md,
+    #[default] Md,
     None,
     Sm,
     Lg,
@@ -70,20 +58,13 @@ impl StackGap {
     }
 }
 
-/// Stack — a flex column (or row) with consistent spacing.
 #[component]
 pub fn Stack(
-    /// Direction.
-    #[prop(optional)]
-    direction: StackDirection,
-    /// Gap size.
-    #[prop(optional)]
-    gap: StackGap,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] direction: StackDirection,
+    #[props(optional)] gap: StackGap,
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
     let row = if direction == StackDirection::Horizontal {
         " stack-row"
     } else {
@@ -91,34 +72,30 @@ pub fn Stack(
     };
     let gap_class = gap.class();
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! {
-        <div class=format!("stack{row} {gap_class}{extra}")>{children()}</div>
+    rsx! {
+        div { class: "stack{row} {gap_class}{extra}", {children} }
     }
 }
 
-/// Grid — a responsive auto-fill grid with a minimum column width.
 #[component]
 pub fn Grid(
-    /// Minimum column width (CSS value, e.g. "200px").
-    #[prop(optional)]
-    min: Option<&'static str>,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] min: Option<&'static str>,
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    let style = min.map(|m| format!("--grid-min: {m};"));
-    view! {
-        <div class=format!("grid-auto{extra}") style=style>{children()}</div>
+    rsx! {
+        div {
+            class: "grid-auto{extra}",
+            style: if let Some(min_w) = min { format!("--grid-min: {min_w};") } else { "" },
+            {children}
+        }
     }
 }
 
-/// Container width.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ContainerWidth {
-    #[default]
-    Medium,
+    #[default] Medium,
     Narrow,
     Wide,
 }
@@ -133,19 +110,14 @@ impl ContainerWidth {
     }
 }
 
-/// Container — a centred, max-width wrapper.
 #[component]
 pub fn Container(
-    /// Width variant.
-    #[prop(optional)]
-    width: ContainerWidth,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] width: ContainerWidth,
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! {
-        <div class=format!("{} {}", width.class(), extra.trim())>{children()}</div>
+    rsx! {
+        div { class: "{width.class()} {extra.trim()}", {children} }
     }
 }

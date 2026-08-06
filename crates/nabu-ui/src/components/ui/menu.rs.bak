@@ -69,37 +69,25 @@ pub fn DropdownMenu(
     /// Extra menu utility classes.
     #[props(optional)]
     menu_class: Option<&'static str>,
-    #[props(optional)]
-    open: Option<Signal<bool>>,
     children: Element,
 ) -> Element {
-    let open_sig = open.unwrap_or_else(|| use_signal(|| false));
+    let open = use_signal(|| false);
     let menu_extra = menu_class.map(|c| format!(" {c}")).unwrap_or_default();
     rsx! {
-        div {
-            class: "relative inline-block flex items-center gap-1",
-            Button {
-                variant: ButtonVariant::Ghost,
-                class: trigger_class.unwrap_or(""),
-                aria_haspopup: Some("menu"),
-                aria_expanded: Some(open_sig),
-                on_click: move |_| {
-                    let current = *open_sig.read();
-                    let mut s = open_sig;
-                    s.set(!current);
-                },
-                "{trigger}"
-                {render_icon_view(Icon::ChevronDown)}
-            }
+        div { class: "relative inline-block" }
+        Button {
+            variant: ButtonVariant::Ghost,
+            class: trigger_class.unwrap_or(""),
+            aria_haspopup: Some("menu"),
+            aria_expanded: Some(open),
+            on_click: move |_| open.toggle(),
         }
-        if *open_sig.read() {
+        span { class: "text-xs text-gray-500", "aria-hidden": "true", {render_icon_view(Icon::ChevronDown)} }
+        if *open.read() {
             div {
                 class: "menu absolute right-0 top-full mt-1{menu_extra}",
                 role: "menu",
-                onclick: move |_| {
-                    let mut s = open_sig;
-                    s.set(false);
-                },
+                onclick: move |_| open.set(false),
                 {children}
             }
         }
@@ -112,8 +100,6 @@ pub fn OverflowMenu(
     /// Extra menu utility classes.
     #[props(optional)]
     menu_class: Option<&'static str>,
-    #[props(optional)]
-    open: Option<Signal<bool>>,
     children: Element,
 ) -> Element {
     rsx! {
@@ -121,7 +107,6 @@ pub fn OverflowMenu(
             trigger: "⋯".to_string(),
             trigger_class: "btn-icon",
             menu_class: menu_class,
-            open: open,
             {children}
         }
     }
@@ -150,46 +135,6 @@ impl CommandItem {
     }
 }
 
-/// Individual command item rendered inside [`CommandMenu`].
-#[component]
-fn CommandMenuItem(
-    index: usize,
-    item: CommandItem,
-    active_index: Signal<usize>,
-    open: Signal<bool>,
-    on_select: Option<EventHandler<String>>,
-) -> Element {
-    let id = item.id.clone();
-    let label = item.label.clone();
-    let hint = item.hint.clone();
-    let cb = on_select;
-    let i = index;
-    let active_index_sig = active_index;
-    let open_sig = open;
-    rsx! {
-        button {
-            key: "{id}",
-            r#type: "button",
-            role: "option",
-            "aria-selected": "{i == *active_index_sig.read()}",
-            class: if i == *active_index_sig.read() { "menu-item w-full text-left menu-item-active" } else { "menu-item w-full text-left" },
-            onmouseover: move |_| {
-                let mut ai = active_index_sig;
-                ai.set(i);
-            },
-            onclick: move |_| {
-                let mut o = open_sig;
-                o.set(false);
-                if let Some(cb) = cb.as_ref() {
-                    cb.call(id.clone());
-                }
-            },
-            span { class: "flex-1", "{label}" }
-            {hint.map(|h| rsx! { span { class: "text-xs text-gray-500", "{h}" } })}
-        }
-    }
-}
-
 /// Command menu / palette — a searchable list of commands.
 /// Opens with `open.set(true)`; closes on selection or Escape.
 #[component]
@@ -202,9 +147,9 @@ pub fn CommandMenu(
     #[props(optional)]
     on_select: Option<EventHandler<String>>,
 ) -> Element {
-    let open_sig = open;
+    let mut open_sig = open;
     let query = use_signal(String::new);
-    let active_index = use_signal(|| 0usize);
+    let mut active_index = use_signal(|| 0usize);
     let on_select_cb = on_select;
 
     let filtered = use_memo(move || {
@@ -226,10 +171,8 @@ pub fn CommandMenu(
                 class: "dialog-overlay",
                 role: "presentation",
                 onclick: move |_| {
-                    let mut o = open_sig;
-                    o.set(false);
-                    let mut q = query;
-                    q.set(String::new());
+                    open_sig.set(false);
+                    query.set(String::new());
                 },
                 div {
                     class: "menu w-80 max-w-full",
@@ -243,41 +186,32 @@ pub fn CommandMenu(
                         placeholder: "Type a command…",
                         value: "{query.read()}",
                         onchange: move |ev: FormEvent| {
-                            let mut q = query;
-                            q.set(ev.value());
-                            let mut ai = active_index;
-                            ai.set(0);
+                            query.set(ev.value());
+                            active_index.set(0);
                         },
                         onkeydown: move |ev: KeyboardEvent| {
                             if ev.key() == Key::Escape {
-                                let mut o = open_sig;
-                                o.set(false);
-                                let mut q = query;
-                                q.set(String::new());
+                                open_sig.set(false);
+                                query.set(String::new());
                             } else if ev.key() == Key::ArrowDown {
                                 ev.prevent_default();
                                 let len = filtered.read().len();
                                 if len > 0 {
-                                    let mut ai = active_index;
-                                    let current = *ai.read();
-                                    ai.set((current + 1) % len);
+                                    active_index.set(((*active_index.read() + 1) % len));
                                 }
                             } else if ev.key() == Key::ArrowUp {
                                 ev.prevent_default();
                                 let len = filtered.read().len();
                                 if len > 0 {
-                                    let current = *active_index.read();
-                                    let mut ai = active_index;
-                                    ai.set(if current == 0 { len - 1 } else { current - 1 });
+                                    let i = *active_index.read();
+                                    active_index.set(if i == 0 { len - 1 } else { i - 1 });
                                 }
                             } else if ev.key() == Key::Enter {
                                 ev.prevent_default();
                                 let list = filtered.read();
                                 if let Some(item) = list.get(*active_index.read()) {
-                                    let mut o = open_sig;
-                                    o.set(false);
-                                    let mut q = query;
-                                    q.set(String::new());
+                                    open_sig.set(false);
+                                    query.set(String::new());
                                     if let Some(cb) = on_select_cb.as_ref() {
                                         cb.call(item.id.clone());
                                     }
@@ -285,16 +219,34 @@ pub fn CommandMenu(
                             }
                         },
                     }
+                    div { class: "max-h-64 overflow-y-auto" }
                     if filtered.read().is_empty() {
                         div { class: "menu-item text-gray-500 cursor-default", "No matching commands" }
                     }
+                    div { class: "max-h-64 overflow-y-auto" }
                     for (i, item) in filtered.read().iter().enumerate() {
-                        CommandMenuItem {
-                            index: i,
-                            item: item.clone(),
-                            active_index: active_index,
-                            open: open_sig,
-                            on_select: on_select_cb,
+                        {
+                            let id = item.id.clone();
+                        let label = item.label.clone();
+                        let hint = item.hint.clone();
+                        rsx! {
+                            button {
+                                key: "{id}",
+                                r#type: "button",
+                                role: "option",
+                                "aria-selected": "{i == *active_index.read()}",
+                                class: if i == *active_index.read() { "menu-item w-full text-left menu-item-active" } else { "menu-item w-full text-left" },
+                                onmouseover: move |_| active_index.set(i),
+                                onclick: move |_| {
+                                    open_sig.set(false);
+                                    query.set(String::new());
+                                    if let Some(cb) = on_select_cb.as_ref() {
+                                        cb.call(id.clone());
+                                    }
+                                },
+                                span { class: "flex-1", "{label}" }
+                                {hint.map(|h| rsx! { span { class: "text-xs text-gray-500", "{h}" } })}
+                            }
                         }
                     }
                 }
@@ -327,18 +279,17 @@ pub fn ContextMenu(
         if *open.read() {
             div {
                 class: "fixed inset-0 z-40",
-                onclick: move |_| { let mut s = open; s.set(false); },
+                onclick: move |_| open.set(false),
                 oncontextmenu: move |ev: MouseEvent| {
                     ev.prevent_default();
-                    let mut s = open;
-                    s.set(false);
+                    open.set(false);
                 },
             }
             div {
                 class: "menu fixed z-50",
                 role: "menu",
                 style: "left: {pos.read().0}px; top: {pos.read().1}px;",
-                onclick: move |_| { let mut s = open; s.set(false); },
+                onclick: move |_| open.set(false),
                 {menu_items}
             }
         }

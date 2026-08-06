@@ -11,9 +11,9 @@
 //! global shortcuts are **not** migrated in Phase 0.
 
 use crate::components::contexts::{
-    HistoryProvider, NavProvider, SaveStatusProvider, TaskProvider, ThemeProvider,
-    ToastProvider, WorkspaceProvider,
+    HistoryProvider, NavProvider, SaveStatusProvider, ThemeProvider, WorkspaceProvider,
 };
+use crate::components::ui::feedback::{TaskProvider, ToastProvider};
 use crate::components::ui::icons::{Icon, IconEl};
 use dioxus::prelude::*;
 

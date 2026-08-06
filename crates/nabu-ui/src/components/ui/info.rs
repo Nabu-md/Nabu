@@ -1,18 +1,14 @@
 //! Informational primitives — tooltip, empty state, callout, help text.
 
 use crate::components::ui::icons::{render_icon_view, Icon};
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
-/// Tooltip — wraps a child and shows text on hover / focus.
 #[component]
 pub fn Tooltip(
-    /// Tooltip text.
     text: String,
-    /// Placement (top is the only fully supported position today).
-    #[prop(optional)]
-    position: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] position: Option<&'static str>,
+    children: Element,
+) -> Element {
     let pos = position.unwrap_or("top");
     let pos_class = match pos {
         "bottom" => "tooltip-bottom",
@@ -20,48 +16,41 @@ pub fn Tooltip(
         "right" => "tooltip-right",
         _ => "",
     };
-    view! {
-        <span class="tooltip-wrap" tabindex="0">
-            {children()}
-            <span class=format!("tooltip-text {pos_class}") role="tooltip">{text}</span>
-        </span>
+    rsx! {
+        span { class: "tooltip-wrap", tabindex: "0" }
+        {children}
+        span { class: "tooltip-text {pos_class}", role: "tooltip", "{text}" }
     }
 }
 
-/// Empty state — a placeholder for empty lists / panels.
 #[component]
 pub fn EmptyState(
     /// Optional icon.
-    #[prop(optional)]
+    #[props(optional)]
     icon: Option<Icon>,
     /// Title text.
     title: String,
     /// Optional description.
-    #[prop(optional)]
+    #[props(optional)]
     description: Option<String>,
     /// Extra utility classes.
-    #[prop(optional)]
+    #[props(optional)]
     class: Option<&'static str>,
-    /// Optional children (most empty states render without any).
-    #[prop(optional)]
-    children: Option<ChildrenFn>,
-) -> impl IntoView {
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! {
-        <div class=format!("empty-state{extra}")>
-            {icon.map(|ic| view! { <div class="empty-state-icon" aria-hidden="true">{render_icon_view(ic)}</div> }.into_any())}
-            <div class="empty-state-title">{title}</div>
-            {description.map(|d| view! { <div class="empty-state-desc">{d}</div> }.into_any())}
-            {children.map(|c| c())}
-        </div>
+    rsx! {
+        div { class: "empty-state{extra}" }
+        {icon.map(|ic| rsx! {
+            div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(ic)} }
+        })}
+        div { class: "empty-state-title", "{title}" }
+        {description.map(|d| rsx! { div { class: "empty-state-desc", "{d}" } })}
     }
 }
 
-/// Callout kind.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum CalloutKind {
-    #[default]
-    Info,
+    #[default] Info,
     Success,
     Warning,
     Error,
@@ -78,27 +67,21 @@ impl CalloutKind {
     }
 }
 
-/// Callout — a highlighted inset note.
 #[component]
 pub fn Callout(
-    /// Kind.
     kind: CalloutKind,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    children: ChildrenFn,
-) -> impl IntoView {
+    #[props(optional)] class: Option<&'static str>,
+    children: Element,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
-    view! {
-        <div class=format!("callout {}{extra}", kind.class())>{children()}</div>
+    rsx! {
+        div { class: "callout {kind.class()}{extra}", {children} }
     }
 }
 
-/// Help text — small muted helper line under a field.
 #[component]
-pub fn HelpText(
-    /// Text to show.
-    text: String,
-) -> impl IntoView {
-    view! { <span class="field-hint">{text}</span> }
+pub fn HelpText(text: String) -> Element {
+    rsx! {
+        span { class: "field-hint", "{text}" }
+    }
 }

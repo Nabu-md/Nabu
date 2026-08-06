@@ -4,128 +4,105 @@
 //! (`accent-color` styling from the design system); segmented and select use
 //! styled buttons / native select.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
-/// Checkbox with two-way binding to `RwSignal<bool>`.
+/// Checkbox with two-way binding to `Signal<bool>`.
 #[component]
 pub fn Checkbox(
-    /// Two-way bound checked state.
-    checked: RwSignal<bool>,
-    /// Accessible label text.
+    checked: Signal<bool>,
     label: String,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables the control.
-    #[prop(optional)]
-    disabled: bool,
-    /// Called when the value changes.
-    #[prop(optional)]
-    on_change: Option<Callback<bool>>,
-) -> impl IntoView {
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_change: Option<EventHandler<bool>>,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
+    let checked_sig = checked;
     let cb = on_change;
-    view! {
-        <label class=format!("check-field{extra}")>
-            <input
-                type="checkbox"
-                prop:checked=checked
-                disabled=disabled
-                on:change=move |ev| {
-                    let checked_now = event_target_checked(&ev);
-                    checked.set(checked_now);
-                    if let Some(cb) = cb.as_ref() {
-                        cb.run(checked_now);
-                    }
+    rsx! {
+        label { class: "check-field{extra}" }
+        input {
+            r#type: "checkbox",
+            checked: *checked_sig.read(),
+            disabled: disabled,
+            onchange: move |ev: FormEvent| {
+                let checked_now = ev.checked();
+                let mut s = checked_sig;
+                s.set(checked_now);
+                if let Some(cb) = cb.as_ref() {
+                    cb.call(checked_now);
                 }
-            />
-            <span>{label}</span>
-        </label>
+            },
+        }
+        span { "{label}" }
     }
 }
 
-/// Radio button group item. Pair with a shared `name` and selected value signal.
+/// Radio button group item.
 #[component]
 pub fn Radio(
-    /// Radio group name.
     name: String,
-    /// Value this radio represents.
     value: String,
-    /// Currently selected value signal.
-    selected: RwSignal<String>,
-    /// Accessible label text.
+    selected: Signal<String>,
     label: String,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables the control.
-    #[prop(optional)]
-    disabled: bool,
-    /// Called when this radio becomes selected.
-    #[prop(optional)]
-    on_change: Option<Callback<String>>,
-) -> impl IntoView {
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_change: Option<EventHandler<String>>,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
     let value_for_check = value.clone();
+    let selected_sig = selected;
     let cb = on_change;
-    view! {
-        <label class=format!("radio-field{extra}")>
-            <input
-                type="radio"
-                name=name
-                prop:checked=move || selected.get() == value_for_check
-                value=value.clone()
-                disabled=disabled
-                on:change=move |_| {
-                    selected.set(value.clone());
-                    if let Some(cb) = cb.as_ref() {
-                        cb.run(value.clone());
-                    }
+    rsx! {
+        label { class: "radio-field{extra}" }
+        input {
+            r#type: "radio",
+            name: name,
+            checked: *selected_sig.read() == value_for_check,
+            value: value_for_check,
+            disabled: disabled,
+            onchange: move |_| {
+                let mut s = selected_sig;
+                s.set(value.clone());
+                if let Some(cb) = cb.as_ref() {
+                    cb.call(value.clone());
                 }
-            />
-            <span>{label}</span>
-        </label>
+            },
+        }
+        span { "{label}" }
     }
 }
 
-/// Switch (toggle) with two-way binding to `RwSignal<bool>`.
+/// Switch (toggle) with two-way binding to `Signal<bool>`.
 #[component]
 pub fn Switch(
-    /// Two-way bound checked state.
-    checked: RwSignal<bool>,
-    /// Accessible label text.
+    checked: Signal<bool>,
     label: String,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables the control.
-    #[prop(optional)]
-    disabled: bool,
-    /// Called when the value changes.
-    #[prop(optional)]
-    on_change: Option<Callback<bool>>,
-) -> impl IntoView {
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_change: Option<EventHandler<bool>>,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
+    let checked_sig = checked;
     let cb = on_change;
-    view! {
-        <label class=format!("switch{extra}")>
-            <input
-                type="checkbox"
-                role="switch"
-                aria-label=label
-                prop:checked=checked
-                disabled=disabled
-                on:change=move |ev| {
-                    let checked_now = event_target_checked(&ev);
-                    checked.set(checked_now);
-                    if let Some(cb) = cb.as_ref() {
-                        cb.run(checked_now);
-                    }
+    rsx! {
+        label { class: "switch{extra}" }
+        input {
+            r#type: "checkbox",
+            role: "switch",
+            "aria-label": label,
+            checked: *checked_sig.read(),
+            disabled: disabled,
+            onchange: move |ev: FormEvent| {
+                let checked_now = ev.checked();
+                let mut s = checked_sig;
+                s.set(checked_now);
+                if let Some(cb) = cb.as_ref() {
+                    cb.call(checked_now);
                 }
-            />
-            <span class="switch-track" aria-hidden="true"></span>
-            <span class="switch-thumb" aria-hidden="true"></span>
-        </label>
+            },
+        }
+        span { class: "switch-track", "aria-hidden": "true" }
+        span { class: "switch-thumb", "aria-hidden": "true" }
     }
 }
 
@@ -134,6 +111,12 @@ pub fn Switch(
 pub struct SegmentedOption {
     pub value: String,
     pub label: String,
+}
+
+impl PartialEq for SegmentedOption {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value && self.label == other.label
+    }
 }
 
 impl SegmentedOption {
@@ -148,49 +131,42 @@ impl SegmentedOption {
 /// Segmented control — a row of mutually exclusive buttons.
 #[component]
 pub fn Segmented(
-    /// Options to display.
     options: Vec<SegmentedOption>,
-    /// Currently selected value signal.
-    selected: RwSignal<String>,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables the whole control.
-    #[prop(optional)]
-    disabled: bool,
-    /// Called when selection changes.
-    #[prop(optional)]
-    on_change: Option<Callback<String>>,
-) -> impl IntoView {
+    selected: Signal<String>,
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_change: Option<EventHandler<String>>,
+) -> Element {
     let extra = class.map(|c| format!(" {c}")).unwrap_or_default();
+    let selected_sig = selected;
     let cb = on_change;
-    view! {
-        <div class=format!("segmented{extra}") role="radiogroup">
-            {options.into_iter().map(|opt| {
+    rsx! {
+        div { class: "segmented{extra}", role: "radiogroup" }
+        for opt in options {
+            {
                 let value_checked = opt.value.clone();
-                let value_class = opt.value.clone();
                 let value_click = opt.value.clone();
                 let label = opt.label.clone();
-                let on_click_cb = cb;
-                view! {
-                    <button
-                        type="button"
-                        role="radio"
-                        aria-checked=move || selected.get() == value_checked
-                        class=move || if selected.get() == value_class { "segmented-active" } else { "" }
-                        disabled=disabled
-                        on:click=move |_| {
-                            selected.set(value_click.clone());
-                            if let Some(cb) = on_click_cb.as_ref() {
-                                cb.run(value_click.clone());
+                rsx! {
+                    button {
+                        key: "{value_checked}",
+                        r#type: "button",
+                        role: "radio",
+                        "aria-checked": "{value_checked == *selected_sig.read()}",
+                        class: if value_checked == *selected_sig.read() { "segmented-active" } else { "" },
+                        disabled: disabled,
+                        onclick: move |_| {
+                            let mut s = selected_sig;
+                            s.set(value_click.clone());
+                            if let Some(cb) = cb.as_ref() {
+                                cb.call(value_click.clone());
                             }
-                        }
-                    >
-                        {label}
-                    </button>
+                        },
+                        "{label}"
+                    }
                 }
-            }).collect_view()}
-        </div>
+            }
+        }
     }
 }
 
@@ -213,29 +189,15 @@ impl SelectOption {
 /// Native select dropdown, styled via the design system.
 #[component]
 pub fn Select(
-    /// Options to display.
     options: Vec<SelectOption>,
-    /// Two-way bound selected value.
-    value: RwSignal<String>,
-    /// Optional label.
-    #[prop(optional)]
-    label: Option<&'static str>,
-    /// Optional helper text.
-    #[prop(optional)]
-    hint: Option<&'static str>,
-    /// Optional error message.
-    #[prop(optional)]
-    error: Option<&'static str>,
-    /// Extra utility classes.
-    #[prop(optional)]
-    class: Option<&'static str>,
-    /// Disables the control.
-    #[prop(optional)]
-    disabled: bool,
-    /// Called when selection changes.
-    #[prop(optional)]
-    on_change: Option<Callback<String>>,
-) -> impl IntoView {
+    value: Signal<String>,
+    #[props(optional)] label: Option<&'static str>,
+    #[props(optional)] hint: Option<&'static str>,
+    #[props(optional)] error: Option<&'static str>,
+    #[props(optional)] class: Option<&'static str>,
+    #[props(optional)] disabled: bool,
+    #[props(optional)] on_change: Option<EventHandler<String>>,
+) -> Element {
     let mut base = String::from("input");
     if error.is_some() {
         base.push_str(" input-error");
@@ -244,31 +206,32 @@ pub fn Select(
         base.push(' ');
         base.push_str(extra);
     }
+    let val = value;
     let cb = on_change;
-    let control = view! {
-        <select
-            class=base
-            prop:value=value
-            disabled=disabled
-            on:change=move |ev| {
-                let new_value = event_target_value(&ev);
-                value.set(new_value.clone());
+    rsx! {
+        label { class: "field" }
+        {label.map(|l| rsx! { span { class: "field-label", "{l}" } })}
+        select {
+            class: base,
+            value: "{val.read()}",
+            disabled: disabled,
+            onchange: move |ev: FormEvent| {
+                let new_value = ev.value();
+                let mut s = val;
+                s.set(new_value.clone());
                 if let Some(cb) = cb.as_ref() {
-                    cb.run(new_value);
+                    cb.call(new_value);
+                }
+            },
+            for opt in &options {
+                option {
+                    key: "{opt.value}",
+                    value: "{opt.value}",
+                    "{opt.label}"
                 }
             }
-        >
-            {options.into_iter().map(|opt| view! {
-                <option value=opt.value.clone()>{opt.label}</option>
-            }).collect_view()}
-        </select>
-    };
-    view! {
-        <label class="field">
-            {label.map(|l| view! { <span class="field-label">{l}</span> }.into_any())}
-            {control}
-            {error.map(|e| view! { <span class="field-error" role="alert">{e}</span> }.into_any())}
-            {hint.map(|h| view! { <span class="field-hint">{h}</span> }.into_any())}
-        </label>
+        }
+        {error.map(|e| rsx! { span { class: "field-error", role: "alert", "{e}" } })}
+        {hint.map(|h| rsx! { span { class: "field-hint", "{h}" } })}
     }
 }

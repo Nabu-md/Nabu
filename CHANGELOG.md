@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Three-tier Electron architecture: main process ↔ preload bridge ↔ React renderer
 - Zod v4 schemas for bidirectional IPC validation (14+ channels)
 - CRDT-ready sync foundation in the private nabu-cloud monorepo
+<<<<<<< Updated upstream
 
 ## [Unreleased] — 2026-07-07
 
@@ -70,3 +71,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - OCR Swift helper restricted to provided image path only
 - Whisper process has no network access beyond model download (user-initiated)
 - PDF viewer pane maintains same security posture as main window
+=======
+>>>>>>> Stashed changes
