@@ -6,7 +6,6 @@
 
 use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::nav::{TabDef, Tabs};
-use crate::components::ui::info::EmptyState;
 use dioxus::prelude::*;
 
 /// The Right Inspector panel container.
@@ -34,38 +33,47 @@ pub fn RightInspector() -> Element {
                 active: active_tab,
                 on_change: None,
             }
-            div { class: "flex-1 overflow-y-auto text-gray-300 text-sm" }
-            match *active_tab.read() {
-                "tags" => {
-                    EmptyState {
-                        icon: Some(Icon::Tag),
-                        title: "Tags".to_string(),
-                        description: "Tags in the active note's frontmatter will appear here.".to_string(),
-                    }
-                }
-                "backlinks" => {
-                    EmptyState {
-                        icon: Some(Icon::Link),
-                        title: "Backlinks".to_string(),
-                        description: "Other notes that link to this one will appear here.".to_string(),
-                    }
-                }
-                "outgoing" => {
-                    EmptyState {
-                        icon: Some(Icon::Forward),
-                        title: "Outgoing".to_string(),
-                        description: "Links you write in this note will appear here.".to_string(),
-                    }
-                }
-                "mentions" => {
-                    EmptyState {
-                        icon: Some(Icon::MessageCircle),
-                        title: "Unlinked mentions".to_string(),
-                        description: "Plain-text references to existing notes will appear here.".to_string(),
-                    }
-                }
-                _ => rsx! {}
-            }
+            div { class: "flex-1 overflow-y-auto p-4 text-gray-300 text-sm" }
+            {inspect_placeholder(&active_tab.read())}
         }
+    }
+}
+
+/// Returns placeholder content for the active inspector tab.
+fn inspect_placeholder(tab: &str) -> Element {
+    match tab {
+        "tags" => rsx! {
+            div {
+                class: "empty-state",
+                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::Tag)} }
+                div { class: "empty-state-title", "Tags" }
+                div { class: "empty-state-desc", "Tags in the active note's frontmatter will appear here." }
+            }
+        },
+        "backlinks" => rsx! {
+            div {
+                class: "empty-state",
+                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::Link)} }
+                div { class: "empty-state-title", "Backlinks" }
+                div { class: "empty-state-desc", "Other notes that link to this one will appear here." }
+            }
+        },
+        "outgoing" => rsx! {
+            div {
+                class: "empty-state",
+                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::Forward)} }
+                div { class: "empty-state-title", "Outgoing" }
+                div { class: "empty-state-desc", "Links you write in this note will appear here." }
+            }
+        },
+        "mentions" => rsx! {
+            div {
+                class: "empty-state",
+                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::MessageCircle)} }
+                div { class: "empty-state-title", "Unlinked mentions" }
+                div { class: "empty-state-desc", "Plain-text references to existing notes will appear here." }
+            }
+        },
+        _ => rsx! {},
     }
 }

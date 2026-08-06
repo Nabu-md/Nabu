@@ -5,9 +5,8 @@
 //! query-powered organisation is always one click away.
 
 use crate::components::contexts::{use_nav, NavContext};
-use crate::components::navigation::state::{ViewMode};
+use crate::components::navigation::state::ViewMode;
 use crate::components::ui::icons::{render_icon_view, Icon};
-use crate::components::ui::info::EmptyState;
 use dioxus::prelude::*;
 
 /// Pre-computed render data for a smart folder row.
@@ -28,7 +27,7 @@ struct SavedSearchRow {
 /// Left sidebar — the vault file explorer plus organisational shortcuts.
 #[component]
 pub fn LeftSidebar() -> Element {
-    let nav: NavContext = use_nav();
+    let mut nav: NavContext = use_nav();
 
     // Clicking a saved search opens the search page prefilled with the query.
     let run_saved_search = move |query: String| {
@@ -115,11 +114,10 @@ pub fn LeftSidebar() -> Element {
             // FileTree placeholder — migrated in a later phase.
             div {
                 class: "flex-1 overflow-y-auto p-2",
-                EmptyState {
-                    icon: Some(Icon::FolderTree),
-                    title: "File Tree".to_string(),
-                    description: "The vault file explorer placeholder — migrated in a later phase.".to_string(),
-                }
+                div { class: "empty-state" }
+                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::FolderTree)} }
+                div { class: "empty-state-title", "File Tree" }
+                div { class: "empty-state-desc", "The vault file explorer placeholder — migrated in a later phase." }
             }
 
             // Collections — smart folders + saved searches

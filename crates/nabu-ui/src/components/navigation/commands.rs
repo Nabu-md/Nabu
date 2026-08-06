@@ -46,19 +46,19 @@ fn set_view(nav: NavContext, mode: ViewMode) -> Callback<()> {
     Callback::new(move |_| nav.view_mode.set(mode))
 }
 
-fn toggle_sidebar(nav: NavContext) -> Callback<()> {
+fn toggle_sidebar(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
-        nav.show_left_sidebar.modify(|v| *v = !*v);
+        nav.show_left_sidebar.with_mut(|v| *v = !*v);
     })
 }
 
-fn toggle_inspector(nav: NavContext) -> Callback<()> {
+fn toggle_inspector(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
-        nav.show_right_inspector.modify(|v| *v = !*v);
+        nav.show_right_inspector.with_mut(|v| *v = !*v);
     })
 }
 
-fn open_palette(nav: NavContext) -> Callback<()> {
+fn open_palette(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
         nav.palette_open.set(false);
         nav.switcher_open.set(false);
@@ -67,7 +67,7 @@ fn open_palette(nav: NavContext) -> Callback<()> {
     })
 }
 
-fn open_switcher(nav: NavContext) -> Callback<()> {
+fn open_switcher(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
         nav.palette_open.set(false);
         nav.switcher_open.set(false);
@@ -76,7 +76,7 @@ fn open_switcher(nav: NavContext) -> Callback<()> {
     })
 }
 
-fn open_shortcuts(nav: NavContext) -> Callback<()> {
+fn open_shortcuts(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
         nav.palette_open.set(false);
         nav.switcher_open.set(false);
@@ -85,7 +85,7 @@ fn open_shortcuts(nav: NavContext) -> Callback<()> {
     })
 }
 
-fn open_search(nav: NavContext) -> Callback<()> {
+fn open_search(mut nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
         nav.search_query.set(String::new());
         nav.view_mode.set(ViewMode::Search);
@@ -119,7 +119,7 @@ pub fn create_new_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
 /// KnowledgeObject without touching the filesystem, then lands on the Inbox
 /// screen so the user can review it. Contexts are captured at render time and
 /// threaded into the async task as plain values.
-pub fn quick_capture(nav: NavContext, toasts: ToastContext) -> Callback<()> {
+pub fn quick_capture(mut nav: NavContext, toasts: ToastContext) -> Callback<()> {
     Callback::new(move |_| {
         let nav = nav;
         let toasts = toasts;

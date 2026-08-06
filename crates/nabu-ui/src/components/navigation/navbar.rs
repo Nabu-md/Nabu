@@ -36,7 +36,7 @@ fn reveal_in_sidebar(path: String) {
 /// The top navigation bar (rendered inside the main content column).
 #[component]
 pub fn NavBar() -> Element {
-    let nav: NavContext = use_nav();
+    let mut nav: NavContext = use_nav();
     let history = use_history();
     let toasts = crate::components::ui::feedback::use_toast();
 
@@ -117,7 +117,7 @@ pub fn NavBar() -> Element {
             title: "Toggle left sidebar (⌘\\)",
             "aria-label": "Toggle left sidebar",
             onclick: move |_| {
-                nav.show_left_sidebar.modify(|v| *v = !*v);
+                nav.show_left_sidebar.with_mut(|v| *v = !*v);
             },
             {render_icon_view(Icon::Folder)}
         }
@@ -127,7 +127,7 @@ pub fn NavBar() -> Element {
             title: "Toggle right inspector (⌘⇧\\)",
             "aria-label": "Toggle right inspector",
             onclick: move |_| {
-                nav.show_right_inspector.modify(|v| *v = !*v);
+                nav.show_right_inspector.with_mut(|v| *v = !*v);
             },
             {render_icon_view(Icon::ClipboardList)}
         }

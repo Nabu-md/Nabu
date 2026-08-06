@@ -200,7 +200,9 @@ pub fn TabBar() -> Element {
             "role": "tablist",
             "aria-label": "Open notes",
         }
-        {tab_elements}
+        for vnode in tab_elements {
+            {vnode}
+        }
         // New-note button (trailing +).
         button {
             class: "tab-new px-3 text-gray-400 text-sm shrink-0",

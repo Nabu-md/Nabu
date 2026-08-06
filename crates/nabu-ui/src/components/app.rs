@@ -9,30 +9,19 @@
 //! actual view content is rendered by [`ViewContent`] which delegates to
 //! placeholder components for each view (migrated in later phases).
 
+use crate::components::contexts::{use_nav, NavContext, use_workspace};
 use crate::components::contexts::{
     HistoryProvider, NavProvider, SaveStatusProvider, ThemeProvider, WorkspaceProvider,
 };
 use crate::components::layout::WorkspaceLayout;
-use crate::components::navigation::{KeyboardShortcuts, ViewMode};
 use crate::components::navigation::{
-    ArchivePage, CalendarPage, CommandPalette, Dashboard, HomeScreen, QuickSwitcher,
-    SearchPage, ShortcutReference, SmartFoldersPage,
+    CommandPalette, QuickSwitcher, ShortcutReference, ViewMode,
+    ArchivePage, CalendarPage, Dashboard, HomeScreen, SearchPage, SmartFoldersPage,
 };
 use crate::components::ui::feedback::{TaskProvider, ToastProvider};
-use crate::components::ui::icons::{Icon, IconEl};
-use crate::components::contexts::{use_nav, NavContext, use_workspace};
+use crate::components::ui::icons::{render_icon, Icon};
 use dioxus::prelude::*;
-
-// ── Routes ──────────────────────────────────────────────────────
-
-/// Top-level routes. Phase 0 ships only the dashboard; view switching happens
-/// inside [`WorkspaceLayout`] via the `view_mode` signal.
-#[derive(Routable, Clone, PartialEq)]
-#[rustfmt::skip]
-pub enum AppRoute {
-    #[route("/")]
-    Dashboard {},
-}
+use wasm_bindgen_futures::spawn_local;
 
 // ── App shell ───────────────────────────────────────────────────
 
@@ -47,8 +36,10 @@ pub fn App() -> Element {
                     SaveStatusProvider {
                         WorkspaceProvider {
                             NavProvider {
-                                KeyboardShortcuts {}
-                                AppRouter {}
+                                CommandPalette {}
+                                QuickSwitcher {}
+                                ShortcutReference {}
+                                crate::components::app::AppRouter {}
                             }
                         }
                     }
@@ -70,11 +61,11 @@ enum VaultCheckState {
 }
 
 /// Checks vault state on mount and renders either a loading screen, a
-/// vault-setup prompt, or the routed dashboard.
+/// vault-setup prompt, or the `WorkspaceLayout`.
 #[component]
 pub fn AppRouter() -> Element {
     let mut vault_state = use_signal(|| VaultCheckState::Loading);
-    let mut vault_error = use_signal(String::new);
+    let mut vault_error = use_signal(|| String::new());
 
     use_effect(move || {
         spawn_local(async move {
@@ -84,7 +75,6 @@ pub fn AppRouter() -> Element {
                     match serde_wasm_bindgen::from_value::<Option<String>>(result) {
                         Ok(Some(path)) if !path.is_empty() => {
                             vault_state.set(VaultCheckState::MainDashboard);
-                            // Derive the vault display name for breadcrumbs / home.
                             let name = path
                                 .rsplit('/')
                                 .next()
@@ -114,51 +104,41 @@ pub fn AppRouter() -> Element {
 
     let state = *vault_state.read();
     match state {
-        VaultCheckState::Loading => {
-            rsx! {
-                div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100",
-                    div { class: "flex flex-col items-center gap-4",
-                        div { class: "w-6 h-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" }
-                        div { "Opening Nabu…" }
+        VaultCheckState::Loading => rsx! {
+            div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100",
+                div { class: "flex flex-col items-center gap-4",
+                    div { class: "w-6 h-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" }
+                    div { "Opening Nabu…" }
+                }
+            }
+        },
+        VaultCheckState::Error => rsx! {
+            div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-red-300",
+                div { "{vault_error.read()}" }
+            }
+        },
+        VaultCheckState::VaultSetup => rsx! {
+            div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100",
+                div { class: "flex flex-col items-center gap-4 max-w-md text-center",
+                    div {
+                        class: "flex h-8 w-8 items-center justify-center text-gray-400",
+                        {render_icon(Icon::Folder, Some("w-8 h-8 text-gray-400"))}
+                    },
+                    div { class: "text-xl font-semibold", "No vault configured" },
+                    div { class: "text-sm opacity-70",
+                        "Please create or select a vault to begin using Nabu."
+                    },
+                    button {
+                        class: "mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700",
+                        onclick: move |_| {},
+                        "Open Settings"
                     }
                 }
             }
-        }
-        VaultCheckState::Error => {
-            rsx! {
-                div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-red-300",
-                    div { "{vault_error.read()}" }
-                }
-            }
-        }
-        VaultCheckState::VaultSetup => {
-            rsx! {
-                div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100",
-                    div { class: "flex flex-col items-center gap-4 max-w-md text-center",
-                        IconEl {
-                            icon: Icon::Folder,
-                            class: "w-8 h-8 text-gray-400",
-                        }
-                        div { class: "text-xl font-semibold", "No vault configured" }
-                        div { class: "text-sm opacity-70",
-                            "Please create or select a vault to begin using Nabu."
-                        }
-                        button {
-                            class: "mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700",
-                            onclick: move |_| {
-                                // TODO: open settings → vault path picker
-                            },
-                            "Open Settings"
-                        }
-                    }
-                }
-            }
-        }
-        VaultCheckState::MainDashboard => {
-            rsx! {
-                WorkspaceLayout {}
-            }
-        }
+        },
+        VaultCheckState::MainDashboard => rsx! {
+            WorkspaceLayout {}
+        },
     }
 }
 
@@ -183,7 +163,7 @@ pub fn ViewContent() -> Element {
                 rsx! {
                     div { class: "max-w-4xl mx-auto h-full",
                         div { class: "text-sm text-gray-400",
-                            {IconEl { icon: Icon::FilePen, class: "w-4 h-4 inline mr-1" }}
+                            {render_icon(Icon::FilePen, Some("w-4 h-4 inline mr-1"))}
                             "Note editor placeholder — migrated in a later phase."
                         }
                     }
@@ -195,7 +175,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Graph => rsx! {
             div { class: "w-full h-full flex items-center justify-center",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Network, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Network, Some("w-4 h-4 inline mr-1"))}
                     "Graph view placeholder — migrated in a later phase."
                 }
             }
@@ -204,7 +184,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Settings => rsx! {
             div { class: "max-w-4xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Settings, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Settings, Some("w-4 h-4 inline mr-1"))}
                     "Settings placeholder — migrated in a later phase."
                 }
             }
@@ -212,7 +192,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Inbox => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Inbox, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Inbox, Some("w-4 h-4 inline mr-1"))}
                     "Inbox placeholder — migrated in a later phase."
                 }
             }
@@ -220,7 +200,7 @@ pub fn ViewContent() -> Element {
         ViewMode::ReadingQueue => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::BookOpen, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::BookOpen, Some("w-4 h-4 inline mr-1"))}
                     "Reading queue placeholder — migrated in a later phase."
                 }
             }
@@ -228,7 +208,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Templates => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::ClipboardList, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::ClipboardList, Some("w-4 h-4 inline mr-1"))}
                     "Templates placeholder — migrated in a later phase."
                 }
             }
@@ -236,7 +216,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Trash => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Trash2, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Trash2, Some("w-4 h-4 inline mr-1"))}
                     "Trash placeholder — migrated in a later phase."
                 }
             }
@@ -244,7 +224,7 @@ pub fn ViewContent() -> Element {
         ViewMode::History => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::History, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::History, Some("w-4 h-4 inline mr-1"))}
                     "Version history placeholder — migrated in a later phase."
                 }
             }
@@ -252,7 +232,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Recovery => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::LifeBuoy, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::LifeBuoy, Some("w-4 h-4 inline mr-1"))}
                     "Recovery manager placeholder — migrated in a later phase."
                 }
             }
@@ -263,7 +243,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Canvas => rsx! {
             div { class: "w-full h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Palette, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Palette, Some("w-4 h-4 inline mr-1"))}
                     "Canvas placeholder — migrated in a later phase."
                 }
             }
@@ -271,7 +251,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Reader => rsx! {
             div { class: "w-full h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::BookText, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::BookText, Some("w-4 h-4 inline mr-1"))}
                     "Reader mode placeholder — migrated in a later phase."
                 }
             }
@@ -279,7 +259,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Comparison => rsx! {
             div { class: "w-full h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::Comparison, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::Comparison, Some("w-4 h-4 inline mr-1"))}
                     "Comparison view placeholder — migrated in a later phase."
                 }
             }
@@ -287,7 +267,7 @@ pub fn ViewContent() -> Element {
         ViewMode::Statistics => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 div { class: "text-sm text-gray-400",
-                    {IconEl { icon: Icon::TrendingUp, class: "w-4 h-4 inline mr-1" }}
+                    {render_icon(Icon::TrendingUp, Some("w-4 h-4 inline mr-1"))}
                     "Statistics placeholder — migrated in a later phase."
                 }
             }

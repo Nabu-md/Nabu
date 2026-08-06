@@ -63,7 +63,7 @@ pub fn HistoryProvider(children: Element) -> Element {
     provide_context(history);
 
     // One-time mount effects (signal-guarded so re-renders don't re-fire).
-    let initialized = use_signal(|| false);
+    let mut initialized = use_signal(|| false);
     if !*initialized.read() {
         initialized.set(true);
         crate::history::refresh_history_state(history);
@@ -76,7 +76,6 @@ pub fn HistoryProvider(children: Element) -> Element {
 /// Retrieves the history context.
 pub fn use_history() -> crate::history::HistoryContext {
     use_context::<crate::history::HistoryContext>()
-        .expect("HistoryContext not provided — ensure HistoryProvider wraps the tree")
 }
 
 // ── Save Status ──────────────────────────────────────────────────
@@ -200,9 +199,9 @@ pub fn title_from_path(path: &str) -> String {
 }
 
 /// Opens a note in a tab: adds the tab if missing and makes it active.
-pub fn open_tab(ctx: WorkspaceContext, path: &str) {
+pub fn open_tab(mut ctx: WorkspaceContext, path: &str) {
     let title = title_from_path(path);
-    ctx.tabs.modify(|tabs| {
+    ctx.tabs.with_mut(|tabs| {
         if !tabs.iter().any(|t| t.path == path) {
             tabs.push(OpenTab {
                 path: path.to_string(),
@@ -215,12 +214,12 @@ pub fn open_tab(ctx: WorkspaceContext, path: &str) {
 }
 
 /// Makes an already-open tab active without adding it again.
-pub fn activate_tab(ctx: WorkspaceContext, path: &str) {
+pub fn activate_tab(mut ctx: WorkspaceContext, path: &str) {
     ctx.active_path.set(Some(path.to_string()));
 }
 
 /// Closes a tab. When the active tab closes, activates the neighbouring tab.
-pub fn close_tab(ctx: WorkspaceContext, path: &str) {
+pub fn close_tab(mut ctx: WorkspaceContext, path: &str) {
     let was_active = ctx.active_path.read().as_deref() == Some(path);
     let (remaining, closed_index) = {
         let tabs = ctx.tabs.read();
@@ -246,24 +245,24 @@ pub fn close_tab(ctx: WorkspaceContext, path: &str) {
 }
 
 /// Closes every tab except `keep` (and pinned tabs).
-pub fn close_others(ctx: WorkspaceContext, keep: &str) {
-    ctx.tabs.modify(|tabs| {
+pub fn close_others(mut ctx: WorkspaceContext, keep: &str) {
+    ctx.tabs.with_mut(|tabs| {
         tabs.retain(|t| t.path == keep || t.pinned);
     });
     ctx.active_path.set(Some(keep.to_string()));
 }
 
 /// Closes all unpinned tabs.
-pub fn close_all(ctx: WorkspaceContext) {
-    ctx.tabs.modify(|tabs| {
+pub fn close_all(mut ctx: WorkspaceContext) {
+    ctx.tabs.with_mut(|tabs| {
         tabs.retain(|t| t.pinned);
     });
     ctx.active_path.set(None);
 }
 
 /// Toggles the pinned flag on a tab.
-pub fn pin_tab(ctx: WorkspaceContext, path: &str) {
-    ctx.tabs.modify(|tabs| {
+pub fn pin_tab(mut ctx: WorkspaceContext, path: &str) {
+    ctx.tabs.with_mut(|tabs| {
         if let Some(tab) = tabs.iter_mut().find(|t| t.path == path) {
             tab.pinned = !tab.pinned;
         }
@@ -271,11 +270,11 @@ pub fn pin_tab(ctx: WorkspaceContext, path: &str) {
 }
 
 /// Moves a tab from one index to another (drag-reorder).
-pub fn reorder_tab(ctx: WorkspaceContext, from: usize, to: usize) {
+pub fn reorder_tab(mut ctx: WorkspaceContext, from: usize, to: usize) {
     if from == to {
         return;
     }
-    ctx.tabs.modify(|tabs| {
+    ctx.tabs.with_mut(|tabs| {
         if from >= tabs.len() || to >= tabs.len() {
             return;
         }
@@ -288,7 +287,7 @@ pub fn reorder_tab(ctx: WorkspaceContext, from: usize, to: usize) {
 /// itself, or any descendant) to the corresponding path under `new_prefix`.
 /// Used when a folder is renamed or moved so tabs keep tracking the notes
 /// inside it.
-pub fn rename_tab_prefix(ctx: WorkspaceContext, old_prefix: &str, new_prefix: &str) {
+pub fn rename_tab_prefix(mut ctx: WorkspaceContext, old_prefix: &str, new_prefix: &str) {
     if old_prefix.is_empty() {
         return;
     }
@@ -298,7 +297,7 @@ pub fn rename_tab_prefix(ctx: WorkspaceContext, old_prefix: &str, new_prefix: &s
     } else {
         format!("{new_prefix}/")
     };
-    ctx.tabs.modify(|tabs| {
+    ctx.tabs.with_mut(|tabs| {
         for tab in tabs.iter_mut() {
             if tab.path == old_prefix {
                 tab.path = new_prefix.to_string();
@@ -325,8 +324,8 @@ pub fn rename_tab_prefix(ctx: WorkspaceContext, old_prefix: &str, new_prefix: &s
 
 /// Requests the file tree to reload (after create / rename / delete / move /
 /// duplicate). The tree watches this counter.
-pub fn refresh_tree(ctx: WorkspaceContext) {
-    ctx.refresh_tree.modify(|v| *v = v.wrapping_add(1));
+pub fn refresh_tree(mut ctx: WorkspaceContext) {
+    ctx.refresh_tree.with_mut(|v| *v = v.wrapping_add(1));
 }
 
 /// Marks `path`'s on-disk content as changed outside the editor (e.g. a
@@ -334,9 +333,9 @@ pub fn refresh_tree(ctx: WorkspaceContext) {
 /// editor watches [`WorkspaceContext::content_version`] and re-reads the file
 /// so its buffer matches disk instead of overwriting the newer content on the
 /// next autosave. The path is carried so only the affected note reloads.
-pub fn bump_content_version(ctx: WorkspaceContext, path: &str) {
+pub fn bump_content_version(mut ctx: WorkspaceContext, path: &str) {
     let path = path.to_string();
-    ctx.content_version.modify(|(p, v)| {
+    ctx.content_version.with_mut(|(p, v)| {
         *p = path;
         *v = v.wrapping_add(1);
     });

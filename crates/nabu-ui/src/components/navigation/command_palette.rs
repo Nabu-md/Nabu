@@ -12,7 +12,7 @@
 //! Opening the palette from elsewhere should call `nav.palette_open.set(true)`
 //! — the overlay is rendered once at the app root and reacts to that signal.
 
-use crate::components::contexts::{use_nav, WorkspaceContext, use_workspace};
+use crate::components::contexts::{use_nav, use_workspace, NavContext, WorkspaceContext};
 use crate::components::navigation::commands::{all_commands, AppCommand, CommandContext};
 use crate::components::navigation::state::{
     fuzzy_score, record_recent_command, toggle_favourite_command, NoteIndexEntry,
@@ -39,7 +39,7 @@ fn build_rows(
     let q = query.trim();
     if q.is_empty() {
         let mut rows = Vec::new();
-        let mut seen = std::collections::HashSet::new();
+        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
 
         let recents: Vec<AppCommand> =
             crate::components::navigation::commands::resolve_commands_by_id(catalog, recent_ids);
@@ -54,7 +54,7 @@ fn build_rows(
         let favs: Vec<AppCommand> =
             crate::components::navigation::commands::resolve_commands_by_id(catalog, fav_ids)
                 .into_iter()
-                .filter(|c| !seen.contains(c.id))
+                .filter(|c| !seen.contains(*c.id))
                 .collect();
         if !favs.is_empty() {
             rows.push(Row::Header("Favourites".to_string()));
@@ -67,7 +67,7 @@ fn build_rows(
         // Remaining commands grouped by category.
         let mut groups: Vec<(&str, Vec<AppCommand>)> = Vec::new();
         for cmd in catalog {
-            if seen.contains(cmd.id) {
+            if seen.contains(*cmd.id) {
                 continue;
             }
             match groups.iter_mut().find(|(cat, _)| *cat == cmd.category) {
@@ -139,81 +139,13 @@ fn indexed_rows(rows: &[Row]) -> Vec<(Row, Option<usize>)> {
         .collect()
 }
 
-/// Builds the palette row VNodes (kept outside rsx! to avoid `let` in loops).
-fn build_palette_rows(
-    indexed: &[(Row, Option<usize>)],
-    active: Signal<usize>,
-    nav: NavContext,
-    query: Signal<String>,
-) -> Vec<VNode> {
-    indexed
-        .iter()
-        .map(|(row, cmd_idx_opt)| match row {
-            Row::Header(cat) => rsx! {
-                div { class: "palette-category", "{cat}" }
-            },
-            Row::Command(cmd) => {
-                let this_idx = cmd_idx_opt.expect("command row always has index");
-                let cmd_id = *cmd.id;
-                let cmd_icon = cmd.icon;
-                let cmd_label = cmd.label;
-                let cmd_desc = cmd.description;
-                let cmd_shortcut = cmd.shortcut;
-                let is_fav = nav
-                    .favourite_commands
-                    .read()
-                    .iter()
-                    .any(|c| *c == cmd_id);
-                let cmd_for_run = cmd.clone();
-                let is_active = this_idx == *active.read();
-                rsx! {
-                    button {
-                        r#type: "button",
-                        role: "option",
-                        "aria-selected": "{is_active}",
-                        class: if is_active { "palette-item palette-item-active" } else { "palette-item" },
-                        onmouseover: move |_| {
-                            active.set(this_idx);
-                        },
-                        onclick: move |_| {
-                            record_recent_command(nav, cmd_id);
-                            nav.palette_open.set(false);
-                            query.set(String::new());
-                            cmd_for_run.run.call(());
-                        },
-                        span { class: "palette-item-icon", "aria-hidden": "true", {render_icon_view(cmd_icon)} }
-                        span { class: "palette-item-body" }
-                        span { class: "palette-item-label", "{cmd_label}" }
-                        span { class: "palette-item-desc", "{cmd_desc}" }
-                        if let Some(s) = cmd_shortcut {
-                            kbd { class: "palette-shortcut", "{s}" }
-                        }
-                        span {
-                            class: "palette-star",
-                            title: if is_fav { "Remove from favourites" } else { "Add to favourites" },
-                            onclick: move |_| {
-                                toggle_favourite_command(nav, cmd_id);
-                            },
-                            if is_fav {
-                                {render_icon_view(Icon::Star)}
-                            } else {
-                                {render_icon_view(Icon::StarHalf)}
-                            }
-                        }
-                    }
-                }
-            }
-        })
-        .collect()
-}
-
 /// The Command Palette overlay. Rendered once at the app root.
 #[component]
 pub fn CommandPalette() -> Element {
-    let nav = use_nav();
+    let mut nav = use_nav();
     let open = nav.palette_open;
-    let query = use_signal(|| String::new());
-    let active = use_signal(|| 0usize);
+    let mut query = use_signal(|| String::new());
+    let mut active = use_signal(|| 0usize);
 
     // Build the catalog at render time (captures nav/workspace/toasts by value).
     let toasts = use_toast();
@@ -255,8 +187,7 @@ pub fn CommandPalette() -> Element {
 
     let nav_ref = nav;
 
-    // Compute rows inline (cannot use use_memo — Row wraps Callback which is
-    // not PartialEq).
+    // Compute rows inline.
     let rows = if *open.read() {
         build_rows(
             &catalog,
@@ -291,8 +222,6 @@ pub fn CommandPalette() -> Element {
                     "aria-modal": "true",
                     "aria-label": "Command palette",
                     onclick: |ev: MouseEvent| ev.stop_propagation(),
-                    div { class: "palette-search-wrap" }
-                    span { class: "palette-search-icon", "aria-hidden": "true", {render_icon_view(Icon::Command)} }
                     input {
                         id: "command-palette-input",
                         class: "palette-input",
@@ -353,8 +282,9 @@ pub fn CommandPalette() -> Element {
                         } else {
                             "No commands match"
                         }
-                    } else {
-                        {palette_rows}
+                    }
+                    for vnode in palette_rows {
+                        {vnode}
                     }
                     div { class: "palette-footer" }
                     span { "↑↓ navigate" }
@@ -366,4 +296,73 @@ pub fn CommandPalette() -> Element {
             }
         }
     }
+}
+
+/// Builds palette row VNodes. Kept as a free function (outside rsx!) to avoid
+/// `let` inside rsx! loops.
+fn build_palette_rows(
+    indexed: &[(Row, Option<usize>)],
+    mut active: Signal<usize>,
+    mut nav: NavContext,
+    mut query: Signal<String>,
+) -> Vec<VNode> {
+    indexed
+        .iter()
+        .map(|(row, cmd_idx_opt)| match row {
+            Row::Header(cat) => rsx! {
+                div { class: "palette-category", "{cat}" }
+            },
+            Row::Command(cmd) => {
+                let this_idx = cmd_idx_opt.copied().unwrap_or(0);
+                let cmd_id = cmd.id;
+                let cmd_icon = cmd.icon;
+                let cmd_label = cmd.label;
+                let cmd_desc = cmd.description;
+                let cmd_shortcut = cmd.shortcut;
+                let is_fav = nav
+                    .favourite_commands
+                    .read()
+                    .iter()
+                    .any(|c| *c == cmd_id);
+                let cmd_for_run = cmd.clone();
+                let is_active = this_idx == *active.read();
+                rsx! {
+                    button {
+                        r#type: "button",
+                        role: "option",
+                        "aria-selected": "{is_active}",
+                        class: if is_active { "palette-item palette-item-active" } else { "palette-item" },
+                        onmouseover: move |_| {
+                            active.set(this_idx);
+                        },
+                        onclick: move |_| {
+                            record_recent_command(nav, cmd_id);
+                            nav.palette_open.set(false);
+                            query.set(String::new());
+                            cmd_for_run.run.call(());
+                        },
+                        span { class: "palette-item-icon", "aria-hidden": "true", {render_icon_view(cmd_icon)} }
+                        span { class: "palette-item-body" }
+                        span { class: "palette-item-label", "{cmd_label}" }
+                        span { class: "palette-item-desc", "{cmd_desc}" }
+                        if let Some(s) = cmd_shortcut {
+                            kbd { class: "palette-shortcut", "{s}" }
+                        }
+                        span {
+                            class: "palette-star",
+                            title: if is_fav { "Remove from favourites" } else { "Add to favourites" },
+                            onclick: move |_| {
+                                toggle_favourite_command(nav, cmd_id);
+                            },
+                            if is_fav {
+                                {render_icon_view(Icon::Star)}
+                            } else {
+                                {render_icon_view(Icon::StarHalf)}
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        .collect()
 }

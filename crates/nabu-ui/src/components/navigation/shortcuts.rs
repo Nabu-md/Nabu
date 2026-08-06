@@ -9,15 +9,13 @@
 //! native editing behaviour is preserved (the editor's own keydown handlers
 //! own Cmd+B/I etc.).
 
+use crate::components::contexts::{open_tab, activate_tab, WorkspaceContext, use_workspace};
+use crate::components::navigation::commands::{create_new_note, open_daily_note};
 use crate::components::navigation::state::{use_nav, ViewMode};
 use crate::components::ui::feedback::{set_timeout, use_toast, ToastContext};
 use crate::components::ui::icons::{render_icon_view, Icon};
-use crate::components::contexts::{open_tab, activate_tab, WorkspaceContext, use_workspace};
-use crate::components::navigation::commands::{create_new_note, open_daily_note};
-use crate::components::navigation::state::{use_nav as nav_ctx};
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::JsCast;
-use wasm_bindgen::JsCast as _;
 
 // ── Shortcut catalog ──────────────────────────────────────────────
 
@@ -36,119 +34,31 @@ pub struct Shortcut {
 /// dialog. Global bindings are handled in [`install_global_shortcuts`].
 pub const SHORTCUTS: &[Shortcut] = &[
     // ── Command palette / navigation ──────────────────────────────
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘K",
-        description: "Open the command palette",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘P",
-        description: "Open the quick switcher",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧F",
-        description: "Open full-text search",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘1",
-        description: "Go to Dashboard",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘2",
-        description: "Go to Editor",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘3",
-        description: "Go to Graph",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘,",
-        description: "Open Settings",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧C",
-        description: "Open Canvas",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧1",
-        description: "Open Reader Mode",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧M",
-        description: "Open Comparison View",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧S",
-        description: "Open Statistics",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "⌘⇧?",
-        description: "Open shortcuts reference",
-    },
-    Shortcut {
-        category: "Navigation",
-        keys: "Esc",
-        description: "Close any overlay / palette",
-    },
+    Shortcut { category: "Navigation", keys: "⌘K", description: "Open the command palette" },
+    Shortcut { category: "Navigation", keys: "⌘P", description: "Open the quick switcher" },
+    Shortcut { category: "Navigation", keys: "⌘⇧F", description: "Open full-text search" },
+    Shortcut { category: "Navigation", keys: "⌘1", description: "Go to Dashboard" },
+    Shortcut { category: "Navigation", keys: "⌘2", description: "Go to Editor" },
+    Shortcut { category: "Navigation", keys: "⌘3", description: "Go to Graph" },
+    Shortcut { category: "Navigation", keys: "⌘,", description: "Open Settings" },
+    Shortcut { category: "Navigation", keys: "⌘⇧C", description: "Open Canvas" },
+    Shortcut { category: "Navigation", keys: "⌘⇧1", description: "Open Reader Mode" },
+    Shortcut { category: "Navigation", keys: "⌘⇧M", description: "Open Comparison View" },
+    Shortcut { category: "Navigation", keys: "⌘⇧S", description: "Open Statistics" },
+    Shortcut { category: "Navigation", keys: "⌘⇧?", description: "Open shortcuts reference" },
+    Shortcut { category: "Navigation", keys: "Esc", description: "Close any overlay / palette" },
     // ── Note management ───────────────────────────────────────────
-    Shortcut {
-        category: "Notes",
-        keys: "⌘N",
-        description: "Create a new note",
-    },
-    Shortcut {
-        category: "Notes",
-        keys: "⌘⇧D",
-        description: "Open the daily note",
-    },
+    Shortcut { category: "Notes", keys: "⌘N", description: "Create a new note" },
+    Shortcut { category: "Notes", keys: "⌘⇧D", description: "Open the daily note" },
     // ── Workspace / panels ────────────────────────────────────────
-    Shortcut {
-        category: "Workspace",
-        keys: "⌘\\",
-        description: "Toggle the left sidebar",
-    },
-    Shortcut {
-        category: "Workspace",
-        keys: "⌘⇧\\",
-        description: "Toggle the right inspector",
-    },
-    Shortcut {
-        category: "Workspace",
-        keys: "⌘Z",
-        description: "Undo",
-    },
-    Shortcut {
-        category: "Workspace",
-        keys: "⌘⇧Z / Ctrl+Y",
-        description: "Redo",
-    },
+    Shortcut { category: "Workspace", keys: "⌘\\", description: "Toggle the left sidebar" },
+    Shortcut { category: "Workspace", keys: "⌘⇧\\", description: "Toggle the right inspector" },
+    Shortcut { category: "Workspace", keys: "⌘Z", description: "Undo" },
+    Shortcut { category: "Workspace", keys: "⌘⇧Z / Ctrl+Y", description: "Redo" },
     // ── Editor ────────────────────────────────────────────────────
-    Shortcut {
-        category: "Editor",
-        keys: "⌘B",
-        description: "Bold selection (markdown ** **)",
-    },
-    Shortcut {
-        category: "Editor",
-        keys: "⌘I",
-        description: "Italic selection (markdown * *)",
-    },
-    Shortcut {
-        category: "Editor",
-        keys: "/",
-        description: "Open the slash (block) menu",
-    },
+    Shortcut { category: "Editor", keys: "⌘B", description: "Bold selection (markdown ** **)" },
+    Shortcut { category: "Editor", keys: "⌘I", description: "Italic selection (markdown * *)" },
+    Shortcut { category: "Editor", keys: "/", description: "Open the slash (block) menu" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -156,15 +66,9 @@ pub const SHORTCUTS: &[Shortcut] = &[
 /// Returns `true` when keyboard focus is inside an editable element so
 /// global shortcuts never hijack typing.
 fn focus_is_editable() -> bool {
-    let Some(window) = web_sys::window() else {
-        return false;
-    };
-    let Some(document) = window.document() else {
-        return false;
-    };
-    let Some(active) = document.active_element() else {
-        return false;
-    };
+    let Some(window) = web_sys::window() else { return false };
+    let Some(document) = window.document() else { return false };
+    let Some(active) = document.active_element() else { return false };
     let tag = active.tag_name().to_ascii_lowercase();
     if tag == "textarea" || tag == "input" || tag == "select" {
         return true;
@@ -176,14 +80,10 @@ fn focus_is_editable() -> bool {
 
 // ── Global listener installation ──────────────────────────────────
 
-/// Installs the global keyboard shortcuts for the app shell. Call inside a
-/// component render (so the contexts exist) and remove the returned handle on
-/// cleanup.
-///
-/// This handler is installed exactly once for the lifetime of the app window
-/// (guarded by a static `AtomicBool`).
+/// Installs the global keyboard shortcuts for the app shell. Called once;
+/// a static guard prevents double-registration.
 pub fn install_global_shortcuts(
-    nav: crate::components::contexts::NavContext,
+    mut nav: crate::components::contexts::NavContext,
     workspace: WorkspaceContext,
     toasts: ToastContext,
 ) {
@@ -193,9 +93,7 @@ pub fn install_global_shortcuts(
         return;
     }
 
-    let Some(window) = web_sys::window() else {
-        return;
-    };
+    let Some(window) = web_sys::window() else { return };
 
     let handler = Closure::<dyn Fn(web_sys::KeyboardEvent)>::wrap(Box::new(
         move |ev: web_sys::KeyboardEvent| {
@@ -203,10 +101,8 @@ pub fn install_global_shortcuts(
             let shift = ev.shift_key();
             let key = ev.key();
 
-            // Palette-style overlays own their own keys while open.
-            if *nav.palette_open.read() || *nav.switcher_open.read() || *nav.shortcuts_open.read()
-            {
-                // ⌘K / ⌘P still toggle (open/close) from anywhere.
+            // Overlay-open: only palette/quick-switcher toggles still apply.
+            if *nav.palette_open.read() || *nav.switcher_open.read() || *nav.shortcuts_open.read() {
                 if meta && !shift && key.eq_ignore_ascii_case("k") {
                     ev.prevent_default();
                     nav.palette_open.set(!*nav.palette_open.read());
@@ -248,7 +144,6 @@ pub fn install_global_shortcuts(
                 nav.switcher_open.set(true);
             } else if meta && !shift && key.eq_ignore_ascii_case("n") {
                 ev.prevent_default();
-                // ⌘N creates a note — reuse the shared helper.
                 let cmd = create_new_note(workspace, toasts);
                 cmd.call(());
             } else if meta && shift && key.eq_ignore_ascii_case("d") {
@@ -257,15 +152,14 @@ pub fn install_global_shortcuts(
                 cmd.call(());
             } else if meta && !shift && key == "\\" {
                 ev.prevent_default();
-                nav.show_left_sidebar.modify(|v| *v = !*v);
+                nav.show_left_sidebar.with_mut(|v| *v = !*v);
             } else if meta && shift && key == "\\" {
                 ev.prevent_default();
-                nav.show_right_inspector.modify(|v| *v = !*v);
+                nav.show_right_inspector.with_mut(|v| *v = !*v);
             } else if meta && !shift && key == "," {
                 ev.prevent_default();
                 nav.view_mode.set(ViewMode::Settings);
             } else if meta && !shift {
-                // ⌘1..9 → views (1=dashboard, 2=editor, 3=graph, 9=settings)
                 let mode = match key.as_str() {
                     "1" => Some(ViewMode::Dashboard),
                     "2" => Some(ViewMode::Editor),
@@ -293,8 +187,10 @@ pub fn install_global_shortcuts(
         },
     ));
 
-    let _ = window.add_event_listener_with_callback("keydown", handler.as_ref().unchecked_ref());
-    // Leak the handler so it lives for the lifetime of the app window.
+    let _ = window.add_event_listener_with_callback(
+        "keydown",
+        handler.as_ref().unchecked_ref(),
+    );
     std::mem::forget(handler);
 }
 
@@ -307,7 +203,7 @@ pub fn KeyboardShortcuts() -> Element {
     let toasts = use_toast();
 
     // One-time mount effect — signal-guarded so re-renders don't re-install.
-    let installed = use_signal(|| false);
+    let mut installed = use_signal(|| false);
     if !*installed.read() {
         installed.set(true);
         install_global_shortcuts(nav, workspace, toasts);
@@ -321,16 +217,14 @@ pub fn KeyboardShortcuts() -> Element {
 /// The searchable shortcuts reference dialog. Rendered once at the app root.
 #[component]
 pub fn ShortcutReference() -> Element {
-    let nav = use_nav();
+    let mut nav = use_nav();
     let open = nav.shortcuts_open;
-    let query = use_signal(|| String::new());
+    let mut query = use_signal(|| String::new());
 
     // Focus the input + reset state whenever the dialog opens.
-    let initialized = use_signal(|| false);
     use_effect(move || {
         if *open.read() {
             query.set(String::new());
-            // Focus the input after a short delay (element is rendered by then).
             let open_signal = open;
             set_timeout(move || {
                 if *open_signal.read() {
@@ -348,14 +242,12 @@ pub fn ShortcutReference() -> Element {
                 }
             }, 10);
         }
-        // Suppress unused warning on initialized (kept for future use).
-        let _ = &initialized;
     });
 
     // Group shortcuts by category, filtered by the query.
-    let groups: Vec<(&'static str, Vec<&'static Shortcut>)> = {
+    let groups: Vec<(Vec<&'static Shortcut>, &'static str)> = {
         let q = query.read().trim().to_lowercase();
-        let mut groups: Vec<(&'static str, Vec<&'static Shortcut>)> = Vec::new();
+        let mut buckets: Vec<(&'static str, Vec<&'static Shortcut>)> = Vec::new();
         for shortcut in SHORTCUTS {
             if !q.is_empty()
                 && !shortcut.keys.to_lowercase().contains(&q)
@@ -364,15 +256,15 @@ pub fn ShortcutReference() -> Element {
             {
                 continue;
             }
-            match groups.iter_mut().find(|(cat, _)| *cat == shortcut.category) {
+            match buckets.iter_mut().find(|(cat, _)| *cat == shortcut.category) {
                 Some((_, list)) => list.push(shortcut),
-                None => groups.push((shortcut.category, vec![shortcut])),
+                None => buckets.push((shortcut.category, vec![shortcut])),
             }
         }
-        groups
+        buckets.into_iter().map(|(cat, items)| (items, cat)).collect()
     };
 
-    let close = move |_| {
+    let close_handler = move |_| {
         nav.palette_open.set(false);
         nav.switcher_open.set(false);
         nav.shortcuts_open.set(false);
@@ -382,7 +274,7 @@ pub fn ShortcutReference() -> Element {
         if *open.read() {
             div {
                 class: "dialog-overlay",
-                onclick: move |_| close(()),
+                onclick: move |_| close_handler(()),
                 div {
                     class: "shortcut-dialog panel",
                     role: "dialog",
@@ -391,7 +283,7 @@ pub fn ShortcutReference() -> Element {
                     onclick: |ev: MouseEvent| ev.stop_propagation(),
                     onkeydown: move |ev: KeyboardEvent| {
                         if ev.key() == Key::Escape {
-                            close(());
+                            close_handler(());
                         }
                     },
                     div { class: "shortcut-dialog-header" }
@@ -402,7 +294,7 @@ pub fn ShortcutReference() -> Element {
                         r#type: "button",
                         class: "dialog-close",
                         "aria-label": "Close",
-                        onclick: move |_| close(()),
+                        onclick: move |_| close_handler(()),
                         {render_icon_view(Icon::X)}
                     }
                     div { class: "shortcut-dialog-search" }
@@ -417,7 +309,7 @@ pub fn ShortcutReference() -> Element {
                         },
                         onkeydown: move |ev: KeyboardEvent| {
                             if ev.key() == Key::Escape {
-                                close(());
+                                close_handler(());
                             }
                         },
                     }
@@ -425,7 +317,7 @@ pub fn ShortcutReference() -> Element {
                     if groups.is_empty() {
                         div { class: "palette-empty", "No shortcuts match" }
                     } else {
-                        for (category, list) in groups {
+                        for (list, category) in groups {
                             div { class: "shortcut-group" }
                             div { class: "palette-category", "{category}" }
                             for shortcut in list {

@@ -20,7 +20,7 @@ use dioxus::prelude::*;
 /// Rendered once the vault is configured (inside [`crate::components::app::AppRouter`]).
 #[component]
 pub fn WorkspaceLayout() -> Element {
-    let nav: NavContext = use_nav();
+    let mut nav: NavContext = use_nav();
 
     rsx! {
         div {

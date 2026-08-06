@@ -38,7 +38,7 @@ fn build_rows(
     let q = query.trim();
     if q.is_empty() {
         let mut rows = Vec::new();
-        let mut seen = std::collections::HashSet::new();
+        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
         let recent_notes: Vec<NoteIndexEntry> = recent
             .iter()
             .filter_map(|p| notes.iter().find(|n| n.path == *p).cloned())
@@ -46,7 +46,7 @@ fn build_rows(
         if !recent_notes.is_empty() {
             rows.push(Row::Header("Recent".to_string()));
             for note in recent_notes {
-                seen.insert(note.path.clone());
+                seen.insert(&note.path);
                 rows.push(Row::Note(note));
             }
         }
@@ -57,13 +57,13 @@ fn build_rows(
         if !pinned_notes.is_empty() {
             rows.push(Row::Header("Pinned".to_string()));
             for note in pinned_notes {
-                seen.insert(note.path.clone());
+                seen.insert(&note.path);
                 rows.push(Row::Note(note));
             }
         }
         let rest: Vec<NoteIndexEntry> = notes
             .iter()
-            .filter(|n| !seen.contains(&n.path))
+            .filter(|n| !seen.contains(&*n.path))
             .cloned()
             .collect();
         let mut rest = rest;
@@ -123,11 +123,7 @@ fn folder_of(note: &NoteIndexEntry) -> &str {
 }
 
 /// Opens a note in the workspace, records it as recent and closes the overlay.
-fn open_note(
-    nav: NavContext,
-    ws: WorkspaceContext,
-    path: String,
-) {
+fn open_note(mut nav: NavContext, ws: WorkspaceContext, path: String) {
     open_tab(ws, &path);
     record_recent_note(nav, &path);
     nav.switcher_open.set(false);
@@ -149,12 +145,13 @@ fn indexed_rows(rows: &[Row]) -> Vec<(Row, Option<usize>)> {
         .collect()
 }
 
-/// Builds the switcher row VNodes (kept outside rsx! to avoid `let` in loops).
+/// Builds switcher row VNodes. Kept as a free function (outside rsx!) to avoid
+/// `let` inside rsx! loops.
 fn build_switcher_rows(
     indexed: &[(Row, Option<usize>)],
-    active: Signal<usize>,
-    nav: NavContext,
-    workspace: WorkspaceContext,
+    mut active: Signal<usize>,
+    mut nav: NavContext,
+    mut workspace: WorkspaceContext,
 ) -> Vec<VNode> {
     indexed
         .iter()
@@ -163,7 +160,7 @@ fn build_switcher_rows(
                 div { class: "palette-category", "{cat}" }
             },
             Row::Note(note) => {
-                let this_idx = note_idx_opt.expect("note row always has index");
+                let this_idx = note_idx_opt.copied().unwrap_or(0);
                 let title = note.title.clone();
                 let folder = folder_of(note).to_string();
                 let path = note.path.clone();
@@ -196,11 +193,11 @@ fn build_switcher_rows(
 /// The Quick Switcher overlay. Rendered once at the app root.
 #[component]
 pub fn QuickSwitcher() -> Element {
-    let nav = use_nav();
+    let mut nav = use_nav();
     let open = nav.switcher_open;
     let workspace = use_workspace();
-    let query = use_signal(|| String::new());
-    let active = use_signal(|| 0usize);
+    let mut query = use_signal(|| String::new());
+    let mut active = use_signal(|| 0usize);
 
     // Focus the input + reset state whenever the switcher opens.
     use_effect(move || {
@@ -212,11 +209,9 @@ pub fn QuickSwitcher() -> Element {
                     if *open.read() {
                         if let Some(window) = web_sys::window() {
                             if let Some(document) = window.document() {
-                                if let Some(input) =
-                                    document.get_element_by_id("quick-switcher-input")
-                                {
-                                    if let Some(input) = input
-                                        .dyn_ref::<web_sys::HtmlInputElement>()
+                                if let Some(input) = document.get_element_by_id("quick-switcher-input") {
+                                    if let Some(input) =
+                                        input.dyn_ref::<web_sys::HtmlInputElement>()
                                     {
                                         let _ = input.focus();
                                     }
@@ -282,8 +277,6 @@ pub fn QuickSwitcher() -> Element {
                     "aria-modal": "true",
                     "aria-label": "Quick switcher",
                     onclick: |ev: MouseEvent| ev.stop_propagation(),
-                    div { class: "palette-search-wrap" }
-                    span { class: "palette-search-icon", "aria-hidden": "true", {render_icon_view(Icon::Zap)} }
                     input {
                         id: "quick-switcher-input",
                         class: "palette-input",
@@ -341,8 +334,9 @@ pub fn QuickSwitcher() -> Element {
                         } else {
                             "No notes match"
                         }
-                    } else {
-                        {switcher_rows}
+                    }
+                    for vnode in switcher_rows {
+                        {vnode}
                     }
                     div { class: "palette-footer" }
                     span { "↑↓ navigate" }

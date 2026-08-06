@@ -60,13 +60,13 @@ impl HistoryContext {
 
 /// Retrieves the history context (call inside a [`HistoryProvider`] subtree).
 pub fn use_history() -> HistoryContext {
-    use_context::<HistoryContext>().expect("HistoryContext not provided")
+    use_context::<HistoryContext>()
 }
 
 /// Fetches `can_undo` / `can_redo` from the backend and updates the signals.
 ///
 /// `history` is passed by value so this is safe to call from async tasks.
-pub fn refresh_history_state(history: HistoryContext) {
+pub fn refresh_history_state(mut history: HistoryContext) {
     spawn_local(async move {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("history_status", empty_args).await;

@@ -308,7 +308,7 @@ fn settings_persist(key: &str, value: serde_json::Value) {
 
 /// Loads every persisted discovery list into the context (call once after
 /// [`NavProvider`] creates the context).
-pub fn load_all_nav_state(nav: NavContext) {
+pub fn load_all_nav_state(mut nav: NavContext) {
     spawn_local(async move {
         let recent = load_string_list(K_RECENT_NOTES).await;
         nav.recent_notes.set(recent);
@@ -355,16 +355,16 @@ fn push_unique(list: &mut Vec<String>, item: &str, cap: usize) {
 }
 
 /// Records a note as recently opened (deduped, capped at 20).
-pub fn record_recent_note(nav: NavContext, path: &str) {
-    nav.recent_notes.modify(|l| push_unique(l, path, 20));
+pub fn record_recent_note(mut nav: NavContext, path: &str) {
+    nav.recent_notes.with_mut(|l| push_unique(l, path, 20));
     let snapshot = nav.recent_notes.read().clone();
     settings_persist(K_RECENT_NOTES, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Toggles a note in the favourites list.
-pub fn toggle_favourite(nav: NavContext, path: &str) {
+pub fn toggle_favourite(mut nav: NavContext, path: &str) {
     let has = nav.favourites.read().iter().any(|p| p == path);
-    nav.favourites.modify(|l| {
+    nav.favourites.with_mut(|l| {
         if has {
             l.retain(|p| p != path);
         } else {
@@ -376,17 +376,17 @@ pub fn toggle_favourite(nav: NavContext, path: &str) {
 }
 
 /// Records a search string in the recent-searches list.
-pub fn record_recent_search(nav: NavContext, query: &str) {
+pub fn record_recent_search(mut nav: NavContext, query: &str) {
     if query.trim().is_empty() {
         return;
     }
-    nav.recent_searches.modify(|l| push_unique(l, query, 10));
+    nav.recent_searches.with_mut(|l| push_unique(l, query, 10));
     let snapshot = nav.recent_searches.read().clone();
     settings_persist(K_RECENT_SEARCHES, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Clears the recent-searches history.
-pub fn clear_recent_searches(nav: NavContext) {
+pub fn clear_recent_searches(mut nav: NavContext) {
     nav.recent_searches.set(Vec::new());
     settings_persist(
         K_RECENT_SEARCHES,
@@ -395,7 +395,7 @@ pub fn clear_recent_searches(nav: NavContext) {
 }
 
 /// Adds a saved search (deduped by name).
-pub fn save_search(nav: NavContext, name: &str, query: &str) {
+pub fn save_search(mut nav: NavContext, name: &str, query: &str) {
     let name = if name.trim().is_empty() {
         query.trim().to_string()
     } else {
@@ -404,7 +404,7 @@ pub fn save_search(nav: NavContext, name: &str, query: &str) {
     if name.is_empty() || query.trim().is_empty() {
         return;
     }
-    nav.saved_searches.modify(|l| {
+    nav.saved_searches.with_mut(|l| {
         l.retain(|s| s.name != name);
         l.push(SavedSearch {
             name,
@@ -416,18 +416,18 @@ pub fn save_search(nav: NavContext, name: &str, query: &str) {
 }
 
 /// Removes a saved search by name.
-pub fn remove_saved_search(nav: NavContext, name: &str) {
-    nav.saved_searches.modify(|l| l.retain(|s| s.name != name));
+pub fn remove_saved_search(mut nav: NavContext, name: &str) {
+    nav.saved_searches.with_mut(|l| l.retain(|s| s.name != name));
     let snapshot = nav.saved_searches.read().clone();
     settings_persist(K_SAVED_SEARCHES, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Saves (creates or updates) a smart folder, deduped by id, and persists it.
 pub fn save_smart_folder(
-    nav: NavContext,
+    mut nav: NavContext,
     folder: crate::models::organisation::SmartFolder,
 ) {
-    nav.smart_folders.modify(|l| {
+    nav.smart_folders.with_mut(|l| {
         if let Some(existing) = l.iter_mut().find(|f| f.id == folder.id) {
             *existing = folder.clone();
         } else {
@@ -439,23 +439,23 @@ pub fn save_smart_folder(
 }
 
 /// Removes a smart folder by id and persists.
-pub fn remove_smart_folder(nav: NavContext, id: &str) {
-    nav.smart_folders.modify(|l| l.retain(|f| f.id != id));
+pub fn remove_smart_folder(mut nav: NavContext, id: &str) {
+    nav.smart_folders.with_mut(|l| l.retain(|f| f.id != id));
     let snapshot = nav.smart_folders.read().clone();
     settings_persist(K_SMART_FOLDERS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Records a command id as recently run (deduped, capped at 12).
-pub fn record_recent_command(nav: NavContext, id: &str) {
-    nav.recent_commands.modify(|l| push_unique(l, id, 12));
+pub fn record_recent_command(mut nav: NavContext, id: &str) {
+    nav.recent_commands.with_mut(|l| push_unique(l, id, 12));
     let snapshot = nav.recent_commands.read().clone();
     settings_persist(K_RECENT_COMMANDS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Toggles a command id in the favourite-commands list.
-pub fn toggle_favourite_command(nav: NavContext, id: &str) {
+pub fn toggle_favourite_command(mut nav: NavContext, id: &str) {
     let has = nav.favourite_commands.read().iter().any(|c| c == id);
-    nav.favourite_commands.modify(|l| {
+    nav.favourite_commands.with_mut(|l| {
         if has {
             l.retain(|c| c != id);
         } else {
@@ -467,7 +467,7 @@ pub fn toggle_favourite_command(nav: NavContext, id: &str) {
 }
 
 /// Sets the enabled dashboard sections and persists them.
-pub fn set_dashboard_sections(nav: NavContext, sections: Vec<String>) {
+pub fn set_dashboard_sections(mut nav: NavContext, sections: Vec<String>) {
     nav.dashboard_sections.set(sections.clone());
     settings_persist(K_DASH_SECTIONS, serde_json::to_value(sections).unwrap());
 }
@@ -475,7 +475,7 @@ pub fn set_dashboard_sections(nav: NavContext, sections: Vec<String>) {
 // ── Vault note index ──────────────────────────────────────────────
 
 /// Loads the vault note index from the backend (`notes_index`).
-pub fn load_notes_index(nav: NavContext) {
+pub fn load_notes_index(mut nav: NavContext) {
     let toasts = use_toast();
     let tasks = use_tasks();
     let task_id = tasks.start("Indexing vault…");

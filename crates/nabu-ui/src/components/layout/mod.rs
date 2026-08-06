@@ -1,7 +1,4 @@
-//! # Layout components
-//!
-//! Structural layout containers: ribbon bar, left sidebar, right inspector,
-//! tab bar, and the workspace composition that ties them together.
+//! Layout modules — structural scaffolding for the workspace.
 
 pub mod left_sidebar;
 pub mod ribbon_bar;
