@@ -12,7 +12,8 @@ license = "AGPL-3.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-leptos = { version = "0.7.8", features = ["csr"] }
+# Dioxus 0.6 — web renderer with HTML elements, hooks, signals, router.
+dioxus = { version = "0.6", features = ["web", "html", "hooks", "signals", "macro", "router", "launch"] }
 serde = { version = "1.0.218", features = ["derive"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 nabu-core = { path = "../nabu-core", default-features = false }
@@ -28,10 +29,3 @@ wasm-bindgen-futures = "0.4.50"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 getrandom = { version = "0.2", features = ["js"] }
 console_error_panic_hook = "0.1.7"
-# lucide-leptos provides compile-time SVG icon components. The latest 3.x
-# release requires Leptos 0.8, which is incompatible with this crate's
-# Leptos 0.7.8 stack (a framework upgrade is out of scope for Phase B1 —
-# this phase is a strictly visual modernization). 0.2.0 is the latest
-# release line compatible with Leptos 0.7 and exposes the identical
-# component API plus the full icon library (all-icons feature).
-lucide-leptos = "0.2.0"

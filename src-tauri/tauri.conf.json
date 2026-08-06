@@ -5,11 +5,11 @@
   "identifier": "md.nabu.app",
   "build": {
     "beforeDevCommand": {
-      "script": "src-tauri/scripts/run-trunk.sh",
+      "script": "src-tauri/scripts/run-dioxus.sh",
       "cwd": ".."
     },
     "beforeBuildCommand": {
-      "script": "src-tauri/scripts/build-trunk.sh",
+      "script": "src-tauri/scripts/build-dioxus.sh",
       "cwd": ".."
     },
     "devUrl": "http://localhost:8080",

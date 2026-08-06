@@ -1,0 +1,20 @@
+[application]
+# The HTML file that Dioxus CLI will serve / copy to the output directory.
+# It already contains the boot-splash and the Tailwind CSS <link>.
+index_file = "index.html"
+# Where the dev server serves from / build outputs to (consumed by Tauri).
+out_dir = "dist"
+asset_dir = "src-tauri/assets"
+
+[web]
+# Dev-server port for `cargo dioxus serve`.
+port = 8080
+# Open browser automatically?
+open = false
+
+[web.wasm]
+# Match Trunk's `data-wasm-opt="z"` — strip-debug + optimize for size.
+opt-level = "z"
+
+[web.wasm.pack]
+enable = false

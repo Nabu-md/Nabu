@@ -1,27 +1,10 @@
+//! # Nabu UI components (Dioxus)
+//!
+//! Phase 0 exposes only the migrated modules:
+//! - [`app`] — root app shell, routing entry, provider wiring
+//! - [`contexts`] — Dioxus context types and provider components
+//! - [`ui`] — shared UI primitives (icons only; rest migrated in P0.2)
+
 pub mod app;
-pub mod canvas;
-pub mod comparison;
-pub mod dictation_pill;
-pub mod editor;
-pub mod file_tree;
-pub mod graph_view;
-pub mod inbox;
-pub mod layout;
-pub mod navigation;
-pub mod note_editor;
-pub mod note_view;
-pub mod pdf_viewer;
-pub mod reading_queue;
-pub mod reader;
-pub mod recovery;
-pub mod relation_editor;
-pub mod sandboxed_html;
-pub mod settings;
-pub mod statistics;
-pub mod template_editor;
-pub mod template_picker;
-pub mod theme_toggle;
-pub mod trash;
+pub mod contexts;
 pub mod ui;
-pub mod vault_setup_wizard;
-pub mod workspace;
