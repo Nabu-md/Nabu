@@ -10,7 +10,9 @@
 //! Focused purely on *navigation* — it opens notes and never executes
 //! commands. The Command Palette is the command surface.
 
-use crate::components::contexts::{open_tab, activate_tab, use_nav, WorkspaceContext, use_workspace};
+use crate::components::contexts::{
+    activate_tab, open_tab, use_nav, NavContext, WorkspaceContext, use_workspace,
+};
 use crate::components::navigation::state::{
     fuzzy_score, record_recent_note, NoteIndexEntry, ViewMode,
 };
@@ -122,7 +124,7 @@ fn folder_of(note: &NoteIndexEntry) -> &str {
 
 /// Opens a note in the workspace, records it as recent and closes the overlay.
 fn open_note(
-    nav: crate::components::contexts::NavContext,
+    nav: NavContext,
     ws: WorkspaceContext,
     path: String,
 ) {
@@ -130,6 +132,65 @@ fn open_note(
     record_recent_note(nav, &path);
     nav.switcher_open.set(false);
     nav.view_mode.set(ViewMode::Editor);
+}
+
+/// Pre-computed index for each row (Some(idx) for Note rows, None for Header rows).
+fn indexed_rows(rows: &[Row]) -> Vec<(Row, Option<usize>)> {
+    let mut note_idx = 0usize;
+    rows.iter()
+        .map(|row| match row {
+            Row::Header(_) => (row.clone(), None),
+            Row::Note(_) => {
+                let idx = note_idx;
+                note_idx += 1;
+                (row.clone(), Some(idx))
+            }
+        })
+        .collect()
+}
+
+/// Builds the switcher row VNodes (kept outside rsx! to avoid `let` in loops).
+fn build_switcher_rows(
+    indexed: &[(Row, Option<usize>)],
+    active: Signal<usize>,
+    nav: NavContext,
+    workspace: WorkspaceContext,
+) -> Vec<VNode> {
+    indexed
+        .iter()
+        .map(|(row, note_idx_opt)| match row {
+            Row::Header(cat) => rsx! {
+                div { class: "palette-category", "{cat}" }
+            },
+            Row::Note(note) => {
+                let this_idx = note_idx_opt.expect("note row always has index");
+                let title = note.title.clone();
+                let folder = folder_of(note).to_string();
+                let path = note.path.clone();
+                let is_active = this_idx == *active.read();
+                let nav_clone = nav;
+                let ws = workspace;
+                rsx! {
+                    button {
+                        r#type: "button",
+                        role: "option",
+                        "aria-selected": "{is_active}",
+                        class: if is_active { "palette-item palette-item-active" } else { "palette-item" },
+                        onmouseover: move |_| {
+                            active.set(this_idx);
+                        },
+                        onclick: move |_| {
+                            open_note(nav_clone, ws, path.clone());
+                        },
+                        span { class: "palette-item-icon", "aria-hidden": "true", {render_icon_view(Icon::FileText)} }
+                        span { class: "palette-item-body" }
+                        span { class: "palette-item-label", "{title}" }
+                        span { class: "palette-item-desc", "{folder}" }
+                    }
+                }
+            }
+        })
+        .collect()
 }
 
 /// The Quick Switcher overlay. Rendered once at the app root.
@@ -198,6 +259,14 @@ pub fn QuickSwitcher() -> Element {
         Vec::new()
     };
     let count = note_count(&rows);
+
+    // Pre-compute indexed rows and VNodes (avoids `let` inside rsx! loops).
+    let indexed = indexed_rows(&rows);
+    let switcher_rows: Vec<VNode> = if count > 0 {
+        build_switcher_rows(&indexed, active, nav_ref, workspace)
+    } else {
+        Vec::new()
+    };
 
     rsx! {
         if *open.read() {
@@ -273,42 +342,7 @@ pub fn QuickSwitcher() -> Element {
                             "No notes match"
                         }
                     } else {
-                        let mut note_idx = 0usize;
-                        for row in &rows {
-                            match row {
-                                Row::Header(cat) => {
-                                    div { class: "palette-category", "{cat}" }
-                                }
-                                Row::Note(note) => {
-                                    let this_idx = note_idx;
-                                    note_idx += 1;
-                                    let is_active = this_idx == *active.read();
-                                    let title = note.title.clone();
-                                    let folder = folder_of(note).to_string();
-                                    let path = note.path.clone();
-                                    let nav_clone = nav_ref;
-                                    let ws = workspace;
-                                    rsx! {
-                                        button {
-                                            r#type: "button",
-                                            role: "option",
-                                            "aria-selected": "{is_active}",
-                                            class: if is_active { "palette-item palette-item-active" } else { "palette-item" },
-                                            onmouseover: move |_| {
-                                                active.set(this_idx);
-                                            },
-                                            onclick: move |_| {
-                                                open_note(nav_clone, ws, path.clone());
-                                            },
-                                            span { class: "palette-item-icon", "aria-hidden": "true", {render_icon_view(Icon::FileText)} }
-                                            span { class: "palette-item-body" }
-                                            span { class: "palette-item-label", "{title}" }
-                                            span { class: "palette-item-desc", "{folder}" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        {switcher_rows}
                     }
                     div { class: "palette-footer" }
                     span { "↑↓ navigate" }

@@ -1,58 +1,42 @@
 //! # Nabu App Shell — Dioxus root component and routing entry
 //!
-//! Phase 0 is intentionally minimal:
-//! - [`App`] wraps the entire tree in all seven context providers.
-//! - [`AppRouter`] checks for a configured vault on startup and renders
-//!   a loading screen, vault-setup prompt, or the routed dashboard.
-//! - [`Dashboard`] is a placeholder; real dashboard widgets arrive in P0.2/P0.3.
-//! - [`RootLayout`] wraps routes with a persistent header shell.
+//! Composes all seven context providers, then delegates to [`AppRouter`] for
+//! vault-state-aware routing. Once a vault is configured, the
+//! [`WorkspaceLayout`] (ribbon, sidebars, tab bar, navbar, view content, and
+//! overlay surfaces) takes over.
 //!
-//! View components, ribbon bar, sidebar, inspector, session recovery, and
-//! global shortcuts are **not** migrated in Phase 0.
+//! View switching within the workspace is driven by [`NavContext::view_mode`];
+//! actual view content is rendered by [`ViewContent`] which delegates to
+//! placeholder components for each view (migrated in later phases).
 
 use crate::components::contexts::{
     HistoryProvider, NavProvider, SaveStatusProvider, ThemeProvider, WorkspaceProvider,
 };
+use crate::components::layout::WorkspaceLayout;
+use crate::components::navigation::{KeyboardShortcuts, ViewMode};
+use crate::components::navigation::{
+    ArchivePage, CalendarPage, CommandPalette, Dashboard, HomeScreen, QuickSwitcher,
+    SearchPage, ShortcutReference, SmartFoldersPage,
+};
 use crate::components::ui::feedback::{TaskProvider, ToastProvider};
 use crate::components::ui::icons::{Icon, IconEl};
+use crate::components::contexts::{use_nav, NavContext, use_workspace};
 use dioxus::prelude::*;
 
-/// Top-level routes. Phase 0 ships only the dashboard placeholder; view-level
-/// routes will be added as views are migrated in P0.3.
+// ── Routes ──────────────────────────────────────────────────────
+
+/// Top-level routes. Phase 0 ships only the dashboard; view switching happens
+/// inside [`WorkspaceLayout`] via the `view_mode` signal.
 #[derive(Routable, Clone, PartialEq)]
 #[rustfmt::skip]
 pub enum AppRoute {
-    #[layout(RootLayout)]
     #[route("/")]
     Dashboard {},
 }
 
-/// Root layout — wraps every route with a persistent header shell.
-/// The `<Outlet>` renders the active route component.
-#[component]
-fn RootLayout() -> Element {
-    rsx! {
-        div {
-            class: "flex h-screen w-screen flex-col bg-gray-950 text-gray-100 font-sans overflow-hidden",
-            // Header
-            div {
-                class: "flex-none border-b border-gray-800 px-4 py-3 flex items-center gap-3",
-                IconEl {
-                    icon: Icon::Dashboard,
-                    class: "w-5 h-5 text-blue-400",
-                }
-                span { class: "font-semibold text-lg", "Nabu" }
-            }
-            // Route content
-            Outlet::<AppRoute> {}
-        }
-    }
-}
+// ── App shell ───────────────────────────────────────────────────
 
 /// The root component function passed to `dioxus::web::launch::launch_cfg`.
-///
-/// Wraps the entire tree in all context providers, then delegates to
-/// [`AppRouter`] for vault-state-aware routing.
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     rsx! {
@@ -63,6 +47,7 @@ pub fn App() -> Element {
                     SaveStatusProvider {
                         WorkspaceProvider {
                             NavProvider {
+                                KeyboardShortcuts {}
                                 AppRouter {}
                             }
                         }
@@ -91,35 +76,37 @@ pub fn AppRouter() -> Element {
     let mut vault_state = use_signal(|| VaultCheckState::Loading);
     let mut vault_error = use_signal(String::new);
 
-    // Run the vault check once on mount.  The effect captures signal copies
-    // (Signals are Copy) and spawns an async task that updates them when the
-    // IPC round-trip completes.  Because the callback reads no signals, the
-    // effect fires only once.
     use_effect(move || {
-        spawn(async move {
+        spawn_local(async move {
             let args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
             match crate::ipc::tauri_invoke_safe("check_vault_exists", args).await {
                 Some(result) => {
                     match serde_wasm_bindgen::from_value::<Option<String>>(result) {
                         Ok(Some(path)) if !path.is_empty() => {
                             vault_state.set(VaultCheckState::MainDashboard);
+                            // Derive the vault display name for breadcrumbs / home.
+                            let name = path
+                                .rsplit('/')
+                                .next()
+                                .filter(|n| !n.is_empty())
+                                .unwrap_or("Vault")
+                                .to_string();
+                            use_nav().vault_name.set(name);
                         }
                         Ok(_) => {
                             vault_state.set(VaultCheckState::VaultSetup);
                         }
                         Err(_) => {
                             vault_state.set(VaultCheckState::Error);
-                            vault_error.set(
-                                "Unexpected response from check_vault_exists".into(),
-                            );
+                            vault_error
+                                .set("Unexpected response from check_vault_exists".into());
                         }
                     }
                 }
                 None => {
                     vault_state.set(VaultCheckState::Error);
-                    vault_error.set(
-                        "Failed to contact Tauri backend (check_vault_exists)".into(),
-                    );
+                    vault_error
+                        .set("Failed to contact Tauri backend (check_vault_exists)".into());
                 }
             }
         });
@@ -169,26 +156,141 @@ pub fn AppRouter() -> Element {
         }
         VaultCheckState::MainDashboard => {
             rsx! {
-                Router::<AppRoute> {}
+                WorkspaceLayout {}
             }
         }
     }
 }
 
-/// Minimal dashboard placeholder — actual dashboard widgets are migrated in
-/// P0.2 / P0.3.
+// ── View content (switching) ─────────────────────────────────────
+
+/// Switches views based on [`NavContext::view_mode`].
+///
+/// Feature screens are rendered as placeholders; future phases replace them
+/// with migrated views. The view-switching framework itself (reading the
+/// signal, matching, and rendering the right container) is what this phase
+/// delivers.
 #[component]
-fn Dashboard() -> Element {
-    rsx! {
-        div {
-            class: "flex-1 overflow-y-auto p-6",
-            div {
-                class: "max-w-4xl mx-auto",
-                h1 { class: "text-2xl font-bold mb-4", "Dashboard" }
-                p { class: "opacity-70",
-                    "Phase 0 root shell is live. View components arrive in P0.3."
+pub fn ViewContent() -> Element {
+    let nav: NavContext = use_nav();
+    let mode = *nav.view_mode.read();
+
+    match mode {
+        ViewMode::Dashboard => rsx! { Dashboard {} },
+        ViewMode::Editor => {
+            let ws = use_workspace();
+            if ws.active_path.read().is_some() {
+                rsx! {
+                    div { class: "max-w-4xl mx-auto h-full",
+                        div { class: "text-sm text-gray-400",
+                            {IconEl { icon: Icon::FilePen, class: "w-4 h-4 inline mr-1" }}
+                            "Note editor placeholder — migrated in a later phase."
+                        }
+                    }
                 }
+            } else {
+                rsx! { HomeScreen {} }
             }
         }
+        ViewMode::Graph => rsx! {
+            div { class: "w-full h-full flex items-center justify-center",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Network, class: "w-4 h-4 inline mr-1" }}
+                    "Graph view placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Search => rsx! { SearchPage {} },
+        ViewMode::Settings => rsx! {
+            div { class: "max-w-4xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Settings, class: "w-4 h-4 inline mr-1" }}
+                    "Settings placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Inbox => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Inbox, class: "w-4 h-4 inline mr-1" }}
+                    "Inbox placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::ReadingQueue => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::BookOpen, class: "w-4 h-4 inline mr-1" }}
+                    "Reading queue placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Templates => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::ClipboardList, class: "w-4 h-4 inline mr-1" }}
+                    "Templates placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Trash => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Trash2, class: "w-4 h-4 inline mr-1" }}
+                    "Trash placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::History => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::History, class: "w-4 h-4 inline mr-1" }}
+                    "Version history placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Recovery => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::LifeBuoy, class: "w-4 h-4 inline mr-1" }}
+                    "Recovery manager placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Calendar => rsx! { CalendarPage {} },
+        ViewMode::Archive => rsx! { ArchivePage {} },
+        ViewMode::SmartFolders => rsx! { SmartFoldersPage {} },
+        ViewMode::Canvas => rsx! {
+            div { class: "w-full h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Palette, class: "w-4 h-4 inline mr-1" }}
+                    "Canvas placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Reader => rsx! {
+            div { class: "w-full h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::BookText, class: "w-4 h-4 inline mr-1" }}
+                    "Reader mode placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Comparison => rsx! {
+            div { class: "w-full h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::Comparison, class: "w-4 h-4 inline mr-1" }}
+                    "Comparison view placeholder — migrated in a later phase."
+                }
+            }
+        },
+        ViewMode::Statistics => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                div { class: "text-sm text-gray-400",
+                    {IconEl { icon: Icon::TrendingUp, class: "w-4 h-4 inline mr-1" }}
+                    "Statistics placeholder — migrated in a later phase."
+                }
+            }
+        },
     }
 }

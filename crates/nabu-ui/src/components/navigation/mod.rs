@@ -38,7 +38,7 @@ pub use home_screen::HomeScreen;
 pub use navbar::NavBar;
 pub use quick_switcher::QuickSwitcher;
 pub use search_page::SearchPage;
-pub use shortcuts::{install_global_shortcuts, ShortcutReference};
+pub use shortcuts::{install_global_shortcuts, KeyboardShortcuts, ShortcutReference};
 pub use smart_folders::SmartFoldersPage;
 pub use state::{
     fuzzy_score, load_all_nav_state, load_notes_index, parse_view_mode,
