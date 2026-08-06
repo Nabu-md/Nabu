@@ -14,7 +14,7 @@ use wasm_bindgen::JsCast;
 
 /// One-shot timer using `window.setTimeout`. The closure is leaked (via
 /// `Closure::forget`) so the JS function stays alive until the timer fires.
-fn set_timeout<F: FnOnce() + 'static>(f: F, ms: u32) {
+pub fn set_timeout<F: FnOnce() + 'static>(f: F, ms: u32) {
     if let Some(window) = web_sys::window() {
         let mut f = Some(f);
         let closure = Closure::wrap(Box::new(move || {

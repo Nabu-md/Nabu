@@ -9,7 +9,7 @@
 //! ## Persistence
 //!
 //! Discovery data is persisted to the backend settings store (`.json`) under
-//! dedicated `nabu.*` keys via the existing `settings_set` / `settings_get`
+//! dedicated `nabu.*` keys via the existing `settings_get` / `settings_set`
 //! commands — no new storage architecture.
 //!
 //! ## Reactivity note
@@ -18,16 +18,15 @@
 //! (`let nav = use_nav();`). Helpers take the context by value so they are
 //! safe to call from async tasks and raw DOM callbacks.
 
-use leptos::prelude::*;
+use crate::components::ui::feedback::{use_tasks, use_toast};
+use crate::components::ui::icons::Icon;
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-/// Title of the persistent failure notification for the vault note index.
-/// Shared between the push and the success-path dismissal so they always
-/// agree.
-const INDEX_FAILURE_TITLE: &str = "Couldn't build the vault index";
+// ── ViewMode ─────────────────────────────────────────────────────
 
-/// The top-level screens of the app.
+/// Top-level view modes — drives the ribbon bar and view switcher.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ViewMode {
     Dashboard,
@@ -44,15 +43,20 @@ pub enum ViewMode {
     Calendar,
     Archive,
     SmartFolders,
-    // ── Phase 13.3: Advanced Knowledge Views ───────────────────
-    /// Infinite visual workspace — spatially organise notes and relationships.
+    /// Infinite visual workspace.
     Canvas,
-    /// Distraction-free reading experience with typography controls.
+    /// Distraction-free reading experience.
     Reader,
-    /// Side-by-side note / revision comparison with synchronised scrolling.
+    /// Side-by-side note / revision comparison.
     Comparison,
-    /// Vault-wide metrics, growth charts and writing insights.
+    /// Vault-wide metrics and insights.
     Statistics,
+}
+
+impl Default for ViewMode {
+    fn default() -> Self {
+        Self::Dashboard
+    }
 }
 
 /// Maps a persisted view-mode string back to a [`ViewMode`].
@@ -79,7 +83,7 @@ pub fn parse_view_mode(mode: &str) -> ViewMode {
     }
 }
 
-/// Canonical string key for a view mode (session persistence, shortcuts).
+/// Canonical string key for a view mode.
 pub fn view_mode_key(mode: ViewMode) -> &'static str {
     match mode {
         ViewMode::Dashboard => "dashboard",
@@ -127,7 +131,33 @@ pub fn view_mode_label(mode: ViewMode) -> &'static str {
     }
 }
 
-/// A single note in the vault index (mirrors the backend `NoteIndexEntry`).
+/// Icon for a view mode.
+pub fn view_mode_icon(mode: ViewMode) -> Icon {
+    match mode {
+        ViewMode::Dashboard => Icon::Dashboard,
+        ViewMode::Editor => Icon::FilePen,
+        ViewMode::Graph => Icon::Network,
+        ViewMode::Inbox => Icon::Inbox,
+        ViewMode::ReadingQueue => Icon::BookOpen,
+        ViewMode::Templates => Icon::ClipboardList,
+        ViewMode::Settings => Icon::Settings,
+        ViewMode::Trash => Icon::Trash2,
+        ViewMode::History => Icon::History,
+        ViewMode::Recovery => Icon::LifeBuoy,
+        ViewMode::Search => Icon::Search,
+        ViewMode::Calendar => Icon::Calendar,
+        ViewMode::Archive => Icon::Archive,
+        ViewMode::SmartFolders => Icon::FolderTree,
+        ViewMode::Canvas => Icon::Palette,
+        ViewMode::Reader => Icon::BookText,
+        ViewMode::Comparison => Icon::Comparison,
+        ViewMode::Statistics => Icon::TrendingUp,
+    }
+}
+
+// ── Supporting types ───────────────────────────────────────────────
+
+/// One note in the vault index (mirrors the backend `NoteIndexEntry`).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NoteIndexEntry {
     pub path: String,
@@ -157,7 +187,7 @@ pub const DASHBOARD_SECTIONS: &[&str] = &[
     "summary",
 ];
 
-fn section_label(id: &str) -> &'static str {
+pub fn dashboard_section_label(id: &str) -> &'static str {
     match id {
         "quick_actions" => "Quick Actions",
         "recently_modified" => "Recently Modified",
@@ -171,74 +201,88 @@ fn section_label(id: &str) -> &'static str {
     }
 }
 
-/// Shared navigation state.
+// ── NavContext ───────────────────────────────────────────────────
+
+/// Shared navigation context — carries view-mode, sidebar / inspector
+/// visibility, overlay state, and persisted discovery data.
 #[derive(Clone, Copy)]
 pub struct NavContext {
     /// The active top-level screen.
-    pub view_mode: RwSignal<ViewMode>,
+    pub view_mode: Signal<ViewMode>,
     /// Command palette overlay visibility.
-    pub palette_open: RwSignal<bool>,
+    pub palette_open: Signal<bool>,
     /// Quick switcher overlay visibility.
-    pub switcher_open: RwSignal<bool>,
+    pub switcher_open: Signal<bool>,
     /// Shortcuts reference overlay visibility.
-    pub shortcuts_open: RwSignal<bool>,
+    pub shortcuts_open: Signal<bool>,
     /// Query used when opening the search page (prefill).
-    pub search_query: RwSignal<String>,
+    pub search_query: Signal<String>,
     /// Left sidebar visibility.
-    pub show_left_sidebar: RwSignal<bool>,
+    pub show_left_sidebar: Signal<bool>,
     /// Right inspector visibility.
-    pub show_right_inspector: RwSignal<bool>,
+    pub show_right_inspector: Signal<bool>,
     /// Recently opened note paths (most recent first).
-    pub recent_notes: RwSignal<Vec<String>>,
+    pub recent_notes: Signal<Vec<String>>,
     /// Favourite note paths.
-    pub favourites: RwSignal<Vec<String>>,
+    pub favourites: Signal<Vec<String>>,
     /// Recent search strings (most recent first).
-    pub recent_searches: RwSignal<Vec<String>>,
+    pub recent_searches: Signal<Vec<String>>,
     /// Saved searches.
-    pub saved_searches: RwSignal<Vec<SavedSearch>>,
+    pub saved_searches: Signal<Vec<SavedSearch>>,
     /// Saved smart folders (virtual collections powered by queries).
-    pub smart_folders: RwSignal<Vec<crate::models::organisation::SmartFolder>>,
+    pub smart_folders: Signal<Vec<crate::models::organisation::SmartFolder>>,
     /// Recently run command ids (most recent first).
-    pub recent_commands: RwSignal<Vec<String>>,
+    pub recent_commands: Signal<Vec<String>>,
     /// Favourite command ids.
-    pub favourite_commands: RwSignal<Vec<String>>,
+    pub favourite_commands: Signal<Vec<String>>,
     /// The full vault note index (title + folder + mtime).
-    pub notes_index: RwSignal<Vec<NoteIndexEntry>>,
+    pub notes_index: Signal<Vec<NoteIndexEntry>>,
     /// Enabled dashboard section ids (order preserved).
-    pub dashboard_sections: RwSignal<Vec<String>>,
+    pub dashboard_sections: Signal<Vec<String>>,
     /// The current vault's display name.
-    pub vault_name: RwSignal<String>,
+    pub vault_name: Signal<String>,
 }
 
-/// Provides the navigation context (call once at the app root).
-pub fn provide_navigation() -> NavContext {
-    let ctx = NavContext {
-        view_mode: RwSignal::new(ViewMode::Dashboard),
-        palette_open: RwSignal::new(false),
-        switcher_open: RwSignal::new(false),
-        shortcuts_open: RwSignal::new(false),
-        search_query: RwSignal::new(String::new()),
-        show_left_sidebar: RwSignal::new(true),
-        show_right_inspector: RwSignal::new(true),
-        recent_notes: RwSignal::new(Vec::new()),
-        favourites: RwSignal::new(Vec::new()),
-        recent_searches: RwSignal::new(Vec::new()),
-        saved_searches: RwSignal::new(Vec::new()),
-        smart_folders: RwSignal::new(Vec::new()),
-        recent_commands: RwSignal::new(Vec::new()),
-        favourite_commands: RwSignal::new(Vec::new()),
-        notes_index: RwSignal::new(Vec::new()),
-        dashboard_sections: RwSignal::new(DASHBOARD_SECTIONS.iter().map(|s| s.to_string()).collect()),
-        vault_name: RwSignal::new(String::new()),
-    };
-    provide_context(ctx);
-    ctx
-}
-
-/// Retrieves the navigation context (call inside a [`provide_navigation`]
-/// subtree, at render time).
+/// Retrieves the navigation context.
 pub fn use_nav() -> NavContext {
-    expect_context::<NavContext>()
+    use_context::<NavContext>()
+}
+
+/// Provider component for navigation state.
+#[component]
+pub fn NavProvider(children: Element) -> Element {
+    provide_context(NavContext {
+        view_mode: use_signal(|| ViewMode::Dashboard),
+        palette_open: use_signal(|| false),
+        switcher_open: use_signal(|| false),
+        shortcuts_open: use_signal(|| false),
+        search_query: use_signal(|| String::new()),
+        show_left_sidebar: use_signal(|| true),
+        show_right_inspector: use_signal(|| true),
+        recent_notes: use_signal(Vec::<String>::new),
+        favourites: use_signal(Vec::<String>::new),
+        recent_searches: use_signal(Vec::<String>::new),
+        saved_searches: use_signal(Vec::<SavedSearch>::new),
+        smart_folders: use_signal(Vec::<crate::models::organisation::SmartFolder>::new),
+        recent_commands: use_signal(Vec::<String>::new),
+        favourite_commands: use_signal(Vec::<String>::new),
+        notes_index: use_signal(Vec::<NoteIndexEntry>::new),
+        dashboard_sections: use_signal(|| {
+            DASHBOARD_SECTIONS.iter().map(|s| s.to_string()).collect()
+        }),
+        vault_name: use_signal(|| String::new()),
+    });
+
+    // Persist discovery state once we have a vault name (deferred load).
+    let nav = use_nav();
+    let initialized = use_signal(|| false);
+    if !*initialized.read() {
+        initialized.set(true);
+        load_all_nav_state(nav);
+        load_notes_index(nav);
+    }
+
+    rsx! { {children} }
 }
 
 // ── Persistence helpers ────────────────────────────────────────────
@@ -252,6 +296,8 @@ const K_RECENT_COMMANDS: &str = "nabu.recent_commands";
 const K_FAV_COMMANDS: &str = "nabu.favourite_commands";
 const K_DASH_SECTIONS: &str = "nabu.dashboard.sections";
 
+const INDEX_FAILURE_TITLE: &str = "Couldn't build the vault index";
+
 fn settings_persist(key: &str, value: serde_json::Value) {
     let args = serde_wasm_bindgen::to_value(&serde_json::json!({ "key": key, "value": value }))
         .unwrap();
@@ -261,7 +307,7 @@ fn settings_persist(key: &str, value: serde_json::Value) {
 }
 
 /// Loads every persisted discovery list into the context (call once after
-/// [`provide_navigation`], e.g. from the app shell's mount).
+/// [`NavProvider`] creates the context).
 pub fn load_all_nav_state(nav: NavContext) {
     spawn_local(async move {
         let recent = load_string_list(K_RECENT_NOTES).await;
@@ -274,9 +320,10 @@ pub fn load_all_nav_state(nav: NavContext) {
             .await
             .unwrap_or_default();
         nav.saved_searches.set(saved);
-        let smart = load_json::<Vec<crate::models::organisation::SmartFolder>>(K_SMART_FOLDERS)
-            .await
-            .unwrap_or_default();
+        let smart =
+            load_json::<Vec<crate::models::organisation::SmartFolder>>(K_SMART_FOLDERS)
+                .await
+                .unwrap_or_default();
         nav.smart_folders.set(smart);
         let recent_cmds = load_string_list(K_RECENT_COMMANDS).await;
         nav.recent_commands.set(recent_cmds);
@@ -309,28 +356,22 @@ fn push_unique(list: &mut Vec<String>, item: &str, cap: usize) {
 
 /// Records a note as recently opened (deduped, capped at 20).
 pub fn record_recent_note(nav: NavContext, path: &str) {
-    nav.recent_notes.update(|l| push_unique(l, path, 20));
-    let snapshot = nav.recent_notes.get_untracked();
+    nav.recent_notes.modify(|l| push_unique(l, path, 20));
+    let snapshot = nav.recent_notes.read().clone();
     settings_persist(K_RECENT_NOTES, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Toggles a note in the favourites list.
 pub fn toggle_favourite(nav: NavContext, path: &str) {
-    let added = nav.favourites.with(|l| {
-        if l.iter().any(|p| p == path) {
-            false
-        } else {
-            true
-        }
-    });
-    nav.favourites.update(|l| {
-        if added {
-            l.push(path.to_string());
-        } else {
+    let has = nav.favourites.read().iter().any(|p| p == path);
+    nav.favourites.modify(|l| {
+        if has {
             l.retain(|p| p != path);
+        } else {
+            l.push(path.to_string());
         }
     });
-    let snapshot = nav.favourites.get_untracked();
+    let snapshot = nav.favourites.read().clone();
     settings_persist(K_FAVOURITES, serde_json::to_value(snapshot).unwrap());
 }
 
@@ -339,8 +380,8 @@ pub fn record_recent_search(nav: NavContext, query: &str) {
     if query.trim().is_empty() {
         return;
     }
-    nav.recent_searches.update(|l| push_unique(l, query, 10));
-    let snapshot = nav.recent_searches.get_untracked();
+    nav.recent_searches.modify(|l| push_unique(l, query, 10));
+    let snapshot = nav.recent_searches.read().clone();
     settings_persist(K_RECENT_SEARCHES, serde_json::to_value(snapshot).unwrap());
 }
 
@@ -363,21 +404,21 @@ pub fn save_search(nav: NavContext, name: &str, query: &str) {
     if name.is_empty() || query.trim().is_empty() {
         return;
     }
-    nav.saved_searches.update(|l| {
+    nav.saved_searches.modify(|l| {
         l.retain(|s| s.name != name);
         l.push(SavedSearch {
             name,
             query: query.trim().to_string(),
         });
     });
-    let snapshot = nav.saved_searches.get_untracked();
+    let snapshot = nav.saved_searches.read().clone();
     settings_persist(K_SAVED_SEARCHES, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Removes a saved search by name.
 pub fn remove_saved_search(nav: NavContext, name: &str) {
-    nav.saved_searches.update(|l| l.retain(|s| s.name != name));
-    let snapshot = nav.saved_searches.get_untracked();
+    nav.saved_searches.modify(|l| l.retain(|s| s.name != name));
+    let snapshot = nav.saved_searches.read().clone();
     settings_persist(K_SAVED_SEARCHES, serde_json::to_value(snapshot).unwrap());
 }
 
@@ -386,44 +427,42 @@ pub fn save_smart_folder(
     nav: NavContext,
     folder: crate::models::organisation::SmartFolder,
 ) {
-    nav.smart_folders.update(|l| {
+    nav.smart_folders.modify(|l| {
         if let Some(existing) = l.iter_mut().find(|f| f.id == folder.id) {
             *existing = folder.clone();
         } else {
             l.push(folder);
         }
     });
-    let snapshot = nav.smart_folders.get_untracked();
+    let snapshot = nav.smart_folders.read().clone();
     settings_persist(K_SMART_FOLDERS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Removes a smart folder by id and persists.
 pub fn remove_smart_folder(nav: NavContext, id: &str) {
-    nav.smart_folders.update(|l| l.retain(|f| f.id != id));
-    let snapshot = nav.smart_folders.get_untracked();
+    nav.smart_folders.modify(|l| l.retain(|f| f.id != id));
+    let snapshot = nav.smart_folders.read().clone();
     settings_persist(K_SMART_FOLDERS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Records a command id as recently run (deduped, capped at 12).
 pub fn record_recent_command(nav: NavContext, id: &str) {
-    nav.recent_commands.update(|l| push_unique(l, id, 12));
-    let snapshot = nav.recent_commands.get_untracked();
+    nav.recent_commands.modify(|l| push_unique(l, id, 12));
+    let snapshot = nav.recent_commands.read().clone();
     settings_persist(K_RECENT_COMMANDS, serde_json::to_value(snapshot).unwrap());
 }
 
 /// Toggles a command id in the favourite-commands list.
 pub fn toggle_favourite_command(nav: NavContext, id: &str) {
-    let has = nav
-        .favourite_commands
-        .with(|l| l.iter().any(|c| c == id));
-    nav.favourite_commands.update(|l| {
+    let has = nav.favourite_commands.read().iter().any(|c| c == id);
+    nav.favourite_commands.modify(|l| {
         if has {
             l.retain(|c| c != id);
         } else {
             l.push(id.to_string());
         }
     });
-    let snapshot = nav.favourite_commands.get_untracked();
+    let snapshot = nav.favourite_commands.read().clone();
     settings_persist(K_FAV_COMMANDS, serde_json::to_value(snapshot).unwrap());
 }
 
@@ -433,19 +472,12 @@ pub fn set_dashboard_sections(nav: NavContext, sections: Vec<String>) {
     settings_persist(K_DASH_SECTIONS, serde_json::to_value(sections).unwrap());
 }
 
-/// Human label for a dashboard section id.
-pub fn dashboard_section_label(id: &str) -> &'static str {
-    section_label(id)
-}
+// ── Vault note index ──────────────────────────────────────────────
 
 /// Loads the vault note index from the backend (`notes_index`).
 pub fn load_notes_index(nav: NavContext) {
-    // Capture the toast + task contexts during render — never
-    // `expect_context` inside `spawn_local` (no reactive owner on the failure
-    // path). The index load registers an indeterminate background task so the
-    // NavBar indicator reflects real long-running work.
-    let toasts = crate::components::ui::feedback::use_toast();
-    let tasks = crate::components::ui::feedback::use_tasks();
+    let toasts = use_toast();
+    let tasks = use_tasks();
     let task_id = tasks.start("Indexing vault…");
     spawn_local(async move {
         let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
@@ -453,19 +485,13 @@ pub fn load_notes_index(nav: NavContext) {
         tasks.finish(&task_id);
         if let Ok(index) = serde_wasm_bindgen::from_value::<Vec<NoteIndexEntry>>(result) {
             nav.notes_index.set(index);
-            // A successful (re)load resolves any previous failure — clear the
-            // stale warning so the notification center stays truthful, and
-            // confirm a retry worked (silent on a clean first load).
             if toasts.has_toast_with_title(INDEX_FAILURE_TITLE) {
                 toasts.dismiss_by_title(INDEX_FAILURE_TITLE);
                 toasts.success("Index rebuilt", "The vault index is up to date.");
             }
         } else {
-            // Persistent + actionable: stays in the notification center until
-            // dismissed, with a Retry action that re-runs the load. Dedupe so
-            // repeated failures (each launch / retry) don't flood the center.
-            let retry_nav = nav;
             if !toasts.has_toast_with_title(INDEX_FAILURE_TITLE) {
+                let retry_nav = nav;
                 toasts.push_persistent_with_action(
                     crate::components::ui::feedback::ToastKind::Warning,
                     INDEX_FAILURE_TITLE,
@@ -483,10 +509,6 @@ pub fn load_notes_index(nav: NavContext) {
 // ── Fuzzy matching ─────────────────────────────────────────────────
 
 /// Scores a fuzzy subsequence match of `query` in `candidate`.
-///
-/// Returns `Some(score)` when every character of the (lowercased) query
-/// appears in order in the candidate; `None` otherwise. Higher scores prefer
-/// matches at the start, at word boundaries, and with consecutive runs.
 pub fn fuzzy_score(query: &str, candidate: &str) -> Option<u32> {
     let q: Vec<char> = query.chars().map(|c| c.to_ascii_lowercase()).collect();
     if q.is_empty() {
@@ -500,14 +522,14 @@ pub fn fuzzy_score(query: &str, candidate: &str) -> Option<u32> {
         if qi < q.len() && c == q[qi] {
             score += 10;
             if ci == 0 {
-                score += 15; // starts at the beginning
+                score += 15;
             }
             if ci > 0 && (cand[ci - 1] == ' ' || cand[ci - 1] == '-' || cand[ci - 1] == '/') {
-                score += 8; // word boundary
+                score += 8;
             }
             if let Some(p) = prev {
                 if ci == p + 1 {
-                    score += 6; // consecutive run
+                    score += 6;
                 }
             }
             prev = Some(ci);
@@ -520,4 +542,3 @@ pub fn fuzzy_score(query: &str, candidate: &str) -> Option<u32> {
         None
     }
 }
-

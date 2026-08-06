@@ -9,8 +9,8 @@
 use crate::components::navigation::state::{NavContext, ViewMode};
 use crate::components::ui::feedback::ToastContext;
 use crate::components::ui::icons::Icon;
-use crate::components::workspace::WorkspaceContext;
-use leptos::prelude::*;
+use crate::components::contexts::WorkspaceContext;
+use dioxus::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 /// One command the palette can execute.
@@ -29,7 +29,7 @@ pub struct AppCommand {
     /// Keyboard shortcut hint shown on the right (display only).
     pub shortcut: Option<&'static str>,
     /// Icon prefix.
-    pub icon: crate::components::ui::icons::Icon,
+    pub icon: Icon,
     /// Executes the command.
     pub run: Callback<()>,
 }
@@ -48,13 +48,13 @@ fn set_view(nav: NavContext, mode: ViewMode) -> Callback<()> {
 
 fn toggle_sidebar(nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
-        nav.show_left_sidebar.update(|v| *v = !*v);
+        nav.show_left_sidebar.modify(|v| *v = !*v);
     })
 }
 
 fn toggle_inspector(nav: NavContext) -> Callback<()> {
     Callback::new(move |_| {
-        nav.show_right_inspector.update(|v| *v = !*v);
+        nav.show_right_inspector.modify(|v| *v = !*v);
     })
 }
 
@@ -105,8 +105,8 @@ pub fn create_new_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
                 .unwrap();
             let result = crate::ipc::tauri_invoke("note_create_file", args).await;
             if serde_wasm_bindgen::from_value::<()>(result).is_ok() {
-                crate::components::workspace::open_tab(ws, &name);
-                crate::components::workspace::refresh_tree(ws);
+                crate::components::contexts::open_tab(ws, &name);
+                crate::components::contexts::refresh_tree(ws);
                 toasts.success("Note created", name);
             } else {
                 toasts.error("Create note", "Could not create that note");
@@ -118,8 +118,7 @@ pub fn create_new_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
 /// Shared "quick capture into the Inbox" action — creates a pending
 /// KnowledgeObject without touching the filesystem, then lands on the Inbox
 /// screen so the user can review it. Contexts are captured at render time and
-/// threaded into the async task as plain values (never `use_nav` inside a
-/// `spawn_local` future — no reactive owner on the failure path).
+/// threaded into the async task as plain values.
 pub fn quick_capture(nav: NavContext, toasts: ToastContext) -> Callback<()> {
     Callback::new(move |_| {
         let nav = nav;
@@ -162,8 +161,7 @@ pub fn open_vault_folder() -> Callback<()> {
     })
 }
 
-/// Shared "open (or create) today's dated note" action. See
-/// [`create_new_note`] for the deduplication rationale.
+/// Shared "open (or create) today's dated note" action.
 pub fn open_daily_note(workspace: WorkspaceContext, toasts: ToastContext) -> Callback<()> {
     Callback::new(move |_| {
         let ws = workspace;
@@ -172,7 +170,7 @@ pub fn open_daily_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
             let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
             let result = crate::ipc::tauri_invoke("note_daily", empty).await;
             if let Ok(path) = serde_wasm_bindgen::from_value::<String>(result) {
-                crate::components::workspace::open_tab(ws, &path);
+                crate::components::contexts::open_tab(ws, &path);
                 toasts.success("Daily note", format!("Opened {path}"));
             }
         });
@@ -195,7 +193,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             category: "Navigation",
             description: "Open the home dashboard",
             shortcut: Some("⌘1"),
-            icon: Icon::Home,
+            icon: Icon::Dashboard,
             run: set_view(nav, ViewMode::Dashboard),
         },
         AppCommand {
@@ -366,7 +364,7 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             description: "Add a pending note to the Inbox for review",
             shortcut: None,
             icon: Icon::Zap,
-            run: quick_capture(ctx.nav, ctx.toasts),
+            run: quick_capture(nav, toasts),
         },
         AppCommand {
             id: "nav.search",
@@ -450,14 +448,12 @@ pub fn all_commands(ctx: CommandContext) -> Vec<AppCommand> {
             icon: Icon::ClipboardList,
             run: toggle_inspector(nav),
         },
-        // ── Command palette utilities (discoverable but hidden from
-        //    the default list so the palette stays focused).
     ]
 }
 
 /// Subset of commands shown while the palette query is empty — the recent
 /// commands + favourites, resolved from the full catalog.
-pub fn resolve_commands_by_id<'a>(catalog: &'a [AppCommand], ids: &[String]) -> Vec<AppCommand> {
+pub fn resolve_commands_by_id(catalog: &[AppCommand], ids: &[String]) -> Vec<AppCommand> {
     ids.iter()
         .filter_map(|id| catalog.iter().find(|c| c.id == id).cloned())
         .collect()

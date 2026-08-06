@@ -1,32 +1,28 @@
-//! # Universal Undo/Redo — Frontend Integration
+//! # Universal Undo/Redo — Frontend Integration (Dioxus)
 //!
 //! Bridges the shared component library toast system to the backend
 //! [`HistoryManager`] over IPC. Provides:
 //!
 //! - a [`HistoryContext`] exposing `can_undo` / `can_redo` signals
-//! - [`undo`] / [`redo`] helpers that run the backend action and show toast
+//! - [`Undo`] / [`Redo`] helpers that run the backend action and show toast
 //!   feedback ("Undid X", "Nothing to undo", "Nothing to redo")
 //! - global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z and
 //!   Ctrl+Y (redo)
 //!
 //! While focus is inside an editable element (`textarea`, `input`,
 //! `contenteditable`), the shortcuts are intentionally **not** intercepted so
-//! the native editing history (CodeMirror / textarea) is preserved — the
-//! universal history handles everything outside the editor, and the editor
-//! keeps its own native undo/redo.
+//! the native editing history (CodeMirror / textarea) is preserved.
 //!
 //! ## Reactivity note
 //!
-//! Both [`HistoryContext`] and `ToastContext` are `Copy` and are captured **at
-//! render time** in [`provide_history`]. They are then threaded into async
-//! tasks and the window-level keydown listener as plain values — never via
-//! `expect_context` inside a `spawn_local` future or a raw DOM callback, which
-//! have no reactive owner.
-//!
-//! [`HistoryManager`]: nabu_core::history::HistoryManager
+//! Both [`HistoryContext`] and `ToastContext` are `Copy` and are captured
+//! **at render time** in [`HistoryProvider`](crate::components::contexts::HistoryProvider).
+//! They are then threaded into async tasks and the window-level keydown listener
+//! as plain values — never via `expect_context` inside a `spawn_local` future
+//! or a raw DOM callback, which have no reactive owner.
 
 use crate::components::ui::feedback::{use_toast, ToastContext};
-use leptos::prelude::*;
+use dioxus::prelude::*;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
@@ -47,54 +43,24 @@ pub struct HistoryStatus {
 #[derive(Clone, Copy)]
 pub struct HistoryContext {
     /// Whether an undo is currently possible.
-    pub can_undo: RwSignal<bool>,
+    pub can_undo: Signal<bool>,
     /// Whether a redo is currently possible.
-    pub can_redo: RwSignal<bool>,
+    pub can_redo: Signal<bool>,
 }
 
-/// The signal set shared between the (once-installed) keyboard listener and
-/// every mounted `App`. Reusing the same signals across re-mounts keeps the
-/// listener and the toolbar buttons on one reactive state — otherwise a
-/// re-mount would orphan the listener's captured signals and the Undo/Redo
-/// disabled states would go stale.
-static SHARED_STATE: std::sync::OnceLock<SharedShortcutState> = std::sync::OnceLock::new();
+impl HistoryContext {
+    pub fn can_undo(&self) -> bool {
+        *self.can_undo.read()
+    }
 
-struct SharedShortcutState {
-    history: HistoryContext,
-    toasts: ToastContext,
+    pub fn can_redo(&self) -> bool {
+        *self.can_redo.read()
+    }
 }
 
-/// Registers the history context and the global keyboard shortcuts.
-///
-/// Must be called inside a component render (so both contexts exist) and
-/// inside a [`ToastProvider`](crate::components::ui::feedback::ToastProvider)
-/// subtree.
-pub fn provide_history() {
-    // Capture the (Copy) toast context now, during render, so async tasks and
-    // the window keydown listener never call expect_context without an owner.
-    let toasts = use_toast();
-
-    // Reuse the same signal set + toast context on every mount (App re-mounts
-    // after a state reset or dev HMR). The keydown listener is installed at
-    // most once and captured the first state, so every later mount must
-    // provide the same signals to stay in sync with it.
-    let shared = SHARED_STATE.get_or_init(|| SharedShortcutState {
-        history: HistoryContext {
-            can_undo: RwSignal::new(false),
-            can_redo: RwSignal::new(false),
-        },
-        toasts,
-    });
-    let history = shared.history;
-
-    provide_context(history);
-    refresh_history_state(history);
-    install_global_shortcuts(shared.history, shared.toasts);
-}
-
-/// Retrieves the history context (call inside a [`provide_history`] subtree).
+/// Retrieves the history context (call inside a [`HistoryProvider`] subtree).
 pub fn use_history() -> HistoryContext {
-    expect_context::<HistoryContext>()
+    use_context::<HistoryContext>().expect("HistoryContext not provided")
 }
 
 /// Fetches `can_undo` / `can_redo` from the backend and updates the signals.
@@ -183,19 +149,19 @@ fn focus_is_in_editor() -> bool {
         .map_or(false, |v| !v.eq_ignore_ascii_case("false"))
 }
 
-/// Installs a global keydown listener for Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and
-/// Ctrl+Y. Shortcuts are ignored while focus is inside an editor so native
-/// editing history keeps working.
-///
-/// The handler leaks intentionally (app-lifetime listener); both contexts are
-/// captured by value at install time.
 /// Installed at most once for the lifetime of the app. If `App` ever re-mounts
 /// (state reset, dev HMR) the leaked listener must not be registered twice,
 /// otherwise a single Cmd+Z would fire undo N times.
 static SHORTCUTS_INSTALLED: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
-fn install_global_shortcuts(history: HistoryContext, toasts: ToastContext) {
+/// Installs a global keydown listener for Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and
+/// Ctrl+Y. Shortcuts are ignored while focus is inside an editor so native
+/// editing history keeps working.
+///
+/// The handler leaks intentionally (app-lifetime listener); both contexts are
+/// captured by value at install time.
+pub fn install_undo_shortcuts(history: HistoryContext, toasts: ToastContext) {
     if SHORTCUTS_INSTALLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
         return;
     }
@@ -205,30 +171,31 @@ fn install_global_shortcuts(history: HistoryContext, toasts: ToastContext) {
 
     let handler = Closure::<dyn Fn(web_sys::KeyboardEvent)>::wrap(Box::new(
         move |ev: web_sys::KeyboardEvent| {
-        // Only react to the shortcut when an undo/redo modifier is pressed.
-        let is_undo = (ev.meta_key() || ev.ctrl_key())
-            && !ev.shift_key()
-            && ev.key().eq_ignore_ascii_case("z");
-        let is_redo = (ev.meta_key() || ev.ctrl_key())
-            && ev.shift_key()
-            && ev.key().eq_ignore_ascii_case("z");
-        let is_redo_y = ev.ctrl_key() && ev.key().eq_ignore_ascii_case("y");
+            // Only react to the shortcut when an undo/redo modifier is pressed.
+            let is_undo = (ev.meta_key() || ev.ctrl_key())
+                && !ev.shift_key()
+                && ev.key().eq_ignore_ascii_case("z");
+            let is_redo = (ev.meta_key() || ev.ctrl_key())
+                && ev.shift_key()
+                && ev.key().eq_ignore_ascii_case("z");
+            let is_redo_y = ev.ctrl_key() && ev.key().eq_ignore_ascii_case("y");
 
-        if !(is_undo || is_redo || is_redo_y) {
-            return;
-        }
-        // Preserve native editing history inside editors/inputs.
-        if focus_is_in_editor() {
-            return;
-        }
-        ev.prevent_default();
-        ev.stop_propagation();
-        if is_undo {
-            undo(history, toasts);
-        } else {
-            redo(history, toasts);
-        }
-    }));
+            if !(is_undo || is_redo || is_redo_y) {
+                return;
+            }
+            // Preserve native editing history inside editors/inputs.
+            if focus_is_in_editor() {
+                return;
+            }
+            ev.prevent_default();
+            ev.stop_propagation();
+            if is_undo {
+                undo(history, toasts);
+            } else {
+                redo(history, toasts);
+            }
+        },
+    ));
 
     let _ = window.add_event_listener_with_callback(
         "keydown",

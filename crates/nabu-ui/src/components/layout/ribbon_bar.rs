@@ -1,6 +1,13 @@
+//! # Ribbon Bar — the left vertical icon bar
+//!
+//! Preserves the Leptos behaviour: a narrow vertical bar of icon buttons
+//! (vault explorer, search, graph, daily note, dictation, canvas, settings).
+
+use crate::components::contexts::ViewMode;
+use crate::components::contexts::{use_nav, NavContext};
 use crate::components::ui::button::IconButton;
-use crate::components::ui::icons::{Icon, IconEl};
-use leptos::prelude::*;
+use crate::components::ui::icons::{IconEl, Icon};
+use dioxus::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -12,77 +19,83 @@ pub enum RibbonAction {
     OpenSettings,
 }
 
+/// The ribbon bar — a narrow vertical column of icon buttons.
 #[component]
-pub fn RibbonBar(
-    #[prop(optional)] set_view_mode: Option<
-        std::sync::Arc<dyn Fn(crate::components::app::ViewMode) + Send + Sync + 'static>,
-    >,
-    #[prop(optional)] set_show_sidebar: Option<
-        std::sync::Arc<dyn Fn(bool) + Send + Sync + 'static>,
-    >,
-) -> impl IntoView {
-    let (enabled, _set_enabled) = signal(false);
+pub fn RibbonBar() -> Element {
+    let nav: NavContext = use_nav();
 
-    let open_sidebar = Callback::new(move |_| {
-        if let Some(ref f) = set_show_sidebar {
-            f(true);
-        }
-    });
+    let open_sidebar = move |_| {
+        nav.show_left_sidebar.set(true);
+    };
 
-    let open_graph_cb = set_view_mode.clone();
-    let open_graph = Callback::new(move |_| {
-        if let Some(f) = open_graph_cb.as_ref() {
-            f(crate::components::app::ViewMode::Graph);
-        }
-    });
+    let open_graph = move |_| {
+        nav.view_mode.set(ViewMode::Graph);
+    };
 
-    let open_canvas_cb = set_view_mode.clone();
-    let open_canvas = Callback::new(move |_| {
-        if let Some(f) = open_canvas_cb.as_ref() {
-            f(crate::components::app::ViewMode::Canvas);
-        }
-    });
+    let open_canvas = move |_| {
+        nav.view_mode.set(ViewMode::Canvas);
+    };
 
-    let toggle_dictation = Callback::new(move |_| {
+    let toggle_dictation = move |_| {
         spawn_local(async move {
-            let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
-            let _ = crate::ipc::tauri_invoke("toggle_dictation_pill", empty_args).await;
+            let args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+            let _ = crate::ipc::tauri_invoke("toggle_dictation_pill", args).await;
         });
-    });
+    };
 
-    let open_settings = Callback::new(move |_| {
+    let open_settings = move |_| {
         spawn_local(async move {
-            let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
-            let _ = crate::ipc::tauri_invoke("open_settings", empty_args).await;
+            let args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+            let _ = crate::ipc::tauri_invoke("open_settings", args).await;
         });
-    });
+    };
 
-    let daily_note = Callback::new(move |_| {
-        spawn_local(async move {
-            let _ = crate::ipc::tauri_invoke(
-                "note_daily",
-                serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap(),
-            )
-            .await;
-        });
-    });
-
-    view! {
-        <div class="w-12 h-screen border-r border-gray-700 bg-gray-900 flex flex-col items-center py-4 space-y-4">
-            <IconButton title="Vault Explorer" on_click=open_sidebar><IconEl icon=Icon::Folder /></IconButton>
-            <IconButton title="Global Search"><IconEl icon=Icon::Search /></IconButton>
-            <IconButton title="Graph View" on_click=open_graph><IconEl icon=Icon::Network /></IconButton>
-            {move || if enabled.get() {
-                view! {
-                    <IconButton title="Daily Note" on_click=daily_note><IconEl icon=Icon::Calendar /></IconButton>
-                }.into_any()
-            } else {
-                view! {}.into_any()
-            }}
-            <IconButton title="Dictation" on_click=toggle_dictation><IconEl icon=Icon::Mic /></IconButton>
-            <IconButton title="Canvas" on_click=open_canvas><IconEl icon=Icon::Palette /></IconButton>
-            <div class="flex-grow"></div>
-            <IconButton title="Settings" on_click=open_settings><IconEl icon=Icon::Settings /></IconButton>
-        </div>
+    rsx! {
+        div {
+            class: "w-12 h-screen border-r border-gray-700 bg-gray-900 flex flex-col items-center py-4 space-y-4",
+        }
+        IconButton {
+            title: "Vault Explorer",
+            on_click: open_sidebar,
+            IconEl { icon: Icon::Folder }
+        }
+        IconButton {
+            title: "Global Search",
+            on_click: move |_| {
+                nav.view_mode.set(ViewMode::Search);
+                nav.search_query.set(String::new());
+            },
+            IconEl { icon: Icon::Search }
+        }
+        IconButton {
+            title: "Graph View",
+            on_click: open_graph,
+            IconEl { icon: Icon::Network }
+        }
+        IconButton {
+            title: "Daily Note",
+            on_click: move |_| {
+                // ⌘⇧D opens the daily note — reuse the shared helper.
+                let ws = crate::components::contexts::use_workspace();
+                crate::components::navigation::commands::open_daily_note(ws, crate::components::ui::feedback::use_toast()).call(());
+            },
+            IconEl { icon: Icon::Calendar }
+        }
+        IconButton {
+            title: "Dictation",
+            on_click: toggle_dictation,
+            IconEl { icon: Icon::Mic }
+        }
+        IconButton {
+            title: "Canvas",
+            on_click: open_canvas,
+            IconEl { icon: Icon::Palette }
+        }
+        div { class: "flex-grow" }
+        IconButton {
+            title: "Settings",
+            on_click: open_settings,
+            IconEl { icon: Icon::Settings }
+        }
     }
 }

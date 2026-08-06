@@ -9,16 +9,17 @@
 //! - keyboard-only navigation (↑/↓/Enter/Escape, ⌘K toggles)
 //! - star a command to favourite it (persisted)
 //!
-//! Runs every application command registered in [`all_commands`]. Opening the
-//! palette from elsewhere should call `nav.palette_open.set(true)` — the
-//! overlay is rendered once at the app root and reacts to that signal.
+//! Opening the palette from elsewhere should call `nav.palette_open.set(true)`
+//! — the overlay is rendered once at the app root and reacts to that signal.
 
+use crate::components::contexts::{use_nav, WorkspaceContext, use_workspace};
 use crate::components::navigation::commands::{all_commands, AppCommand, CommandContext};
 use crate::components::navigation::state::{
-    fuzzy_score, record_recent_command, toggle_favourite_command, use_nav,
+    fuzzy_score, record_recent_command, toggle_favourite_command, NoteIndexEntry,
 };
+use crate::components::ui::feedback::{set_timeout, use_toast};
 use crate::components::ui::icons::{render_icon_view, Icon};
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
 /// One row in the palette list — a category header or a command entry.
 #[derive(Clone)]
@@ -30,7 +31,7 @@ enum Row {
 /// Builds the ordered rows: recent → favourites → categories (when the query
 /// is empty), otherwise fuzzy-filtered commands grouped by category.
 fn build_rows(
-    catalog: Vec<AppCommand>,
+    catalog: &[AppCommand],
     query: &str,
     recent_ids: &[String],
     fav_ids: &[String],
@@ -40,23 +41,25 @@ fn build_rows(
         let mut rows = Vec::new();
         let mut seen = std::collections::HashSet::new();
 
-        let recents =
-            crate::components::navigation::commands::resolve_commands_by_id(&catalog, recent_ids);
+        let recents: Vec<AppCommand> =
+            crate::components::navigation::commands::resolve_commands_by_id(catalog, recent_ids);
         if !recents.is_empty() {
             rows.push(Row::Header("Recent".to_string()));
             for cmd in recents {
-                seen.insert(cmd.id);
+                seen.insert(*cmd.id);
                 rows.push(Row::Command(cmd));
             }
         }
 
-        let favs =
-            crate::components::navigation::commands::resolve_commands_by_id(&catalog, fav_ids);
-        let favs: Vec<AppCommand> = favs.into_iter().filter(|c| !seen.contains(c.id)).collect();
+        let favs: Vec<AppCommand> =
+            crate::components::navigation::commands::resolve_commands_by_id(catalog, fav_ids)
+                .into_iter()
+                .filter(|c| !seen.contains(c.id))
+                .collect();
         if !favs.is_empty() {
             rows.push(Row::Header("Favourites".to_string()));
             for cmd in favs {
-                seen.insert(cmd.id);
+                seen.insert(*cmd.id);
                 rows.push(Row::Command(cmd));
             }
         }
@@ -68,8 +71,8 @@ fn build_rows(
                 continue;
             }
             match groups.iter_mut().find(|(cat, _)| *cat == cmd.category) {
-                Some((_, list)) => list.push(cmd),
-                None => groups.push((cmd.category, vec![cmd])),
+                Some((_, list)) => list.push(cmd.clone()),
+                None => groups.push((cmd.category, vec![cmd.clone()])),
             }
         }
         for (category, list) in groups {
@@ -85,8 +88,7 @@ fn build_rows(
     let mut scored: Vec<(u32, AppCommand)> = Vec::new();
     for cmd in catalog {
         let mut best: Option<u32> = None;
-        for text in [cmd.label]
-            .into_iter()
+        for text in std::iter::once(cmd.label)
             .chain(cmd.aliases.iter().copied())
             .chain([cmd.category, cmd.description])
         {
@@ -95,7 +97,7 @@ fn build_rows(
             }
         }
         if let Some(score) = best {
-            scored.push((score, cmd));
+            scored.push((score, cmd.clone()));
         }
     }
     scored.sort_by(|a, b| b.0.cmp(&a.0));
@@ -124,15 +126,15 @@ fn command_count(rows: &[Row]) -> usize {
 
 /// The Command Palette overlay. Rendered once at the app root.
 #[component]
-pub fn CommandPalette() -> impl IntoView {
+pub fn CommandPalette() -> Element {
     let nav = use_nav();
     let open = nav.palette_open;
-    let (query, set_query) = signal(String::new());
-    let (active, set_active) = signal(0usize);
+    let query = use_signal(|| String::new());
+    let active = use_signal(|| 0usize);
 
     // Build the catalog at render time (captures nav/workspace/toasts by value).
-    let toasts = crate::components::ui::feedback::use_toast();
-    let workspace = crate::components::workspace::use_workspace();
+    let toasts = use_toast();
+    let workspace = use_workspace();
     let ctx = CommandContext {
         nav,
         workspace,
@@ -140,177 +142,198 @@ pub fn CommandPalette() -> impl IntoView {
     };
     let catalog = all_commands(ctx);
 
-    let input_ref = NodeRef::<leptos::html::Input>::new();
-
-    // Focus the input + reset state whenever the palette opens.
-    Effect::new(move |_| {
-        if open.get() {
-            set_query.set(String::new());
-            set_active.set(0);
+    // Focus the input whenever the palette opens.
+    use_effect(move || {
+        if *open.read() {
+            query.set(String::new());
+            active.set(0);
             set_timeout(
                 move || {
-                    if let Some(el) = input_ref.get() {
-                        let _ = el.focus();
+                    if *open.read() {
+                        if let Some(window) = web_sys::window() {
+                            if let Some(document) = window.document() {
+                                if let Some(input) =
+                                    document.get_element_by_id("command-palette-input")
+                                {
+                                    if let Some(input) = input
+                                        .dyn_ref::<web_sys::HtmlInputElement>()
+                                    {
+                                        let _ = input.focus();
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                std::time::Duration::from_millis(10),
+                10,
             );
         }
     });
 
-    let run_command = Callback::new(move |cmd: AppCommand| {
-        record_recent_command(nav, cmd.id);
-        open.set(false);
-        cmd.run.run(());
-    });
+    let nav_ref = nav;
 
-    // Derived rows. `Row` wraps `AppCommand` (contains a `Callback`, which is
-    // not `PartialEq`), so use `Signal::derive` rather than `Memo::new`.
-    let rows = Signal::derive(move || {
+    // Compute rows inline (cannot use use_memo — Row wraps Callback which is
+    // not PartialEq).
+    let rows = if *open.read() {
         build_rows(
-            catalog.clone(),
-            &query.get(),
-            &nav.recent_commands.get(),
-            &nav.favourite_commands.get(),
+            &catalog,
+            &query.read(),
+            &nav.recent_commands.read(),
+            &nav.favourite_commands.read(),
         )
-    });
+    } else {
+        Vec::new()
+    };
+    let count = command_count(&rows);
 
-    let close = Callback::new(move |_| {
-        open.set(false);
-        set_query.set(String::new());
-    });
-
-    view! {
-        {move || if open.get() {
-            let rows_list = rows.get();
-            let count = command_count(&rows_list);
-            let active_idx = active.get().min(count.saturating_sub(1));
-
-            // Keyboard navigation on the input.
-            let on_keydown = move |ev: web_sys::KeyboardEvent| {
-                let key = ev.key();
-                if key == "Escape" {
-                    ev.prevent_default();
-                    close.run(());
-                } else if key == "ArrowDown" {
-                    ev.prevent_default();
-                    set_active.update(|i| *i = if count == 0 { 0 } else { (*i + 1) % count });
-                } else if key == "ArrowUp" {
-                    ev.prevent_default();
-                    set_active.update(|i| *i = if count == 0 { 0 } else { (*i + count - 1) % count });
-                } else if key == "Enter" {
-                    ev.prevent_default();
-                    let rows_now = rows.get();
-                    let mut idx = active.get();
-                    for row in rows_now {
-                        if let Row::Command(cmd) = row {
-                            if idx == 0 {
-                                run_command.run(cmd);
-                                break;
-                            }
-                            idx -= 1;
-                        }
-                    }
-                }
-            };
-
-            view! {
-                <div class="dialog-overlay palette-overlay" on:click=move |_| close.run(())>
-                    <div
-                        class="palette panel"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Command palette"
-                        on:click=move |ev| ev.stop_propagation()
-                    >
-                        <div class="palette-search-wrap">
-                            <span class="palette-search-icon" aria-hidden="true">"⌘"</span>
-                            <input
-                                node_ref=input_ref
-                                class="palette-input"
-                                type="text"
-                                placeholder="Type a command or search…"
-                                prop:value=query
-                                on:input=move |ev| {
-                                    set_query.set(event_target_value(&ev));
-                                    set_active.set(0);
+    rsx! {
+        if *open.read() {
+            div {
+                class: "dialog-overlay palette-overlay",
+                onclick: move |_| {
+                    nav.palette_open.set(false);
+                    query.set(String::new());
+                },
+                div {
+                    class: "palette panel",
+                    role: "dialog",
+                    "aria-modal": "true",
+                    "aria-label": "Command palette",
+                    onclick: |ev: MouseEvent| ev.stop_propagation(),
+                    div { class: "palette-search-wrap" }
+                    span { class: "palette-search-icon", "aria-hidden": "true", {render_icon_view(Icon::Command)} }
+                    input {
+                        id: "command-palette-input",
+                        class: "palette-input",
+                        r#type: "text",
+                        placeholder: "Type a command or search…",
+                        value: "{*query.read()}",
+                        onchange: move |ev: FormEvent| {
+                            query.set(ev.value());
+                            active.set(0);
+                        },
+                        onkeydown: move |ev: KeyboardEvent| {
+                            let key = ev.key();
+                            if key == Key::Escape {
+                                ev.prevent_default();
+                                nav.palette_open.set(false);
+                                query.set(String::new());
+                            } else if key == Key::ArrowDown {
+                                ev.prevent_default();
+                                if count == 0 {
+                                    active.set(0);
+                                } else {
+                                    let a = *active.read();
+                                    active.set((a + 1) % count);
                                 }
-                                on:keydown=on_keydown
-                            />
-                            <kbd class="palette-hint">"esc"</kbd>
-                        </div>
-                        <div class="palette-list">
-                            {if count == 0 {
-                                view! {
-                                    <div class="palette-empty">
-                                        {if query.get().trim().is_empty() {
-                                            "No commands yet".to_string()
-                                        } else {
-                                            format!("No commands match “{}”", query.get().trim())
-                                        }}
-                                    </div>
-                                }.into_any()
-                            } else {
-                                let mut cmd_idx = 0usize;
-                                rows_list.into_iter().map(|row| {
-                                    match row {
-                                        Row::Header(cat) => {
-                                            view! { <div class="palette-category">{cat}</div> }.into_any()
+                            } else if key == Key::ArrowUp {
+                                ev.prevent_default();
+                                if count == 0 {
+                                    active.set(0);
+                                } else {
+                                    let a = *active.read();
+                                    let c = count;
+                                    active.set(if a == 0 { c - 1 } else { a - 1 });
+                                }
+                            } else if key == Key::Enter {
+                                ev.prevent_default();
+                                let mut idx = *active.read();
+                                for row in &rows {
+                                    if let Row::Command(cmd) = row {
+                                        if idx == 0 {
+                                            record_recent_command(nav_ref, cmd.id);
+                                            nav.palette_open.set(false);
+                                            query.set(String::new());
+                                            cmd.run.call(());
+                                            break;
                                         }
-                                        Row::Command(cmd) => {
-                                            let this_idx = cmd_idx;
-                                            cmd_idx += 1;
-                                            let is_active = this_idx == active_idx;
-                                            let id = cmd.id;
-                                            let icon = cmd.icon;
-                                            let label = cmd.label;
-                                            let description = cmd.description;
-                                            let shortcut = cmd.shortcut;
-                                            let is_fav = nav.favourite_commands.with(|f| f.iter().any(|c| *c == id));
-                                            let cmd_for_run = cmd.clone();
-                                            view! {
-                                                <button
-                                                    type="button"
-                                                    role="option"
-                                                    aria-selected=is_active
-                                                    class=move || format!("palette-item{}", if is_active { " palette-item-active" } else { "" })
-                                                    on:mouseenter=move |_| set_active.set(this_idx)
-                                                    on:click=move |_| run_command.run(cmd_for_run.clone())
-                                                >
-                                                    <span class="palette-item-icon" aria-hidden="true">{render_icon_view(icon)}</span>
-                                                    <span class="palette-item-body">
-                                                        <span class="palette-item-label">{label}</span>
-                                                        <span class="palette-item-desc">{description}</span>
-                                                    </span>
-                                                    {shortcut.map(|s| view! { <kbd class="palette-shortcut">{s}</kbd> }.into_any())}
-                                                    <span
-                                                        class="palette-star"
-                                                        title=move || if is_fav { "Remove from favourites" } else { "Add to favourites" }
-                                                        on:click=move |ev| {
-                                                            ev.stop_propagation();
-                                                            toggle_favourite_command(nav, id);
-                                                        }
-                                                    >
-                                                        {move || if is_fav { render_icon_view(Icon::Star) } else { render_icon_view(Icon::StarHalf) }}
-                                                    </span>
-                                                </button>
-                                            }.into_any()
+                                        idx -= 1;
+                                    }
+                                }
+                            }
+                        },
+                    }
+                    kbd { class: "palette-hint", "esc" }
+                    div { class: "palette-list" }
+                    if count == 0 {
+                        div { class: "palette-empty" }
+                        if query.read().trim().is_empty() {
+                            "No commands yet"
+                        } else {
+                            "No commands match"
+                        }
+                    } else {
+                        let mut cmd_idx = 0usize;
+                        for row in &rows {
+                            match row {
+                                Row::Header(cat) => {
+                                    div { class: "palette-category", "{cat}" }
+                                }
+                                Row::Command(cmd) => {
+                                    let this_idx = cmd_idx;
+                                    cmd_idx += 1;
+                                    let is_active = this_idx == *active.read();
+                                    let cmd_id = cmd.id;
+                                    let cmd_icon = cmd.icon;
+                                    let cmd_label = cmd.label;
+                                    let cmd_desc = cmd.description;
+                                    let cmd_shortcut = cmd.shortcut;
+                                    let is_fav = nav_ref
+                                        .favourite_commands
+                                        .read()
+                                        .iter()
+                                        .any(|c| *c == cmd_id);
+                                    let cmd_for_run = cmd.clone();
+                                    let nav_clone = nav_ref;
+                                    let fav_nav = nav_ref;
+                                    rsx! {
+                                        button {
+                                            r#type: "button",
+                                            role: "option",
+                                            "aria-selected": "{is_active}",
+                                            class: if is_active { "palette-item palette-item-active" } else { "palette-item" },
+                                            onmouseover: move |_| {
+                                                active.set(this_idx);
+                                            },
+                                            onclick: move |_| {
+                                                record_recent_command(nav_clone, cmd_id);
+                                                nav_clone.palette_open.set(false);
+                                                query.set(String::new());
+                                                cmd_for_run.run.call(());
+                                            },
+                                            span { class: "palette-item-icon", "aria-hidden": "true", {render_icon_view(cmd_icon)} }
+                                            span { class: "palette-item-body" }
+                                            span { class: "palette-item-label", "{cmd_label}" }
+                                            span { class: "palette-item-desc", "{cmd_desc}" }
+                                            if let Some(s) = cmd_shortcut {
+                                                kbd { class: "palette-shortcut", "{s}" }
+                                            }
+                                            span {
+                                                class: "palette-star",
+                                                title: if is_fav { "Remove from favourites" } else { "Add to favourites" },
+                                                onclick: move |_| {
+                                                    toggle_favourite_command(fav_nav, cmd_id);
+                                                },
+                                                if is_fav {
+                                                    {render_icon_view(Icon::Star)}
+                                                } else {
+                                                    {render_icon_view(Icon::StarHalf)}
+                                                }
+                                            }
                                         }
                                     }
-                                }).collect_view().into_any()
-                            }}
-                        </div>
-                        <div class="palette-footer">
-                            <span>"↑↓" " navigate"</span>
-                            <span>"↵" " run"</span>
-                            <span>{render_icon_view(Icon::Star)} " favourite"</span>
-                            <span>"esc" " close"</span>
-                        </div>
-                    </div>
-                </div>
-            }.into_any()
-        } else {
-            view! {}.into_any()
-        }}
+                                }
+                            }
+                        }
+                    }
+                    div { class: "palette-footer" }
+                    span { "↑↓ navigate" }
+                    span { "↵ run" }
+                    {render_icon_view(Icon::Star)}
+                    " favourite"
+                    span { "esc close" }
+                }
+            }
+        }
     }
 }

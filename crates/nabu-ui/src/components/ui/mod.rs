@@ -24,7 +24,7 @@ pub use feedback::{
     Spinner, SpinnerSize, Skeleton, StatusDot, StatusKind,
     LoadingBlock, LoadingOverlay, LoadingScreen, SkeletonList,
     ErrorPanel, TaskInfo, TaskContext, provide_tasks, use_tasks,
-    TaskIndicator,
+    TaskIndicator, set_timeout,
 };
 pub use info::{Tooltip, EmptyState, Callout, CalloutKind, HelpText};
 pub use input::{TextInput, Textarea, SearchInput, PasswordInput, NumberInput};
