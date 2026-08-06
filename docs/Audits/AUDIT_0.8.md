@@ -1,4 +1,4 @@
-# Audit 0.8 — Gap Analysis Against the 7-Phase Capability Platform Roadmap
+# Capability Platform Roadmap: Gap Analysis & Implementation Plan
 
 **Date:** 2026-08-05
 **Author:** Chief Architect
@@ -30,6 +30,7 @@ Beyond these blockers, the codebase has **dead architecture** that must be resol
 
 | Phase | Readiness | Key Finding |
 |-------|-----------|-------------|
+| Phase 0 — UI Framework Migration | PLANNED | LePtos 0.7.8 → Dioxus migration; entire nabu-ui crate (22,000 lines, 76 files) being rewritten; must complete before Phase 1 capability UI |
 | Phase 1 — Framework Foundation | PARTIALLY READY | ServiceRegistry, ApplicationContext, LifecycleManager, CapabilityRegistry all exist; Lifecycle trait unimplemented |
 | Phase 2 — Syncthing | NOT READY | Native messaging exists but handle discarded; no event-to-IPC bridge; no process supervision |
 | Phase 3 — Harper | PARTIALLY READY | CaptureHandler/Processor/JobExecutor traits exist; no editor diagnostic rendering pipeline |
@@ -38,12 +39,13 @@ Beyond these blockers, the codebase has **dead architecture** that must be resol
 | Phase 6 — Capability SDK | PARTIALLY READY | Complete plugin foundation exists but dead code; no plugin loading/execution |
 | Phase 7 — Production Readiness | PARTIALLY READY | Tracing, metrics, ShutdownCoordinator exist; no app-level shutdown sequence |
 
-### Critical Prerequisites (before any phase can proceed)
+### Critical Prerequisites (before Phase 2 can proceed)
 
-1. **Fix `note_save` pipeline bypass** — Route note saves through `StorageManager.save()` so `ITEM_STORED` events propagate to Indexer and VaultGraph.
-2. **Implement event-to-IPC bridge** — Subscribe backend `EventBus` events to Tauri's `emit_all` so the frontend can receive them via `#[listen]`.
-3. **Implement graceful shutdown** — Call `ApplicationContext::shutdown()` in the Tauri `Exit` handler; stop `WorkerPool`, persist `VaultGraph`/`Indexer`, flush `SettingsStore`.
-4. **Decide on the plugin system** — Either integrate the dead `plugin/` module or remove it entirely.
+1. **Complete Phase 0** — Dioxus migration must finish before any Capability UI work can begin.
+2. **Fix `note_save` pipeline bypass** — Route note saves through `StorageManager.save()` so `ITEM_STORED` events propagate to Indexer and VaultGraph.
+3. **Implement event-to-IPC bridge** — Subscribe backend `EventBus` events to Tauri's `emit_all` so the frontend can receive them via `#[listen]`.
+4. **Implement graceful shutdown** — Call `ApplicationContext::shutdown()` in the Tauri `Exit` handler; stop `WorkerPool`, persist `VaultGraph`/`Indexer`, flush `SettingsStore`.
+5. **Decide on the plugin system** — Either integrate the dead `plugin/` module or remove it entirely.
 
 ---
 
@@ -98,7 +100,110 @@ The architecture provides **foundation-level infrastructure** for every capabili
 
 ---
 
-## 3. Phase 1 Gap Analysis — Capability Framework Foundation
+## 3. Phase 0 — UI Framework Migration to Dioxus
+
+### Rationale
+
+The current UI (LePtos 0.7.8) is being redesigned as part of the Capability Platform roadmap. Since the entire `nabu-ui` crate (22,000 lines, 76 files) is being rewritten, the framework migration is a **prerequisite** to Phase 1 — it must be completed before capability UI can be developed.
+
+**Why Dioxus**: Nabu's App Block system (HTML iframe sandboxing), canvas-based GraphView, Tailwind CSS pipeline, and direct `web_sys` DOM access (clipboard, drag-drop, keyboard) all require a framework that renders real HTML DOM. Only Dioxus meets this requirement among the evaluated frameworks (Iced renders to GPU canvas; GPUI has no WASM target). The backend (`nabu-core`, `src-tauri`) is completely unaffected — the IPC abstraction (`crate::ipc::tauri_invoke()`, 5 lines) is framework-agnostic.
+
+### Existing Infrastructure (Reusable)
+
+| Component | Reusable | What Changes |
+|-----------|----------|-------------|
+| IPC layer (`ipc.rs`, 5 lines) | ✅ 100% | None — pure `wasm_bindgen` |
+| 64 Tauri commands, 113 call sites | ✅ 100% | None — command names and args unchanged |
+| `nabu-core` (22,285 lines) | ✅ 100% | None |
+| `src-tauri` backend (7,086 lines) | ✅ 100% | None |
+| Tailwind CSS pipeline (`app.css`, 2,923 lines) | ✅ 100% | None — external CSS, framework-agnostic |
+| `tailwind.config.js` | ✅ 100% | None — scans Rust source for class names |
+| Theme system (CSS `data-theme` attribute) | ✅ 100% | None — raw `web_sys` DOM access |
+| Icon enum (80+ variants) | ✅ 90% | Only `render_icon_view()` dispatch changes |
+| Canvas rendering (GraphView, 1,300 lines) | ✅ 100% | None — raw `web_sys::CanvasRenderingContext2d` |
+| App Blocks (iframe sandbox) | ✅ 100% | None — HTML `<iframe>` element |
+| Clipboard / drag-drop / keyboard | ✅ 100% | None — raw `web_sys` APIs |
+
+### Changes Required
+
+| Change | Count | Scope |
+|--------|-------|-------|
+| `view!` → `rsx!` macro syntax (`on:click` → `onclick`, `prop:value` → `value`) | 689 invocations | All 76 component files |
+| `RwSignal<T>` → `Signal<T>` (Dioxus 0.5+) | 169 instances | Signal read/write patterns |
+| `into_any()` elimination | 449 calls | Dioxus `rsx!` returns `VNode` natively |
+| `Callback<T>` → Rust closures / `EventHandler` | 350 uses | Event handler pattern migration |
+| `collect_view()` → Dioxus iteration | 100 calls | `.to_vec()` pattern in `rsx!` |
+| Icon library `lucide-leptos` → `dioxus-icon` or inline SVG | 80+ re-exports | `icons.rs` dispatch table only |
+| Build pipeline Trunk → `cargo-dioxus` | 1 pipeline | `run-trunk.sh` / `build-trunk.sh` replacement |
+| `window_event_listener_untyped` → `web_sys` or `use_event_listener` | 7 uses | Direct listener pattern |
+
+### Phase 0 Subphases
+
+**P0.1 — Project Setup & Foundation**
+- Initialize Dioxus + Tauri integration (shared IPC remains identical)
+- Replace Trunk build pipeline with `cargo-dioxus`
+- Migrate icon system: `lucide-leptos` → `dioxus-icon` (preserving the `Icon` enum; only `render_icon_view()` dispatch changes)
+- Set up Tailwind CSS pipeline in Dioxus context
+- Migrate the root app shell: `lib.rs` (mount_to_body → dioxus launch), `app.rs` (AppScreen, AppScreen rendering)
+- Migrate shared contexts: `provide_theme`/`use_theme`, `provide_workspace`/`use_workspace`, `provide_navigation`/`use_nav`, `provide_history`, `provide_tasks`, `provide_toast` — same API names, different signal types
+- **Deliverable**: A compiling Dioxus + Tauri project with the same IPC layer, theme system, and shared contexts working. Boot splash and loading screen functional.
+- **Validation**: `cargo check` passes; app launches with Tauri webview; `settings_get` IPC works; theme toggles between dark/light.
+- **Dependencies**: None — this is the starting point.
+
+**P0.2 — UI Primitives Layer**
+- Migrate the 10 UI primitive modules (`button.rs`, `input.rs`, `menu.rs`, `dialog.rs`, `card.rs`, `feedback.rs`, `icons.rs`, `info.rs`, `layout.rs`, `nav.rs`, `selection.rs`)
+- Focus on: `view!` → `rsx!` syntax, `RwSignal` → `Signal`, `Callback` → closures, `ChildrenFn` → `Element`, `into_any()` → native type erasure
+- Each primitive agent owns 2-3 files with no overlap
+- **Deliverable**: All 12 UI primitive modules compile and render correctly in Dioxus with identical visual output and ARIA attributes.
+- **Validation**: `cargo check` passes; button/input/menu/dialog components render with correct styling and behavior in isolation.
+- **Dependencies**: P0.1 (project setup)
+
+**P0.3 — Layout & Navigation Layer**
+- Migrate the 5 layout components (`left_sidebar.rs`, `ribbon_bar.rs`, `right_inspector.rs`, `tab_bar.rs`, `mod.rs`)
+- Migrate the 10 navigation components (`navbar.rs`, `command_palette.rs`, `quick_switcher.rs`, `shortcuts.rs`, `search_page.rs`, `dashboard.rs`, `home_screen.rs`, `breadcrumb.rs`, `smart_folders.rs`, `archive_page.rs`, `calendar_page.rs`, `commands.rs`, `state.rs`)
+- Each agent owns one layout or navigation component
+- **Deliverable**: Layout renders with sidebar/inspector/tabs/ribbon; navbar with undo/redo/search/settings toggles; command palette with fuzzy search; shortcuts reference dialog; navigation state context fully migrated.
+- **Validation**: Layout switches between view modes correctly; keyboard shortcuts (⌘K, ⌘P, ⌘⇧F, ⌘Z/Y) fire IPC calls; navigation state persists across reloads.
+- **Dependencies**: P0.2 (primitives)
+
+**P0.4 — Core View Components**
+- Migrate the 15+ core view components: `file_tree.rs`, `note_editor.rs`, `graph_view.rs`, `inbox.rs`, `settings/settings_panel.rs`, `recovery/*` (6 files), `reading_queue.rs`, `reader.rs`, `canvas.rs`, `comparison.rs`, `statistics.rs`, `trash.rs`, `template_editor.rs`, `template_picker.rs`, `dictation_pill.rs`, `property_editor.rs`, `relation_editor.rs`, `vault_setup_wizard.rs`
+- Each agent owns 3-4 files — no crossing ownership:
+  - **Agent A** (4 files): `file_tree.rs` + `note_editor.rs` + `note_view.rs` + `property_editor.rs`
+  - **Agent B** (3 files): `graph_view.rs` + `canvas.rs` + `comparison.rs`
+  - **Agent C** (4 files): `settings_panel.rs` + `trash.rs` + `reading_queue.rs` + `reader.rs`
+  - **Agent D** (5 files): `inbox.rs` + recovery suite (`diff_view.rs`, `recovery_banner.rs`, `recovery_manager.rs`, `save_status.rs`, `session.rs`, `version_history.rs`) + `dictation_pill.rs` + `template_editor.rs` + `template_picker.rs` + `vault_setup_wizard.rs` + `statistics.rs`
+- **Deliverable**: All core views render and interact correctly — file tree with drag-drop/rename/context menu; editor with autosave/debounce/cursor-restore; graph view with canvas pan/zoom/minimap; settings with all 15 tabs; inbox with status management; recovery with version diffing.
+- **Validation**: `cargo check` passes; editor saves notes via `note_save` IPC; graph renders with zoom/pan; settings persist changes; inbox items approve/reject; recovery snapshots list and restore.
+- **Dependencies**: P0.3 (layout/navigation)
+
+### Phase 0 Wave Structure
+
+| Wave | Phase | Subphases | Agents | Deliverable |
+|------|-------|-----------|--------|-------------|
+| **0** | Phase 0 | P0.1, P0.2, P0.3, P0.4 | **5** | Complete Dioxus migration of all UI components |
+
+- **Agent 1**: P0.1 — Project setup, build pipeline, icon system, root app shell, shared contexts (4 files: `lib.rs`, `ipc.rs`, `app.rs`, `icons.rs`)
+- **Agent 2**: P0.2 — UI primitives (12 files: `button.rs`, `input.rs`, `menu.rs`, `dialog.rs`, `card.rs`, `feedback.rs`, `info.rs`, `layout.rs`, `nav.rs`, `selection.rs`, `mod.rs`, `icons.rs` support)
+- **Agent 3**: P0.3 — Layout + navigation (15 files: `layout/*`, `navigation/*`, `theme_toggle.rs`, `workspace.rs`, `tree.rs`)
+- **Agent 4**: P0.4 (Views A+B) — File tree, editor, property editor, graph view, canvas, comparison
+- **Agent 5**: P0.4 (Views C+D) + Documentation — Settings, trash, reading queue, reader, inbox, recovery suite, dictation pill, templates, vault wizard, statistics + update AGENTS.md and docs
+
+**Ownership boundaries**: Agent 1 owns root files and build pipeline. Agent 2 owns all `ui/` primitives. Agent 3 owns `layout/` + `navigation/` + `workspace.rs` + `tree.rs`. Agent 4 owns file tree + editor + graph + canvas + comparison. Agent 5 owns settings + recovery + inbox + dictation + templates + documentation. No file is touched by more than one agent.
+
+### Phase 0 Validation Gate
+
+**Compilation**: `cargo check` passes for the full `nabu-ui` crate under Dioxus.
+
+**Integration**: The app launches via Tauri, loads the Dioxus WASM bundle, IPC calls succeed, theme toggles work, and the boot splash renders correctly.
+
+**Functional parity**: All 64 IPC commands are callable from the Dioxus UI with the same serialization (`serde_wasm_bindgen`) and the same command names. The `src-tauri` backend requires zero changes.
+
+**Documentation**: `AGENTS.md` and `README.md` updated to reflect Dioxus (build commands, architecture diagram, component structure).
+
+---
+
+## 4. Phase 1 Gap Analysis — Capability Framework Foundation
 
 ### Existing Infrastructure
 
@@ -167,7 +272,7 @@ The architecture provides **foundation-level infrastructure** for every capabili
 
 ---
 
-## 4. Phase 2 Gap Analysis — Syncthing Capability
+## 5. Phase 2 Gap Analysis — Syncthing Capability
 
 ### Existing Infrastructure
 
@@ -222,7 +327,7 @@ The architecture provides **foundation-level infrastructure** for every capabili
 
 ---
 
-## 5. Phase 3 Gap Analysis — Harper Capability
+## 6. Phase 3 Gap Analysis — Harper Capability
 
 ### Existing Infrastructure
 
@@ -279,7 +384,7 @@ The existing processors handle OCR, PDF extraction, Whisper transcription, metad
 
 ---
 
-## 6. Phase 4 Gap Analysis — ACP Client Capability
+## 7. Phase 4 Gap Analysis — ACP Client Capability
 
 ### Existing Infrastructure
 
@@ -329,7 +434,7 @@ The existing processors handle OCR, PDF extraction, Whisper transcription, metad
 
 ---
 
-## 7. Phase 5 Gap Analysis — Capability UI
+## 8. Phase 5 Gap Analysis — Capability UI
 
 ### Existing Infrastructure
 
@@ -399,7 +504,7 @@ The app has a dual sidebar (`show_left_sidebar`, `show_right_inspector` in `NavC
 
 ---
 
-## 8. Phase 6 Gap Analysis — Capability SDK
+## 9. Phase 6 Gap Analysis — Capability SDK
 
 ### Existing Infrastructure
 
@@ -483,7 +588,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 9. Phase 7 Gap Analysis — Production Readiness
+## 10. Phase 7 Gap Analysis — Production Readiness
 
 ### Existing Infrastructure
 
@@ -550,7 +655,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 10. Cross-Phase Shared Infrastructure
+## 11. Cross-Phase Shared Infrastructure
 
 ### Lifecycle Manager
 `LifecycleManager` (`registry/lifecycle.rs:94-196`) and the `Lifecycle` trait (`registry/lifecycle.rs:202-230`) **could support**:
@@ -638,7 +743,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 11. Dependency Matrix
+## 12. Dependency Matrix
 
 ### Hard Dependencies
 
@@ -683,7 +788,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 12. Reuse Inventory
+## 13. Reuse Inventory
 
 ### Phase 1 — Capability Framework Foundation
 
@@ -871,7 +976,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 13. Missing Infrastructure Inventory
+## 14. Missing Infrastructure Inventory
 
 ### Cross-Phase Missing Infrastructure (affects multiple phases)
 
@@ -909,7 +1014,7 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 14. Implementation Risk Assessment
+## 15. Implementation Risk Assessment
 
 ### Phase 1 — LOW
 **Rationale:** All core abstractions already exist and are production-tested. `ServiceRegistry`, `ApplicationContext`, `LifecycleManager`, `CapabilityRegistry`, and `SettingsStore` are all functional. The primary work is:
@@ -978,25 +1083,27 @@ No external capability can publish to these — there is no public `publish()` A
 
 ---
 
-## 15. Recommended Phase Order Validation
+## 16. Recommended Phase Order Validation
 
 The roadmap's proposed phase order (1 → 2 → 3 → 4 → 5 → 6 → 7) is **largely correct** but has a critical dependency that the roadmap does not surface early enough.
 
 ### Validated Order
 
-1. **Phase 1 (Framework Foundation)** — Must be first. All other phases depend on `ServiceRegistry`, `ApplicationContext`, `Lifecycle`, and `CapabilityRegistry`. ✅ Correct.
-2. **Phase 2 (Syncthing)** — Depends on Phase 1's lifecycle and event infrastructure. ✅ Correct order.
-3. **Phase 3 (Harper)** — Depends on processing pipeline (which is existing infra, not Phase 1), and benefits from Phase 2's process supervision. ✅ Correct order.
-4. **Phase 4 (ACP Client)** — Depends on Phase 2's process supervision and Phase 1's event-to-IPC bridge. ✅ Correct order.
-5. **Phase 5 (Capability UI)** — Depends on Phases 1-4 for events, status, and notifications. ✅ Correct order.
-6. **Phase 6 (Capability SDK)** — Can actually proceed in parallel with Phases 2-5 once Phase 1 is complete. The plugin foundation exists and could be integrated independently. ⚠️ **Suggestion**: Phase 6 could be parallelized with Phase 2+ rather than sequential.
-7. **Phase 7 (Production Readiness)** — Must be last. Depends on all phases for graceful shutdown, testing, and validation. ✅ Correct order.
+1. **Phase 0 (UI Framework Migration)** — Must be first. All UI component work depends on a stable Dioxus + Tauri + IPC foundation. This unlocks all Capability UI work in Phase 5. ✅ **New prerequisite**.
+2. **Phase 1 (Framework Foundation)** — Depends on Phase 0 for UI components that display lifecycle status, capability registry, and settings. All other phases depend on `ServiceRegistry`, `ApplicationContext`, `Lifecycle`, and `CapabilityRegistry`. ✅ Correct.
+3. **Phase 2 (Syncthing)** — Depends on Phase 1's lifecycle and event infrastructure. ✅ Correct order.
+4. **Phase 3 (Harper)** — Depends on processing pipeline (which is existing infra, not Phase 1), and benefits from Phase 2's process supervision. ✅ Correct order.
+5. **Phase 4 (ACP Client)** — Depends on Phase 2's process supervision and Phase 1's event-to-IPC bridge. ✅ Correct order.
+6. **Phase 5 (Capability UI)** — Depends on Phases 1-4 for events, status, and notifications. Depends on Phase 0 for Dioxus UI components. ✅ Correct order.
+7. **Phase 6 (Capability SDK)** — Can actually proceed in parallel with Phases 2-5 once Phase 1 is complete. The plugin foundation exists and could be integrated independently. ⚠️ **Suggestion**: Phase 6 could be parallelized with Phase 2+ rather than sequential.
+8. **Phase 7 (Production Readiness)** — Must be last. Depends on all phases for graceful shutdown, testing, and validation. ✅ Correct order.
 
 ### Revised Recommendation
 
 The roadmap order is correct, **provided that these prerequisites are met before Phase 2 begins**:
 
-1. **Fix `note_save` to route through `StorageManager.save()`** — This is not explicitly a Phase 1 deliverable but breaks every phase that depends on persisted state integrity.
+1. **Complete Phase 0 (UI Framework Migration)** — Dioxus + Tauri foundation established. ✅ New prerequisite.
+2. **Fix `note_save` to route through `StorageManager.save()`** — This is not explicitly a Phase 1 deliverable but breaks every phase that depends on persisted state integrity.
 2. **Implement the event-to-IPC bridge** — Without this, Phases 2-5 cannot deliver real-time updates. This should be treated as a Phase 1.5 critical prerequisite.
 3. **Decision on the plugin system** — Phase 6 depends on whether the 670-line dead `plugin/` module is integrated or replaced. This decision must precede Phase 2 if the Syncthing capability will be implemented as a plugin rather than a built-in service.
 
@@ -1135,7 +1242,7 @@ Each of these shutdown steps exists as a method but **none are called**. The ris
 
 ---
 
-## 16. Roadmap Expansion — Execution Matrix & Prompt Program
+## 17. Roadmap Expansion — Execution Matrix & Prompt Program
 
 ### Objective
 
@@ -1675,6 +1782,10 @@ This is **not** an architectural redesign. The seven roadmap phases are preserve
 
 | Phase | Subphase | Prompt IDs | Prompt Count | Parallel Agents | Depends On | Effort | Risk |
 |--------|----------|------------|--------------|-----------------|------------|--------|------|
+| Phase 0 | 0.1 Project Setup | P0.1 | 1 | 1 | None | Small | Low |
+| Phase 0 | 0.2 UI Primitives | P0.2 | 1 (4 agents, non-overlapping files) | 1 | P0.1 | Large | Low |
+| Phase 0 | 0.3 Layout & Navigation | P0.3 | 1 (3 agents, non-overlapping files) | 1 | P0.2 | Large | Low |
+| Phase 0 | 0.4 Core Views | P0.4 | 1 (3 agents, non-overlapping files) | 1 | P0.3 | Critical | Medium |
 | Phase 1 | 1.1 Lifecycle Implementation | P1.1.1, P1.1.2, P1.1.3, P1.1.4 | 4 | 3 (Wave 1: P1.1.1-3) + 1 (P1.1.4) | None | Small | Low |
 | Phase 1 | 1.2 Capability Registry Extension | P1.2.1, P1.2.2, P1.2.3 | 3 | 1 (sequential) | None | Small | Low |
 | Phase 1 | 1.3 Event-to-IPC Bridge | P1.3.1, P1.3.2 | 2 | 1 (sequential) | P1.1.4 | Small/Medium | Low |
@@ -1704,6 +1815,7 @@ This is **not** an architectural redesign. The seven roadmap phases are preserve
 
 | Phase | Total Prompts | Maximum Parallel Agents | Integration Checkpoints | Validation Gate |
 |--------|---------------|------------------------|------------------------|-----------------|
+| Phase 0 | 4 | 5 | Compile + Dioxus launch; IPC works; IPC works; Full functional parity | Integration Validation |
 | Phase 1 | 11 | 3 | Compile after Wave 1; Integration after each subphase | Integration Validation |
 | Phase 2 | 6 | 2 | Compile + process round-trip after each wave; Full integration | Integration Validation + Performance |
 | Phase 3 | 6 | 3 | Compile after 3.1; Pipeline test after 3.2; Editor test after 3.3 | UI Validation |
@@ -1720,10 +1832,11 @@ This is **not** an architectural redesign. The seven roadmap phases are preserve
 
 | Metric | Value |
 |---|---|
-| **Total Phases** | 7 |
-| **Total Subphases** | 24 |
-| **Total Implementation Prompts** | 44 |
-| **Maximum Parallel Agents (any single wave)** | 3 |
+| **Total Phases** | 8 (Phase 0 + 7 original) |
+| **Total Subphases** | 25 (Phase 0: 1 wave; Phase 1: 5 subphases; Phase 2: 3; Phase 3: 3; Phase 4: 4; Phase 5: 3; Phase 6: 3; Phase 7: 3) |
+| **Total Implementation Prompts** | 46 (25 original + 4 Phase 0 + 17 additional from subphases not counted in prior estimate) |
+| **Maximum Parallel Agents (any single wave)** | 8 (Wave 4: Phase 2 + 3 + 6) |
+| **Maximum Parallel Agents (Phase 0)** | 5 (P0.1–P0.4 + documentation) |
 | **Maximum Parallel Agents (Phase 1 Wave 1)** | 3 (P1.1.1, P1.1.2, P1.1.3) |
 | **Maximum Parallel Agents (Phase 3.1)** | 3 (P3.1.1, P3.1.2, P3.1.3) |
 | **Maximum Parallel Agents (Phase 5.3)** | 2 |
@@ -1731,23 +1844,17 @@ This is **not** an architectural redesign. The seven roadmap phases are preserve
 
 ### Critical Path
 
-The critical path is the longest sequential chain of dependent prompts:
-
 ```
-P1.1.4 (lifecycle wiring) → P1.3.1 (event bridge) → P2.1.1 (process supervisor) →
+Phase 0 (Dioxus migration) → P1.3.1 (event bridge) → P2.1.1 (process supervisor) →
 P4.1.1 (JSON-RPC) → P4.3.1 (agent manager) → P4.4.1 (streaming) →
 P5.2.1 (event-driven UI) → P5.3.2 (streaming panel) → P7.1.1 (shutdown) → P7.3.1 (tests)
 ```
 
-**Critical path length: 10 prompts, ~5 implementation waves**
+**Critical path length: 11 prompts, ~6 implementation waves** (Phase 0 adds 1 wave; original critical path was 10 prompts, ~5 waves)
 
-Phase 1 also has a parallel critical sub-path:
-```
-P1.4.1 (note_save fix) → P1.3.1 (event bridge) → [continues as above]
-```
-This runs in parallel with P1.1.x since they touch different files.
+### Largest Engineering Milestones
 
-### Largest Engineering Milestone
+**Phase 0 — Dioxus Migration** (P0.1–P0.4, single wave with 5 parallel agents). This is the largest contiguous block of work: migrating 22,000 lines of UI code from LePtos to Dioxus. However, since the UI is being redesigned anyway, much of this effort would occur regardless. The migration adds syntax/API changes on top of the redesign, but eliminates LePtos-specific patterns (`into_any()`, `RwSignal`, `Callback`, `view!` macro) that would be rewritten anyway.
 
 **Phase 4.1 — JSON-RPC Abstraction** (P4.1.1 + P4.1.2, 2 Large-effort prompts, High risk). This is the single largest milestone because:
 - No existing JSON-RPC infrastructure exists anywhere in the codebase
@@ -1755,7 +1862,9 @@ This runs in parallel with P1.1.x since they touch different files.
 - High architectural risk — no existing pattern to extend
 - Blocks all downstream Phase 4 work and Phase 5's real-time UI
 
-### Highest-Risk Phase
+### Highest-Risk Phases
+
+**Phase 0 — Dioxus Migration** (MEDIUM risk). The largest effort by line count (22,000 lines, 76 files) but the lowest per-component risk since the migration is mechanical (`view!` → `rsx!` syntax, `RwSignal` → `Signal`, `Callback` → closures) and the UI is being redesigned anyway. Risk is concentrated in the build pipeline change (Trunk → dioxus-cli) and icon library replacement.
 
 **Phase 4 — ACP Client Capability** (VERY HIGH risk). This phase has 7 prompts across 4 very-large and high-risk subphases. The entire JSON-RPC layer, streaming abstraction, conversation model, and agent process management must be built from scratch. The dependency on Phase 2's ProcessSupervisor adds scheduling risk.
 
@@ -1763,12 +1872,19 @@ This runs in parallel with P1.1.x since they touch different files.
 
 ### Recommended Execution Order
 
-Phases proceed sequentially (1→2→3→4→5→6→7), but within each phase, parallel waves execute agents simultaneously. Phase 6 can run its Wave 1 in parallel with Phase 2 (after Phase 1 completes), since the plugin system integration does not depend on Syncthing.
+**Phase 0** occurs as a single wave before all other phases:
 
-Recommended wave sequence:
+| Wave | Phase | Subphases | Agents | Deliverable |
+|------|-------|-----------|--------|-------------|
+| **0** | Phase 0 | P0.1, P0.2, P0.3, P0.4 | **5** | Complete Dioxus migration of all UI components |
+
+Phases 1→2→3→4→5→6→7 proceed sequentially afterward, but within each phase, parallel waves execute agents simultaneously. Phase 6 can run its Wave 1 in parallel with Phase 2 (after Phase 1 completes), since the plugin system integration does not depend on Syncthing.
+
+Recommended wave sequence (Phase 0 is a single pre-wave):
 
 | Wave | Phase | Prompts | Agents |
 |------|-------|---------|--------|
+| 0 | Phase 0 | P0.1, P0.2, P0.3, P0.4 | 5 |
 | 1 | Phase 1 | P1.1.1, P1.1.2, P1.1.3, P1.4.1, P1.2.1 | 5 |
 | 2 | Phase 1 | P1.1.4, P1.3.1, P1.2.2, P1.2.3(start) | 3 |
 | 3 | Phase 1 + Phase 6 start | P1.3.2, P1.5.1, P6.1.1, P6.1.2(start) | 4 |
@@ -1782,13 +1898,14 @@ Recommended wave sequence:
 | 11 | Phase 5 + Phase 7 start | P5.2.1(cont), P5.3.2(cont), P7.1.1, P7.2.1, P7.2.2 | 5 |
 | 12 | Phase 7 | P7.3.1 | 1 |
 
-**Estimated total implementation waves: ~12 waves** (with maximum 8 agents in Wave 4 when Phase 2, 3, and 6 all run simultaneously).
+**Estimated total implementation waves: 13** (Wave 0 + 12 waves from the original plan, with maximum 8 agents in Wave 4 when Phase 2, 3, and 6 all run simultaneously).
 
 ### Phase Parallelism Opportunities
 
 | Phase | Parallelizable With | Reason |
 |---|---|---|
-| Phase 1 | None (first phase) | Foundation for all others |
+| Phase 0 | None (must be first) | Foundation for all UI work; all capability UI in Phase 5 depends on Dioxus |
+| Phase 1 | None (first backend phase) | Foundation for all backend phases |
 | Phase 2 | Phase 3, Phase 6 | Phase 3 needs pipeline (existing, not Phase 2); Phase 6 needs plugin core (Phase 1 only) |
 | Phase 3 | Phase 2, Phase 6 | Independent processing pipeline; needs Phase 1 only |
 | Phase 4 | Phase 5 (partial), Phase 6 | Phase 5 needs Phase 4 events; Phase 6 can proceed independently |
@@ -1798,9 +1915,9 @@ Recommended wave sequence:
 
 ### Design Principles Applied
 
-1. **Many small prompts over few large prompts**: 43 prompts averaging ~1.8 per subphase, with a max of 4 in Phase 1.1.
+1. **Many small prompts over few large prompts**: 44 prompts across Phases 1-7, averaging ~2.1 per subphase, with a max of 4 in Phase 1.1. Phase 0 deviates from this principle intentionally — it is a single wave with 5 parallel agents, each owning a non-overlapping file set, because the UI migration is a mechanical syntax/API change that benefits from parallel execution.
 2. **Cohesive and focused**: Each prompt targets a single, well-defined deliverable (trait impl, IPC command, UI component, test).
-3. **Maximized parallelism**: 8 subphases have 2+ parallel agents; Phase 3.1 achieves 3 agents, Phase 1 Wave 1 achieves 3 agents.
+3. **Maximized parallelism**: 9 subphases have 2+ parallel agents; Phase 3.1 achieves 3 agents, Phase 1 Wave 1 achieves 3 agents, Phase 0 achieves 5 agents (non-overlapping file ownership).
 4. **Minimized dependencies**: Only direct dependencies are listed; many prompts start with "None" or depend only on Phase 1.
 5. **Fully validated phases**: Every subphase ends with an integration checkpoint; every phase ends with a validation gate.
-6. **Agent-safe**: All prompts have clear, unambiguous deliverables with evidence-based validation criteria.
+6. **Agent-safe**: All prompts have clear, unambiguous deliverables with evidence-based validation criteria. Phase 0 agents have explicitly non-overlapping file ownership (P0.2 owns `ui/`, P0.3 owns `layout/` + `navigation/`, P0.4 Agent A owns file tree/editor, P0.4 Agent B owns graph/canvas/comparison, P0.4 Agent C owns settings/trash/reader, etc.).
