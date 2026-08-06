@@ -66,6 +66,7 @@ enum VaultCheckState {
 pub fn AppRouter() -> Element {
     let mut vault_state = use_signal(|| VaultCheckState::Loading);
     let mut vault_error = use_signal(|| String::new());
+    let mut nav = use_nav();
 
     use_effect(move || {
         spawn_local(async move {
@@ -81,7 +82,6 @@ pub fn AppRouter() -> Element {
                                 .filter(|n| !n.is_empty())
                                 .unwrap_or("Vault")
                                 .to_string();
-                            let mut nav = use_nav();
                             nav.vault_name.set(name);
                         }
                         Ok(_) => {

@@ -58,8 +58,8 @@ pub fn provide_theme(initial_theme: String) {
     // use_signal ties the signal to the component scope so it survives
     // re-renders.  Signal::new would create a fresh signal on every render,
     // losing state.
-    let mut theme = use_signal(|| initial_theme);
-    let mut sync_ready = use_signal(|| false);
+    let theme = use_signal(|| initial_theme);
+    let sync_ready = use_signal(|| false);
 
     provide_context(ThemeContext { theme });
 

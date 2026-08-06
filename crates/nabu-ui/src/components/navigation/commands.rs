@@ -119,16 +119,16 @@ pub fn create_new_note(workspace: WorkspaceContext, toasts: ToastContext) -> Cal
 /// KnowledgeObject without touching the filesystem, then lands on the Inbox
 /// screen so the user can review it. Contexts are captured at render time and
 /// threaded into the async task as plain values.
-pub fn quick_capture(mut nav: NavContext, toasts: ToastContext) -> Callback<()> {
+pub fn quick_capture(nav: NavContext, toasts: ToastContext) -> Callback<()> {
     Callback::new(move |_| {
-        let nav = nav;
+        let mut nav = nav;
         let toasts = toasts;
         spawn_local(async move {
             let stamp = js_sys::Date::new_0();
             let month = stamp.get_month() + 1;
             let day = stamp.get_date();
             let hours = stamp.get_hours();
-            let minutes = stamp.get_minutes();
+            let _ = stamp.get_minutes();
             let meridiem = if hours < 12 { "AM" } else { "PM" };
             let hour12 = if hours % 12 == 0 { 12 } else { hours % 12 };
             let title = format!(

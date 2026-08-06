@@ -167,12 +167,14 @@ impl ToastContext {
 
     pub fn dismiss(self, id: &str) {
         let id = id.to_string();
-        self.toasts.write_unchecked().retain(|t| t.id != id);
+        let toasts = self.toasts;
+        toasts.write_unchecked().retain(|t| t.id != id);
     }
 
     pub fn dismiss_by_title(self, title: &str) {
         let title = title.to_string();
-        self.toasts.write_unchecked().retain(|t| t.title != title);
+        let toasts = self.toasts;
+        toasts.write_unchecked().retain(|t| t.title != title);
     }
 
     pub fn has_toast_with_title(self, title: &str) -> bool {
@@ -180,7 +182,8 @@ impl ToastContext {
     }
 
     pub fn clear_all(self) {
-        self.toasts.write_unchecked().clear();
+        let toasts = self.toasts;
+        toasts.write_unchecked().clear();
     }
 
     pub fn info(self, title: impl Into<String>, message: impl Into<String>) {
@@ -646,7 +649,8 @@ pub struct TaskContext {
 impl TaskContext {
     pub fn start(self, label: impl Into<String>) -> String {
         let id = uuid::Uuid::new_v4().to_string();
-        self.tasks.write_unchecked().push(TaskInfo {
+        let tasks = self.tasks;
+        tasks.write_unchecked().push(TaskInfo {
             id: id.clone(),
             label: label.into(),
             progress: None,
@@ -655,7 +659,8 @@ impl TaskContext {
     }
 
     pub fn progress(self, id: &str, value: f64) {
-        self.tasks.write_unchecked().iter_mut().for_each(|t| {
+        let tasks = self.tasks;
+        tasks.write_unchecked().iter_mut().for_each(|t| {
             if t.id == id {
                 t.progress = Some(value.clamp(0.0, 1.0));
             }
@@ -664,7 +669,8 @@ impl TaskContext {
 
     pub fn finish(self, id: &str) {
         let id = id.to_string();
-        self.tasks.write_unchecked().retain(|t| t.id != id);
+        let tasks = self.tasks;
+        tasks.write_unchecked().retain(|t| t.id != id);
     }
 }
 

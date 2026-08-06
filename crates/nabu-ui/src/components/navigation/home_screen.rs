@@ -3,8 +3,7 @@
 //! Shown when no note is selected in the editor view. Phase 0.3 ships a
 //! structural placeholder; real quick actions + recent activity arrive later.
 
-use crate::components::contexts::{use_nav, use_workspace};
-use crate::components::navigation::state::ViewMode;
+use crate::components::contexts::use_nav;
 use crate::components::ui::icons::{render_icon_view, Icon};
 use dioxus::prelude::*;
 

@@ -11,7 +11,7 @@
 use crate::components::contexts::{use_nav, NavContext};
 use crate::components::layout::{LeftSidebar, RightInspector, RibbonBar, TabBar};
 use crate::components::navigation::{
-    BreadcrumbBar, CommandPalette, NavBar, QuickSwitcher, ShortcutReference,
+    CommandPalette, NavBar, QuickSwitcher, ShortcutReference,
 };
 use dioxus::prelude::*;
 
@@ -20,7 +20,7 @@ use dioxus::prelude::*;
 /// Rendered once the vault is configured (inside [`crate::components::app::AppRouter`]).
 #[component]
 pub fn WorkspaceLayout() -> Element {
-    let mut nav: NavContext = use_nav();
+    let nav: NavContext = use_nav();
 
     rsx! {
         div {

@@ -275,7 +275,7 @@ pub fn NavProvider(children: Element) -> Element {
 
     // Persist discovery state once we have a vault name (deferred load).
     let nav = use_nav();
-    let initialized = use_signal(|| false);
+    let mut initialized = use_signal(|| false);
     if !*initialized.read() {
         initialized.set(true);
         load_all_nav_state(nav);

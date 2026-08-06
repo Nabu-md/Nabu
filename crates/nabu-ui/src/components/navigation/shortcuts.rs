@@ -9,7 +9,7 @@
 //! native editing behaviour is preserved (the editor's own keydown handlers
 //! own Cmd+B/I etc.).
 
-use crate::components::contexts::{open_tab, activate_tab, WorkspaceContext, use_workspace};
+use crate::components::contexts::{WorkspaceContext, use_workspace};
 use crate::components::navigation::commands::{create_new_note, open_daily_note};
 use crate::components::navigation::state::{use_nav, ViewMode};
 use crate::components::ui::feedback::{set_timeout, use_toast, ToastContext};
@@ -105,12 +105,14 @@ pub fn install_global_shortcuts(
             if *nav.palette_open.read() || *nav.switcher_open.read() || *nav.shortcuts_open.read() {
                 if meta && !shift && key.eq_ignore_ascii_case("k") {
                     ev.prevent_default();
-                    nav.palette_open.set(!*nav.palette_open.read());
+                    let is_open = *nav.palette_open.read();
+                    nav.palette_open.set(!is_open);
                     return;
                 }
                 if meta && !shift && key.eq_ignore_ascii_case("p") {
                     ev.prevent_default();
-                    nav.switcher_open.set(!*nav.switcher_open.read());
+                    let is_open = *nav.switcher_open.read();
+                    nav.switcher_open.set(!is_open);
                     return;
                 }
                 if !meta && key == "Escape" {

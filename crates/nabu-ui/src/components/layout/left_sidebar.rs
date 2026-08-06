@@ -30,7 +30,7 @@ pub fn LeftSidebar() -> Element {
     let mut nav: NavContext = use_nav();
 
     // Clicking a saved search opens the search page prefilled with the query.
-    let run_saved_search = move |query: String| {
+    let mut run_saved_search = move |query: String| {
         nav.search_query.set(query);
         nav.view_mode.set(ViewMode::Search);
     };
@@ -66,7 +66,7 @@ pub fn LeftSidebar() -> Element {
             let f_icon = f.icon.clone();
             let f_name = f.name.clone();
             let f_pinned = f.pinned;
-            let nav_smart = nav;
+            let mut nav_smart = nav;
             rsx! {
                 button {
                     r#type: "button",

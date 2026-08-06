@@ -21,7 +21,7 @@
 //! as plain values — never via `expect_context` inside a `spawn_local` future
 //! or a raw DOM callback, which have no reactive owner.
 
-use crate::components::ui::feedback::{use_toast, ToastContext};
+use crate::components::ui::feedback::ToastContext;
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;

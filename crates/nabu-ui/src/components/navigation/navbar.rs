@@ -9,29 +9,12 @@
 //! - sidebar / inspector toggles
 
 use crate::components::contexts::{
-    use_history, use_save_status, SaveStatusIndicator, NotificationBell,
-    ViewMode, use_nav, NavContext,
+    use_history, use_nav, NavContext, SaveStatusIndicator, NotificationBell,
+    ViewMode,
 };
-use crate::components::navigation::state::view_mode_label;
 use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::feedback::TaskIndicator;
 use dioxus::prelude::*;
-
-/// Dispatches a `nabu:reveal-note` window event so the file tree reveals a
-/// path (expands its parent folders and selects it).
-fn reveal_in_sidebar(path: String) {
-    let Some(window) = web_sys::window() else {
-        return;
-    };
-    let init = web_sys::CustomEventInit::new();
-    init.set_detail(&wasm_bindgen::JsValue::from_str(&path));
-    let Ok(event) =
-        web_sys::CustomEvent::new_with_event_init_dict("nabu:reveal-note", &init)
-    else {
-        return;
-    };
-    let _ = window.dispatch_event(&event);
-}
 
 /// The top navigation bar (rendered inside the main content column).
 #[component]

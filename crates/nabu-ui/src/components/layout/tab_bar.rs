@@ -2,17 +2,16 @@
 //!
 //! Renders the workspace's open tabs from [`WorkspaceContext`]:
 //!
-//! - click to activate, middle-click (or the ✕) to close
+//! - click to activate, (X) to close
 //! - right-click context menu: Close, Close Others, Close All, Duplicate,
 //!   Pin / Unpin, Reveal in Sidebar
-//! - drag-and-drop reordering between tabs
 //! - the trailing "+" creates a new note and opens it
 //!
 //! Tabs are driven by the shared workspace signal so the file tree (open
 //! note), editor (active note) and session restore all stay in sync.
 
 use crate::components::contexts::{
-    activate_tab, close_all, close_others, close_tab, open_tab, pin_tab, reorder_tab,
+    activate_tab, close_all, close_others, close_tab, open_tab, pin_tab,
     refresh_tree, use_workspace, WorkspaceContext,
 };
 use crate::components::ui::icons::{render_icon_view, Icon};
@@ -36,7 +35,7 @@ fn reveal_in_sidebar(path: String) {
     let _ = window.dispatch_event(&event);
 }
 
-/// Pre-computed render data for one open tab (avoids `let` inside `rsx!` loops).
+/// Pre-computed render data for one open tab.
 #[derive(Clone)]
 struct TabRenderData {
     path: String,
@@ -49,7 +48,6 @@ struct TabRenderData {
 #[component]
 pub fn TabBar() -> Element {
     let workspace: WorkspaceContext = use_workspace();
-    let drag_index = use_signal(|| None::<usize>);
 
     // Pre-compute tab render data.
     let active_path = workspace.active_path.read().clone();
@@ -65,32 +63,39 @@ pub fn TabBar() -> Element {
         })
         .collect();
 
-    // Build tab elements outside rsx! (avoids `let` inside for loops).
+    // Build tab element VNodes (avoids `let` inside rsx! for loops).
     let tab_elements: Vec<Element> = tabs
         .iter()
         .map(|tab| {
-            let tab = tab.clone();
+            let path_close = tab.path.clone();
+            let path_others = tab.path.clone();
+            let path_dup = tab.path.clone();
+            let path_pin = tab.path.clone();
+            let path_reveal = tab.path.clone();
+            let path_activate = tab.path.clone();
+            let path_ctx = tab.path.clone();
+            let title = tab.title.clone();
+            let path_title = tab.path.clone();
+            let pinned = tab.pinned;
+            let active = tab.active;
             let ws = workspace;
             let ws_close = workspace;
             let ws_others = workspace;
             let ws_dup = workspace;
             let ws_pin = workspace;
             let ws_activate = workspace;
-            let ws_reorder = workspace;
             let ws_ctx = workspace;
-            let di = drag_index;
-            let di2 = drag_index;
 
             rsx! {
                 ContextMenu {
                     menu_items: rsx! {
                         MenuItem {
                             label: "Close".to_string(),
-                            on_select: move |_| close_tab(ws_close, &tab.path),
+                            on_select: move |_| close_tab(ws_close, &path_close),
                         }
                         MenuItem {
                             label: "Close Others".to_string(),
-                            on_select: move |_| close_others(ws_others, &tab.path),
+                            on_select: move |_| close_others(ws_others, &path_others),
                         }
                         MenuItem {
                             label: "Close All".to_string(),
@@ -101,7 +106,7 @@ pub fn TabBar() -> Element {
                             label: "Duplicate".to_string(),
                             on_select: move |_| {
                                 let ws_local = ws_dup;
-                                let from = tab.path.clone();
+                                let from = path_dup.clone();
                                 spawn_local(async move {
                                     let args = serde_wasm_bindgen::to_value(&serde_json::json!({
                                         "from": from.clone(),
@@ -117,61 +122,36 @@ pub fn TabBar() -> Element {
                             },
                         }
                         MenuItem {
-                            label: if tab.pinned { "Unpin".to_string() } else { "Pin".to_string() },
-                            on_select: move |_| pin_tab(ws_pin, &tab.path),
+                            label: if pinned { "Unpin".to_string() } else { "Pin".to_string() },
+                            on_select: move |_| pin_tab(ws_pin, &path_pin),
                         }
                         MenuSeparator {}
                         MenuItem {
                             label: "Reveal in Sidebar".to_string(),
-                            on_select: move |_| reveal_in_sidebar(tab.path.clone()),
+                            on_select: move |_| reveal_in_sidebar(path_reveal.clone()),
                         }
                     },
                     div {
                         tabindex: "0",
-                        class: if tab.active { "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800 tab-active" } else { "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800" },
-                        title: "{tab.title}",
-                        draggable: "true",
+                        class: if active { "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800 tab-active" } else { "tab flex items-center gap-1.5 px-3 text-xs whitespace-nowrap cursor-pointer border-r border-gray-800" },
+                        title: "{path_title}",
                         role: "tab",
-                        "aria-selected": "{tab.active}",
-                        onclick: move |_| activate_tab(ws_activate, &tab.path),
-                        ondragstart: move |ev: web_sys::DragEvent| {
-                            if let Some(dt) = ev.data_transfer() {
-                                let _ = dt.set_data("text/plain", &tab.path);
-                                let _ = dt.set_effect_allowed("move");
-                            }
-                            let idx = ws.tabs.read().iter().position(|t| t.path == tab.path);
-                            if let Some(idx) = idx {
-                                di.set(Some(idx));
-                            }
-                        },
-                        ondragover: move |ev: web_sys::DragEvent| {
-                            ev.prevent_default();
-                            if let Some(from) = *di.read() {
-                                if let Some(to) = ws.tabs.read().iter().position(|t| t.path == tab.path) {
-                                    if from != to {
-                                        reorder_tab(ws_reorder, from, to);
-                                        di.set(Some(to));
-                                    }
-                                }
-                            }
-                        },
-                        ondragend: move |_: web_sys::DragEvent| {
-                            di2.set(None);
-                        },
+                        "aria-selected": "{active}",
+                        onclick: move |_| activate_tab(ws_activate, &path_activate),
                         // Close button (X).
                         button {
                             class: "tab-close text-gray-500 px-0.5 text-xs leading-none",
-                            "aria-label": "Close {tab.path}",
+                            "aria-label": "Close {path_title}",
                             onclick: move |ev: MouseEvent| {
                                 ev.stop_propagation();
-                                close_tab(ws_ctx, &tab.path);
+                                close_tab(ws_ctx, &path_ctx);
                             },
                             {render_icon_view(Icon::X)}
                         }
-                        if tab.pinned {
+                        if pinned {
                             span { class: "text-gray-500", title: "Pinned", "aria-hidden": "true", {render_icon_view(Icon::MapPin)} }
                         }
-                        span { class: "truncate max-w-40", "{tab.title}" }
+                        span { class: "truncate max-w-40", "{title}" }
                     }
                 }
             }

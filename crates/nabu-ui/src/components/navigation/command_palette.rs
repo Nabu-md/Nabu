@@ -12,10 +12,10 @@
 //! Opening the palette from elsewhere should call `nav.palette_open.set(true)`
 //! — the overlay is rendered once at the app root and reacts to that signal.
 
-use crate::components::contexts::{use_nav, use_workspace, NavContext, WorkspaceContext};
+use crate::components::contexts::{use_nav, use_workspace, NavContext};
 use crate::components::navigation::commands::{all_commands, AppCommand, CommandContext};
 use crate::components::navigation::state::{
-    fuzzy_score, record_recent_command, toggle_favourite_command, NoteIndexEntry,
+    fuzzy_score, record_recent_command, toggle_favourite_command,
 };
 use crate::components::ui::feedback::{set_timeout, use_toast};
 use crate::components::ui::icons::{render_icon_view, Icon};
@@ -203,6 +203,7 @@ pub fn CommandPalette() -> Element {
 
     // Pre-compute indexed rows and VNodes (avoids `let` inside rsx! loops).
     let indexed = indexed_rows(&rows);
+    let is_open = *open.read();
     let palette_rows: Vec<Element> = if count > 0 {
         build_palette_rows(&indexed, active, nav_ref, query)
     } else {
@@ -210,7 +211,7 @@ pub fn CommandPalette() -> Element {
     };
 
     rsx! {
-        if *open.read() {
+        if is_open {
             div {
                 class: "dialog-overlay palette-overlay",
                 onclick: move |_| {

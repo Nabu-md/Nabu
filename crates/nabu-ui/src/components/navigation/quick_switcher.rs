@@ -10,9 +10,7 @@
 //! Focused purely on *navigation* — it opens notes and never executes
 //! commands. The Command Palette is the command surface.
 
-use crate::components::contexts::{
-    activate_tab, open_tab, use_nav, NavContext, WorkspaceContext, use_workspace,
-};
+use crate::components::contexts::{open_tab, use_nav, NavContext, WorkspaceContext, use_workspace};
 use crate::components::navigation::state::{
     fuzzy_score, record_recent_note, NoteIndexEntry, ViewMode,
 };
@@ -39,7 +37,7 @@ fn build_rows(
     let q = query.trim();
     if q.is_empty() {
         let mut rows = Vec::new();
-        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let recent_notes: Vec<NoteIndexEntry> = recent
             .iter()
             .filter_map(|p| notes.iter().find(|n| n.path == *p).cloned())
@@ -47,7 +45,7 @@ fn build_rows(
         if !recent_notes.is_empty() {
             rows.push(Row::Header("Recent".to_string()));
             for note in recent_notes {
-                seen.insert(&note.path);
+                seen.insert(note.path.clone());
                 rows.push(Row::Note(note));
             }
         }
@@ -58,13 +56,13 @@ fn build_rows(
         if !pinned_notes.is_empty() {
             rows.push(Row::Header("Pinned".to_string()));
             for note in pinned_notes {
-                seen.insert(&note.path);
+                seen.insert(note.path.clone());
                 rows.push(Row::Note(note));
             }
         }
         let rest: Vec<NoteIndexEntry> = notes
             .iter()
-            .filter(|n| !seen.contains(&*n.path))
+            .filter(|n| !seen.contains(&n.path))
             .cloned()
             .collect();
         let mut rest = rest;
@@ -151,8 +149,8 @@ fn indexed_rows(rows: &[Row]) -> Vec<(Row, Option<usize>)> {
 fn build_switcher_rows(
     indexed: &[(Row, Option<usize>)],
     mut active: Signal<usize>,
-    mut nav: NavContext,
-    mut workspace: WorkspaceContext,
+    nav: NavContext,
+    workspace: WorkspaceContext,
 ) -> Vec<Element> {
     indexed
         .iter()
@@ -258,6 +256,7 @@ pub fn QuickSwitcher() -> Element {
 
     // Pre-compute indexed rows and VNodes (avoids `let` inside rsx! loops).
     let indexed = indexed_rows(&rows);
+    let is_open = *open.read();
     let switcher_rows: Vec<Element> = if count > 0 {
         build_switcher_rows(&indexed, active, nav_ref, workspace)
     } else {
@@ -265,7 +264,7 @@ pub fn QuickSwitcher() -> Element {
     };
 
     rsx! {
-        if *open.read() {
+        if is_open {
             div {
                 class: "dialog-overlay palette-overlay",
                 onclick: move |_| {
