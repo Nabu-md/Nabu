@@ -163,10 +163,7 @@ pub fn ViewContent() -> Element {
             if ws.active_path.read().is_some() {
                 rsx! {
                     div { class: "max-w-4xl mx-auto h-full",
-                        div { class: "text-sm text-gray-400",
-                            {render_icon(Icon::FilePen, Some("w-4 h-4 inline mr-1"))}
-                            "Note editor placeholder — migrated in a later phase."
-                        }
+                        crate::components::note_editor::NoteEditor {}
                     }
                 }
             } else {

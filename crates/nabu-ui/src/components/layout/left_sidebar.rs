@@ -111,14 +111,8 @@ pub fn LeftSidebar() -> Element {
         div {
             class: "left-sidebar sidebar-left w-64 border-r border-gray-700 bg-gray-900 h-full flex flex-col min-w-0 transition-[width] duration-slow ease-standard",
 
-            // FileTree placeholder — migrated in a later phase.
-            div {
-                class: "flex-1 overflow-y-auto p-2",
-                div { class: "empty-state" }
-                div { class: "empty-state-icon", "aria-hidden": "true", {render_icon_view(Icon::FolderTree)} }
-                div { class: "empty-state-title", "File Tree" }
-                div { class: "empty-state-desc", "The vault file explorer placeholder — migrated in a later phase." }
-            }
+            // FileTree — the vault file explorer.
+            crate::components::file_tree::FileTree {}
 
             // Collections — smart folders + saved searches
             div {
