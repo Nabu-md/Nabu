@@ -66,7 +66,7 @@ pub fn TabBar() -> Element {
         .collect();
 
     // Build tab elements outside rsx! (avoids `let` inside for loops).
-    let tab_elements: Vec<VNode> = tabs
+    let tab_elements: Vec<Element> = tabs
         .iter()
         .map(|tab| {
             let tab = tab.clone();

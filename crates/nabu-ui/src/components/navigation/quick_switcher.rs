@@ -19,6 +19,7 @@ use crate::components::navigation::state::{
 use crate::components::ui::feedback::set_timeout;
 use crate::components::ui::icons::{render_icon_view, Icon};
 use dioxus::prelude::*;
+use wasm_bindgen::JsCast;
 
 /// One row in the switcher list.
 #[derive(Clone, PartialEq)]
@@ -152,7 +153,7 @@ fn build_switcher_rows(
     mut active: Signal<usize>,
     mut nav: NavContext,
     mut workspace: WorkspaceContext,
-) -> Vec<VNode> {
+) -> Vec<Element> {
     indexed
         .iter()
         .map(|(row, note_idx_opt)| match row {
@@ -160,7 +161,7 @@ fn build_switcher_rows(
                 div { class: "palette-category", "{cat}" }
             },
             Row::Note(note) => {
-                let this_idx = note_idx_opt.copied().unwrap_or(0);
+                let this_idx = note_idx_opt.unwrap_or(0);
                 let title = note.title.clone();
                 let folder = folder_of(note).to_string();
                 let path = note.path.clone();
@@ -257,7 +258,7 @@ pub fn QuickSwitcher() -> Element {
 
     // Pre-compute indexed rows and VNodes (avoids `let` inside rsx! loops).
     let indexed = indexed_rows(&rows);
-    let switcher_rows: Vec<VNode> = if count > 0 {
+    let switcher_rows: Vec<Element> = if count > 0 {
         build_switcher_rows(&indexed, active, nav_ref, workspace)
     } else {
         Vec::new()

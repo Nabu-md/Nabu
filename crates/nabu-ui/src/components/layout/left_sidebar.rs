@@ -60,7 +60,7 @@ pub fn LeftSidebar() -> Element {
     let show_hint = smart_empty && search_empty;
 
     // Build smart folder item VNodes (avoids `let` inside rsx! for loops).
-    let smart_items: Vec<VNode> = smart_folders
+    let smart_items: Vec<Element> = smart_folders
         .iter()
         .map(|f| {
             let f_icon = f.icon.clone();
@@ -87,7 +87,7 @@ pub fn LeftSidebar() -> Element {
         .collect();
 
     // Build saved search item VNodes.
-    let search_items: Vec<VNode> = saved_searches
+    let search_items: Vec<Element> = saved_searches
         .iter()
         .map(|s| {
             let s_query = s.query.clone();
@@ -140,11 +140,15 @@ pub fn LeftSidebar() -> Element {
                         "Save a search or create a smart folder to pin it here."
                     }
                 }
-                {smart_items}
+                for item in smart_items {
+                        {item}
+                    }
                 if !saved_searches.is_empty() {
                     div { class: "border-t border-gray-800 pt-1.5" }
                 }
-                {search_items}
+                for item in search_items {
+                        {item}
+                    }
             }
         }
     }

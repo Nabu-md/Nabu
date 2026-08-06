@@ -42,7 +42,7 @@ pub struct CommandContext {
     pub toasts: ToastContext,
 }
 
-fn set_view(nav: NavContext, mode: ViewMode) -> Callback<()> {
+fn set_view(mut nav: NavContext, mode: ViewMode) -> Callback<()> {
     Callback::new(move |_| nav.view_mode.set(mode))
 }
 

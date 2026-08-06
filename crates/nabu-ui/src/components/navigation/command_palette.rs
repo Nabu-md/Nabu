@@ -20,6 +20,7 @@ use crate::components::navigation::state::{
 use crate::components::ui::feedback::{set_timeout, use_toast};
 use crate::components::ui::icons::{render_icon_view, Icon};
 use dioxus::prelude::*;
+use wasm_bindgen::JsCast;
 
 /// One row in the palette list — a category header or a command entry.
 #[derive(Clone)]
@@ -46,7 +47,7 @@ fn build_rows(
         if !recents.is_empty() {
             rows.push(Row::Header("Recent".to_string()));
             for cmd in recents {
-                seen.insert(*cmd.id);
+                seen.insert(cmd.id);
                 rows.push(Row::Command(cmd));
             }
         }
@@ -54,12 +55,12 @@ fn build_rows(
         let favs: Vec<AppCommand> =
             crate::components::navigation::commands::resolve_commands_by_id(catalog, fav_ids)
                 .into_iter()
-                .filter(|c| !seen.contains(*c.id))
+                .filter(|c| !seen.contains(c.id))
                 .collect();
         if !favs.is_empty() {
             rows.push(Row::Header("Favourites".to_string()));
             for cmd in favs {
-                seen.insert(*cmd.id);
+                seen.insert(cmd.id);
                 rows.push(Row::Command(cmd));
             }
         }
@@ -67,7 +68,7 @@ fn build_rows(
         // Remaining commands grouped by category.
         let mut groups: Vec<(&str, Vec<AppCommand>)> = Vec::new();
         for cmd in catalog {
-            if seen.contains(*cmd.id) {
+            if seen.contains(cmd.id) {
                 continue;
             }
             match groups.iter_mut().find(|(cat, _)| *cat == cmd.category) {
@@ -202,7 +203,7 @@ pub fn CommandPalette() -> Element {
 
     // Pre-compute indexed rows and VNodes (avoids `let` inside rsx! loops).
     let indexed = indexed_rows(&rows);
-    let palette_rows: Vec<VNode> = if count > 0 {
+    let palette_rows: Vec<Element> = if count > 0 {
         build_palette_rows(&indexed, active, nav_ref, query)
     } else {
         Vec::new()
@@ -305,7 +306,7 @@ fn build_palette_rows(
     mut active: Signal<usize>,
     mut nav: NavContext,
     mut query: Signal<String>,
-) -> Vec<VNode> {
+) -> Vec<Element> {
     indexed
         .iter()
         .map(|(row, cmd_idx_opt)| match row {
@@ -313,7 +314,7 @@ fn build_palette_rows(
                 div { class: "palette-category", "{cat}" }
             },
             Row::Command(cmd) => {
-                let this_idx = cmd_idx_opt.copied().unwrap_or(0);
+                let this_idx = cmd_idx_opt.unwrap_or(0);
                 let cmd_id = cmd.id;
                 let cmd_icon = cmd.icon;
                 let cmd_label = cmd.label;

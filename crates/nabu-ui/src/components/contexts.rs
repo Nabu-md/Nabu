@@ -308,7 +308,8 @@ pub fn rename_tab_prefix(mut ctx: WorkspaceContext, old_prefix: &str, new_prefix
             }
         }
     });
-    if let Some(active) = ctx.active_path.read().as_ref() {
+    let active = ctx.active_path.read().as_ref().cloned();
+    if let Some(active) = active {
         let new_active = if active == old_prefix {
             Some(new_prefix.to_string())
         } else if let Some(rest) = active.strip_prefix(&old) {

@@ -15,7 +15,7 @@ use crate::components::navigation::state::{use_nav, ViewMode};
 use crate::components::ui::feedback::{set_timeout, use_toast, ToastContext};
 use crate::components::ui::icons::{render_icon_view, Icon};
 use dioxus::prelude::*;
-use wasm_bindgen::prelude::JsCast;
+use wasm_bindgen::prelude::{JsCast, Closure};
 
 // ── Shortcut catalog ──────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ pub fn install_global_shortcuts(
 
     let Some(window) = web_sys::window() else { return };
 
-    let handler = Closure::<dyn Fn(web_sys::KeyboardEvent)>::wrap(Box::new(
+    let handler = Closure::<dyn FnMut(web_sys::KeyboardEvent)>::wrap(Box::new(
         move |ev: web_sys::KeyboardEvent| {
             let meta = ev.meta_key() || ev.ctrl_key();
             let shift = ev.shift_key();
@@ -264,7 +264,7 @@ pub fn ShortcutReference() -> Element {
         buckets.into_iter().map(|(cat, items)| (items, cat)).collect()
     };
 
-    let close_handler = move |_| {
+    let mut close_handler = move |_| {
         nav.palette_open.set(false);
         nav.switcher_open.set(false);
         nav.shortcuts_open.set(false);

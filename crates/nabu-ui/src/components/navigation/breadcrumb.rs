@@ -31,7 +31,7 @@ fn reveal_in_sidebar(path: String) {
 /// The breadcrumb bar for the current view.
 #[component]
 pub fn BreadcrumbBar() -> Element {
-    let nav = use_nav();
+    let mut nav = use_nav();
     let workspace = use_workspace();
 
     let mode = *nav.view_mode.read();

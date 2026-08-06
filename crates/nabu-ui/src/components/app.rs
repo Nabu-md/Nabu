@@ -81,7 +81,8 @@ pub fn AppRouter() -> Element {
                                 .filter(|n| !n.is_empty())
                                 .unwrap_or("Vault")
                                 .to_string();
-                            use_nav().vault_name.set(name);
+                            let mut nav = use_nav();
+                            nav.vault_name.set(name);
                         }
                         Ok(_) => {
                             vault_state.set(VaultCheckState::VaultSetup);
