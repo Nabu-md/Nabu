@@ -174,3 +174,91 @@ pub mod organisation {
         pub modified_at: String,
     }
 }
+
+/// Property editor data model — UI-layer definitions for metadata fields
+/// that are displayed and edited in the Property Editor. These are
+/// presentational: the backend stores values as `CustomPropertyValue`
+/// inside `KnowledgeObject::custom_properties`; the editor projects them into
+/// these typed structs for rendering, then calls back to the parent via
+/// `on_change` / `on_validate`.
+
+pub mod properties {
+    use serde::{Deserialize, Serialize};
+
+    /// The kind of a property field — determines which input control is rendered.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    pub enum PropertyType {
+        Text,
+        Number,
+        Date,
+        Select,
+        MultiSelect,
+        Url,
+    }
+
+    /// A typed property value — mirrors the UI-side projection of
+    /// `CustomPropertyValue` (Text, Number, Date, Select, MultiSelect, Url).
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(untagged)]
+    pub enum PropertyValue {
+        Text(String),
+        Number(f64),
+        Date(String),
+        Select(String),
+        MultiSelect(Vec<String>),
+        Url(String),
+    }
+
+    /// Definition of a single metadata property field.
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    pub struct PropertyDefinition {
+        pub id: String,
+        pub display_name: String,
+        pub property_type: PropertyType,
+        pub description: Option<String>,
+        pub default_value: Option<PropertyValue>,
+        pub options: Option<Vec<String>>,
+    }
+
+    impl PropertyDefinition {
+        /// Validates a value against this property definition.
+        pub fn validate(&self, value: &PropertyValue) -> bool {
+            match (&self.property_type, value) {
+                (PropertyType::Text, PropertyValue::Text(_))
+                | (PropertyType::Number, PropertyValue::Number(_))
+                | (PropertyType::Date, PropertyValue::Date(_))
+                | (PropertyType::Select, PropertyValue::Select(_))
+                | (PropertyType::MultiSelect, PropertyValue::MultiSelect(_))
+                | (PropertyType::Url, PropertyValue::Url(_)) => true,
+                (PropertyType::Select, PropertyValue::Select(v)) => self
+                    .options
+                    .as_ref()
+                    .map(|opts| opts.contains(v))
+                    .unwrap_or(true),
+                (PropertyType::MultiSelect, PropertyValue::MultiSelect(v)) => {
+                    if let Some(opts) = &self.options {
+                        v.iter().all(|val| opts.contains(val))
+                    } else {
+                        true
+                    }
+                }
+                (PropertyType::Url, PropertyValue::Url(v)) => {
+                    v.is_empty()
+                        || v.starts_with("http://")
+                        || v.starts_with("https://")
+                        || v.starts_with("mailto:")
+                }
+                _ => false,
+            }
+        }
+
+        /// Extracts the text representation of a value for display.
+        pub fn value_text(value: &PropertyValue) -> String {
+            match value {
+                PropertyValue::Text(s) | PropertyValue::Date(s) | PropertyValue::Select(s) | PropertyValue::Url(s) => s.clone(),
+                PropertyValue::Number(n) => n.to_string(),
+                PropertyValue::MultiSelect(v) => v.join(", "),
+            }
+        }
+    }
+}
