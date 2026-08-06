@@ -20,7 +20,7 @@ pub enum ValidationState {
 }
 
 /// Properties for the [`PropertyEditor`] component.
-#[derive(Props, PartialEq)]
+#[derive(Props, PartialEq, Clone)]
 pub struct PropertyEditorProps {
     /// Property definitions to render (drives ordering, grouping, labels).
     pub properties: Vec<PropertyDefinition>,
@@ -363,6 +363,7 @@ fn multiselect_field(
         for opt in &options {
             {
                 let opt_c = opt.clone();
+                let id_c_iter = id_c.clone();
                 let is_selected = selected_sig.read().contains(&opt_c);
                 rsx! {
                     button {
@@ -380,12 +381,12 @@ fn multiselect_field(
                             } else {
                                 vals.push(opt_c.clone());
                             }
-                            selected_sig.set(vals.clone());
+                            *selected_sig.write_unchecked() = vals.clone();
                             if let Some(cb) = cb_change.as_ref() {
-                                cb.call((id_c.clone(), PropertyValue::MultiSelect(vals)));
+                                cb.call((id_c_iter.clone(), PropertyValue::MultiSelect(vals)));
                             }
                             if let Some(cv) = cb_validate.as_ref() {
-                                cv.call((id_c.clone(), ValidationState::Valid));
+                                cv.call((id_c_iter.clone(), ValidationState::Valid));
                             }
                         },
                         "{opt_c}"

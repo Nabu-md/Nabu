@@ -14,14 +14,14 @@ use dioxus::prelude::*;
 #[component]
 pub fn SlashMenu(on_select: EventHandler<String>) -> Element {
     // Phase 0.4a: same item set as the LePtOS implementation; no redesign.
-    let items = vec![
-        "# Heading 1",
-        "## Heading 2",
-        "### Heading 3",
-        "📋 Kanban Board",
-        "📷 Vision OCR Scan",
-        "📦 Code Block / Sandbox",
-        "💡 Callout Box",
+    let items: Vec<String> = vec![
+        "# Heading 1".to_string(),
+        "## Heading 2".to_string(),
+        "### Heading 3".to_string(),
+        "📋 Kanban Board".to_string(),
+        "📷 Vision OCR Scan".to_string(),
+        "📦 Code Block / Sandbox".to_string(),
+        "💡 Callout Box".to_string(),
     ];
 
     let cb = on_select;

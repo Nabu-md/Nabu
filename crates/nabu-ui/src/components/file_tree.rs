@@ -28,12 +28,15 @@ use crate::components::contexts::{
 use crate::components::ui::dialog::ConfirmDialog;
 use crate::components::ui::feedback::{set_timeout, use_toast, ToastAction, ToastContext, ToastKind};
 use crate::components::ui::icons::{render_icon_view, Icon};
+use crate::components::ui::info::EmptyState;
+use crate::components::ui::feedback::SkeletonList;
 use crate::components::ui::menu::{MenuItem, MenuSeparator};
 use crate::history;
 use dioxus::prelude::*;
 use dioxus::web::WebEventExt;
 use std::collections::HashSet;
 use std::rc::Rc;
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
@@ -145,9 +148,9 @@ async fn load_tree() -> Vec<TreeNode> {
 // ── Action helpers (async, IPC-backed) ──────────────────────────────
 
 /// Commits an inline rename via the reversible rename commands.
-fn do_rename(ctx: TreeContext, workspace: WorkspaceContext, old_path: String, is_folder: bool) {
+fn do_rename(mut ctx: TreeContext, workspace: WorkspaceContext, old_path: String, is_folder: bool) {
     let new_name = ctx.rename_value.read().trim().to_string();
-    ctx.renaming.set(None);
+    *ctx.renaming.write_unchecked() = None;
     if new_name.is_empty() || new_name == display_name(&old_path) {
         return;
     }
@@ -184,7 +187,7 @@ fn do_rename(ctx: TreeContext, workspace: WorkspaceContext, old_path: String, is
 
 /// Moves the given vault-relative paths into `dest_folder` ("" = vault root).
 fn do_move_items(
-    ctx: TreeContext,
+    mut ctx: TreeContext,
     workspace: WorkspaceContext,
     items: Vec<String>,
     dest_folder: String,
@@ -231,7 +234,7 @@ fn do_move_items(
 }
 
 /// Duplicates a note/folder via the reversible duplicate command.
-fn do_duplicate(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
+fn do_duplicate(mut ctx: TreeContext, workspace: WorkspaceContext, path: String) {
     let toasts = ctx.toasts;
     let args = serde_wasm_bindgen::to_value(&serde_json::json!({
         "from": path.clone(),
@@ -254,7 +257,7 @@ fn do_duplicate(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
 }
 
 /// Archives a note/folder into the reserved `archive/` folder (reversible).
-fn do_archive(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
+fn do_archive(mut ctx: TreeContext, workspace: WorkspaceContext, path: String) {
     let toasts = ctx.toasts;
     let args = serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path.clone() })).unwrap();
     spawn_local(async move {
@@ -274,7 +277,7 @@ fn do_archive(ctx: TreeContext, workspace: WorkspaceContext, path: String) {
 
 /// Moves items to the trash (reversible), showing a single undo toast.
 fn do_delete(
-    ctx: TreeContext,
+    mut ctx: TreeContext,
     workspace: WorkspaceContext,
     history: history::HistoryContext,
     paths: Vec<String>,
@@ -336,13 +339,13 @@ fn reveal_in_fm(path: String) {
 }
 
 /// Commits the inline "new note / new folder" creation.
-fn do_create(ctx: TreeContext, workspace: WorkspaceContext) {
+fn do_create(mut ctx: TreeContext, workspace: WorkspaceContext) {
     let Some((parent, is_folder)) = ctx.creating.read().clone() else {
         return;
     };
     let name = ctx.create_value.read().trim().to_string();
-    ctx.creating.set(None);
-    ctx.create_value.set(String::new());
+    *ctx.creating.write_unchecked() = None;
+    *ctx.create_value.write_unchecked() = String::new();
     if name.is_empty() {
         return;
     }
@@ -436,14 +439,13 @@ pub fn FileTree() -> Element {
         let _ = ws_refresh.read();
         spawn_local(async move {
             let loaded = load_tree().await;
-            nodes_load.set(loaded);
-            loaded_load.set(true);
+            *nodes_load.write_unchecked() = loaded;
+            *loaded_load.write_unchecked() = true;
         });
     });
 
     // Reveal a note in the tree (from a tab's "Reveal" action): expand the
-    // ancestor folders and select the note. This is an app-lifetime listener
-    // (intentionally leaked, mirroring the undo-shortcut pattern in history.rs).
+    // ancestor folders and select the note. This is an app-lifetime listener.
     let expanded_reveal = expanded;
     let selected_reveal = selected;
     use_effect(move || {
@@ -465,7 +467,7 @@ pub fn FileTree() -> Element {
                     expanded_c.write_unchecked().insert(parent.clone());
                     parent = parent_dir(&parent);
                 }
-                selected_c.set(vec![path]);
+                *selected_c.write_unchecked() = vec![path];
             },
         ));
         let _ = window.add_event_listener_with_callback(
@@ -484,7 +486,7 @@ pub fn FileTree() -> Element {
             ev.prevent_default();
             let web = ev.data().as_web_event();
             web.prevent_default();
-            ctx_drag.drop_target.set(Some(String::new()));
+            *ctx_drag.drop_target.write_unchecked() = Some(String::new());
         }
     };
     let container_drop = move |ev: DragEvent| {
@@ -493,13 +495,13 @@ pub fn FileTree() -> Element {
         let Some(src) = ctx_drag.dragging.read().clone() else {
             return;
         };
-        ctx_drag.dragging.set(None);
-        ctx_drag.drop_target.set(None);
+        *ctx_drag.dragging.write_unchecked() = None;
+        *ctx_drag.drop_target.write_unchecked() = None;
         do_move_items(ctx_drag, ws_drag, vec![src], String::new());
     };
     let container_dragend = move |_ev: DragEvent| {
-        ctx_drag.dragging.set(None);
-        ctx_drag.drop_target.set(None);
+        *ctx_drag.dragging.write_unchecked() = None;
+        *ctx_drag.drop_target.write_unchecked() = None;
     };
 
     // Cmd/Ctrl+A selects all visible nodes; Escape clears the selection.
@@ -510,11 +512,11 @@ pub fn FileTree() -> Element {
             web.prevent_default();
             let nodes_snapshot = ctx_key.nodes.read().clone();
             let expanded_snapshot = ctx_key.expanded.read().clone();
-            ctx_key.selected.set(visible_paths(&nodes_snapshot, &expanded_snapshot));
+            *ctx_key.selected.write_unchecked() = visible_paths(&nodes_snapshot, &expanded_snapshot);
         } else if web.key() == "Escape" {
-            ctx_key.selected.set(Vec::new());
-            ctx_key.menu.set(None);
-            ctx_key.renaming.set(None);
+            *ctx_key.selected.write_unchecked() = Vec::new();
+            *ctx_key.menu.write_unchecked() = None;
+            *ctx_key.renaming.write_unchecked() = None;
         }
     };
 
@@ -535,30 +537,30 @@ pub fn FileTree() -> Element {
                 button {
                     class: "btn btn-sm btn-ghost",
                     title: "New note",
-                    aria-label: "New note",
+                    "aria-label": "New note",
                     onclick: move |_| {
-                        ctx.creating.set(Some((String::new(), false)));
-                        ctx.create_value.set(String::new());
+                        *ctx.creating.write_unchecked() = Some((String::new(), false));
+                        *ctx.create_value.write_unchecked() = String::new();
                     },
                     "+ Note",
                 }
                 button {
                     class: "btn btn-sm btn-ghost",
                     title: "New folder",
-                    aria-label: "New folder",
+                    "aria-label": "New folder",
                     onclick: move |_| {
-                        ctx.creating.set(Some((String::new(), true)));
-                        ctx.create_value.set(String::new());
+                        *ctx.creating.write_unchecked() = Some((String::new(), true));
+                        *ctx.create_value.write_unchecked() = String::new();
                     },
                     "+ Folder",
                 }
             }
 
             // ── Inline creation input ──
-            {move || {
-                let creating = ctx.creating.read().clone();
+            {
+                let creating = (*ctx.creating.read()).clone();
                 if creating.is_some() {
-                    let is_folder = creating.unwrap().1;
+                    let is_folder = creating.as_ref().unwrap().1;
                     let ctx_c = ctx;
                     let ws_c = workspace;
                     rsx! {
@@ -569,15 +571,15 @@ pub fn FileTree() -> Element {
                                 placeholder: if is_folder { "Folder name…" } else { "Note name…" },
                                 value: "{ctx_c.create_value.read()}",
                                 oninput: move |ev: FormEvent| {
-                                    ctx_c.create_value.set(ev.value());
+                                    *ctx_c.create_value.write_unchecked() = ev.value();
                                 },
                                 onkeydown: move |ev: KeyboardEvent| {
                                     let web = ev.data().as_web_event();
                                     if web.key() == "Enter" {
                                         do_create(ctx_c, ws_c);
                                     } else if web.key() == "Escape" {
-                                        ctx_c.creating.set(None);
-                                        ctx_c.create_value.set(String::new());
+                                        *ctx_c.creating.write_unchecked() = None;
+                                        *ctx_c.create_value.write_unchecked() = String::new();
                                     }
                                 },
                                 onclick: move |ev: MouseEvent| {
@@ -592,10 +594,10 @@ pub fn FileTree() -> Element {
                 } else {
                     rsx! {}
                 }
-            }}
+            }
 
             // ── Drop-into-root hint while dragging ──
-            {move || {
+            {
                 if ctx.dragging.read().is_some() {
                     let is_active = ctx.drop_target.read().as_deref() == Some("");
                     let cls = format!(
@@ -608,90 +610,89 @@ pub fn FileTree() -> Element {
                 } else {
                     rsx! {}
                 }
-            }}
+            }
 
             // ── Tree body ──
-            {move || {
+            {
                 if !*tree_loaded.read() {
                     rsx! {
-                        div { class: "px-2 py-1" }
-                        crate::components::ui::feedback::SkeletonList { rows: Some(6) }
+                        SkeletonList { rows: 6 }
                     }
                 } else if ctx.nodes.read().is_empty() {
                     rsx! {
-                        div { class: "px-2 py-3" }
-                        crate::components::ui::info::EmptyState {
+                        EmptyState {
                             icon: Some(Icon::FolderOpen),
                             title: "Your vault is empty".to_string(),
                             description: Some("Create your first note to start building your knowledge base.".to_string()),
-                            children: rsx! {
-                                button {
-                                    r#type: "button",
-                                    class: "btn btn-sm mt-2",
-                                    onclick: move |_| {
-                                        ctx.creating.set(Some((String::new(), false)));
-                                        ctx.create_value.set(String::new());
-                                    },
-                                    {render_icon_view(Icon::Plus)}
-                                    " New Note",
-                                }
+                        }
+                        button {
+                            r#type: "button",
+                            class: "btn btn-sm mt-2 mx-2",
+                            onclick: move |_| {
+                                *ctx.creating.write_unchecked() = Some((String::new(), false));
+                                *ctx.create_value.write_unchecked() = String::new();
                             },
+                            {render_icon_view(Icon::Plus)}
+                            " New Note",
                         }
                     }
                 } else {
                     let nodes_snapshot: Vec<TreeNode> =
                         ctx.nodes.read().iter().cloned().collect();
                     rsx! {
-                        ul { class: "tree-list flex-1 overflow-y-auto min-h-0 py-1" }
-                        for node in nodes_snapshot {
-                            TreeNodeView { node: node }
+                        ul {
+                            class: "tree-list flex-1 overflow-y-auto min-h-0 py-1",
+                            for node in nodes_snapshot {
+                                TreeNodeView { node: node }
+                            }
                         }
                     }
                 }
-            }}}
+            }
 
             // ── Batch action bar ──
-            {move || {
+            {
                 let count = ctx.selected.read().len();
-                if count < 2 {
-                    return rsx! {};
-                }
-                let toasts_b = ctx.toasts;
-                let ws_b = workspace;
-                let ctx_b = ctx;
-                rsx! {
-                    div {
-                        class: "batch-bar flex items-center gap-1 px-2 py-1 border-t border-gray-700 bg-gray-900",
-                        span { class: "text-xs text-gray-300 font-medium mr-1", "{count} selected" }
-                        button { class: "btn btn-sm", onclick: move |_| {
-                            let sel = ctx_b.selected.read().iter().cloned()
-                                .filter(|p| p.ends_with(".md")).collect::<Vec<_>>();
-                            for p in &sel {
-                                open_tab(ws_b, p);
-                            }
-                        }, "Open" }
-                        button { class: "btn btn-sm", onclick: move |_| {
-                            ctx_b.move_picker.set(Some(ctx_b.selected.read().clone()));
-                        }, "Move to…" }
-                        button { class: "btn btn-sm", onclick: move |_| {
-                            let text = ctx_b.selected.read().join("\n");
-                            copy_text(text, "Copy Paths".to_string(), toasts_b);
-                        }, "Copy Paths" }
-                        button { class: "btn btn-sm btn-danger", onclick: move |_| {
-                            ctx_b.confirm_targets.set(ctx_b.selected.read().clone());
-                            ctx_b.confirm_open.set(true);
-                        }, "Delete" }
-                        button { class: "btn btn-sm btn-ghost", aria-label: "Clear selection", onclick: move |_| {
-                            ctx_b.selected.set(Vec::new());
-                        } }
-                        {render_icon_view(Icon::X)}
+                if count >= 2 {
+                    let toasts_b = ctx.toasts;
+                    let ws_b = workspace;
+                    let ctx_b = ctx;
+                    rsx! {
+                        div {
+                            class: "batch-bar flex items-center gap-1 px-2 py-1 border-t border-gray-700 bg-gray-900",
+                            span { class: "text-xs text-gray-300 font-medium mr-1", "{count} selected" }
+                            button { class: "btn btn-sm", onclick: move |_| {
+                                let sel: Vec<String> = ctx_b.selected.read().iter().cloned()
+                                    .filter(|p| p.ends_with(".md")).collect();
+                                for p in &sel {
+                                    open_tab(ws_b, p);
+                                }
+                            }, "Open" }
+                            button { class: "btn btn-sm", onclick: move |_| {
+                                *ctx_b.move_picker.write_unchecked() = Some(ctx_b.selected.read().clone());
+                            }, "Move to…" }
+                            button { class: "btn btn-sm", onclick: move |_| {
+                                let text = ctx_b.selected.read().join("\n");
+                                copy_text(text, "Copy Paths".to_string(), toasts_b);
+                            }, "Copy Paths" }
+                            button { class: "btn btn-sm btn-danger", onclick: move |_| {
+                                *ctx_b.confirm_targets.write_unchecked() = ctx_b.selected.read().clone();
+                                *ctx_b.confirm_open.write_unchecked() = true;
+                            }, "Delete" }
+                            button { class: "btn btn-sm btn-ghost", "aria-label": "Clear selection", onclick: move |_| {
+                                *ctx_b.selected.write_unchecked() = Vec::new();
+                            } }
+                            {render_icon_view(Icon::X)}
+                        }
                     }
+                } else {
+                    rsx! {}
                 }
-            }}}
+            }
 
             // ── Move-to folder picker ──
-            {move || {
-                let picker = ctx.move_picker.read().clone();
+            {
+                let picker = (*ctx.move_picker.read()).clone();
                 if let Some(items) = picker {
                     let items_count = items.len();
                     let ctx_p = ctx;
@@ -699,10 +700,11 @@ pub fn FileTree() -> Element {
                     let nodes_for_folders = ctx.nodes.read().clone();
                     let mut folders = Vec::new();
                     collect_folders(&nodes_for_folders, 0, &mut folders);
+                    let items_vr = items.clone();
                     rsx! {
                         div {
                             class: "dialog-overlay",
-                            onclick: move |_| { ctx_p.move_picker.set(None); },
+                            onclick: move |_| { *ctx_p.move_picker.write_unchecked() = None; },
                             div {
                                 class: "menu move-picker",
                                 onclick: move |ev: MouseEvent| {
@@ -715,24 +717,25 @@ pub fn FileTree() -> Element {
                                 MenuItem {
                                     icon: Some(Icon::Folder),
                                     label: "Vault root".to_string(),
-                                    on_select: move |_| {
-                                        ctx_p.move_picker.set(None);
-                                        do_move_items(ctx_p, ws_p, items.clone(), String::new());
-                                    },
+                                    on_select: Callback::new(move |_| {
+                                        *ctx_p.move_picker.write_unchecked() = None;
+                                        do_move_items(ctx_p, ws_p, items_vr.clone(), String::new());
+                                    }),
                                 }
                                 MenuSeparator {}
                                 for (folder_path, depth) in &folders {
                                     {
                                         let fp = folder_path.clone();
+                                        let items_f = items.clone();
                                         rsx! {
                                             MenuItem {
                                                 key: "{fp}",
                                                 icon: Some(Icon::Folder),
                                                 label: format!("{}{}", "  ".repeat(*depth), fp),
-                                                on_select: move |_| {
-                                                    ctx_p.move_picker.set(None);
-                                                    do_move_items(ctx_p, ws_p, items.clone(), fp.clone());
-                                                },
+                                                on_select: Callback::new(move |_| {
+                                                    *ctx_p.move_picker.write_unchecked() = None;
+                                                    do_move_items(ctx_p, ws_p, items_f.clone(), fp.clone());
+                                                }),
                                             }
                                         }
                                     }
@@ -743,17 +746,15 @@ pub fn FileTree() -> Element {
                 } else {
                     rsx! {}
                 }
-            }}}
+            }
 
             // ── Confirmation dialog for batch delete ──
             {
-                let confirm_msg = {
-                    let n = ctx.confirm_targets.read().len();
-                    if n == 1 {
-                        "This item will be moved to Trash. You can restore it or undo.".to_string()
-                    } else {
-                        format!("These {n} items will be moved to Trash. You can restore them or undo.")
-                    }
+                let n = ctx.confirm_targets.read().len();
+                let confirm_msg = if n == 1 {
+                    "This item will be moved to Trash. You can restore it or undo.".to_string()
+                } else {
+                    format!("These {n} items will be moved to Trash. You can restore them or undo.")
                 };
                 let ctx_confirm = ctx;
                 let ws_confirm = workspace;
@@ -762,22 +763,27 @@ pub fn FileTree() -> Element {
                     let targets = ctx_confirm.confirm_targets.read().clone();
                     do_delete(ctx_confirm, ws_confirm, hist_confirm, targets);
                 };
-                rsx! {
-                    ConfirmDialog {
-                        open: confirm_open,
-                        title: "Move to Trash?".to_string(),
-                        message: confirm_msg,
-                        confirm_label: Some("Move to Trash"),
-                        cancel_label: Some("Cancel"),
-                        danger: true,
-                        on_confirm: Some(confirm_action),
+                let confirm_action_cb: Option<EventHandler<()>> = Some(Callback::new(confirm_action));
+                if *ctx.confirm_open.read() {
+                    rsx! {
+                        ConfirmDialog {
+                            open: confirm_open,
+                            title: "Move to Trash?".to_string(),
+                            message: confirm_msg,
+                            confirm_label: Some("Move to Trash"),
+                            cancel_label: Some("Cancel"),
+                            danger: true,
+                            on_confirm: confirm_action_cb,
+                        }
                     }
+                } else {
+                    rsx! {}
                 }
             }
 
             // ── Context menu ──
-            {move || {
-                let menu_state = ctx.menu.read().clone();
+            {
+                let menu_state = (*ctx.menu.read()).clone();
                 if let Some(m) = menu_state {
                     let path = m.path.clone();
                     let is_folder = m.is_folder;
@@ -787,104 +793,104 @@ pub fn FileTree() -> Element {
 
                     // Rename
                     let path_rename = path.clone();
-                    let rename_cb = move |_| {
-                        ctx_m.rename_value.set(display_name(&path_rename));
-                        ctx_m.renaming.set(Some(path_rename.clone()));
-                        ctx_m.menu.set(None);
-                    };
+                    let rename_cb = Callback::new(move |_| {
+                        *ctx_m.rename_value.write_unchecked() = display_name(&path_rename);
+                        *ctx_m.renaming.write_unchecked() = Some(path_rename.clone());
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // New note
                     let parent_note = parent.clone();
-                    let new_note_cb = move |_| {
-                        ctx_m.creating.set(Some((parent_note.clone(), false)));
-                        ctx_m.create_value.set(String::new());
+                    let new_note_cb = Callback::new(move |_| {
+                        *ctx_m.creating.write_unchecked() = Some((parent_note.clone(), false));
+                        *ctx_m.create_value.write_unchecked() = String::new();
                         ctx_m.expanded.write_unchecked().insert(parent_note.clone());
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // New folder
                     let parent_folder = parent.clone();
-                    let new_folder_cb = move |_| {
-                        ctx_m.creating.set(Some((parent_folder.clone(), true)));
-                        ctx_m.create_value.set(String::new());
+                    let new_folder_cb = Callback::new(move |_| {
+                        *ctx_m.creating.write_unchecked() = Some((parent_folder.clone(), true));
+                        *ctx_m.create_value.write_unchecked() = String::new();
                         ctx_m.expanded.write_unchecked().insert(parent_folder.clone());
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Delete
                     let path_del = path.clone();
-                    let del_cb = move |_| {
-                        ctx_m.confirm_targets.set(vec![path_del.clone()]);
-                        ctx_m.confirm_open.set(true);
-                        ctx_m.menu.set(None);
-                    };
+                    let del_cb = Callback::new(move |_| {
+                        *ctx_m.confirm_targets.write_unchecked() = vec![path_del.clone()];
+                        *ctx_m.confirm_open.write_unchecked() = true;
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Duplicate
                     let path_dup = path.clone();
-                    let dup_cb = move |_| {
+                    let dup_cb = Callback::new(move |_| {
                         do_duplicate(ctx_m, ws_m, path_dup.clone());
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Move to…
                     let path_mv = path.clone();
-                    let mv_cb = move |_| {
-                        ctx_m.move_picker.set(Some(vec![path_mv.clone()]));
-                        ctx_m.menu.set(None);
-                    };
+                    let mv_cb = Callback::new(move |_| {
+                        *ctx_m.move_picker.write_unchecked() = Some(vec![path_mv.clone()]);
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Archive
                     let path_arch = path.clone();
-                    let arch_cb = move |_| {
+                    let arch_cb = Callback::new(move |_| {
                         do_archive(ctx_m, ws_m, path_arch.clone());
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Copy path
                     let path_copy = path.clone();
-                    let copy_path_cb = move |_| {
+                    let copy_path_cb = Callback::new(move |_| {
                         copy_text(path_copy.clone(), "Copy Path".to_string(), ctx_m.toasts);
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Copy wikilink
                     let path_wiki = path.clone();
-                    let copy_wiki_cb = move |_| {
+                    let copy_wiki_cb = Callback::new(move |_| {
                         let link = format!("[[{}]]", file_stem(&display_name(&path_wiki)));
                         copy_text(link, "Copy Wikilink".to_string(), ctx_m.toasts);
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Reveal
                     let path_reveal = path.clone();
-                    let reveal_cb = move |_| {
+                    let reveal_cb = Callback::new(move |_| {
                         reveal_in_fm(path_reveal.clone());
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     // Open in new window (future)
-                    let new_window_cb = move |_| {
+                    let new_window_cb = Callback::new(move |_| {
                         ctx_m.toasts.info(
                             "Coming soon",
                             "Opening a note in a new window is on the roadmap.",
                         );
-                        ctx_m.menu.set(None);
-                    };
+                        *ctx_m.menu.write_unchecked() = None;
+                    });
 
                     rsx! {
                         div {
                             class: "fixed inset-0 z-40",
-                            onclick: move |_| { ctx_m.menu.set(None); },
+                            onclick: move |_| { *ctx_m.menu.write_unchecked() = None; },
                             oncontextmenu: move |ev: MouseEvent| {
                                 ev.data().as_web_event().prevent_default();
-                                ctx_m.menu.set(None);
+                                *ctx_m.menu.write_unchecked() = None;
                             },
                         }
                         div {
                             class: "menu fixed z-50",
                             role: "menu",
                             style: "left: {m.x}px; top: {m.y}px;",
-                            onclick: move |_| { ctx_m.menu.set(None); },
+                            onclick: move |_| { *ctx_m.menu.write_unchecked() = None; },
                             MenuItem { label: "New Note".to_string(), on_select: new_note_cb }
                             MenuItem { label: "New Folder".to_string(), on_select: new_folder_cb }
                             MenuSeparator {}
@@ -903,7 +909,7 @@ pub fn FileTree() -> Element {
                 } else {
                     rsx! {}
                 }
-            }}
+            }
         }
     }
 }
@@ -927,17 +933,18 @@ fn TreeNodeView(node: TreeNode) -> Element {
     // Single / Cmd+Click / Shift+Click selection + open / expand.
     let ctx_click = ctx;
     let ws_click = workspace;
+    let path_click = path.clone();
     let on_row_click = move |ev: MouseEvent| {
         let web = ev.data().as_web_event();
         if web.meta_key() || web.ctrl_key() {
             let mut sel = ctx_click.selected.read().clone();
-            if sel.contains(&path) {
-                sel.retain(|p| *p != path);
+            if sel.contains(&path_click) {
+                sel.retain(|p| *p != path_click);
             } else {
-                sel.push(path.clone());
+                sel.push(path_click.clone());
             }
-            ctx_click.selected.set(sel);
-            ctx_click.anchor.set(Some(path.clone()));
+            *ctx_click.selected.write_unchecked() = sel;
+            *ctx_click.anchor.write_unchecked() = Some(path_click.clone());
             return;
         }
         if web.shift_key() {
@@ -947,29 +954,30 @@ fn TreeNodeView(node: TreeNode) -> Element {
             if let Some(a) = ctx_click.anchor.read().clone() {
                 if let (Some(ai), Some(bi)) = (
                     flat.iter().position(|p| *p == a),
-                    flat.iter().position(|p| *p == path),
+                    flat.iter().position(|p| *p == path_click.as_str()),
                 ) {
                     let (lo, hi) = if ai < bi { (ai, bi) } else { (bi, ai) };
-                    ctx_click.selected.set(flat[lo..=hi].to_vec());
+                    *ctx_click.selected.write_unchecked() = flat[lo..=hi].to_vec();
                     return;
                 }
             }
-            ctx_click.selected.set(vec![path.clone()]);
-            ctx_click.anchor.set(Some(path.clone()));
+            *ctx_click.selected.write_unchecked() = vec![path_click.clone()];
+            *ctx_click.anchor.write_unchecked() = Some(path_click.clone());
             return;
         }
-        ctx_click.selected.set(vec![path.clone()]);
-        ctx_click.anchor.set(Some(path.clone()));
+        *ctx_click.selected.write_unchecked() = vec![path_click.clone()];
+        *ctx_click.anchor.write_unchecked() = Some(path_click.clone());
         if is_folder {
-            ctx_click.expanded.with_mut(|set| {
-                if set.contains(&path) {
-                    set.remove(&path);
+            {
+                let mut set = ctx_click.expanded.write_unchecked();
+                if set.contains(&path_click) {
+                    set.remove(&path_click);
                 } else {
-                    set.insert(path.clone());
+                    set.insert(path_click.clone());
                 }
-            });
+            }
         } else {
-            open_tab(ws_click, &path);
+            open_tab(ws_click, &path_click);
         }
     };
 
@@ -979,8 +987,8 @@ fn TreeNodeView(node: TreeNode) -> Element {
         let web = ev.data().as_web_event();
         web.stop_propagation();
         if ctx.renaming.read().is_none() {
-            ctx.rename_value.set(display_name(&path_dbl));
-            ctx.renaming.set(Some(path_dbl.clone()));
+            *ctx.rename_value.write_unchecked() = display_name(&path_dbl);
+            *ctx.renaming.write_unchecked() = Some(path_dbl.clone());
         }
     };
 
@@ -991,22 +999,22 @@ fn TreeNodeView(node: TreeNode) -> Element {
         web.prevent_default();
         web.stop_propagation();
         if !ctx.selected.read().contains(&path_menu) {
-            ctx.selected.set(vec![path_menu.clone()]);
-            ctx.anchor.set(Some(path_menu.clone()));
+            *ctx.selected.write_unchecked() = vec![path_menu.clone()];
+            *ctx.anchor.write_unchecked() = Some(path_menu.clone());
         }
-        ctx.menu.set(Some(MenuState {
+        *ctx.menu.write_unchecked() = Some(MenuState {
             x: web.client_x() as f64,
             y: web.client_y() as f64,
             path: path_menu.clone(),
             is_folder,
-        }));
+        });
     };
 
     // ── Drag source ──
     let path_drag = path.clone();
     let on_dragstart = move |ev: DragEvent| {
         let web = ev.data().as_web_event();
-        ctx.dragging.set(Some(path_drag.clone()));
+        *ctx.dragging.write_unchecked() = Some(path_drag.clone());
         if let Some(dt) = web.data_transfer() {
             let _ = dt.set_data("application/x-nabu-note", &path_drag);
             let _ = dt.set_data("text/plain", &path_drag);
@@ -1014,8 +1022,8 @@ fn TreeNodeView(node: TreeNode) -> Element {
         }
     };
     let on_dragend = move |_ev: DragEvent| {
-        ctx.dragging.set(None);
-        ctx.drop_target.set(None);
+        *ctx.dragging.write_unchecked() = None;
+        *ctx.drop_target.write_unchecked() = None;
     };
 
     // ── Drop target: folders accept drops into themselves; notes into their
@@ -1033,7 +1041,7 @@ fn TreeNodeView(node: TreeNode) -> Element {
         } else {
             parent_dir(&path_over)
         };
-        ctx.drop_target.set(Some(dest));
+        *ctx.drop_target.write_unchecked() = Some(dest);
     };
     let path_drop = path.clone();
     let on_drop = move |ev: DragEvent| {
@@ -1043,8 +1051,8 @@ fn TreeNodeView(node: TreeNode) -> Element {
         let Some(src) = ctx.dragging.read().clone() else {
             return;
         };
-        ctx.dragging.set(None);
-        ctx.drop_target.set(None);
+        *ctx.dragging.write_unchecked() = None;
+        *ctx.drop_target.write_unchecked() = None;
         let dest = if is_folder {
             path_drop.clone()
         } else {
@@ -1055,9 +1063,10 @@ fn TreeNodeView(node: TreeNode) -> Element {
 
     // Focus the inline rename input when this row enters rename mode.
     let path_focus = path.clone();
+    let input_ref_focus = input_ref.clone();
     use_effect(move || {
         if ctx.renaming.read().as_deref() == Some(path_focus.as_str()) {
-            let input_ref_f = input_ref.clone();
+            let input_ref_f = input_ref_focus.clone();
             set_timeout(
                 move || {
                     if let Some(el) = input_ref_f.borrow().as_ref() {
@@ -1087,6 +1096,11 @@ fn TreeNodeView(node: TreeNode) -> Element {
         "closed"
     };
     let has_children = is_folder && !children.is_empty();
+    let aria_expanded = if is_folder {
+        if chevron_state == "open" { "true" } else { "false" }
+    } else {
+        ""
+    };
 
     rsx! {
         li {
@@ -1104,11 +1118,7 @@ fn TreeNodeView(node: TreeNode) -> Element {
                 oncontextmenu: on_contextmenu,
                 role: "treeitem",
                 "aria-selected": if selected_now { "true" } else { "false" },
-                "aria-expanded": if is_folder {
-                    if ctx.expanded.read().contains(&path) { "true" } else { "false" }
-                } else {
-                    ""
-                },
+                "aria-expanded": aria_expanded,
 
                 // Chevron
                 span {
@@ -1130,8 +1140,9 @@ fn TreeNodeView(node: TreeNode) -> Element {
                 {render_icon_view(if is_folder { Icon::Folder } else { Icon::FileText })}
 
                 // Label or rename input
-                {move || {
-                    if ctx.renaming.read().as_deref() == Some(path.as_str()) {
+                {
+                    let renaming = ctx.renaming.read().as_deref() == Some(path.as_str());
+                    if renaming {
                         let ctx_r = ctx;
                         let ws_r = workspace;
                         let input_ref_r = input_ref.clone();
@@ -1148,14 +1159,14 @@ fn TreeNodeView(node: TreeNode) -> Element {
                                 },
                                 value: "{ctx_r.rename_value.read()}",
                                 oninput: move |ev: FormEvent| {
-                                    ctx_r.rename_value.set(ev.value());
+                                    *ctx_r.rename_value.write_unchecked() = ev.value();
                                 },
                                 onkeydown: move |ev: KeyboardEvent| {
                                     let web = ev.data().as_web_event();
                                     if web.key() == "Enter" {
                                         do_rename(ctx_r, ws_r, path.clone(), is_folder);
                                     } else if web.key() == "Escape" {
-                                        ctx_r.renaming.set(None);
+                                        *ctx_r.renaming.write_unchecked() = None;
                                     }
                                 },
                                 onclick: move |ev: MouseEvent| {
@@ -1171,16 +1182,22 @@ fn TreeNodeView(node: TreeNode) -> Element {
                             span { class: "tree-name truncate flex-1 min-w-0", title: "{path}", "{name}" }
                         }
                     }
-                }}
+                }
             }
 
             // Children (recursive)
-            if is_folder && has_children && chevron_state == "open" {
-                rsx! {
-                    ul { class: "tree-children ml-3 border-l border-gray-800" }
-                    for child in &children {
-                        TreeNodeView { node: child.clone() }
+            {
+                if is_folder && has_children && chevron_state == "open" {
+                    rsx! {
+                        ul {
+                            class: "tree-children ml-3 border-l border-gray-800",
+                            for child in &children {
+                                TreeNodeView { node: child.clone() }
+                            }
+                        }
                     }
+                } else {
+                    rsx! {}
                 }
             }
         }

@@ -11,17 +11,14 @@
 //! - Cmd/Ctrl + B → `**bold**`
 //! - Cmd/Ctrl + I → `*italic*`
 //! - `/` (at line start) → opens the [`SlashMenu`]
-//!
-//! This is the Dioxus port of the LePtOS `note_editor.rs` — behaviour is
-//! preserved identically; only the framework glue changes.
 
-use crate::components::contexts::{use_save_status, use_workspace, SaveStatusType, WorkspaceContext};
+use crate::components::contexts::{use_save_status, use_workspace, SaveStatusType};
 use crate::components::editor::slash_menu::SlashMenu;
 use crate::components::note_view::NoteView;
-use crate::components::ui::feedback::{set_timeout, use_toast, ToastContext};
-use crate::components::ui::icons::{render_icon_view, Icon};
+use crate::components::ui::feedback::{set_timeout, use_toast, SkeletonList};
 use dioxus::prelude::*;
 use dioxus::web::WebEventExt;
+use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
@@ -29,7 +26,7 @@ use wasm_bindgen_futures::spawn_local;
 const NABU_NOTE_MIME: &str = "application/x-nabu-note";
 
 /// Debounce delay (ms) between the last keystroke and an autosave.
-const AUTOSAVE_DELAY_MS: u64 = 800;
+const AUTOSAVE_DELAY_MS: u32 = 800;
 
 /// Returns `true` when the file name (extension included) looks like an image.
 fn is_image(name: &str) -> bool {
@@ -48,29 +45,23 @@ pub fn NoteEditor() -> Element {
 
     // ── Content & edit state ──
     let content = use_signal(String::new);
-    let dirty = use_signal(|| 0u32); // monotonic counter; bumped on every edit
-    let has_unsaved = use_signal(|| false); // semantic "buffer ≠ disk" flag
+    let dirty = use_signal(|| 0u32);
+    let has_unsaved = use_signal(|| false);
     let note_loaded = use_signal(|| false);
     let show_menu = use_signal(|| false);
 
-    // ── Load note content on mount ──
-    //
-    // The active path is captured at render time. When it changes, the effect
-    // below re-runs (it reads `ws.active_path`) and re-loads.
+    // ── Load note content on mount / path change ──
     let content_for_load = content;
     let loaded_for_load = note_loaded;
     let has_unsaved_guard = has_unsaved;
     let ws_for_load = ws;
     use_effect(move || {
-        // Read active_path — this creates a reactive dependency so the effect
-        // re-runs whenever the active note changes.
         let path = ws_for_load.active_path.peek().clone().unwrap_or_default();
         if path.is_empty() {
             return;
         }
-        // Don't clobber an actively-edited buffer.
-        if !has_unsaved_guard.peek() {
-            loaded_for_load.set(false);
+        if !*has_unsaved_guard.peek() {
+            *loaded_for_load.write_unchecked() = false;
             let content_c = content_for_load;
             let loaded_c = loaded_for_load;
             spawn_local(async move {
@@ -79,42 +70,32 @@ pub fn NoteEditor() -> Element {
                 let result = crate::ipc::tauri_invoke("note_read", args).await;
                 if let Ok(saved) = serde_wasm_bindgen::from_value::<String>(result) {
                     if !saved.is_empty() {
-                        content_c.set(saved);
+                        *content_c.write_unchecked() = saved;
                     }
                 }
-                loaded_c.set(true);
+                *loaded_c.write_unchecked() = true;
             });
         }
     });
 
     // ── Debounced autosave ──
-    //
-    // Each edit bumps `dirty`; an effect observes it and schedules a single
-    // save after the debounce window.
     let content_for_save = content;
     let save_status_save = save_status;
     let ws_for_save = ws;
     let dirty_for_save = dirty;
     let has_unsaved_for_save = has_unsaved;
+    let toasts_save = toasts;
 
-    // This effect is `FnMut`: it reads `dirty` every time the effect re-runs,
-    // and re-runs whenever `dirty` changes (the signal is tracked).
     use_effect(move || {
-        // Read the dirty counter — tracked, so the effect re-runs on every bump.
         let _ = dirty_for_save.read();
         let path = ws_for_save.active_path.peek().clone().unwrap_or_default();
-        let cur_content = content_for_save.peek().clone();
         let content_arc = content_for_save;
 
         set_timeout(
             move || {
-                // Snapshot again inside the timer in case the buffer changed
-                // between scheduling and firing.
                 let current = content_arc.peek().clone();
-                let status = save_status_save.status;
-                status.set(SaveStatusType::Saving);
-                let detail = save_status_save.last_saved;
-                detail.set(format!("Saving {}", path));
+                *save_status_save.status.write_unchecked() = SaveStatusType::Saving;
+                *save_status_save.last_saved.write_unchecked() = Some(format!("Saving {}", path));
 
                 let path_save = path.clone();
                 spawn_local(async move {
@@ -126,31 +107,26 @@ pub fn NoteEditor() -> Element {
                     let result = crate::ipc::tauri_invoke("note_save", args).await;
                     match serde_wasm_bindgen::from_value::<()>(result) {
                         Ok(()) => {
-                            save_status_save.status.set(SaveStatusType::Saved);
-                            save_status_save.last_saved.set(path_save);
-                            has_unsaved_for_save.set(false);
+                            *save_status_save.status.write_unchecked() = SaveStatusType::Saved;
+                            *save_status_save.last_saved.write_unchecked() = Some(path_save);
+                            *has_unsaved_for_save.write_unchecked() = false;
                         }
                         Err(_) => {
-                            save_status_save.status.set(SaveStatusType::Error);
-                            toasts.error("Save failed", "Editing continues locally; will retry on next change.");
+                            *save_status_save.status.write_unchecked() = SaveStatusType::Error;
+                            toasts_save.error("Save failed", "Editing continues locally; will retry on next change.");
                         }
                     }
                 });
             },
-            std::time::Duration::from_millis(AUTOSAVE_DELAY_MS as i64),
+            AUTOSAVE_DELAY_MS,
         );
     });
 
     // ── Periodic retry of a failed save ──
-    //
-    // If the status is still Error after 5 seconds, bump the dirty counter
-    // to re-attempt.
     use_effect(move || {
-        // Read status — tracked.
         let _ = save_status.status.read();
         if *save_status.status.read() == SaveStatusType::Error {
-            save_status.status.set(SaveStatusType::Retrying);
-            dirty.set(dirty.peek().wrapping_add(1));
+            *dirty.write_unchecked() = dirty.peek().wrapping_add(1);
         }
     });
 
@@ -158,105 +134,95 @@ pub fn NoteEditor() -> Element {
     let textarea_ref: Rc<std::cell::RefCell<Option<web_sys::HtmlTextAreaElement>>> =
         use_hook(|| Rc::new(std::cell::RefCell::new(None)));
 
-    let ctx_for_menu = use_context::<crate::components::contexts::WorkspaceContext>();
+    // ── Slash menu callback ──
+    let on_slash: EventHandler<String> = Callback::new(move |item: String| {
+        *show_menu.write_unchecked() = false;
+        let _ = item;
+    });
 
-    // ── Slash menu ──
-    let ctx_menu = ctx_for_menu;
-    let path_menu = ws.active_path.peek().clone().unwrap_or_default();
-    let on_slash = move |item: String| {
-        show_menu.set(false);
-        let ctx_menu_inner = ctx_menu;
-        let ws_menu = ws;
-        let path_menu_inner = path_menu.clone();
-        set_timeout(
-            move || {
-                let label = item.clone();
-                let _ = (&label, &ctx_menu_inner, &ws_menu, &path_menu_inner);
-            },
-            0,
-        );
-    };
+    let active_label = ws.active_path.peek().as_deref().unwrap_or("new_note.md").to_string();
+
+    // Clone refs for each move closure (Rc is not Copy in Rust 2024)
+    let textarea_mount = textarea_ref.clone();
+    let textarea_key = textarea_ref.clone();
+    let textarea_drop = textarea_ref.clone();
 
     rsx! {
-        div { class: "note-editor relative h-full flex flex-col" }
-        div { class: "flex items-center justify-between px-1 pb-1 text-xs text-gray-500" }
-        span { class: "truncate", "{ws.active_path.read().as_deref().unwrap_or("new_note.md")}" }
+        div {
+            class: "note-editor relative h-full flex flex-col",
 
-        {move || {
-            if !*note_loaded.read() {
-                rsx! {
-                    div { class: "flex-1 flex items-center justify-center",
-                        div { class: "w-2/3" }
-                        crate::components::ui::feedback::SkeletonList { rows: Some(6) }
-                    }
-                }
-            } else {
-                let drag_hover = show_menu.read().to_string();
-                let _ = drag_hover; // suppress unused warning
-                rsx! {
-                    div { class: "relative flex-1 flex flex-col" }
-                    textarea {
-                        class: "editor-textarea flex-1 resize-none",
-                        onmounted: move |ev: MountedEvent| {
-                            let web = ev.data().as_web_event();
-                            if let Ok(ta) = web.dyn_into::<web_sys::HtmlTextAreaElement>() {
-                                *textarea_ref.borrow_mut() = Some(ta);
-                            }
-                        },
-                        value: "{content.read()}",
-                        onclick: move |ev: MouseEvent| {
-                            let web = ev.data().as_web_event();
-                            if web.key() == "/" {
-                                show_menu.set(true);
-                            }
-                        },
-                        oninput: move |ev: FormEvent| {
-                            let val = ev.value();
-                            content.set(val);
-                            dirty.set(dirty.peek().wrapping_add(1));
-                            has_unsaved.set(true);
-                        },
-                        onkeydown: move |ev: KeyboardEvent| {
-                            let web = ev.data().as_web_event();
-                            let meta = web.meta_key() || web.ctrl_key();
-                            if meta && web.key().eq_ignore_ascii_case("b") {
-                                web.prevent_default();
-                                wrap_selection(content, &textarea_ref, "**", "**");
-                            } else if meta && web.key().eq_ignore_ascii_case("i") {
-                                web.prevent_default();
-                                wrap_selection(content, &textarea_ref, "*", "*");
-                            }
-                        },
-                        ondragover: move |ev: DragEvent| {
-                            ev.prevent_default();
-                        },
-                        ondrop: move |ev: DragEvent| {
-                            ev.prevent_default();
-                            handle_editor_drop(ev, content, &textarea_ref, dirty);
-                        },
-                    }
+            div {
+                class: "flex items-center justify-between px-1 pb-1 text-xs text-gray-500",
+                span { class: "truncate", "{active_label}" }
+            }
 
-                    // Live preview (NoteView renders the markdown source).
-                    {move || {
-                        let c = content.read().clone();
-                        rsx! {
-                            NoteView { content: Signal::new(c) }
+            {
+                if !*note_loaded.read() {
+                    rsx! {
+                        div { class: "flex-1 flex items-center justify-center" }
+                        SkeletonList { rows: 6 }
+                    }
+                } else {
+                    rsx! {
+                        div {
+                            class: "relative flex-1 flex flex-col",
+                            textarea {
+                                class: "editor-textarea flex-1 resize-none",
+                                onmounted: move |ev: MountedEvent| {
+                                    let web = ev.data().as_web_event();
+                                    if let Ok(ta) = web.dyn_into::<web_sys::HtmlTextAreaElement>() {
+                                        *textarea_mount.borrow_mut() = Some(ta);
+                                    }
+                                },
+                                value: "{content.read()}",
+                                oninput: move |ev: FormEvent| {
+                                    let val = ev.value();
+                                    *content.write_unchecked() = val;
+                                    *dirty.write_unchecked() = dirty.peek().wrapping_add(1);
+                                    *has_unsaved.write_unchecked() = true;
+                                },
+                                onkeydown: move |ev: KeyboardEvent| {
+                                    let web = ev.data().as_web_event();
+                                    let key = web.key();
+                                    let meta = web.meta_key() || web.ctrl_key();
+                                    if key == "/" {
+                                        *show_menu.write_unchecked() = true;
+                                    }
+                                    if meta && key.eq_ignore_ascii_case("b") {
+                                        web.prevent_default();
+                                        wrap_selection(content, &textarea_key, "**", "**");
+                                    } else if meta && key.eq_ignore_ascii_case("i") {
+                                        web.prevent_default();
+                                        wrap_selection(content, &textarea_key, "*", "*");
+                                    }
+                                },
+                                ondragover: move |ev: DragEvent| {
+                                    ev.prevent_default();
+                                },
+                                ondrop: move |ev: DragEvent| {
+                                    ev.prevent_default();
+                                    handle_editor_drop(ev, content, &textarea_drop, dirty);
+                                },
+                            }
+
+                            // Live preview
+                            NoteView { content: content }
                         }
-                    }}
+                    }
                 }
             }
-        }}
 
-        // Slash menu
-        {move || {
-            if *show_menu.read() {
-                rsx! {
-                    SlashMenu { on_select: on_slash }
+            // Slash menu
+            {
+                if *show_menu.read() {
+                    rsx! {
+                        SlashMenu { on_select: on_slash }
+                    }
+                } else {
+                    rsx! {}
                 }
-            } else {
-                rsx! {}
             }
-        }}
+        }
     }
 }
 
@@ -267,7 +233,8 @@ fn wrap_selection(
     before: &str,
     after: &str,
 ) {
-    let Some(ta) = textarea_ref.borrow().as_ref() else {
+    let ta_ref = textarea_ref.borrow();
+    let Some(ta) = ta_ref.as_ref() else {
         return;
     };
     let start = ta.selection_start().ok().flatten().unwrap_or(0) as usize;
@@ -275,7 +242,7 @@ fn wrap_selection(
     let mut value = content.peek().clone();
     let selected: String = value[start..end].to_string();
     value.replace_range(start..end, &format!("{before}{selected}{after}"));
-    content.set(value);
+    *content.write_unchecked() = value;
     let caret = (end + before.len() + after.len()) as u32;
     let _ = ta.set_selection_range(caret, caret);
 }
@@ -341,17 +308,18 @@ fn insert_at_cursor(
     snippet: String,
     dirty: Signal<u32>,
 ) {
-    let Some(ta) = textarea_ref.borrow().as_ref() else {
-        content.with_mut(|c| c.push_str(&snippet));
-        dirty.set(dirty.peek().wrapping_add(1));
+    let ta_ref = textarea_ref.borrow();
+    let Some(ta) = ta_ref.as_ref() else {
+        content.write_unchecked().push_str(&snippet);
+        *dirty.write_unchecked() = dirty.peek().wrapping_add(1);
         return;
     };
     let start = ta.selection_start().ok().flatten().unwrap_or(0) as usize;
     let end = ta.selection_end().ok().flatten().unwrap_or(start as u32) as usize;
     let mut value = content.peek().clone();
     value.insert_str(end, &snippet);
-    content.set(value);
-    dirty.set(dirty.peek().wrapping_add(1));
+    *content.write_unchecked() = value;
+    *dirty.write_unchecked() = dirty.peek().wrapping_add(1);
     let new_caret = (end + snippet.len()) as u32;
     let _ = ta.set_selection_range(new_caret, new_caret);
 }
