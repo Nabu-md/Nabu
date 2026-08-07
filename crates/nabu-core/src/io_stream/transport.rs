@@ -127,6 +127,8 @@ pub struct StdioTransport {
     config: TransportConfig,
     /// Shared shutdown signal between reader and writer.
     shutdown: Arc<AtomicBool>,
+    /// Notify handle — set by `signal_shutdown()` to wake the reader.
+    shutdown_notify: Arc<tokio::sync::Notify>,
     /// Lifecycle state manager.
     lifecycle: TransportLifecycle,
     /// Handle to the spawned read loop task.
@@ -164,6 +166,7 @@ impl StdioTransport {
     /// [`new`](Self::new).
     pub fn with_config(router: Arc<Router>, config: TransportConfig) -> Self {
         let shutdown = Arc::new(AtomicBool::new(false));
+        let shutdown_notify = Arc::new(tokio::sync::Notify::new());
         let writer = Arc::new(AsyncStdoutWriter::new(
             config.clone(),
             shutdown.clone(),
@@ -174,6 +177,7 @@ impl StdioTransport {
             router,
             config,
             shutdown,
+            shutdown_notify,
             lifecycle: TransportLifecycle::new(),
             read_handle: StdMutex::new(None),
             writer,
@@ -193,6 +197,7 @@ impl StdioTransport {
         stdout: Box<dyn tokio::io::AsyncWrite + Unpin + Send>,
     ) -> Self {
         let shutdown = Arc::new(AtomicBool::new(false));
+        let shutdown_notify = Arc::new(tokio::sync::Notify::new());
         let writer = Arc::new(AsyncStdoutWriter::new(
             config.clone(),
             shutdown.clone(),
@@ -203,6 +208,7 @@ impl StdioTransport {
             router,
             config,
             shutdown,
+            shutdown_notify,
             lifecycle: TransportLifecycle::new(),
             read_handle: StdMutex::new(None),
             writer,
@@ -240,14 +246,15 @@ impl StdioTransport {
 
     /// Signal the transport to shut down.
     ///
-    /// Sets the shutdown flag. The read loop checks this flag before each
-    /// read attempt and will exit on the next iteration. The writer also
-    /// checks this flag before each write and returns
-    /// [`TransportError::Shutdown`].
+    /// Sets the shutdown flag and notifies any waiting read loop. The read
+    /// loop checks the shutdown flag and `Notify` before each read attempt
+    /// and will exit promptly. The writer also checks the shutdown flag
+    /// before each write and returns [`TransportError::Shutdown`].
     ///
     /// This is idempotent — calling it multiple times has no additional effect.
     pub fn signal_shutdown(&self) {
         self.shutdown.store(true, Ordering::Release);
+        self.shutdown_notify.notify_waiters();
     }
 
     /// Start the transport's read loop as a tokio task.
@@ -286,6 +293,7 @@ impl StdioTransport {
         let router = self.router.clone();
         let writer = self.writer.clone();
         let shutdown = self.shutdown.clone();
+        let shutdown_notify = self.shutdown_notify.clone();
         let config = self.config.clone();
 
         // Take the injected stdin reader (if any)
@@ -297,7 +305,7 @@ impl StdioTransport {
         let handle = runtime_handle.spawn(async move {
             let read_result: TransportResult<()> = if let Some(mut stdin) = injected_stdin {
                 // Test mode: use the injected stdin reader directly
-                let reader = AsyncStdinReader::new(config, shutdown);
+                let reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
                 reader
                     .run(&mut stdin, |request: Request| {
                         let router = router.clone();
@@ -312,7 +320,7 @@ impl StdioTransport {
                     .await
             } else {
                 // Production mode: read from tokio::io::stdin()
-                let reader = AsyncStdinReader::new(config, shutdown);
+                let reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
                 let mut stdin_reader = tokio::io::BufReader::new(tokio::io::stdin());
                 reader
                     .run(&mut stdin_reader, |request: Request| {

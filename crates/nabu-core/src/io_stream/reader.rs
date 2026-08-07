@@ -19,14 +19,16 @@
 //!
 //! ## Shutdown
 //!
-//! The reader checks a shared `Arc<AtomicBool>` shutdown flag before each
-//! read attempt, allowing the transport to terminate promptly even when
-//! no input is arriving.
+//! The reader uses `tokio::select!` to race each `read_line` against the
+//! shutdown `Notify`. This means the reader responds to shutdown signals
+//! immediately, even when no input is arriving — no data needs to flow
+//! through stdin for the reader to exit.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tokio::io::{AsyncBufRead, AsyncBufReadExt};
+use tokio::sync::Notify;
 
 use crate::io_stream::config::TransportConfig;
 use crate::io_stream::errors::{TransportError, TransportResult};
@@ -42,26 +44,38 @@ use crate::rpc::Request;
 ///
 /// ## Thread Safety
 ///
-/// The reader holds an `Arc<AtomicBool>` shutdown flag (shared with the
-/// writer and transport) for lock-free shutdown signaling. The shutdown
-/// flag is extracted into a local `Arc` before the read loop begins,
-/// ensuring the async future is `Send` even though `dyn AsyncBufRead`
-/// is not `Sync`.
+/// The reader holds two shared flags:
+/// - `Arc<AtomicBool>` for the shutdown flag (lock-free, shared with writer/transport)
+/// - `Arc<Notify>` for waking the read loop on shutdown (shared with transport)
+///
+/// The shutdown flag and Notify are extracted into locals before the
+/// read loop begins, ensuring the async future is `Send` even though
+/// `dyn AsyncBufRead` is not `Sync`.
 pub struct AsyncStdinReader {
     /// Configuration for framing limits (max message size).
     config: TransportConfig,
     /// Shared shutdown signal — when `true`, the read loop exits.
     shutdown: Arc<AtomicBool>,
+    /// Notify handle for waking the read loop on shutdown.
+    shutdown_notify: Arc<Notify>,
 }
 
 impl AsyncStdinReader {
-    /// Create a new reader with the given config and shutdown signal.
+    /// Create a new reader with the given config, shutdown flag, and notify.
     ///
-    /// The reader does not own the stdin handle — it is passed as a
-    /// parameter to [`run`](Self::run). This allows the same reader
-    /// to work with real stdin or an injected test reader.
-    pub fn new(config: TransportConfig, shutdown: Arc<AtomicBool>) -> Self {
-        Self { config, shutdown }
+    /// The `reader` parameter is passed to `run()` — this struct does not
+    /// own the stdin handle. This allows the same reader to work with
+    /// real stdin or any injected `AsyncBufRead`.
+    pub fn new(
+        config: TransportConfig,
+        shutdown: Arc<AtomicBool>,
+        shutdown_notify: Arc<Notify>,
+    ) -> Self {
+        Self {
+            config,
+            shutdown,
+            shutdown_notify,
+        }
     }
 
     /// Read and deserialize a single JSON-RPC request from the reader.
@@ -75,8 +89,7 @@ impl AsyncStdinReader {
     /// produce a [`TransportError::MessageTooLarge`] error.
     ///
     /// This is a static method (not taking `&self`) to avoid `&self`
-    /// capture issues in spawned async tasks — the caller should pass
-    /// `max_message_bytes` from the config directly.
+    /// capture issues in spawned async tasks.
     async fn read_request<R: AsyncBufRead + Unpin>(
         max_message_bytes: usize,
         reader: &mut R,
@@ -118,8 +131,8 @@ impl AsyncStdinReader {
     ///
     /// Reads requests from the provided reader in a loop and invokes
     /// `on_request` for each one. The loop terminates when:
-    /// - EOF is received on the reader (`Ok(())` returned).
-    /// - The shutdown flag is set.
+    /// - EOF is received on stdin (`Ok(())` returned).
+    /// - The shutdown flag is set (notified via `Notify`).
     /// - An error occurs (returned as `Err`).
     ///
     /// The `on_request` callback receives the deserialized [`Request`]
@@ -139,25 +152,32 @@ impl AsyncStdinReader {
         F: FnMut(Request) -> Fut + Send,
         Fut: std::future::Future<Output = ()> + Send,
     {
-        // Extract the shutdown flag and config into locals so that
-        // &self is not held across await points. This is critical for
-        // Send-ness: AsyncStdinReader holds an Arc<AtomicBool> (Send+Sync)
-        // and TransportConfig (Send+Sync), but the async future must not
-        // borrow &self which would capture the non-Sync `reader` field
-        // (if it existed — it doesn't anymore, but we avoid the issue
-        // entirely by extracting into locals).
+        // Extract shared state into locals for Send-ness.
         let shutdown = self.shutdown.clone();
         let max_message_bytes = self.config.max_message_bytes;
+        let shutdown_notify = self.shutdown_notify.clone();
 
         loop {
-            // Check shutdown before each read attempt
+            // Check shutdown flag before each read attempt
             if shutdown.load(Ordering::Acquire) {
                 tracing::debug!("stdin reader: shutdown signal received");
                 return Ok(());
             }
 
-            // Read the next request
-            match Self::read_request(max_message_bytes, reader).await {
+            // Race: either read a line, or be notified of shutdown.
+            // We create a fresh `notified()` future each iteration because
+            // a `Notify` future can only be awaited once.
+            let read_result = tokio::select! {
+                _ = shutdown_notify.notified() => {
+                    tracing::debug!("stdin reader: shutdown notified");
+                    return Ok(());
+                }
+                result = Self::read_request(max_message_bytes, reader) => {
+                    result
+                }
+            };
+
+            match read_result {
                 Ok(Some(request)) => {
                     tracing::trace!("stdin reader: received request id={}", request.id);
                     on_request(request).await;
@@ -168,8 +188,6 @@ impl AsyncStdinReader {
                 }
                 Err(TransportError::MessageTooLarge { .. }) => {
                     tracing::warn!("stdin reader: message too large, skipping line");
-                    // The oversized line has already been consumed by read_line.
-                    // Continue reading the next line.
                 }
                 Err(e) => {
                     tracing::error!(error = %e, "stdin reader: fatal error");
@@ -185,6 +203,7 @@ impl Default for AsyncStdinReader {
         Self::new(
             TransportConfig::default(),
             Arc::new(AtomicBool::new(false)),
+            Arc::new(Notify::new()),
         )
     }
 }

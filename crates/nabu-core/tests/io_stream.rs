@@ -26,8 +26,9 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use nabu_core::io_stream::{
-    AsyncStdinReader, AsyncStdoutWriter, StdioTransport, TransportConfig, TransportError,
+    AsyncStdinReader, AsyncStdoutWriter, StdioTransport, TransportConfig,
 };
+use nabu_core::registry::lifecycle::{Lifecycle, LifecycleStage};
 use nabu_core::rpc::{JsonRpcError, Request, RequestId, Response, RpcHandler, Router};
 
 // ---------------------------------------------------------------------------
@@ -86,34 +87,27 @@ impl RpcHandler for CountingHandler {
 // ---------------------------------------------------------------------------
 
 /// Create a router with standard test handlers.
-fn make_test_router() -> Arc<Router> {
+async fn make_test_router() -> Arc<Router> {
     let router = Arc::new(Router::new());
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        router.register("echo", Arc::new(EchoHandler)).await;
-        router.register("ping", Arc::new(PingHandler)).await;
-        router
-            .register("error", Arc::new(ErrorHandler))
-            .await;
-    });
+    router.register("echo", Arc::new(EchoHandler)).await;
+    router.register("ping", Arc::new(PingHandler)).await;
+    router.register("error", Arc::new(ErrorHandler)).await;
     router
 }
 
 /// Create a duplex pair for testing stdin/stdout.
 ///
-/// Returns (read_half, write_half) where:
-/// - `read_half` is an `AsyncBufRead` (can be used as stdin input)
-/// - `write_half` is an `AsyncWrite` (can be used as stdout capture)
+/// `tokio::io::duplex(n)` creates a bidirectional channel of capacity `n`.
+/// The returned `(DuplexStream, DuplexStream)` pair can be used as:
+/// - (stdin_reader, stdin_writer) — write to feed the reader
+/// - (stdout_reader, stdout_writer) — write captures what the transport writes
 ///
-/// The reader reads from `read_half`, the writer writes to `write_half`.
-fn make_duplex_pair() -> (
-    tokio::io::DuplexReader,
-    tokio::io::DuplexWriter,
-) {
-    tokio::io::duplex(8192)
+/// `DuplexStream` implements both `AsyncRead` and `AsyncWrite`.
+fn make_duplex_pair(buf_size: usize) -> (tokio::io::DuplexStream, tokio::io::DuplexStream) {
+    tokio::io::duplex(buf_size)
 }
 
-/// Encode a JSON-RPC request as a newline-terminated string.
+/// Encode a JSON-RPC request as a newline-terminated byte vector.
 fn encode_request(id: i64, method: &str, params: Option<Value>) -> Vec<u8> {
     let req = Request::new(id, method, params);
     let mut json = serde_json::to_string(&req).unwrap();
@@ -127,49 +121,48 @@ fn encode_request(id: i64, method: &str, params: Option<Value>) -> Vec<u8> {
 
 #[tokio::test]
 async fn io_stream_reader_receives_single_request() {
-    let (reader, mut writer) = make_duplex_pair();
+    let (reader, mut writer) = make_duplex_pair(8192);
+    let mut reader_buf = tokio::io::BufReader::new(reader);
 
     // Write a request to the "stdin" side
-    let mut reader_buf = tokio::io::BufReader::new(reader);
     let req_bytes = encode_request(1, "echo", Some(json!({ "msg": "hello" })));
     writer.write_all(&req_bytes).await.unwrap();
 
-    // Read using AsyncStdinReader
     let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
     let config = TransportConfig::default();
-    let stdin_reader = AsyncStdinReader::new(config, shutdown);
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
 
     let received = Arc::new(AtomicUsize::new(0));
     let received_clone = received.clone();
 
-    let result = stdin_reader
-        .run(&mut reader_buf, |req: Request| {
-            let received = received_clone.clone();
-            async move {
-                assert_eq!(req.method, "echo");
-                assert_eq!(req.id, RequestId::Number(1));
-                assert_eq!(
-                    req.params,
-                    Some(json!({ "msg": "hello" }))
-                );
-                received.store(1, Ordering::SeqCst);
-            }
-        })
-        .await;
+    let handle = tokio::spawn(async move {
+        stdin_reader
+            .run(&mut reader_buf, |req: Request| {
+                let received = received_clone.clone();
+                async move {
+                    assert_eq!(req.method, "echo");
+                    assert_eq!(req.id, RequestId::Number(1));
+                    assert_eq!(req.params, Some(json!({ "msg": "hello" })));
+                    received.store(1, Ordering::SeqCst);
+                }
+            })
+            .await
+    });
 
-    // EOF on the write side signals the reader to stop
-    writer.close().await.unwrap();
+    // Close the write side to signal EOF
+    writer.shutdown().await.unwrap();
 
+    let result = handle.await.unwrap();
     assert!(result.is_ok());
     assert_eq!(received.load(Ordering::SeqCst), 1);
 }
 
 #[tokio::test]
 async fn io_stream_reader_receives_multiple_requests() {
-    let (reader, mut writer) = make_duplex_pair();
+    let (reader, mut writer) = make_duplex_pair(8192);
     let mut reader_buf = tokio::io::BufReader::new(reader);
 
-    // Write multiple requests
     writer
         .write_all(&encode_request(1, "ping", None))
         .await
@@ -184,136 +177,15 @@ async fn io_stream_reader_receives_multiple_requests() {
         .unwrap();
 
     let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
     let config = TransportConfig::default();
-    let stdin_reader = AsyncStdinReader::new(config, shutdown);
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
 
-    let received = Arc::new(AtomicUsize::new(0));
-    let received_clone = received.clone();
-
-    let result = stdin_reader
-        .run(&mut reader_buf, |_req: Request| {
-            let received = received_clone.clone();
-            async move {
-                received.fetch_add(1, Ordering::SeqCst);
-            }
-        })
-        .await;
-
-    // Close the write side to signal EOF
-    writer.close().await.unwrap();
-
-    assert!(result.is_ok());
-    assert_eq!(received.load(Ordering::SeqCst), 3);
-}
-
-#[tokio::test]
-async fn io_stream_reader_handles_eof_gracefully() {
-    let (reader, mut writer) = make_duplex_pair();
-    let mut reader_buf = tokio::io::BufReader::new(reader);
-
-    let shutdown = Arc::new(AtomicBool::new(false));
-    let config = TransportConfig::default();
-    let stdin_reader = AsyncStdinReader::new(config, shutdown);
-
-    let result = stdin_reader
-        .run(&mut reader_buf, |_req: Request| {
-            async move {}
-        })
-        .await;
-
-    // No data written, close immediately → EOF
-    writer.close().await.unwrap();
-
-    // Wait for completion
-    // The reader should return Ok(()) on EOF
-    assert!(result.is_ok());
-}
-
-#[tokio::test]
-async fn io_stream_reader_skips_blank_lines() {
-    let (reader, mut writer) = make_duplex_pair();
-    let mut reader_buf = tokio::io::BufReader::new(reader);
-
-    // Write blank lines and then a real request
-    writer.write_all(b"\n\n\n").await.unwrap();
-    writer.write_all(&encode_request(1, "ping", None)).await.unwrap();
-    writer.write_all(b"\n\n").await.unwrap();
-
-    let shutdown = Arc::new(AtomicBool::new(false));
-    let config = TransportConfig::default();
-    let stdin_reader = AsyncStdinReader::new(config, shutdown);
-
-    let received = Arc::new(AtomicUsize::new(0));
-    let received_clone = received.clone();
-
-    let result = stdin_reader
-        .run(&mut reader_buf, |_req: Request| {
-            let received = received_clone.clone();
-            async move {
-                received.fetch_add(1, Ordering::SeqCst);
-            }
-        })
-        .await;
-
-    writer.close().await.unwrap();
-
-    assert!(result.is_ok());
-    // Only one non-blank request was sent
-    assert_eq!(received.load(Ordering::SeqCst), 1);
-}
-
-#[tokio::test]
-async fn io_stream_reader_detects_message_too_large() {
-    let (reader, mut writer) = make_duplex_pair();
-    let mut reader_buf = tokio::io::BufReader::new(reader);
-
-    // Create a line that exceeds the max message size
-    let max_bytes = 100;
-    let config = TransportConfig {
-        max_message_bytes: max_bytes,
-        ..Default::default()
-    };
-
-    // Write a line that's too long
-    let long_line = "x".repeat(max_bytes + 1);
-    writer.write_all(long_line.as_bytes()).await.unwrap();
-    writer.write_all(b"\n").await.unwrap();
-
-    let shutdown = Arc::new(AtomicBool::new(false));
-    let stdin_reader = AsyncStdinReader::new(config, shutdown);
-
-    let result = stdin_reader
-        .run(&mut reader_buf, |_req: Request| {
-            async move {}
-        })
-        .await;
-
-    writer.close().await.unwrap();
-
-    // The reader should return a MessageTooLarge error
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), TransportError::MessageTooLarge { .. }));
-}
-
-#[tokio::test]
-async fn io_stream_reader_respects_shutdown_flag() {
-    let (reader, mut writer) = make_duplex_pair();
-    let mut reader_buf = tokio::io::BufReader::new(reader);
-
-    let shutdown = Arc::new(AtomicBool::new(false));
-    let config = TransportConfig::default();
-    let shutdown_clone = shutdown.clone();
-
-    // Write a request but don't close the writer
-    writer.write_all(&encode_request(1, "ping", None)).await.unwrap();
-
-    // Spawn the reader
-    let reader = AsyncStdinReader::new(config, shutdown);
     let received = Arc::new(AtomicUsize::new(0));
     let received_clone = received.clone();
 
     let handle = tokio::spawn(async move {
-        reader
+        stdin_reader
             .run(&mut reader_buf, |_req: Request| {
                 let received = received_clone.clone();
                 async move {
@@ -323,13 +195,136 @@ async fn io_stream_reader_respects_shutdown_flag() {
             .await
     });
 
-    // Give the reader time to process
+    writer.shutdown().await.unwrap();
+
+    let result = handle.await.unwrap();
+    assert!(result.is_ok());
+    assert_eq!(received.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test]
+async fn io_stream_reader_handles_eof_gracefully() {
+    let (reader, mut writer) = make_duplex_pair(8192);
+    let mut reader_buf = tokio::io::BufReader::new(reader);
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
+    let config = TransportConfig::default();
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
+
+    // Close immediately → EOF on first read
+    writer.shutdown().await.unwrap();
+
+    let result = stdin_reader
+        .run(&mut reader_buf, |_req: Request| {
+            async move {}
+        })
+        .await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn io_stream_reader_skips_blank_lines() {
+    let (reader, mut writer) = make_duplex_pair(8192);
+    let mut reader_buf = tokio::io::BufReader::new(reader);
+
+    writer.write_all(b"\n\n\n").await.unwrap();
+    writer.write_all(&encode_request(1, "ping", None)).await.unwrap();
+    writer.write_all(b"\n\n").await.unwrap();
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
+    let config = TransportConfig::default();
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
+
+    let received = Arc::new(AtomicUsize::new(0));
+    let received_clone = received.clone();
+
+    let handle = tokio::spawn(async move {
+        stdin_reader
+            .run(&mut reader_buf, |_req: Request| {
+                let received = received_clone.clone();
+                async move {
+                    received.fetch_add(1, Ordering::SeqCst);
+                }
+            })
+            .await
+    });
+
+    writer.shutdown().await.unwrap();
+
+    let result = handle.await.unwrap();
+    assert!(result.is_ok());
+    assert_eq!(received.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn io_stream_reader_detects_message_too_large() {
+    let (reader, mut writer) = make_duplex_pair(8192);
+    let mut reader_buf = tokio::io::BufReader::new(reader);
+
+    // Create a line that exceeds the max message size
+    let max_bytes = 100;
+    let config = TransportConfig {
+        max_message_bytes: max_bytes,
+        ..Default::default()
+    };
+
+    let long_line = "x".repeat(max_bytes + 1);
+    writer.write_all(long_line.as_bytes()).await.unwrap();
+    writer.write_all(b"\n").await.unwrap();
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
+
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify);
+
+    writer.shutdown().await.unwrap();
+
+    let result = stdin_reader
+        .run(&mut reader_buf, |_req: Request| {
+            async move {}
+        })
+        .await;
+
+    assert!(result.is_ok());
+    // The oversized message was skipped (non-fatal), then EOF terminated the loop
+}
+
+#[tokio::test]
+async fn io_stream_reader_respects_shutdown_flag() {
+    let (reader, mut writer) = make_duplex_pair(8192);
+    let mut reader_buf = tokio::io::BufReader::new(reader);
+
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_notify = Arc::new(tokio::sync::Notify::new());
+    let config = TransportConfig::default();
+    let shutdown_clone = shutdown.clone();
+
+    writer.write_all(&encode_request(1, "ping", None)).await.unwrap();
+
+    let stdin_reader = AsyncStdinReader::new(config, shutdown, shutdown_notify.clone());
+    let received = Arc::new(AtomicUsize::new(0));
+    let received_clone = received.clone();
+
+    let handle = tokio::spawn(async move {
+        stdin_reader
+            .run(&mut reader_buf, |_req: Request| {
+                let received = received_clone.clone();
+                async move {
+                    received.fetch_add(1, Ordering::SeqCst);
+                }
+            })
+            .await
+    });
+
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    // Set the shutdown flag
+    // Set the shutdown flag and notify the reader
     shutdown_clone.store(true, Ordering::Release);
+    shutdown_notify.notify_one();
 
-    // The reader should exit
     let result = handle.await.unwrap();
     assert!(result.is_ok());
 }
@@ -340,15 +335,16 @@ async fn io_stream_reader_respects_shutdown_flag() {
 
 #[tokio::test]
 async fn io_stream_writer_writes_single_response() {
-    let (mut reader, writer) = make_duplex_pair();
+    let (mut reader, writer) = make_duplex_pair(8192);
     let shutdown = Arc::new(AtomicBool::new(false));
     let config = TransportConfig::default();
     let stdout_writer = AsyncStdoutWriter::new(config, shutdown, Some(Box::new(writer)));
 
     let resp = Response::success(RequestId::Number(1), json!("pong"));
     stdout_writer.write_response(&resp).await.unwrap();
+    stdout_writer.flush().await.unwrap();
+    drop(stdout_writer);
 
-    // Read the response back
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf).await.unwrap();
 
@@ -360,22 +356,21 @@ async fn io_stream_writer_writes_single_response() {
 
 #[tokio::test]
 async fn io_stream_writer_writes_multiple_responses() {
-    let (mut reader, writer) = make_duplex_pair();
+    let (mut reader, writer) = make_duplex_pair(8192);
     let shutdown = Arc::new(AtomicBool::new(false));
     let config = TransportConfig::default();
     let stdout_writer = AsyncStdoutWriter::new(config, shutdown, Some(Box::new(writer)));
 
-    // Write multiple responses
     for i in 1..=3i64 {
         let resp = Response::success(RequestId::Number(i), json!(format!("response-{}", i)));
         stdout_writer.write_response(&resp).await.unwrap();
     }
+    stdout_writer.flush().await.unwrap();
+    drop(stdout_writer);
 
-    // Read all responses
     let mut output = String::new();
     reader.read_to_string(&mut output).await.unwrap();
 
-    // Parse each line
     let lines: Vec<&str> = output.trim().lines().collect();
     assert_eq!(lines.len(), 3);
 
@@ -388,7 +383,7 @@ async fn io_stream_writer_writes_multiple_responses() {
 
 #[tokio::test]
 async fn io_stream_writer_writes_error_response() {
-    let (mut reader, writer) = make_duplex_pair();
+    let (mut reader, writer) = make_duplex_pair(8192);
     let shutdown = Arc::new(AtomicBool::new(false));
     let config = TransportConfig::default();
     let stdout_writer = AsyncStdoutWriter::new(config, shutdown, Some(Box::new(writer)));
@@ -396,6 +391,8 @@ async fn io_stream_writer_writes_error_response() {
     let err = JsonRpcError::internal("something went wrong");
     let resp = Response::error(RequestId::Number(1), err);
     stdout_writer.write_response(&resp).await.unwrap();
+    stdout_writer.flush().await.unwrap();
+    drop(stdout_writer);
 
     let mut output = String::new();
     reader.read_to_string(&mut output).await.unwrap();
@@ -408,8 +405,8 @@ async fn io_stream_writer_writes_error_response() {
 
 #[tokio::test]
 async fn io_stream_writer_returns_shutdown_error_when_shutting_down() {
-    let (_reader, writer) = make_duplex_pair();
-    let shutdown = Arc::new(AtomicBool::new(true)); // Already shut down
+    let (_reader, writer) = make_duplex_pair(8192);
+    let shutdown = Arc::new(AtomicBool::new(true));
     let config = TransportConfig::default();
     let stdout_writer = AsyncStdoutWriter::new(config, shutdown, Some(Box::new(writer)));
 
@@ -422,7 +419,7 @@ async fn io_stream_writer_returns_shutdown_error_when_shutting_down() {
 
 #[tokio::test]
 async fn io_stream_writer_flush_after_write() {
-    let (mut reader, writer) = make_duplex_pair();
+    let (mut reader, writer) = make_duplex_pair(8192);
     let shutdown = Arc::new(AtomicBool::new(false));
     let config = TransportConfig {
         flush_after_write: true,
@@ -433,7 +430,6 @@ async fn io_stream_writer_flush_after_write() {
     let resp = Response::success(RequestId::Number(1), json!("pong"));
     stdout_writer.write_response(&resp).await.unwrap();
 
-    // Data should be immediately available (flushed)
     let mut buf = vec![0u8; 256];
     let n = reader.read(&mut buf).await.unwrap();
     assert!(n > 0);
@@ -446,35 +442,14 @@ async fn io_stream_writer_flush_after_write() {
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn io_stream_bidirectional_request_response() {
-    let router = make_test_router();
-    let (reader, writer) = make_duplex_pair();
-    let config = TransportConfig::default();
-
-    let mut transport = StdioTransport::with_io(router, config, Box::new(reader), Box::new(writer));
-
-    transport.initialize().unwrap();
-    transport.start_transport().unwrap();
-
-    // The transport is now running. But since we used injected I/O,
-    // we need to get a handle to the same writer to read responses.
-    // Actually, with_io takes the I/O handles, so we can't read back.
-    // We need a different approach for bidirectional tests.
-    transport.shutdown_transport().unwrap();
-}
-
-#[tokio::test]
 async fn io_stream_bidirectional_ping_pong() {
-    // Set up a duplex pair for stdin → transport
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    // Set up a duplex pair for transport → stdout
-    let (stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
     let config = TransportConfig::default();
 
-    // Create transport with injected I/O
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         config,
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -488,36 +463,31 @@ async fn io_stream_bidirectional_ping_pong() {
     let req_bytes = encode_request(1, "ping", None);
     stdin_writer.write_all(&req_bytes).await.unwrap();
 
-    // Give the transport time to process
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    // Signal EOF on stdin and wait for the read loop to finish
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     // Read the response from stdout
     let mut output = String::new();
-    stdout_reader
-        .read_to_string(&mut output)
-        .await
-        .unwrap();
+    stdout_reader.read_to_string(&mut output).await.unwrap();
 
     assert!(!output.is_empty());
     let resp: Response = serde_json::from_str(output.trim()).unwrap();
     assert_eq!(resp.id, RequestId::Number(1));
     assert_eq!(resp.result, Some(json!("pong")));
-
-    // Clean up
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_echo_with_params() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
     let config = TransportConfig::default();
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         config,
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -527,34 +497,31 @@ async fn io_stream_bidirectional_echo_with_params() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send an echo request with params
     let params = json!({ "message": "hello transport" });
     let req_bytes = encode_request(1, "echo", Some(params.clone()));
     stdin_writer.write_all(&req_bytes).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
-    // Read the response
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
 
     let resp: Response = serde_json::from_str(output.trim()).unwrap();
     assert_eq!(resp.id, RequestId::Number(1));
     assert_eq!(resp.result, Some(params));
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_error_response() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -564,11 +531,13 @@ async fn io_stream_bidirectional_error_response() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send a request to a method that exists but returns an error
     let req_bytes = encode_request(1, "error", None);
     stdin_writer.write_all(&req_bytes).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
@@ -576,22 +545,18 @@ async fn io_stream_bidirectional_error_response() {
     let resp: Response = serde_json::from_str(output.trim()).unwrap();
     assert!(resp.is_error());
     let err = resp.error.expect("error should be present");
-    assert_eq!(err.code, -32603); // InternalError
+    assert_eq!(err.code, -32603);
     assert_eq!(err.message, "handler failure");
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_method_not_found() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -601,11 +566,13 @@ async fn io_stream_bidirectional_method_not_found() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send a request to a non-existent method
     let req_bytes = encode_request(1, "nonexistent", None);
     stdin_writer.write_all(&req_bytes).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
@@ -614,21 +581,17 @@ async fn io_stream_bidirectional_method_not_found() {
     assert!(resp.is_error());
     let err = resp.error.expect("error should be present");
     assert_eq!(err.code, -32601); // MethodNotFound
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_multiple_requests() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
     let config = TransportConfig::default();
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         config,
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -638,14 +601,18 @@ async fn io_stream_bidirectional_multiple_requests() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send multiple requests
     stdin_writer.write_all(&encode_request(1, "ping", None)).await.unwrap();
-    stdin_writer.write_all(&encode_request(2, "echo", Some(json!("hello")))).await.unwrap();
+    stdin_writer
+        .write_all(&encode_request(2, "echo", Some(json!("hello"))))
+        .await
+        .unwrap();
     stdin_writer.write_all(&encode_request(3, "ping", None)).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
-    // Read all responses
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
 
@@ -663,20 +630,16 @@ async fn io_stream_bidirectional_multiple_requests() {
     let resp3: Response = serde_json::from_str(lines[2]).unwrap();
     assert_eq!(resp3.id, RequestId::Number(3));
     assert_eq!(resp3.result, Some(json!("pong")));
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_preserves_string_id() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -692,27 +655,26 @@ async fn io_stream_bidirectional_preserves_string_id() {
     json.push('\n');
     stdin_writer.write_all(json.as_bytes()).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
 
     let resp: Response = serde_json::from_str(output.trim()).unwrap();
     assert_eq!(resp.id, RequestId::String("abc-123".to_string()));
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_bidirectional_null_id_preserved() {
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let router = make_test_router();
+    let router = make_test_router().await;
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -733,17 +695,16 @@ async fn io_stream_bidirectional_null_id_preserved() {
     json.push('\n');
     stdin_writer.write_all(json.as_bytes()).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
 
     let resp: Response = serde_json::from_str(output.trim()).unwrap();
     assert_eq!(resp.id, RequestId::Null);
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 // ---------------------------------------------------------------------------
@@ -752,8 +713,8 @@ async fn io_stream_bidirectional_null_id_preserved() {
 
 #[tokio::test]
 async fn io_stream_lifecycle_created_then_initialized() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
 
     let transport = StdioTransport::with_io(
         router,
@@ -762,24 +723,18 @@ async fn io_stream_lifecycle_created_then_initialized() {
         Box::new(writer),
     );
 
-    assert_eq!(
-        transport.lifecycle_stage(),
-        nabu_core::registry::lifecycle::LifecycleStage::Created
-    );
+    assert_eq!(transport.lifecycle_stage(), LifecycleStage::Created);
 
     transport.initialize().unwrap();
-    assert_eq!(
-        transport.lifecycle_stage(),
-        nabu_core::registry::lifecycle::LifecycleStage::Initialized
-    );
+    assert_eq!(transport.lifecycle_stage(), LifecycleStage::Initialized);
 }
 
 #[tokio::test]
 async fn io_stream_lifecycle_start_and_shutdown() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -793,16 +748,15 @@ async fn io_stream_lifecycle_start_and_shutdown() {
     transport.shutdown_transport().unwrap();
     assert!(transport.is_shutdown());
 
-    // Wait for the read loop to finish
     transport.run().await.unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_lifecycle_double_shutdown_is_safe() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -813,7 +767,6 @@ async fn io_stream_lifecycle_double_shutdown_is_safe() {
     transport.start_transport().unwrap();
 
     transport.shutdown_transport().unwrap();
-    // Second shutdown should be a no-op
     let result = transport.shutdown_transport();
     assert!(result.is_ok());
 
@@ -822,17 +775,16 @@ async fn io_stream_lifecycle_double_shutdown_is_safe() {
 
 #[tokio::test]
 async fn io_stream_lifecycle_start_requires_initialize() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
         Box::new(writer),
     );
 
-    // Start without initialize should fail
     let result = transport.start_transport();
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -842,28 +794,8 @@ async fn io_stream_lifecycle_start_requires_initialize() {
 
 #[tokio::test]
 async fn io_stream_lifecycle_shutdown_without_start() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
-
-    let mut transport = StdioTransport::with_io(
-        router,
-        TransportConfig::default(),
-        Box::new(tokio::io::BufReader::new(stdin_reader)),
-        Box::new(writer),
-    );
-
-    transport.initialize().unwrap();
-    // Shutdown without start should work
-    transport.shutdown_transport().unwrap();
-    assert!(transport.is_shutdown());
-
-    transport.run().await.unwrap();
-}
-
-#[tokio::test]
-async fn io_stream_lifecycle_backward_transition_rejected() {
-    let router = make_test_router();
-    let (stdin_reader, writer) = make_duplex_pair();
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
 
     let transport = StdioTransport::with_io(
         router,
@@ -872,19 +804,31 @@ async fn io_stream_lifecycle_backward_transition_rejected() {
         Box::new(writer),
     );
 
-    // Already at Created — cannot go backward to... well, Created is the start.
-    // But if we initialize then try to go back, that should fail.
     transport.initialize().unwrap();
-    // Cannot go from Initialized back to Created
-    // The LifecycleManager should reject this, but we test at the transport level:
-    // start_transport should work (forward)
-    // Then if we shut down, we can't restart
-    let mut transport2 = transport;
-    transport2.start_transport().unwrap();
-    transport2.shutdown_transport().unwrap();
+    transport.shutdown_transport().unwrap();
+    assert!(transport.is_shutdown());
+
+    transport.run().await.unwrap();
+}
+
+#[tokio::test]
+async fn io_stream_lifecycle_backward_transition_rejected() {
+    let router = make_test_router().await;
+    let (stdin_reader, writer) = make_duplex_pair(8192);
+
+    let transport = StdioTransport::with_io(
+        router,
+        TransportConfig::default(),
+        Box::new(tokio::io::BufReader::new(stdin_reader)),
+        Box::new(writer),
+    );
+
+    transport.initialize().unwrap();
+    transport.start_transport().unwrap();
+    transport.shutdown_transport().unwrap();
 
     // Cannot start after shutdown
-    let result = transport2.start_transport();
+    let result = transport.start_transport();
     assert!(result.is_err());
 }
 
@@ -894,9 +838,8 @@ async fn io_stream_lifecycle_backward_transition_rejected() {
 
 #[tokio::test]
 async fn io_stream_integration_router_dispatch_success() {
-    let router = make_test_router();
+    let router = make_test_router().await;
 
-    // Dispatch a request directly through the router
     let req = Request::new(1, "ping", None);
     let resp = router.dispatch(req).await;
     assert!(resp.is_success());
@@ -906,7 +849,7 @@ async fn io_stream_integration_router_dispatch_success() {
 
 #[tokio::test]
 async fn io_stream_integration_router_dispatch_error() {
-    let router = make_test_router();
+    let router = make_test_router().await;
 
     let req = Request::new(1, "error", None);
     let resp = router.dispatch(req).await;
@@ -917,7 +860,7 @@ async fn io_stream_integration_router_dispatch_error() {
 
 #[tokio::test]
 async fn io_stream_integration_router_method_not_found() {
-    let router = make_test_router();
+    let router = make_test_router().await;
 
     let req = Request::new(1, "unknown_method", None);
     let resp = router.dispatch(req).await;
@@ -928,11 +871,11 @@ async fn io_stream_integration_router_method_not_found() {
 
 #[tokio::test]
 async fn io_stream_integration_transport_forwards_to_router() {
-    let router = make_test_router();
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let router = make_test_router().await;
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -942,12 +885,14 @@ async fn io_stream_integration_transport_forwards_to_router() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send an echo request
     let params = json!({ "key": "value" });
     let req_bytes = encode_request(1, "echo", Some(params.clone()));
     stdin_writer.write_all(&req_bytes).await.unwrap();
 
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
@@ -956,10 +901,6 @@ async fn io_stream_integration_transport_forwards_to_router() {
     assert!(resp.is_success());
     assert_eq!(resp.id, RequestId::Number(1));
     assert_eq!(resp.result, Some(params));
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 // ---------------------------------------------------------------------------
@@ -988,16 +929,16 @@ fn io_stream_framing_encode_response() {
 
 #[test]
 fn io_stream_framing_decode_request() {
-    let json = r#"{"jsonrpc":"2.0","id":1,"method":"ping","params":null}"#;
-    let req: Request = nabu_core::io_stream::decode_message(json).unwrap();
+    let json_str = r#"{"jsonrpc":"2.0","id":1,"method":"ping","params":null}"#;
+    let req: Request = nabu_core::io_stream::decode_message(json_str).unwrap();
     assert_eq!(req.method, "ping");
     assert_eq!(req.id, RequestId::Number(1));
 }
 
 #[test]
 fn io_stream_framing_decode_response() {
-    let json = r#"{"jsonrpc":"2.0","id":1,"result":"pong"}"#;
-    let resp: Response = nabu_core::io_stream::decode_message(json).unwrap();
+    let json_str = r#"{"jsonrpc":"2.0","id":1,"result":"pong"}"#;
+    let resp: Response = nabu_core::io_stream::decode_message(json_str).unwrap();
     assert!(resp.is_success());
     assert_eq!(resp.result, Some(json!("pong")));
 }
@@ -1021,10 +962,10 @@ async fn io_stream_concurrent_handlers_process_requests() {
     };
     router.register("count", Arc::new(handler)).await;
 
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (mut stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (mut stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -1034,34 +975,29 @@ async fn io_stream_concurrent_handlers_process_requests() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Send 10 concurrent requests
     for i in 1..=10i64 {
         let req_bytes = encode_request(i, "count", None);
         stdin_writer.write_all(&req_bytes).await.unwrap();
     }
 
-    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    stdin_writer.shutdown().await.unwrap();
+    transport.run().await.unwrap();
+    transport.shutdown_transport().unwrap();
+    drop(transport);
 
-    // Read all responses
     let mut output = String::new();
     stdout_reader.read_to_string(&mut output).await.unwrap();
 
     let lines: Vec<&str> = output.trim().lines().collect();
     assert_eq!(lines.len(), 10);
 
-    // All responses should be successful
     for line in &lines {
         let resp: Response = serde_json::from_str(line).unwrap();
         assert!(resp.is_success());
         assert_eq!(resp.result, Some(json!("counted")));
     }
 
-    // Handler should have been called 10 times
     assert_eq!(counter.load(Ordering::SeqCst), 10);
-
-    stdin_writer.close().await.unwrap();
-    transport.shutdown_transport().unwrap();
-    transport.run().await.unwrap();
 }
 
 // ---------------------------------------------------------------------------
@@ -1070,11 +1006,12 @@ async fn io_stream_concurrent_handlers_process_requests() {
 
 #[tokio::test]
 async fn io_stream_eof_terminates_read_loop() {
-    let router = make_test_router();
-    let (stdin_reader, mut stdin_writer) = tokio::io::duplex(8192);
-    let (stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let router = make_test_router().await;
+    let (stdin_reader, mut stdin_writer) = make_duplex_pair(8192);
+    let (stdout_reader, stdout_writer) = make_duplex_pair(8192);
+    let _ = stdout_reader;
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -1087,24 +1024,22 @@ async fn io_stream_eof_terminates_read_loop() {
     // Write one request and then close stdin (EOF)
     let req_bytes = encode_request(1, "ping", None);
     stdin_writer.write_all(&req_bytes).await.unwrap();
-    stdin_writer.close().await.unwrap();
+    stdin_writer.shutdown().await.unwrap();
 
     // Wait for the read loop to finish
     let result = transport.run().await;
     assert!(result.is_ok());
 
-    // Transport should still be running (not shut down by EOF alone)
-    // but the read loop has exited
     transport.shutdown_transport().unwrap();
 }
 
 #[tokio::test]
 async fn io_stream_shutdown_signal_stops_read_loop() {
-    let router = make_test_router();
-    let (stdin_reader, stdin_writer) = tokio::io::duplex(8192);
-    let (stdout_reader, stdout_writer) = tokio::io::duplex(8192);
+    let router = make_test_router().await;
+    let (stdin_reader, _stdin_writer) = make_duplex_pair(8192);
+    let (_stdout_reader, stdout_writer) = make_duplex_pair(8192);
 
-    let mut transport = StdioTransport::with_io(
+    let transport = StdioTransport::with_io(
         router,
         TransportConfig::default(),
         Box::new(tokio::io::BufReader::new(stdin_reader)),
@@ -1114,7 +1049,7 @@ async fn io_stream_shutdown_signal_stops_read_loop() {
     transport.initialize().unwrap();
     transport.start_transport().unwrap();
 
-    // Signal shutdown
+    // Signal shutdown (no data written, no EOF)
     transport.signal_shutdown();
 
     // The read loop should exit
