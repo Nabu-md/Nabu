@@ -6,9 +6,6 @@
 //! Views are projections of existing `KnowledgeObjects` — views never own data.
 
 use crate::models::properties::{PropertyDefinition, PropertyType, PropertyValue};
-use crate::components::ui::icons::Icon;
-use crate::components::ui::feedback::{use_toast, ToastContext};
-use crate::components::ui::menu::{MenuItem, MenuSeparator};
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
@@ -70,7 +67,7 @@ pub fn PropertyEditor(props: PropertyEditorProps) -> Element {
             role: "group",
             "aria-label": "Note properties",
         }
-        for (i, (id, def, value)) in rows.into_iter().enumerate() {
+        for (id, def, value) in rows.into_iter() {
             {
                 let id_i = id.clone();
                 let def_i = def.clone();
@@ -354,7 +351,6 @@ fn multiselect_field(
     let cb_change = on_change;
     let cb_validate = on_validate;
     let id_c = id.clone();
-    let toasts = use_toast();
 
     rsx! {
         label { class: "field" }

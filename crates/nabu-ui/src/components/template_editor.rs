@@ -53,7 +53,7 @@ fn load_templates(mut templates: Signal<Vec<Template>>) {
 pub fn TemplateEditor() -> Element {
     let toasts = use_toast();
 
-    let mut templates = use_signal(|| Vec::<Template>::new());
+    let templates = use_signal(|| Vec::<Template>::new());
     let mut active_tab = use_signal(|| TemplateTab::List);
     let mut editing_template = use_signal(|| None::<Template>);
     let mut search_query = use_signal(String::new);
@@ -192,13 +192,13 @@ pub fn TemplateEditor() -> Element {
         div { class: "flex items-center gap-2 border-b border-gray-700 pb-2" }
         button {
             r#type: "button",
-            class: { format!("px-3 py-1 text-sm rounded {}", if *active_tab.read() == TemplateTab::List { "bg-blue-700 text-white" } else { "text-gray-400 hover:text-gray-200" }) },
+            class:  format!("px-3 py-1 text-sm rounded {}", if *active_tab.read() == TemplateTab::List { "bg-blue-700 text-white" } else { "text-gray-400 hover:text-gray-200" }),
             onclick: move |_: MouseEvent| { active_tab.set(TemplateTab::List); },
             "\"Templates\""
         }
         button {
             r#type: "button",
-            class: { format!("px-3 py-1 text-sm rounded {}", if *active_tab.read() == TemplateTab::Create { "bg-blue-700 text-white" } else { "text-gray-400 hover:text-gray-200" }) },
+            class:  format!("px-3 py-1 text-sm rounded {}", if *active_tab.read() == TemplateTab::Create { "bg-blue-700 text-white" } else { "text-gray-400 hover:text-gray-200" }),
             onclick: move |_: MouseEvent| {
                 new_name.set(String::new());
                 new_body.set(String::new());
@@ -232,13 +232,15 @@ pub fn TemplateEditor() -> Element {
                         for template in &filtered {
                             {
                                 let name = template.name.clone();
+                                let fav_name = name.clone();
+                                let dup_name = name.clone();
+                                let del_name = name.clone();
                                 let icon = template.icon.clone().unwrap_or_else(|| "📋".to_string());
                                 let desc = template.description.clone().unwrap_or_default();
                                 let folder = template.default_folder.clone().unwrap_or_default();
                                 let category = template.category.clone().unwrap_or_default();
                                 let favourite = template.favourite;
                                 let template_for_edit = template.clone();
-                                let save_t = save_template;
                                 let del_t = delete_template;
                                 let dup_t = duplicate_template;
                                 let fav_t = toggle_favourite;
@@ -279,9 +281,9 @@ pub fn TemplateEditor() -> Element {
                                         title: if favourite { "Unfavourite" } else { "Favourite" },
                                         "aria-label": if favourite { "Unfavourite" } else { "Favourite" },
                                         onclick: move |_: MouseEvent| {
-                                            fav_t.call((name.clone(), !favourite));
+                                            fav_t.call((fav_name.clone(), !favourite));
                                         },
-                                        {if favourite { {render_icon_view(Icon::Star)} } else { {render_icon_view(Icon::StarHalf)} }}
+                                        {if favourite { render_icon_view(Icon::Star) } else { render_icon_view(Icon::StarHalf) }}
                                     }
                                     button {
                                         r#type: "button",
@@ -289,7 +291,7 @@ pub fn TemplateEditor() -> Element {
                                         title: "Duplicate",
                                         "aria-label": "Duplicate",
                                         onclick: move |_: MouseEvent| {
-                                            dup_t.call(name.clone());
+                                            dup_t.call(dup_name.clone());
                                         },
                                         {render_icon_view(Icon::Copy)}
                                     }
@@ -313,7 +315,7 @@ pub fn TemplateEditor() -> Element {
                                         r#type: "button",
                                         class: "text-xs text-red-400 hover:text-red-300 px-2 py-1",
                                         onclick: move |_: MouseEvent| {
-                                            del_t.call(name.clone());
+                                            del_t.call(del_name.clone());
                                         },
                                         "\"Delete\""
                                     }

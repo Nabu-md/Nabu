@@ -18,7 +18,7 @@ pub enum DiffKind {
     Removed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DiffRow {
     pub kind: DiffKind,
     pub old_line: Option<u32>,
@@ -55,12 +55,12 @@ pub fn DiffView(rows: Vec<DiffRow>, old_label: String, new_label: String) -> Ele
                 let mark_new = if kind == DiffKind::Removed { "" } else { tag };
                 rsx! {
                     div { class: "diff-row" }
-                    div { class: {format!("diff-cell diff-old {}", old_class)} }
+                    div { class:  format!("diff-cell diff-old {}", old_class) }
                     span { class: "diff-lineno", "{old_line}" }
                     span { class: "diff-mark", "aria-hidden": "true", "{mark_old}" }
                     span { class: "diff-text", "{text_old}" }
 
-                    div { class: {format!("diff-cell diff-new {}", new_class)} }
+                    div { class:  format!("diff-cell diff-new {}", new_class) }
                     span { class: "diff-lineno", "{new_line}" }
                     span { class: "diff-mark", "aria-hidden": "true", "{mark_new}" }
                     span { class: "diff-text", "{text_new}" }

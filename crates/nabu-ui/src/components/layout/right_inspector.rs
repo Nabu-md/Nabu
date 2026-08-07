@@ -4,11 +4,10 @@
 //! (text, number, date, select, multi-select, URL). Values are live-projected
 //! from the backend; edits call back to the parent via `on_change`.
 
-use crate::components::contexts::{use_nav, NavContext};
-use crate::components::property_editor::{PropertyEditor, PropertyEditorProps};
+use crate::components::property_editor::PropertyEditor;
+use crate::models::properties::{PropertyDefinition, PropertyValue};
 use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::nav::{TabDef, Tabs};
-use crate::models::properties::{PropertyDefinition, PropertyType, PropertyValue};
 use dioxus::prelude::*;
 
 use std::collections::HashMap;

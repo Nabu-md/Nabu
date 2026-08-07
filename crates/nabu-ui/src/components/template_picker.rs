@@ -18,7 +18,7 @@ pub fn TemplatePicker(
     templates: Vec<Template>,
     on_select: Callback<Template>,
 ) -> Element {
-    let search = use_signal(String::new);
+    let mut search = use_signal(String::new);
 
     // Re-evaluate on every render; Dioxus re-renders when `search` changes.
     let query = search.read().to_lowercase();

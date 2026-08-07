@@ -70,6 +70,7 @@ fn format_bytes(bytes: u64) -> String {
 }
 
 /// Triggers a settings save so the theme change is persisted.
+#[allow(dead_code)]
 fn save_theme(theme: &str) {
     let args = serde_wasm_bindgen::to_value(
         &serde_json::json!({ "key": "theme", "value": theme }),
@@ -104,12 +105,12 @@ fn reload_stats(
 
 #[component]
 pub fn StatisticsView() -> Element {
-    let nav: crate::components::navigation::state::NavContext = use_nav();
+    let _nav: crate::components::navigation::state::NavContext = use_nav();
     let workspace = use_workspace();
 
-    let mut stats = use_signal(VaultStatistics::default);
-    let mut loaded = use_signal(|| false);
-    let mut load_error = use_signal(|| None::<String>);
+    let stats = use_signal(VaultStatistics::default);
+    let loaded = use_signal(|| false);
+    let load_error = use_signal(|| None::<String>);
     let mut tag_filter = use_signal(String::new);
 
     // Initial load — mirrors LePtOS `load_stats.run(())` on mount.
@@ -142,33 +143,31 @@ pub fn StatisticsView() -> Element {
         }
 
         // Error / loading state
-        {move || {
-            let err = load_error.read().clone();
-            if let Some(err) = err {
-                rsx! {
-                    ErrorPanel {
-                        title: "Couldn't load statistics".to_string(),
-                        message: "Failed to compute vault statistics.".to_string(),
-                        details: err,
-                        recovery: "Make sure your vault is accessible, then try again.".to_string(),
-                        on_retry: move |_: ()| reload_stats(stats, loaded, load_error),
-                    }
-                }
-            } else if !loaded.read() {
-                rsx! {
-                    div { class: "grid grid-cols-2 md:grid-cols-4 gap-4" }
-                    for _ in 0..8 {
-                        Skeleton { width: "100%", height: "80px" }
-                    }
+        {if let Some(err) = load_error.read().clone() {
+            rsx! {
+                ErrorPanel {
+                    title: "Couldn't load statistics".to_string(),
+                    message: "Failed to compute vault statistics.".to_string(),
+                    details: err,
+                    recovery: "Make sure your vault is accessible, then try again.".to_string(),
+                    on_retry: move |_: ()| reload_stats(stats, loaded, load_error),
                 }
             }
+        } else if !*loaded.read() {
+            rsx! {
+                div { class: "grid grid-cols-2 md:grid-cols-4 gap-4" }
+                for _ in 0..8 {
+                    Skeleton { width: "100%", height: "80px" }
+                }
+            }
+        } else {
+            rsx! {}
         }}
 
         // Main content (only when loaded)
-        {move || {
-            if !loaded.read() {
-                return rsx! {};
-            }
+        {if !*loaded.read() {
+            rsx! {}
+        } else {
             let s = stats.read().clone();
             let max_growth = s.growth.iter().map(|g| g.count).max().unwrap_or(1);
             let query = tag_filter.read().to_lowercase();
@@ -311,7 +310,7 @@ pub fn StatisticsView() -> Element {
                         rsx! {
                             div {
                                 class: "flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2",
-                                onclick: move |_: MouseEvent| open_note(path),
+                                onclick: move |_: MouseEvent| open_note(path.clone()),
                                 span { class: "text-sm text-gray-300 truncate", "{title}" }
                                 span { class: "text-xs text-gray-500", "{format_bytes(size as u64)}" }
                             }
@@ -330,7 +329,7 @@ pub fn StatisticsView() -> Element {
                         rsx! {
                             div {
                                 class: "flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2",
-                                onclick: move |_: MouseEvent| open_note(path),
+                                onclick: move |_: MouseEvent| open_note(path.clone()),
                                 span { class: "text-sm text-gray-300 truncate", "{title}" }
                                 span { class: "text-xs text-gray-500", "{format_bytes(size as u64)}" }
                             }

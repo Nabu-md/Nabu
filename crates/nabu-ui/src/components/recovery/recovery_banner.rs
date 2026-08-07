@@ -40,7 +40,7 @@ pub fn RecoveryBanner(
                 role: "status",
                 "aria-live": "polite",
             }
-            div { class: "recovery-banner-icon", "aria-hidden": "true", {render_icon_view(Icon::LifeBuay)} }
+            div { class: "recovery-banner-icon", "aria-hidden": "true", {render_icon_view(Icon::LifeBuoy)} }
             div { class: "flex-1 min-w-0" }
             div { class: "text-sm font-semibold text-gray-100", "Recover previous session?" }
             div { class: "text-xs text-gray-400" }

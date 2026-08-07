@@ -261,7 +261,7 @@ pub fn VersionHistory() -> Element {
                             let count = note.version_count;
                             let last = note.last_snapshot_at.clone();
                             let path_check = path.clone();
-                            let s = state;
+                            let mut s = state;
                             let is_selected = {
                                 let s = state.read();
                                 s.selected_note.as_deref() == Some(path_check.as_str())
@@ -287,11 +287,14 @@ pub fn VersionHistory() -> Element {
                                     span { class: "text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300", "{count}" }
                                 }
                                 div { class: "text-xs text-gray-500 mt-0.5 truncate" }
-                                {if let Some(at) = &last {
-                                    {relative_time(at)}
-                                } else {
-                                    rsx! {}
-                                }}
+                                {
+                                    if let Some(at) = &last {
+                                        let rel = relative_time(at.as_str());
+                                        rsx! { "{rel}" }
+                                    } else {
+                                        rsx! {}
+                                    }
+                                }
                             }
                         }
                     }
@@ -356,11 +359,10 @@ pub fn VersionHistory() -> Element {
                     for version in versions.iter().rev() {
                         {
                             let id = version.id.clone();
-                            let id_check = id.clone();
                             let s = state;
                             let is_selected = {
-                                let s = state.read();
-                                s.selected_version.as_deref() == Some(id_check.as_str())
+                                let s_read = state.read();
+                                s_read.selected_version.as_deref() == Some(id.as_str())
                             };
                             let summary_text =
                                 version.summary.clone().unwrap_or_else(|| "Untitled version".to_string());

@@ -3,21 +3,6 @@
 //! Split-pane interface for reviewing, organising, approving, and processing
 //! captured knowledge before final storage. State is driven by EventBus events
 //! via Tauri IPC — no polling.
-//!
-//! Migration notes (LePtOS → Dioxus):
-//! - `signal(x)` → `use_signal(|| x)` (with `mut` on the binding for `set`)
-//! - `state.get()` → `state.read()` (or `*state.read()` for scalars)
-//! - `set_state.set(x)` → `state.set(x)` (requires `mut` binding)
-//! - `state.update(|s| …)` → `state.with_mut(|s| …)`
-//! - `RwSignal<bool>` → `Signal<bool>` (with `mut` for `set`)
-//! - `view!` / `.into_any()` / `collect_view()` / `AnyView` → `rsx!` / `for` / `Element`
-//! - `event_target_value(&ev)` → `ev.value()`
-//! - `class=move || format!(...)` → `class: { format!(...) }`
-//! - `on:click=` → `onclick:`, `on:input=` → `oninput:`, etc.
-//! - `prop:value=` → `value: "{...}"` + `oninput:`
-//! - `web_sys::KeyboardEvent` → `KeyboardEvent` (Dioxus) + `WebEventExt` for web_sys methods
-//! - `web_sys::DragEvent` → `DragEvent` (Dioxus) + `WebEventExt` for web_sys methods
-//! - `move || { … view!{} … }` reactive blocks → compute during render
 
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::icons::{render_icon_view, Icon};
@@ -244,7 +229,10 @@ fn confidence_bar(score: f64) -> Element {
     };
     rsx! {
         div { class: "w-full bg-gray-700 rounded h-1.5 mt-1 overflow-hidden" }
-        div { class: {format!("{} h-1.5 rounded transition-all", bar_class)}, style: { format!("width: {}%", pct) } }
+        div {
+            class: "{bar_class} h-1.5 rounded transition-all",
+            style: "width: {pct}%",
+        }
     }
 }
 
@@ -304,7 +292,7 @@ pub fn Inbox() -> Element {
         .await;
     });
 
-    let toggle_select_item = move |id: String| {
+    let mut toggle_select_item = move |id: String| {
         state.with_mut(|s| {
             if let Some(item) = s.items.iter_mut().find(|i| i.id == id) {
                 item.selected = !item.selected;
@@ -312,11 +300,11 @@ pub fn Inbox() -> Element {
         });
     };
 
-    let set_preview = move |id: String| {
+    let mut set_preview = move |id: String| {
         state.with_mut(|s| s.preview_id = Some(id));
     };
 
-    let on_sort_change = move |field: SortField| {
+    let mut on_sort_change = move |field: SortField| {
         state.with_mut(|s| {
             if s.sort_by == field {
                 s.sort_ascending = !s.sort_ascending;
@@ -327,12 +315,129 @@ pub fn Inbox() -> Element {
         });
     };
 
-    // Batch action handlers
-    let batch_approve: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent| {
-        let st = state;
-        let t = toasts;
-        move |_: MouseEvent| {
-            let ids: Vec<String> = st
+    // Batch action handlers — use raw closures (Signal and ToastContext are Copy)
+    let batch_approve = move |_: MouseEvent| {
+        let ids: Vec<String> = state
+            .read()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            let toasts_b = toasts;
+            spawn_local(async move {
+                let result = crate::ipc::tauri_invoke(
+                    "inbox_batch_approve",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                )
+                .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts_b.error("Approve", "Could not approve the selected captures");
+                }
+            });
+        }
+    };
+
+    let batch_reject = move |_: MouseEvent| {
+        let ids: Vec<String> = state
+            .read()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            let toasts_b = toasts;
+            spawn_local(async move {
+                let result = crate::ipc::tauri_invoke(
+                    "inbox_batch_reject",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({
+                        "ids": ids,
+                        "reason": "User rejected"
+                    }))
+                    .unwrap(),
+                )
+                .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts_b.error("Reject", "Could not reject the selected captures");
+                }
+            });
+        }
+    };
+
+    let batch_delete = move |_: MouseEvent| {
+        let ids: Vec<String> = state
+            .read()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            let toasts_b = toasts;
+            spawn_local(async move {
+                let result = crate::ipc::tauri_invoke(
+                    "inbox_batch_delete",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                )
+                .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts_b.error("Delete", "Could not delete the selected captures");
+                }
+            });
+        }
+    };
+
+    let batch_retry = move |_: MouseEvent| {
+        let ids: Vec<String> = state
+            .read()
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| i.id.clone())
+            .collect();
+        if !ids.is_empty() {
+            let toasts_b = toasts;
+            spawn_local(async move {
+                let result = crate::ipc::tauri_invoke(
+                    "inbox_batch_retry",
+                    serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                )
+                .await;
+                if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                    toasts_b.error("Retry", "Could not retry the selected captures");
+                }
+            });
+        }
+    };
+
+    // ── Keyboard shortcuts (inbox-scoped) ────────────────────────────────
+    let on_keydown = move |ev: KeyboardEvent| {
+        let web = ev.as_web_event();
+        // Skip if typing in an input — the search box handles its own keys.
+        let tag = web.target().and_then(|target| {
+            let el: web_sys::Element = target.dyn_into().ok()?;
+            Some(el.tag_name().to_ascii_lowercase())
+        });
+        if tag.as_deref() == Some("input") || tag.as_deref() == Some("textarea") {
+            return;
+        }
+        let meta = web.meta_key() || web.ctrl_key();
+        let shift = web.shift_key();
+        let key = web.key();
+
+        if meta && key.eq_ignore_ascii_case("a") {
+            ev.prevent_default();
+            state.with_mut(|s| {
+                let all_selected = s.items.iter().all(|i| i.selected);
+                for item in &mut s.items {
+                    item.selected = !all_selected;
+                }
+            });
+        } else if !meta && key.eq_ignore_ascii_case("a") {
+            ev.prevent_default();
+            let ids: Vec<String> = state
                 .read()
                 .items
                 .iter()
@@ -340,26 +445,22 @@ pub fn Inbox() -> Element {
                 .map(|i| i.id.clone())
                 .collect();
             if !ids.is_empty() {
-                let toasts_b = t;
+                let toasts_k = toasts;
                 spawn_local(async move {
                     let result = crate::ipc::tauri_invoke(
                         "inbox_batch_approve",
-                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
+                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids}))
+                            .unwrap(),
                     )
                     .await;
                     if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                        toasts_b.error("Approve", "Could not approve the selected captures");
+                        toasts_k.error("Approve", "Could not approve the selected captures");
                     }
                 });
             }
-        });
-    };
-
-    let batch_reject: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
-        let st = state;
-        let t = toasts;
-        move |_: MouseEvent| {
-            let ids: Vec<String> = st
+        } else if !meta && key.eq_ignore_ascii_case("r") {
+            ev.prevent_default();
+            let ids: Vec<String> = state
                 .read()
                 .items
                 .iter()
@@ -367,7 +468,7 @@ pub fn Inbox() -> Element {
                 .map(|i| i.id.clone())
                 .collect();
             if !ids.is_empty() {
-                let toasts_b = t;
+                let toasts_k = toasts;
                 spawn_local(async move {
                     let result = crate::ipc::tauri_invoke(
                         "inbox_batch_reject",
@@ -379,18 +480,13 @@ pub fn Inbox() -> Element {
                     )
                     .await;
                     if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                        toasts_b.error("Reject", "Could not reject the selected captures");
+                        toasts_k.error("Reject", "Could not reject the selected captures");
                     }
                 });
             }
-        });
-    };
-
-    let batch_delete: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
-        let st = state;
-        let t = toasts;
-        move |_: MouseEvent| {
-            let ids: Vec<String> = st
+        } else if !meta && key.eq_ignore_ascii_case("d") {
+            ev.prevent_default();
+            let ids: Vec<String> = state
                 .read()
                 .items
                 .iter()
@@ -398,164 +494,36 @@ pub fn Inbox() -> Element {
                 .map(|i| i.id.clone())
                 .collect();
             if !ids.is_empty() {
-                let toasts_b = t;
+                let toasts_k = toasts;
                 spawn_local(async move {
                     let result = crate::ipc::tauri_invoke(
                         "inbox_batch_delete",
-                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
-                    )
-                    .await;
-                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                        toasts_b.error("Delete", "Could not delete the selected captures");
-                    }
-                });
-            }
-        });
-    };
-
-    let batch_retry: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
-        let st = state;
-        let t = toasts;
-        move |_: MouseEvent| {
-            let ids: Vec<String> = st
-                .read()
-                .items
-                .iter()
-                .filter(|i| i.selected)
-                .map(|i| i.id.clone())
-                .collect();
-            if !ids.is_empty() {
-                let toasts_b = t;
-                spawn_local(async move {
-                    let result = crate::ipc::tauri_invoke(
-                        "inbox_batch_retry",
-                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids})).unwrap(),
-                    )
-                    .await;
-                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                        toasts_b.error("Retry", "Could not retry the selected captures");
-                    }
-                });
-            }
-        }
-    };
-
-    // ── Keyboard shortcuts (inbox-scoped) ────────────────────────────────
-    let on_keydown: EventHandler<KeyboardEvent> = {
-        let st = state;
-        let t = toasts;
-        move |ev: KeyboardEvent| {
-            let web = ev.data().as_web_event();
-            // Skip if typing in an input — the search box handles its own keys.
-            let tag = web.target().and_then(|target| {
-                let el: web_sys::Element = target.dyn_into().ok()?;
-                Some(el.tag_name().to_ascii_lowercase())
-            });
-            if tag.as_deref() == Some("input") || tag.as_deref() == Some("textarea") {
-                return;
-            }
-            let meta = web.meta_key() || web.ctrl_key();
-            let shift = web.shift_key();
-            let key = web.key();
-
-            if meta && key.eq_ignore_ascii_case("a") {
-                ev.prevent_default();
-                st.with_mut(|s| {
-                    let all_selected = s.items.iter().all(|i| i.selected);
-                    for item in &mut s.items {
-                        item.selected = !all_selected;
-                    }
-                });
-            } else if !meta && key.eq_ignore_ascii_case("a") {
-                ev.prevent_default();
-                let ids: Vec<String> = st
-                    .read()
-                    .items
-                    .iter()
-                    .filter(|i| i.selected)
-                    .map(|i| i.id.clone())
-                    .collect();
-                if !ids.is_empty() {
-                    let toasts_k = t;
-                    spawn_local(async move {
-                        let result = crate::ipc::tauri_invoke(
-                            "inbox_batch_approve",
-                            serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids}))
-                                .unwrap(),
-                        )
-                        .await;
-                        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                            toasts_k.error("Approve", "Could not approve the selected captures");
-                        }
-                    });
-                }
-            } else if !meta && key.eq_ignore_ascii_case("r") {
-                ev.prevent_default();
-                let ids: Vec<String> = st
-                    .read()
-                    .items
-                    .iter()
-                    .filter(|i| i.selected)
-                    .map(|i| i.id.clone())
-                    .collect();
-                if !ids.is_empty() {
-                    let toasts_k = t;
-                    spawn_local(async move {
-                        let result = crate::ipc::tauri_invoke(
-                            "inbox_batch_reject",
-                            serde_wasm_bindgen::to_value(&serde_json::json!({
-                                "ids": ids,
-                                "reason": "User rejected"
-                            }))
+                        serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids}))
                             .unwrap(),
-                        )
-                        .await;
-                        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                            toasts_k.error("Reject", "Could not reject the selected captures");
-                        }
-                    });
-                }
-            } else if !meta && key.eq_ignore_ascii_case("d") {
-                ev.prevent_default();
-                let ids: Vec<String> = st
-                    .read()
-                    .items
-                    .iter()
-                    .filter(|i| i.selected)
-                    .map(|i| i.id.clone())
-                    .collect();
-                if !ids.is_empty() {
-                    let toasts_k = t;
-                    spawn_local(async move {
-                        let result = crate::ipc::tauri_invoke(
-                            "inbox_batch_delete",
-                            serde_wasm_bindgen::to_value(&serde_json::json!({"ids": ids}))
-                                .unwrap(),
-                        )
-                        .await;
-                        if serde_wasm_bindgen::from_value::<()>(result).is_err() {
-                            toasts_k.error("Delete", "Could not delete the selected captures");
-                        }
-                    });
-                }
-            } else if !meta && key == " " {
-                ev.prevent_default();
-                let id = st.read().preview_id.clone();
-                if let Some(id) = id {
-                    toggle_select_item(id);
-                }
-            } else if !meta && (key == "Enter" || key == "ArrowRight") {
-                ev.prevent_default();
-                let preview_id = st.read().preview_id.clone();
-                if let Some(id) = preview_id {
-                    approve_item(id, t);
-                }
-            } else if meta && shift && (key == "ArrowLeft" || key == "ArrowRight") {
-                ev.prevent_default();
-                st.with_mut(|s| {
-                    s.sort_ascending = !s.sort_ascending;
+                    )
+                    .await;
+                    if serde_wasm_bindgen::from_value::<()>(result).is_err() {
+                        toasts_k.error("Delete", "Could not delete the selected captures");
+                    }
                 });
             }
+        } else if !meta && (key == " " || key == "Spacebar") {
+            ev.prevent_default();
+            let id = state.read().preview_id.clone();
+            if let Some(id) = id {
+                toggle_select_item(id);
+            }
+        } else if !meta && (key == "Enter" || key == "ArrowRight") {
+            ev.prevent_default();
+            let preview_id = state.read().preview_id.clone();
+            if let Some(id) = preview_id {
+                approve_item(id, toasts);
+            }
+        } else if meta && shift && (key == "ArrowLeft" || key == "ArrowRight") {
+            ev.prevent_default();
+            state.with_mut(|s| {
+                s.sort_ascending = !s.sort_ascending;
+            });
         }
     };
 
@@ -570,20 +538,17 @@ pub fn Inbox() -> Element {
         ev.stop_propagation();
         drag_over.set(false);
     };
-    let on_drop: EventHandler<DragEvent> = {
-        let t = toasts;
-        move |ev: DragEvent| {
-            ev.prevent_default();
-            ev.stop_propagation();
-            drag_over.set(false);
-            let web = ev.data().as_web_event();
-            if let Some(dt) = web.data_transfer() {
-                if let Some(file_list) = dt.files() {
-                    let len = file_list.length();
-                    for i in 0..len {
-                        if let Some(file) = file_list.item(i) {
-                            capture_file_drop(file, t);
-                        }
+    let on_drop = move |ev: DragEvent| {
+        ev.prevent_default();
+        ev.stop_propagation();
+        drag_over.set(false);
+        let web = ev.as_web_event();
+        if let Some(dt) = web.data_transfer() {
+            if let Some(file_list) = dt.files() {
+                let len = file_list.length();
+                for i in 0..len {
+                    if let Some(file) = file_list.item(i) {
+                        capture_file_drop(file, toasts);
                     }
                 }
             }
@@ -616,16 +581,16 @@ pub fn Inbox() -> Element {
     };
 
     // Read state values needed for rendering.
-    let selected_count = {
-        state.read().items.iter().filter(|i| i.selected).count()
-    };
+    let selected_count = state.read().items.iter().filter(|i| i.selected).count();
     let total_count = state.read().items.len();
     let current_filter = state.read().filter.clone();
     let preview_id = state.read().preview_id.clone();
+    let drag_over_val = *drag_over.read();
+    let drag_class = if drag_over_val { "drag-over" } else { "" };
 
     rsx! {
         div {
-            class: { format!("inbox flex h-full bg-gray-950 text-gray-100 overflow-hidden relative {}", if *drag_over.read() { "drag-over" } else { "" }) },
+            class: "inbox flex h-full bg-gray-950 text-gray-100 overflow-hidden relative {drag_class}",
             tabindex: "0",
             onkeydown: on_keydown,
             ondragover: on_dragover,
@@ -649,9 +614,7 @@ pub fn Inbox() -> Element {
             // Batch actions bar
             {if selected_count > 0 {
                 rsx! {
-                    div {
-                        class: "flex items-center gap-2 px-3 py-2 bg-blue-900/30 border-b border-blue-800/30",
-                    }
+                    div { class: "flex items-center gap-2 px-3 py-2 bg-blue-900/30 border-b border-blue-800/30" }
                     span { class: "text-xs text-blue-400", "{selected_count} selected" }
                     button {
                         class: "px-2 py-1 text-xs bg-green-700 rounded hover:bg-green-600",
@@ -680,13 +643,11 @@ pub fn Inbox() -> Element {
             div { class: "flex-1 overflow-y-auto" }
             {if filtered_items.is_empty() {
                 rsx! {
-                    div {
-                        class: "h-full flex items-center justify-center p-6",
-                    }
+                    div { class: "h-full flex items-center justify-center p-6" }
                     EmptyState {
-                        icon: Icon::Inbox,
+                        icon: Some(Icon::Inbox),
                         title: "Inbox is empty".to_string(),
-                        description: "Captured knowledge appears here, ready to review and file into your vault.".to_string(),
+                        description: Some("Captured knowledge appears here, ready to review and file into your vault.".to_string()),
                     }
                 }
             } else {
@@ -716,12 +677,10 @@ pub fn Inbox() -> Element {
                                 else if has_warnings && has_ocr_warning { "border-l-orange-500" }
                                 else { "border-l-transparent" }
                             } else { "border-l-transparent" };
+                            let item_class = if is_selected { "bg-gray-800 border-l-blue-500" } else { border_class };
                             rsx! {
                                 div {
-                                    class: { format!(
-                                        "inbox-item px-3 py-2 cursor-pointer hover:bg-gray-800 border-l-2 transition-colors {}",
-                                        if is_selected { "bg-gray-800 border-l-blue-500" } else { border_class }
-                                    ) },
+                                    class: "inbox-item px-3 py-2 cursor-pointer hover:bg-gray-800 border-l-2 transition-colors {item_class}",
                                     onclick: move |_: MouseEvent| {
                                         toggle_select_item(id.clone());
                                     },
@@ -738,7 +697,7 @@ pub fn Inbox() -> Element {
                                 }
                                 div { class: "flex items-center gap-2 mt-1 ml-7" }
                                 span { class: "text-xs text-gray-500", "{source}" }
-                                span { class: "text-xs text-gray-600", "•" }
+                                span { class: "text-xs text-gray-600", "\u{2022}" }
                                 span { class: "text-xs text-gray-500", "{object_type}" }
                                 {suggested_folder.as_ref().map(|folder| rsx! {
                                     span { class: "text-xs text-blue-400 mt-1 block", {render_icon_view(Icon::MapPin)} " {folder}" }
@@ -758,7 +717,7 @@ pub fn Inbox() -> Element {
                                     rsx! {
                                         div { class: "ml-7 mt-1 w-full max-w-[120px]" }
                                         {confidence_bar(score)}
-                                        span { class: {format!("{} text-xs", colour)}, "{pct}% confidence" }
+                                        span { class: "{colour} text-xs", "{pct}% confidence" }
                                     }
                                 })}
                             }
@@ -784,8 +743,10 @@ pub fn Inbox() -> Element {
                 match item_opt {
                     Some(item) => rsx! {
                         div { class: "flex h-full" }
-                        div { class: "flex-1 overflow-y-auto p-4", {InboxPreview { item: item.clone() }} }
-                        div { class: "flex-none w-72 border-l border-gray-800 overflow-y-auto p-4", {InboxMetadataSidebar { item: item }} }
+                        div { class: "flex-1 overflow-y-auto p-4" }
+                        InboxPreview { item: item.clone() }
+                        div { class: "flex-none w-72 border-l border-gray-800 overflow-y-auto p-4" }
+                        InboxMetadataSidebar { item: item }
                     },
                     None => rsx! {
                         div { class: "flex items-center justify-center h-full text-gray-500", "Select an item to preview" }
@@ -815,55 +776,44 @@ enum InboxPreviewTab {
 fn InboxPreview(item: InboxItem) -> Element {
     let toasts = crate::components::ui::feedback::use_toast();
     let mut active_tab = use_signal(|| InboxPreviewTab::Details);
-    let has_duplicate = item.duplicate_info.is_some();
-    let has_timeline = item.timeline_info.is_some();
-    let has_ocr = item.ocr_info.is_some();
     let approve_id = item.id.clone();
     let reject_id = item.id.clone();
     let retry_id = item.id.clone();
     let delete_id = item.id.clone();
 
+    let tab_labels: [(&'static str, InboxPreviewTab); 5] = [
+        ("Details", InboxPreviewTab::Details),
+        ("Duplicate", InboxPreviewTab::Duplicate),
+        ("Timeline", InboxPreviewTab::Timeline),
+        ("OCR", InboxPreviewTab::Ocr),
+        ("History", InboxPreviewTab::History),
+    ];
+
     rsx! {
         div { class: "inbox-preview" }
         div { class: "flex items-center gap-1 mb-4 border-b border-gray-800 pb-2" }
-
-        {match *active_tab.read() {
-            InboxPreviewTab::Details => "Details",
-            InboxPreviewTab::Duplicate => "Duplicate",
-            InboxPreviewTab::Timeline => "Timeline",
-            InboxPreviewTab::Ocr => "OCR",
-            InboxPreviewTab::History => "History",
-        }}
-        // Tab buttons
-        {let tabs = ["Details", "Duplicate", "Timeline", "OCR", "History"];
-         let tab_values = [
-             InboxPreviewTab::Details,
-             InboxPreviewTab::Duplicate,
-             InboxPreviewTab::Timeline,
-             InboxPreviewTab::Ocr,
-             InboxPreviewTab::History,
-         ];
-         rsx! {
-             {tabs.iter().zip(tab_values.iter()).map(|(label, &tab_val)| {
-                 let label = label.to_string();
-                 let is_active = *active_tab.read() == tab_val;
-                 rsx! {
-                     button {
-                         class: { format!("px-3 py-1 text-sm rounded {}", if is_active { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" }) },
-                         onclick: move |_: MouseEvent| { active_tab.set(tab_val); },
-                         "{label}"
-                     }
-                 }
-             })}
-         }}
+        for (label, tab_val) in tab_labels {
+            {
+                let is_active = *active_tab.read() == tab_val;
+                let tab_class = if is_active { "bg-blue-600 text-white" } else { "text-gray-400 hover:text-gray-200" };
+                rsx! {
+                    button {
+                        class: "px-3 py-1 text-sm rounded {tab_class}",
+                        onclick: move |_: MouseEvent| { active_tab.set(tab_val); },
+                        "{label}"
+                    }
+                }
+            }
+        }
 
         // Tab content
+        div { class: "flex-1 overflow-y-auto" }
         {match *active_tab.read() {
-            InboxPreviewTab::Details => rsx! { {InboxDetails { item: item.clone() }} },
-            InboxPreviewTab::Duplicate => rsx! { {InboxDuplicateReview { item: item.clone() }} },
-            InboxPreviewTab::Timeline => rsx! { {InboxTimelineReview { item: item.clone() }} },
-            InboxPreviewTab::Ocr => rsx! { {InboxOcrReview { item: item.clone() }} },
-            InboxPreviewTab::History => rsx! { {InboxHistory { item: item.clone() }} },
+            InboxPreviewTab::Details => rsx! { InboxDetails { item: item.clone() } },
+            InboxPreviewTab::Duplicate => rsx! { InboxDuplicateReview { item: item.clone() } },
+            InboxPreviewTab::Timeline => rsx! { InboxTimelineReview { item: item.clone() } },
+            InboxPreviewTab::Ocr => rsx! { InboxOcrReview { item: item.clone() } },
+            InboxPreviewTab::History => rsx! { InboxHistory { item: item.clone() } },
         }}
 
         // Action buttons
@@ -893,11 +843,12 @@ fn InboxPreview(item: InboxItem) -> Element {
 
 #[component]
 fn InboxDetails(item: InboxItem) -> Element {
-    let mut title = use_signal(|| item.metadata.title.clone().unwrap_or_default());
-    let mut author = use_signal(|| item.metadata.author.clone().unwrap_or_default());
-    let mut language = use_signal(|| item.metadata.language.clone().unwrap_or_default());
-    let mut tags = use_signal(|| item.metadata.tags.join(", "));
-    let mut destination = use_signal(|| item.suggested_folder.clone().unwrap_or_default());
+    let classification_text = item
+        .metadata
+        .custom
+        .get("classification")
+        .and_then(|v| v.as_str().map(|s| s.to_string()))
+        .unwrap_or_default();
 
     rsx! {
         div { class: "space-y-3" }
@@ -918,25 +869,22 @@ fn InboxDetails(item: InboxItem) -> Element {
         label { class: "text-xs text-gray-500 uppercase tracking-wide", "Source File" }
         p { class: "text-sm text-gray-400 truncate", "{item.source_file.clone().unwrap_or_default()}" }
 
-        {{let classification_text = item.metadata.custom.get("classification")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
-        if item.metadata.custom.get("classification").is_some() {
+        {if item.metadata.custom.get("classification").is_some() {
             rsx! {
                 div { class: "mt-3" }
                 label { class: "text-xs text-gray-500 uppercase tracking-wide", "Classification" }
                 div { class: "flex items-center gap-2 mt-1" }
                 span { class: "text-sm font-medium text-blue-300", "{classification_text}" }
-                {if let Some(score) = item.confidence {
+                {item.confidence.map(|score| {
                     let colour = confidence_color(score);
                     let pct = ((score * 100.0).round() as i64).clamp(0, 100);
                     rsx! {
-                        span { class: {format!("{} text-xs", colour)}, "{pct}% confidence" }
+                        span { class: "{colour} text-xs", "{pct}% confidence" }
+                        {confidence_bar(score)}
                     }
-                } else { rsx! {} }}
+                })}
             }
-            {item.confidence.map(|score| rsx! { {confidence_bar(score)} })}
-        } else { rsx! {} }}}
+        } else { rsx! {} }}
 
         {if let Some(folder) = item.suggested_folder.clone() {
             rsx! {
@@ -969,9 +917,7 @@ fn InboxDuplicateReview(item: InboxItem) -> Element {
         {if let Some(dup) = &item.duplicate_info {
             rsx! {
                 div { class: "space-y-3" }
-                div {
-                    class: "p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg",
-                }
+                div { class: "p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg" }
                 div { class: "flex items-center gap-2" }
                 span { class: "text-yellow-400", {render_icon_view(Icon::Warning)} }
                 span { class: "text-sm font-medium text-yellow-300", "Potential Duplicate Detected" }
@@ -1120,13 +1066,14 @@ fn InboxHistory(item: InboxItem) -> Element {
                         let processor_name = entry.processor_name.clone();
                         let duration_ms = entry.duration_ms;
                         let timestamp = entry.timestamp.clone();
+                        let status_class = if success { "text-green-400" } else { "text-red-400" };
                         rsx! {
                             div {
                                 class: "flex items-start gap-3 p-2 rounded-lg bg-gray-900/50 text-sm",
                             }
                             span {
-                                class: { format!("mt-0.5 {}", if success { "text-green-400" } else { "text-red-400" }) },
-                                {if success { {render_icon_view(Icon::CircleCheck)} } else { {render_icon_view(Icon::CircleX)} }}
+                                class: "mt-0.5 {status_class}",
+                                {if success { render_icon_view(Icon::CircleCheck) } else { render_icon_view(Icon::CircleX) }}
                             }
                             div { class: "flex-1 min-w-0" }
                             div { class: "flex items-center justify-between" }
@@ -1163,6 +1110,12 @@ fn InboxMetadataSidebar(item: InboxItem) -> Element {
     let mut destination = use_signal(|| item.suggested_folder.clone().unwrap_or_default());
     let toasts = crate::components::ui::feedback::use_toast();
     let item_for_click = item.clone();
+    let placeholder_text = item.suggested_folder.clone().unwrap_or_default();
+    let reset_title = item.metadata.title.clone().unwrap_or_default();
+    let reset_author = item.metadata.author.clone().unwrap_or_default();
+    let reset_language = item.metadata.language.clone().unwrap_or_default();
+    let reset_tags = item.metadata.tags.join(", ");
+    let reset_dest = item.suggested_folder.clone().unwrap_or_default();
 
     rsx! {
         div { class: "space-y-3" }
@@ -1207,7 +1160,7 @@ fn InboxMetadataSidebar(item: InboxItem) -> Element {
             class: "input w-full mt-1",
             value: "{destination.read()}",
             oninput: move |ev: FormEvent| { destination.set(ev.value()); },
-            placeholder: item.suggested_folder.clone().unwrap_or_default(),
+            placeholder: placeholder_text,
         }
 
         {if let Some(folder) = item.suggested_folder.clone() {
@@ -1283,11 +1236,11 @@ fn InboxMetadataSidebar(item: InboxItem) -> Element {
         Button {
             variant: ButtonVariant::Ghost,
             on_click: move |_: MouseEvent| {
-                title.set(item.metadata.title.clone().unwrap_or_default());
-                author.set(item.metadata.author.clone().unwrap_or_default());
-                language.set(item.metadata.language.clone().unwrap_or_default());
-                tags.set(item.metadata.tags.join(", "));
-                destination.set(item.suggested_folder.clone().unwrap_or_default());
+                title.set(reset_title.clone());
+                author.set(reset_author.clone());
+                language.set(reset_language.clone());
+                tags.set(reset_tags.clone());
+                destination.set(reset_dest.clone());
             },
             {"Reset"}
         }

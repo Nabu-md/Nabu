@@ -139,7 +139,7 @@ fn setting_checkbox(
         label { class: "check-field" }
         input {
             r#type: "checkbox",
-            checked: {settings.with(|s| get(s))},
+            checked: settings.with(|s| get(s)),
             onchange: move |ev: FormEvent| {
                 let val = ev.checked();
                 settings.with_mut(|s| set(s, val));
@@ -272,8 +272,8 @@ fn setting_select(
 /// navigator, and delegates to section renderers for each tab.
 #[component]
 pub fn SettingsPanel() -> Element {
-    let mut settings = use_signal(AppSettings::default);
-    let mut active_tab = use_signal(|| "Appearance".to_string());
+    let settings = use_signal(AppSettings::default);
+    let active_tab = use_signal(|| "Appearance".to_string());
 
     // Load settings from backend on mount.
     use_effect(move || {
@@ -464,7 +464,7 @@ fn graph_settings(settings: Signal<AppSettings>) -> Element {
     }
 }
 
-fn files_settings(mut settings: Signal<AppSettings>) -> Element {
+fn files_settings(settings: Signal<AppSettings>) -> Element {
     let vault_path = settings.with(|s| s.last_vault_path.clone());
     rsx! {
         h2 { class: "text-xl font-bold mb-4", "Files & Vaults" }

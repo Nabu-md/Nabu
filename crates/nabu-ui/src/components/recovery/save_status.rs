@@ -86,7 +86,7 @@ pub fn SaveStatusIndicator() -> Element {
             "aria-live": "polite",
         }
         span {
-            class: { format!("save-dot {}", ctx.status.read().dot_class()) },
+            class:  format!("save-dot {}", ctx.status.read().dot_class()),
             "aria-hidden": "true",
         }
         span { class: "save-status-label", "{ctx.status.read().label()}" }

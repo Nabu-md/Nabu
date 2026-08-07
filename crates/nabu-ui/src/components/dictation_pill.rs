@@ -16,7 +16,7 @@ use wasm_bindgen_futures::spawn_local;
 #[component]
 pub fn DictationPill() -> Element {
     let mut scratchpad = use_signal(String::new);
-    let mut mode = use_signal(|| "dictation".to_string());
+    let mode = use_signal(|| "dictation".to_string());
     let mut opacity = use_signal(|| 0.8_f32);
     let mut clipboard_cache = use_signal(Vec::<String>::new);
     let toasts = crate::components::ui::feedback::use_toast();
@@ -160,7 +160,8 @@ pub fn DictationPill() -> Element {
                 Button {
                     variant: ButtonVariant::Primary,
                     on_click: move |_: MouseEvent| {
-                        is_dictating.set(!*is_dictating.read());
+                        let current = *is_dictating.read();
+                        is_dictating.set(!current);
                         let args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
                         spawn_local(async move {
                             let _ = crate::ipc::tauri_invoke("start_dictation", args).await;
