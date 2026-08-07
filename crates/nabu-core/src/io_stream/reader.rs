@@ -36,47 +36,32 @@ use crate::rpc::Request;
 /// Async reader for stdin that reads newline-delimited JSON-RPC requests.
 ///
 /// The reader is designed to be spawned as a tokio task. It reads from
-/// `tokio::io::stdin()` (or an injected reader for testing) line by line,
-/// deserializes each line into a [`Request`], and forwards it to the
-/// callback.
+/// `tokio::io::stdin()` (or any injected `AsyncBufRead` for testing) line
+/// by line, deserializes each line into a [`Request`], and forwards it to
+/// the callback.
 ///
 /// ## Thread Safety
 ///
 /// The reader holds an `Arc<AtomicBool>` shutdown flag (shared with the
-/// writer and transport) for lock-free shutdown signaling. The callback
-/// is `Send + Sync` via `Arc<dyn Fn>` so it can be invoked from any
-/// spawned task.
+/// writer and transport) for lock-free shutdown signaling. The shutdown
+/// flag is extracted into a local `Arc` before the read loop begins,
+/// ensuring the async future is `Send` even though `dyn AsyncBufRead`
+/// is not `Sync`.
 pub struct AsyncStdinReader {
-    /// Configuration for framing limits.
+    /// Configuration for framing limits (max message size).
     config: TransportConfig,
     /// Shared shutdown signal — when `true`, the read loop exits.
     shutdown: Arc<AtomicBool>,
-    /// The underlying reader. Injected for testability.
-    /// When `None`, `tokio::io::stdin()` is used (wrapped in a BufReader).
-    reader: Option<Box<dyn AsyncBufRead + Unpin + Send>>,
 }
 
 impl AsyncStdinReader {
     /// Create a new reader with the given config and shutdown signal.
     ///
-    /// If `reader` is `None`, the reader uses `tokio::io::stdin()` wrapped
-    /// in a `BufReader` for line-buffered reading. Pass a custom reader
-    /// (e.g. `tokio::io::BufReader::new(Cursor::new(...))`) for testing.
-    pub fn new(
-        config: TransportConfig,
-        shutdown: Arc<AtomicBool>,
-        reader: Option<Box<dyn AsyncBufRead + Unpin + Send>>,
-    ) -> Self {
-        Self {
-            config,
-            shutdown,
-            reader,
-        }
-    }
-
-    /// Returns `true` if the shutdown signal has been set.
-    fn is_shutdown(&self) -> bool {
-        self.shutdown.load(Ordering::Acquire)
+    /// The reader does not own the stdin handle — it is passed as a
+    /// parameter to [`run`](Self::run). This allows the same reader
+    /// to work with real stdin or an injected test reader.
+    pub fn new(config: TransportConfig, shutdown: Arc<AtomicBool>) -> Self {
+        Self { config, shutdown }
     }
 
     /// Read and deserialize a single JSON-RPC request from the reader.
@@ -88,8 +73,12 @@ impl AsyncStdinReader {
     ///
     /// Blank lines are skipped. Lines exceeding `max_message_bytes`
     /// produce a [`TransportError::MessageTooLarge`] error.
+    ///
+    /// This is a static method (not taking `&self`) to avoid `&self`
+    /// capture issues in spawned async tasks — the caller should pass
+    /// `max_message_bytes` from the config directly.
     async fn read_request<R: AsyncBufRead + Unpin>(
-        &self,
+        max_message_bytes: usize,
         reader: &mut R,
     ) -> TransportResult<Option<Request>> {
         let mut line = String::new();
@@ -100,15 +89,19 @@ impl AsyncStdinReader {
             return Ok(None);
         }
 
-        // Skip blank lines (whitespace-only)
-        if line.trim().is_empty() {
-            return self.read_request(reader).await;
+        // Skip blank lines (whitespace-only) by looping
+        while line.trim().is_empty() {
+            line.clear();
+            let bytes_read = reader.read_line(&mut line).await.map_err(TransportError::io)?;
+            if bytes_read == 0 {
+                return Ok(None);
+            }
         }
 
         // Check message size
-        if line.len() > self.config.max_message_bytes {
+        if line.len() > max_message_bytes {
             return Err(TransportError::message_too_large(
-                self.config.max_message_bytes,
+                max_message_bytes,
                 line.len(),
             ));
         }
@@ -123,29 +116,48 @@ impl AsyncStdinReader {
 
     /// Main read loop.
     ///
-    /// Reads requests from stdin in a loop and invokes `on_request` for
-    /// each one. The loop terminates when:
-    /// - EOF is received on stdin (`Ok(())` returned).
+    /// Reads requests from the provided reader in a loop and invokes
+    /// `on_request` for each one. The loop terminates when:
+    /// - EOF is received on the reader (`Ok(())` returned).
     /// - The shutdown flag is set.
     /// - An error occurs (returned as `Err`).
     ///
     /// The `on_request` callback receives the deserialized [`Request`]
-    /// and an [`AsyncStdoutWriter`] for writing the response.
-    pub async fn run<R, F, Fut>(mut self, reader: &mut R, mut on_request: F) -> TransportResult<()>
+    /// and is expected to dispatch it through the router and write the
+    /// response.
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` — The `AsyncBufRead` to read from. This can be
+    ///   `tokio::io::stdin()` (wrapped in a `BufReader`) for production,
+    ///   or any test reader for testing.
+    /// * `on_request` — Callback invoked for each request. The callback
+    ///   is async and receives the `Request` by value.
+    pub async fn run<R, F, Fut>(self, reader: &mut R, mut on_request: F) -> TransportResult<()>
     where
         R: AsyncBufRead + Unpin,
-        F: FnMut(Request) -> Fut + Send + '_,
+        F: FnMut(Request) -> Fut + Send,
         Fut: std::future::Future<Output = ()> + Send,
     {
+        // Extract the shutdown flag and config into locals so that
+        // &self is not held across await points. This is critical for
+        // Send-ness: AsyncStdinReader holds an Arc<AtomicBool> (Send+Sync)
+        // and TransportConfig (Send+Sync), but the async future must not
+        // borrow &self which would capture the non-Sync `reader` field
+        // (if it existed — it doesn't anymore, but we avoid the issue
+        // entirely by extracting into locals).
+        let shutdown = self.shutdown.clone();
+        let max_message_bytes = self.config.max_message_bytes;
+
         loop {
             // Check shutdown before each read attempt
-            if self.is_shutdown() {
+            if shutdown.load(Ordering::Acquire) {
                 tracing::debug!("stdin reader: shutdown signal received");
                 return Ok(());
             }
 
             // Read the next request
-            match self.read_request(reader).await {
+            match Self::read_request(max_message_bytes, reader).await {
                 Ok(Some(request)) => {
                     tracing::trace!("stdin reader: received request id={}", request.id);
                     on_request(request).await;
@@ -173,7 +185,6 @@ impl Default for AsyncStdinReader {
         Self::new(
             TransportConfig::default(),
             Arc::new(AtomicBool::new(false)),
-            None,
         )
     }
 }

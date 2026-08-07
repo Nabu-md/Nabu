@@ -213,6 +213,10 @@ mod tests {
         crate::models::conversation::Turn::new(Uuid::new_v4(), Uuid::nil(), content)
     }
 
+    fn make_text_turn_with_id(id: Uuid, content: &str) -> crate::models::conversation::Turn {
+        crate::models::conversation::Turn::new(id, Uuid::nil(), content)
+    }
+
     #[test]
     fn message_with_turns_sets_all_message_ids() {
         let msg = Message::new_anonymous();
@@ -254,16 +258,25 @@ mod tests {
     #[test]
     fn message_validate_rejects_nil_turn_id() {
         let msg = Message::new_anonymous()
-            .with_turn(make_text_turn("hello"));
+            .with_turn(make_text_turn_with_id(Uuid::nil(), "hello"));
         assert!(msg.validate().is_err());
     }
 
     #[test]
     fn message_validate_rejects_turn_message_id_mismatch() {
         let msg = Message::new_anonymous();
-        let turn = crate::models::conversation::Turn::new(Uuid::new_v4(), Uuid::new_v4(), "hello");
+        let turn = crate::models::conversation::Turn::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(), // wrong message_id — not msg.id
+            "hello",
+        );
         let msg = msg.with_turn(turn);
-        assert!(msg.validate().is_err());
+        // with_turn sets turn.message_id = msg.id, so we need to manually
+        // create a mismatch by not using the builder.
+        // Instead, test by validating the turn directly.
+        let mut bad_msg = msg.clone();
+        bad_msg.turns[0].message_id = Uuid::new_v4();
+        assert!(bad_msg.validate().is_err());
     }
 
     #[test]

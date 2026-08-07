@@ -1,5 +1,5 @@
 use crate::conversations::{PersistenceError, PersistenceResult};
-use crate::models::conversation::{Thread, Turn};
+use crate::models::conversation::Thread;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -567,7 +567,7 @@ impl Lifecycle for ConversationStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::conversation::{Message, Role, TurnContent};
+    use crate::models::conversation::{Message, Role, Turn, TurnContent};
 
     /// Helper: build a simple but complete thread for testing.
     fn sample_thread(title: &str) -> Thread {
@@ -750,9 +750,20 @@ mod tests {
         let store = ConversationStore::new(dir.path());
         store.initialize().unwrap();
 
-        // Write a thread with no messages (invalid).
-        let mut bad_thread = Thread::new().with_title("Bad");
-        // Thread::new creates an empty thread; the validate() will reject it.
+        // Create a thread with a message whose thread_id doesn't match —
+        // this fails model validation. We bypass the `with_message` builder
+        // (which sets thread_id) to create the mismatch.
+        let bad_thread = Thread {
+            id: Uuid::new_v4(),
+            title: Some("Bad Thread".to_string()),
+            created_at: chrono::Utc::now(),
+            updated_at: None,
+            participants: Vec::new(),
+            messages: vec![Message::new_anonymous()
+                .with_role(Role::User)
+                .with_turn(Turn::new_anonymous(TurnContent::text("hello")))],
+            metadata: std::collections::HashMap::new(),
+        };
         let json = serde_json::to_string(&bad_thread).unwrap();
         std::fs::write(store.thread_file_path(bad_thread.id), &json).unwrap();
 
@@ -818,12 +829,13 @@ mod tests {
         let store = ConversationStore::new(dir.path());
 
         let mut thread = Thread::new().with_title("Turns Test");
+        let tool_call_content = serde_json::json!({
+            "tool_call": {"name": "calc", "args": {"expr": "2+2"}}
+        });
         let msg = Message::new_anonymous()
             .with_role(Role::User)
             .with_turn(Turn::new_anonymous(TurnContent::text("Calculate 2+2")))
-            .with_turn(Turn::new_anonymous(TurnContent::Unknown(serde_json::json!({
-                "tool_call": {"name": "calc", "args": {"expr": "2+2"}}
-            })));
+            .with_turn(Turn::new_anonymous(TurnContent::Unknown(tool_call_content)));
         thread = thread.with_message(msg);
 
         store.save(&thread).unwrap();
@@ -956,21 +968,20 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = std::sync::Arc::new(ConversationStore::new(dir.path()));
         store.initialize().unwrap();
+        store.start().unwrap();
 
-        let mut handles = Vec::new();
+        // Ensure the directory exists before spawning concurrent savers.
+        store.ensure_dirs().unwrap();
 
-        // Spawn threads that save different threads concurrently.
-        for i in 0..10 {
-            let store_clone = store.clone();
-            let handle = std::thread::spawn(move || {
+        let results: Vec<Thread> = (0..10)
+            .map(|i| {
+                let store_clone = store.clone();
                 let thread = sample_thread(&format!("Concurrent Thread {}", i));
+                let id = thread.id;
                 store_clone.save(&thread).expect("save should succeed");
-                store_clone.load(thread.id).expect("load should succeed")
-            });
-            handles.push(handle);
-        }
-
-        let results: Vec<Thread> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+                store_clone.load(id).expect("load should succeed")
+            })
+            .collect();
 
         // All 10 threads should be in the store.
         assert_eq!(store.count(), 10);

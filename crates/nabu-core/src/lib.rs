@@ -55,6 +55,8 @@ pub mod sync;
 #[allow(ambiguous_glob_reexports)]
 pub use capture::*;
 #[allow(ambiguous_glob_reexports)]
+pub use conversations::*;
+#[allow(ambiguous_glob_reexports)]
 pub use diagnostic::*;
 #[allow(ambiguous_glob_reexports)]
 pub use diagnostics::*;

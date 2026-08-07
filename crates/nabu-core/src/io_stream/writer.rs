@@ -47,7 +47,7 @@ pub struct AsyncStdoutWriter {
     shutdown: Arc<AtomicBool>,
     /// The stdout writer, protected by a mutex for concurrent access.
     /// When `None`, `tokio::io::stdout()` is used.
-    stdout: tokio::sync::Mutex<Option<Box<dyn AsyncWrite + Unpin + Send>>>>,
+    stdout: tokio::sync::Mutex<Option<Box<dyn AsyncWrite + Unpin + Send>>>,
 }
 
 impl AsyncStdoutWriter {
@@ -57,7 +57,7 @@ impl AsyncStdoutWriter {
     pub fn new(
         config: TransportConfig,
         shutdown: Arc<AtomicBool>,
-        stdout: Option<Box<dyn AsyncWrite + Uninit + Send>>,
+        stdout: Option<Box<dyn AsyncWrite + Unpin + Send>>,
     ) -> Self {
         Self {
             config,

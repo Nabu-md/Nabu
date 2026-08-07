@@ -47,7 +47,7 @@ pub fn decode_message<T: DeserializeOwned>(line: &str) -> crate::io_stream::Tran
 pub fn decode_message_bytes<T: DeserializeOwned>(
     bytes: &[u8],
 ) -> crate::io_stream::TransportResult<T> {
-    let line = String::from_utf8(bytes)
+    let line = String::from_utf8(bytes.to_vec())
         .map_err(|e| crate::io_stream::TransportError::invalid(format!("invalid UTF-8: {}", e)))?;
     decode_message::<T>(&line)
 }

@@ -214,7 +214,6 @@ impl Default for Thread {
 mod tests {
     use super::*;
     use crate::models::conversation::Role;
-    use crate::models::conversation::TurnContent;
 
     #[test]
     fn thread_default_creates_with_fresh_id() {
@@ -312,6 +311,9 @@ mod tests {
         // message belongs to a different thread
         let msg = crate::models::conversation::Message::new(Uuid::new_v4(), Uuid::new_v4());
         let t = Thread::new().with_message(msg);
+        // with_message sets thread_id = t.id, so manually break it.
+        let mut t = t;
+        t.messages[0].thread_id = Uuid::new_v4();
         assert!(t.validate().is_err());
     }
 

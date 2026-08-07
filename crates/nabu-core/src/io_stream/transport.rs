@@ -78,7 +78,7 @@ use crate::io_stream::lifecycle::TransportLifecycle;
 use crate::io_stream::reader::AsyncStdinReader;
 use crate::io_stream::writer::AsyncStdoutWriter;
 use crate::registry::lifecycle::{Lifecycle, LifecycleStage};
-use crate::rpc::{Request, Response, Router};
+use crate::rpc::{Request, Router};
 
 /// Bidirectional stdio transport for JSON-RPC.
 ///
@@ -295,11 +295,11 @@ impl StdioTransport {
         };
 
         let handle = runtime_handle.spawn(async move {
-            let read_result: TransportResult<()> = if let Some(stdin) = injected_stdin {
+            let read_result: TransportResult<()> = if let Some(mut stdin) = injected_stdin {
                 // Test mode: use the injected stdin reader directly
-                let reader = AsyncStdinReader::new(config, shutdown, None);
+                let reader = AsyncStdinReader::new(config, shutdown);
                 reader
-                    .run(stdin, |request: Request| {
+                    .run(&mut stdin, |request: Request| {
                         let router = router.clone();
                         let writer = writer.clone();
                         async move {
@@ -312,7 +312,7 @@ impl StdioTransport {
                     .await
             } else {
                 // Production mode: read from tokio::io::stdin()
-                let reader = AsyncStdinReader::new(config, shutdown, None);
+                let reader = AsyncStdinReader::new(config, shutdown);
                 let mut stdin_reader = tokio::io::BufReader::new(tokio::io::stdin());
                 reader
                     .run(&mut stdin_reader, |request: Request| {

@@ -20,7 +20,7 @@
 //! All transitions are one-way and forward-only, matching the platform
 //! convention established by [`LifecycleStage`].
 
-use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::lifecycle::{LifecycleManager, LifecycleStage};
 
 /// Lifecycle manager for [`StdioTransport`](super::StdioTransport).
 ///
