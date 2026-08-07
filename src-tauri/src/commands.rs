@@ -3891,3 +3891,92 @@ pub fn plugin_call(
 
     Ok(response)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nabu_core::diagnostic::{
+        Diagnostic, DiagnosticBatch, DiagnosticPlatformError, DiagnosticSeverity, TextPosition,
+        TextRange,
+    };
+
+    #[test]
+    fn diagnostic_request_serializes_with_explicit_origin() {
+        let req = DiagnosticRequest {
+            text: "hello world".to_string(),
+            resource_id: "buffer://1".to_string(),
+            origin: Some("harper".to_string()),
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        let back: DiagnosticRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.text, "hello world");
+        assert_eq!(back.resource_id, "buffer://1");
+        assert_eq!(back.origin.as_deref(), Some("harper"));
+    }
+
+    #[test]
+    fn diagnostic_request_serializes_with_none_origin() {
+        let req = DiagnosticRequest {
+            text: "test".to_string(),
+            resource_id: "note://abc".to_string(),
+            origin: None,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("\"origin\""));
+        let back: DiagnosticRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.origin, None);
+    }
+
+    #[test]
+    fn diagnostic_request_deserializes_missing_origin_as_none() {
+        let json = r#"{"text":"hi","resource_id":"buf://1"}"#;
+        let back: DiagnosticRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(back.text, "hi");
+        assert_eq!(back.resource_id, "buf://1");
+        assert_eq!(back.origin, None);
+    }
+
+    #[test]
+    fn diagnostic_response_serializes_and_roundtrips() {
+        let diag = Diagnostic::new(
+            DiagnosticSeverity::Warning,
+            TextRange::new(
+                TextPosition::new(0, 0),
+                TextPosition::new(0, 5),
+            ),
+            "found an issue".to_string(),
+        );
+        let batch = DiagnosticBatch::new("harper", "buf://1", vec![diag]);
+        let style_map = nabu_core::diagnostic::DiagnosticStyleMap::default();
+        let resp = DiagnosticResponse { batch, style_map };
+        let json = serde_json::to_string(&resp).unwrap();
+        let back: DiagnosticResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.batch.origin, "harper");
+        assert_eq!(back.batch.diagnostic_count(), 1);
+    }
+
+    #[test]
+    fn diagnostic_platform_error_serializes() {
+        let err = DiagnosticPlatformError::ProviderNotFound {
+            origin: "custom".to_string(),
+        };
+        let json = serde_json::to_string(&err).unwrap();
+        let back: DiagnosticPlatformError = serde_json::from_str(&json).unwrap();
+        match back {
+            DiagnosticPlatformError::ProviderNotFound { origin } => {
+                assert_eq!(origin, "custom");
+            }
+            _ => panic!("expected ProviderNotFound"),
+        }
+    }
+
+    #[test]
+    fn diagnostic_request_default_has_none_origin() {
+        let req: DiagnosticRequest = DiagnosticRequest {
+            text: String::new(),
+            resource_id: String::new(),
+            origin: None,
+        };
+        assert_eq!(req.origin, None);
+    }
+}

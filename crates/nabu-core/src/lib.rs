@@ -42,6 +42,7 @@ pub mod processing;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod process_supervisor;
 pub mod registry;
+pub mod rpc;
 pub mod storage;
 pub mod sync;
 
@@ -77,6 +78,8 @@ pub use processing::*;
 pub use process_supervisor::*;
 #[allow(ambiguous_glob_reexports)]
 pub use registry::*;
+#[allow(ambiguous_glob_reexports)]
+pub use rpc::*;
 #[allow(ambiguous_glob_reexports)]
 pub use storage::*;
 #[allow(ambiguous_glob_reexports)]

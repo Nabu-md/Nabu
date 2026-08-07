@@ -66,6 +66,7 @@
 //! the manager is constructed with an EventBus.
 
 use std::collections::HashMap;
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
 
 use crate::event_bus::{EventBus, PipelineEvent};
@@ -73,11 +74,13 @@ use crate::plugin::capability::CapabilityRegistry;
 use crate::plugin::dependency::{validate_dependencies, DependencyReport};
 use crate::plugin::events::{
     CapabilityRegisteredEvent, CapabilityRemovedEvent, PluginErrorEvent, PluginEvent,
-    PluginEventSeverity, PluginLoadedEvent, PluginUnloadedEvent, publish_plugin_event,
+    PluginEventSeverity, PluginLoadedEvent, PluginRequestEvent, PluginResponseEvent,
+    PluginResponseStatus, PluginUnloadedEvent, publish_plugin_event,
 };
 use crate::plugin::features::FeatureRegistry;
 use crate::plugin::invocation::{
     ExecutionMetadata, PluginInvocationError, PluginInvocationRequest, PluginInvocationResponse,
+    PluginInvocationStatus,
 };
 use crate::plugin::lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 use crate::plugin::manifest::{CompatibilityCheck, PluginManifest};
@@ -85,6 +88,7 @@ use crate::plugin::permissions::PermissionEvaluator;
 use crate::plugin::provider::{CapabilityProvider, ProviderError};
 use crate::plugin::version::Version;
 use crate::registry::lifecycle::Lifecycle;
+use uuid::Uuid;
 
 /// The central PluginManager responsible for the plugin lifecycle.
 ///
@@ -364,6 +368,15 @@ impl PluginManager {
             .map(|c| c.id())
             .filter(|id| staged.provider(id) == Some(provider_id.as_str()))
             .collect();
+
+        // Enable the newly registered capabilities by default. Capabilities
+        // are registered as disabled; this flips them on so that
+        // `invoke_capability` can dispatch to them. Required capabilities are
+        // always enabled by `register_builtin`, but provider-registered ones
+        // need an explicit enable.
+        for id in &newly_registered {
+            staged.enable(id);
+        }
 
         // 4. Commit — swap the live registry so the commit is atomic.
         self.capability_registry = staged;
@@ -671,6 +684,84 @@ impl PluginManager {
         publish_plugin_event(bus, &PluginEvent::PluginError(event));
     }
 
+    /// Publish a `PluginRequestEvent` for an invocation that is about to be
+    /// dispatched to a provider. This makes every capability invocation
+    /// observable through the EventBus when one is attached.
+    ///
+    /// The event's `method` field combines the capability and method name
+    /// (e.g. `"ocr:tesseract:recognize"`) to provide full routing context.
+    fn emit_invocation_request(
+        &self,
+        request: &PluginInvocationRequest,
+        request_id: &uuid::Uuid,
+    ) {
+        if let Some(bus) = &self.event_bus {
+            let method = format!("{}:{}", request.capability, request.method);
+            let event = PluginEvent::PluginRequest(PluginRequestEvent::with_params(
+                &request.plugin_id,
+                *request_id,
+                &method,
+                request.input.clone().unwrap_or(serde_json::Value::Null),
+            ));
+            publish_plugin_event(bus, &event);
+        }
+    }
+
+    /// Publish a `PluginResponseEvent` for an invocation that has completed.
+    /// The response status is derived from the `PluginInvocationResponse` —
+    /// success maps to `PluginResponseStatus::Success`, errors map to
+    /// `PluginResponseStatus::Error`, and cancelled maps to
+    /// `PluginResponseStatus::Cancelled`.
+    fn emit_invocation_response(
+        &self,
+        request: &PluginInvocationRequest,
+        response: &PluginInvocationResponse,
+    ) {
+        if let Some(bus) = &self.event_bus {
+            let method = format!("{}:{}", request.capability, request.method);
+            let response_status = match (response.success, &response.status) {
+                (true, _) => PluginResponseStatus::Success,
+                (false, PluginInvocationStatus::Cancelled) => PluginResponseStatus::Cancelled,
+                _ => PluginResponseStatus::Error,
+            };
+
+            let request_id = response
+                .execution
+                .as_ref()
+                .and_then(|e| e.request_id)
+                .unwrap_or_else(|| Uuid::nil());
+
+            let event = match response_status {
+                PluginResponseStatus::Success => PluginResponseEvent::success(
+                    &request.plugin_id,
+                    request_id,
+                    &method,
+                    response.result.clone().unwrap_or(serde_json::Value::Null),
+                ),
+                PluginResponseStatus::Error => {
+                    let err_msg = response
+                        .error
+                        .as_ref()
+                        .map(|e| e.to_string())
+                        .unwrap_or_else(|| "Unknown error".to_string());
+                    PluginResponseEvent::error(
+                        &request.plugin_id,
+                        request_id,
+                        &method,
+                        &err_msg,
+                    )
+                }
+                PluginResponseStatus::Cancelled => {
+                    PluginResponseEvent::cancelled(&request.plugin_id, request_id, &method)
+                }
+            };
+            publish_plugin_event(
+                bus,
+                &PluginEvent::PluginResponse(event),
+            );
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Installation
     // -----------------------------------------------------------------------
@@ -930,8 +1021,15 @@ impl PluginManager {
     /// 3. Validates that the capability exists in the registry and is owned
     ///    by (or registered to) the target provider.
     /// 4. Dispatches to the provider's [`invoke`](CapabilityProvider::invoke)
-    ///    method.
+    ///    method via `catch_unwind` — if the provider panics, the panic is
+    ///    caught and converted into a structured `PROVIDER_PANIC` error
+    ///    response.
     /// 5. Returns a structured [`PluginInvocationResponse`].
+    ///
+    /// If an [`EventBus`] is attached, `PluginRequestEvent` and
+    /// `PluginResponseEvent` are published for every invocation (including
+    /// validation failures and panics), making the full invocation lifecycle
+    /// observable to platform services and the frontend event bridge.
     ///
     /// The PluginManager is the sole coordinator — the frontend never
     /// accesses providers directly. All errors are normalized into
@@ -955,7 +1053,7 @@ impl PluginManager {
 
         // 1. Validate request fields.
         if let Err(e) = request.validate() {
-            return PluginInvocationResponse::error(
+            let response = PluginInvocationResponse::error(
                 PluginInvocationError::new("INVALID_REQUEST", e),
                 Some(ExecutionMetadata {
                     request_id: Some(request_id),
@@ -963,13 +1061,15 @@ impl PluginManager {
                     ..Default::default()
                 }),
             );
+            self.emit_invocation_response(&request, &response);
+            return response;
         }
 
         // 2. Locate the target provider.
         let provider = match self.providers.get(&request.plugin_id) {
             Some(p) => p.clone(),
             None => {
-                return PluginInvocationResponse::error(
+                let response = PluginInvocationResponse::error(
                     PluginInvocationError::new(
                         "PLUGIN_NOT_FOUND",
                         format!(
@@ -983,12 +1083,14 @@ impl PluginManager {
                         ..Default::default()
                     }),
                 );
+                self.emit_invocation_response(&request, &response);
+                return response;
             }
         };
 
         // 3. Validate that the capability is registered and owned by this provider.
         if !self.capability_registry.has(&request.capability) {
-            return PluginInvocationResponse::error(
+            let response = PluginInvocationResponse::error(
                 PluginInvocationError::new(
                     "CAPABILITY_NOT_FOUND",
                     format!(
@@ -1003,11 +1105,13 @@ impl PluginManager {
                     ..Default::default()
                 }),
             );
+            self.emit_invocation_response(&request, &response);
+            return response;
         }
 
         let owner = self.capability_registry.provider(&request.capability);
         if owner != Some(request.plugin_id.as_str()) {
-            return PluginInvocationResponse::error(
+            let response = PluginInvocationResponse::error(
                 PluginInvocationError::new(
                     "CAPABILITY_NOT_FOUND",
                     format!(
@@ -1022,22 +1126,103 @@ impl PluginManager {
                     ..Default::default()
                 }),
             );
+            self.emit_invocation_response(&request, &response);
+            return response;
         }
 
-        // 4. Dispatch to the provider's invoke method.
-        let response = provider.invoke(&request);
+        // 3b. Validate that the capability is enabled (unless it is required,
+        //     which implies it is always available when registered).
+        let capability = self.capability_registry.get(&request.capability);
+        let is_required = capability.map(|c| c.required).unwrap_or(false);
+        if !is_required && !self.capability_registry.is_enabled(&request.capability) {
+            let response = PluginInvocationResponse::error(
+                PluginInvocationError::new(
+                    "CAPABILITY_DISABLED",
+                    format!(
+                        "Capability '{}' is registered but disabled for plugin '{}'",
+                        request.capability, request.plugin_id
+                    ),
+                ),
+                Some(ExecutionMetadata {
+                    request_id: Some(request_id),
+                    provider: Some(request.plugin_id.clone()),
+                    capability: Some(request.capability.clone()),
+                    ..Default::default()
+                }),
+            );
+            self.emit_invocation_response(&request, &response);
+            return response;
+        }
 
-        // 5. Enrich with execution metadata (provider, capability, duration).
+        // 4. Publish a PluginRequestEvent for observability (if EventBus attached).
+        self.emit_invocation_request(&request, &request_id);
+
+        // 5. Dispatch to the provider's invoke method, catching any panics.
+        let result = panic::catch_unwind(AssertUnwindSafe(|| provider.invoke(&request)));
+
+        let response = match result {
+            Ok(response) => response,
+            Err(panic_payload) => {
+                let panic_str = panic_payload
+                    .downcast_ref::<String>()
+                    .map(|s| s.as_str())
+                    .or_else(|| panic_payload.downcast_ref::<&str>().copied())
+                    .unwrap_or("provider panicked (opaque payload)");
+
+                // Publish a PluginErrorEvent for the panic through the EventBus.
+                if let Some(bus) = &self.event_bus {
+                    let mut error_event =
+                        PluginErrorEvent::critical(&request.plugin_id, panic_str);
+                    error_event.code = Some("PROVIDER_PANIC".to_string());
+                    error_event.detail = Some(format!(
+                        "method: {}, capability: {}",
+                        request.method, request.capability
+                    ));
+                    publish_plugin_event(
+                        bus,
+                        &PluginEvent::PluginError(error_event),
+                    );
+                }
+
+                PluginInvocationResponse::error(
+                    PluginInvocationError::with_detail(
+                        "PROVIDER_PANIC",
+                        format!(
+                            "Provider '{}' panicked during invocation of '{}:{}'",
+                            request.plugin_id, request.capability, request.method
+                        ),
+                        panic_str.to_string(),
+                    ),
+                    Some(ExecutionMetadata {
+                        request_id: Some(request_id),
+                        provider: Some(request.plugin_id.clone()),
+                        capability: Some(request.capability.clone()),
+                        ..Default::default()
+                    }),
+                )
+            }
+        };
+
+        // 6. Enrich with execution metadata (provider, capability, duration).
         let duration_ms = start.elapsed().as_millis() as u64;
         let mut response = response;
         let exec = response.execution.take().unwrap_or_default();
+        let mut api_version = exec.api_version;
+        if api_version.is_none() {
+            if let Some(md) = &request.metadata {
+                api_version = md.api_version.clone();
+            }
+        }
         response.execution = Some(ExecutionMetadata {
             request_id: Some(request_id),
             provider: exec.provider.or(Some(request.plugin_id.clone())),
             capability: exec.capability.or(Some(request.capability.clone())),
             duration_ms: Some(duration_ms),
-            api_version: exec.api_version,
+            api_version,
         });
+
+        // 7. Publish a PluginResponseEvent for observability (if EventBus attached).
+        self.emit_invocation_response(&request, &response);
 
         response
     }
