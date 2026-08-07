@@ -10,7 +10,9 @@
 //! ├── CapabilityRegistry   — what the system and plugins can provide
 //! ├── FeatureRegistry     — local feature flags (experimental, beta, etc.)
 //! ├── PermissionEvaluator — validates requested permissions
-//! └── DependencyGraph     — resolves plugin dependency graphs
+//! ├── DependencyGraph     — resolves plugin dependency graphs
+//! └── PluginEvent contract — shared, versionable event types for EventBus
+//!```
 //!
 //! PluginManifest
 //! ├── Version            — semver parsing and compatibility
@@ -21,7 +23,25 @@
 //!
 //! PluginLifecycle
 //! └── Discovered → Validated → Installed → Enabled → Disabled → Upgraded → Unloaded
+//!
+//! ## Event Flow
+//!
+//! ```text
+//! Plugin
+//!   │  (creates shared event)
+//!   ▼
+//! PluginEvent                    ── implements ──▶ PluginEventContract
+//!   │  (publish_plugin_event wraps in PipelineEvent::Plugin)
+//!   ▼
+//! EventBus<PipelineEvent>        (single source of truth for platform events)
+//!   │
+//!   ▼
+//! Platform Services              (Indexers, Graph, Frontend bridge, etc.)
 //! ```
+//!
+//! Plugins communicate exclusively through the shared event contract defined
+//! in [`events`] — never raw `PipelineEvent` values. The
+//! [`publish_plugin_event`] helper is the canonical publishing entry point.
 //!
 //! ## Key Design Decisions
 //!
@@ -43,6 +63,13 @@
 //! 6. **Feature flags** — experimental features are gated behind flags.
 //!    All flags are local; nothing is ever sent to external services.
 //!
+//! 7. **Shared event contracts** — plugins communicate through strongly-typed,
+//!    versionable event models (`PluginEvent`) that implement the
+//!    `PluginEventContract` trait. Events are published through the EventBus
+//!    via the `publish_plugin_event` helper, never as raw `PipelineEvent`
+//!    values. All event types derive `Serialize`/`Deserialize` and use
+//!    `#[serde(default)]` for forward-compatible deserialization.
+//!
 //! ## Future Compatibility
 //!
 //! The architecture naturally supports:
@@ -52,23 +79,35 @@
 //! - Version negotiation and migration
 //! - Sandboxed permission enforcement
 //! - Staged feature rollout
+//! - Dynamic, WASM, remote, and marketplace plugins communicating through
+//!   the shared event contract
+//! - AI plugins with request/response event patterns
 
 pub mod capability;
 pub mod dependency;
+pub mod events;
 pub mod features;
 pub mod lifecycle;
 pub mod manager;
 pub mod manifest;
 pub mod permissions;
+pub mod provider;
 pub mod version;
 
 // Re-exports
 pub use capability::CapabilityRegistry;
+pub use events::{
+    CapabilityRegisteredEvent, CapabilityRemovedEvent, PluginApiVersion, PluginErrorEvent,
+    PluginEvent, PluginEventContract, PluginEventError, PluginEventSeverity,
+    PluginLoadedEvent, PluginRequestEvent, PluginResponseEvent, PluginResponseStatus,
+    PluginUnloadedEvent, PluginWarningEvent, publish_plugin_event,
+};
 pub use features::{FeatureFlag, FeatureRegistry, FeatureStage};
 pub use lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 pub use manager::{
     InstallationReport, ManagerError, ManagerReport, PluginManager, RegistrationIssue,
 };
+pub use provider::{CapabilityProvider, ProviderError, SharedProvider};
 pub use manifest::{
     CompatibilityCheck, ManifestError, PluginDependency, PluginEntryType, PluginFeatureFlag,
     PluginManifest, PluginPermission,

@@ -13,6 +13,7 @@
 //! Plugin loading will be implemented in a future phase.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::plugin::capability::CapabilityRegistry;
 use crate::plugin::dependency::{validate_dependencies, DependencyReport};
@@ -20,7 +21,9 @@ use crate::plugin::features::FeatureRegistry;
 use crate::plugin::lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 use crate::plugin::manifest::{CompatibilityCheck, PluginManifest};
 use crate::plugin::permissions::PermissionEvaluator;
+use crate::plugin::provider::{CapabilityProvider, ProviderError};
 use crate::plugin::version::Version;
+use crate::registry::lifecycle::Lifecycle;
 
 /// The central PluginManager responsible for the plugin lifecycle.
 ///
@@ -48,9 +51,28 @@ pub struct PluginManager {
     permission_evaluator: PermissionEvaluator,
     /// The current Nabu version for compatibility checks.
     nabu_version: Version,
+    /// Registered capability providers (id → provider).
+    ///
+    /// Providers are stored as `Arc<dyn CapabilityProvider>` so the
+    /// `PluginManager` depends on the trait abstraction, not concrete
+    /// plugin implementations.
+    providers: HashMap<String, Arc<dyn CapabilityProvider>>,
 }
 
 impl PluginManager {
+    /// Create a PluginManager configured for the running Nabu application.
+    ///
+    /// Uses the compile-time `CARGO_PKG_VERSION` of nabu-core for compatibility
+    /// checks. Falls back to `0.1.0` if the version string cannot be parsed.
+    ///
+    /// This is the canonical constructor for production use — it requires no
+    /// arguments and performs no plugin discovery or loading.
+    pub fn for_application() -> Self {
+        let version = Version::parse(crate::APPLICATION_VERSION)
+            .unwrap_or_else(|_| Version::new(0, 1, 0));
+        Self::new(version)
+    }
+
     /// Create a new PluginManager with the given Nabu version.
     pub fn new(nabu_version: Version) -> Self {
         let mut capability_registry = CapabilityRegistry::new();
@@ -66,6 +88,7 @@ impl PluginManager {
             feature_registry,
             permission_evaluator: PermissionEvaluator::new(),
             nabu_version,
+            providers: HashMap::new(),
         }
     }
 
@@ -82,6 +105,7 @@ impl PluginManager {
             feature_registry,
             permission_evaluator: PermissionEvaluator::new(),
             nabu_version,
+            providers: HashMap::new(),
         }
     }
 
@@ -171,6 +195,57 @@ impl PluginManager {
         }
 
         issues
+    }
+
+    // -----------------------------------------------------------------------
+    // Provider Registration
+    // -----------------------------------------------------------------------
+
+    /// Register a [`CapabilityProvider`] with the PluginManager.
+    ///
+    /// This is the primary entry point for the provider abstraction. Any
+    /// future plugin type — built-in, native shared library, WASM, scripting,
+    /// remote — will be wrapped as `Arc<dyn CapabilityProvider>` and passed
+    /// to this method.
+    ///
+    /// The PluginManager delegates capability registration to the provider,
+    /// which registers its capabilities through the existing
+    /// [`CapabilityRegistry`] (the single source of truth). The provider is
+    /// then tracked by the PluginManager for lifecycle operations and
+    /// querying.
+    ///
+    /// This method is **metadata-only**: it does NOT load or execute plugin
+    /// code, scan directories, or perform capability initialization.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProviderError::DuplicateProvider`] if a provider with the
+    /// same ID is already registered. Returns
+    /// [`ProviderError::DuplicateCapability`] if a capability exposed by
+    /// this provider is already registered in the registry (by this or
+    /// another provider).
+    pub fn register_provider(
+        &mut self,
+        provider: Arc<dyn CapabilityProvider>,
+    ) -> Result<(), ProviderError> {
+        let provider_id = provider.id().to_string();
+
+        // 1. Check for duplicate provider ID
+        if self.providers.contains_key(&provider_id) {
+            return Err(ProviderError::DuplicateProvider {
+                provider_id,
+            });
+        }
+
+        // 2. Delegate capability registration to the provider through the
+        //    CapabilityRegistry. The provider uses the registry's public API
+        //    — it does not bypass the registry or mutate internal collections.
+        provider.register_capabilities(&mut self.capability_registry)?;
+
+        // 3. Track the provider
+        self.providers.insert(provider_id, provider);
+
+        Ok(())
     }
 
     // -----------------------------------------------------------------------
@@ -372,6 +447,27 @@ impl PluginManager {
         self.manifests.len()
     }
 
+    // -----------------------------------------------------------------------
+    // Provider Access
+    // -----------------------------------------------------------------------
+
+    /// Get a registered capability provider by ID.
+    pub fn provider(&self, id: &str) -> Option<&Arc<dyn CapabilityProvider>> {
+        self.providers.get(id)
+    }
+
+    /// List all registered provider IDs, sorted.
+    pub fn list_providers(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.providers.keys().cloned().collect();
+        ids.sort();
+        ids
+    }
+
+    /// Number of registered capability providers.
+    pub fn provider_count(&self) -> usize {
+        self.providers.len()
+    }
+
     /// Reference to the capability registry.
     pub fn capability_registry(&self) -> &CapabilityRegistry {
         &self.capability_registry
@@ -416,6 +512,7 @@ impl PluginManager {
 
         ManagerReport {
             plugin_count: self.manifests.len(),
+            provider_count: self.providers.len(),
             capability_count: self.capability_registry.capability_count(),
             enabled_capabilities: self.capability_registry.enabled_count(),
             feature_flag_count: self.feature_registry.count(),
@@ -423,6 +520,79 @@ impl PluginManager {
             dependency_report: dep_report,
             nabu_version: self.nabu_version.clone(),
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+/// Implements the shared [`Lifecycle`] trait so that `PluginManager` can
+/// participate in the Capability Platform's lifecycle management (Created →
+/// Initialized → Running → Shutdown) alongside other services.
+///
+/// The foundation `PluginManager` performs no plugin discovery, loading, or
+/// execution during these transitions. Each phase is a lightweight
+/// bookkeeping step that prepares the manager for future plugin phases:
+///
+/// - **initialize**: validates internal registries and confirms the Nabu
+///   version is available for compatibility checks.
+/// - **start**: marks the manager as ready to accept plugin manifests.
+/// - **shutdown**: no-op cleanup (plugins are metadata-only at this stage).
+///
+/// Future phases that add discovery/loading will enhance these methods
+/// without changing the `ApplicationContext` integration.
+impl Lifecycle for PluginManager {
+    fn name(&self) -> &'static str {
+        "plugin_manager"
+    }
+
+    /// Initializes the PluginManager.
+    ///
+    /// Validates that internal registries are populated. No plugin discovery
+    /// or loading occurs at this stage — that belongs to a future phase.
+    fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "plugin",
+            component = "manager",
+            operation = "initialize",
+            plugin_count = self.plugin_count(),
+            capabilities = self.capability_registry().capability_count(),
+            nabu_version = %self.nabu_version,
+            "PluginManager initialized"
+        );
+        Ok(())
+    }
+
+    /// Starts the PluginManager.
+    ///
+    /// The manager is now ready to accept plugin manifests and capability
+    /// registrations. No plugins are loaded or executed — plugin execution
+    /// will be implemented in a future phase.
+    fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "plugin",
+            component = "manager",
+            operation = "start",
+            plugin_count = self.plugin_count(),
+            "PluginManager started — ready for plugin registration"
+        );
+        Ok(())
+    }
+
+    /// Shuts down the PluginManager.
+    ///
+    /// Performs cleanup as preparation for graceful shutdown. Since no plugin
+    /// code is loaded at the foundation stage, this is effectively a no-op.
+    fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "plugin",
+            component = "manager",
+            operation = "shutdown",
+            plugin_count = self.plugin_count(),
+            "PluginManager shut down"
+        );
+        Ok(())
     }
 }
 
@@ -468,6 +638,7 @@ pub struct InstallationReport {
 #[derive(Debug, Clone)]
 pub struct ManagerReport {
     pub plugin_count: usize,
+    pub provider_count: usize,
     pub capability_count: usize,
     pub enabled_capabilities: usize,
     pub feature_flag_count: usize,

@@ -33,6 +33,7 @@
 //! │   ├── nabu:export        → built-in
 //! │   ├── nabu:search        → built-in
 //! │   └── ...
+//! ├── plugin_manager: PluginManager      → foundation (always constructed)
 //! └── lifecycle: LifecycleManager
 //!     └── Created → Initialized → Running → Shutdown
 //! ```
@@ -42,13 +43,17 @@
 //! `ApplicationContext` is `Send + Sync` and designed to be shared as
 //! `Arc<ApplicationContext>` across threads.
 
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use chrono::Utc;
 
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::plugin::capability::CapabilityRegistry;
+use crate::plugin::PluginManager;
+#[cfg(test)]
+use crate::plugin::Version;
 
+use crate::registry::health::{HealthStatus, ServiceEntry, ServiceHealth, ServiceLifecycleStageInfo};
 use crate::registry::lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
@@ -60,9 +65,13 @@ use crate::jobs;
 // Concrete types are resolved at crate level (nabu-core) via the registry.
 // ---------------------------------------------------------------------------
 
-/// Health status of a registered service.
+/// Per-service health status — the result of checking a single service by key.
+///
+/// This enum represents the availability of an individual service, not the
+/// overall application health. For the full application health report see
+/// [`ServiceHealth`] (defined in [`crate::registry::health`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ServiceHealth {
+pub enum ServiceStatus {
     /// Service is registered and functional.
     Healthy,
     /// Service is registered but not yet initialized.
@@ -152,7 +161,13 @@ pub struct ApplicationContext {
     /// concurrently-running readers. The lock is the *single synchronization
     /// point* for capability state; every mutation routes through it.
     pub capability_registry: RwLock<CapabilityRegistry>,
-    /// Manages service lifecycle (init → start → shutdown).
+    /// Plugin manager — the central coordinator for plugin lifecycle.
+    ///
+    /// Always constructed during application startup, even when no plugins
+    /// are installed. Owned directly by the ApplicationContext so that
+    /// exactly one instance exists per application. Future phases will
+    /// enhance the no-op lifecycle methods with real discovery/loading.
+    pub plugin_manager: RwLock<PluginManager>,
     lifecycle: LifecycleManager,
 }
 
@@ -164,11 +179,13 @@ impl ApplicationContext {
         registry: Arc<RwLock<ServiceRegistry>>,
         event_bus: Arc<EventBus<PipelineEvent>>,
         capability_registry: CapabilityRegistry,
+        plugin_manager: PluginManager,
     ) -> Self {
         Self {
             registry,
             event_bus,
             capability_registry: RwLock::new(capability_registry),
+            plugin_manager: RwLock::new(plugin_manager),
             lifecycle: LifecycleManager::new(),
         }
     }
@@ -256,6 +273,29 @@ impl ApplicationContext {
             &crate::event_bus::PipelineEvent::CapabilityStateChanged(event),
         );
         Ok(())
+    }
+
+    /// Returns a read guard for the [`PluginManager`].
+    ///
+    /// The PluginManager is always constructed during application startup,
+    /// even when no plugins are installed. Other services should access it
+    /// through this accessor rather than constructing their own instances.
+    pub fn plugin_manager(&self) -> RwLockReadGuard<'_, PluginManager> {
+        self.plugin_manager
+            .read()
+            .expect("plugin manager lock poisoned")
+    }
+
+    /// Returns a write guard for the [`PluginManager`].
+    ///
+    /// Use this when registering manifests or performing other mutating
+    /// operations. In production, the PluginManager is initialized during
+    /// startup and remains read-only thereafter; this accessor exists for
+    /// future phases that add dynamic plugin registration.
+    pub fn plugin_manager_mut(&self) -> RwLockWriteGuard<'_, PluginManager> {
+        self.plugin_manager
+            .write()
+            .expect("plugin manager lock poisoned")
     }
 
     /// Resolves a service from the registry by key.
@@ -518,6 +558,14 @@ impl ApplicationContext {
             }
         }
 
+        // --- PluginManager (foundation — no plugin discovery/loading) ---
+        let pm = self.plugin_manager.read().expect("plugin manager lock poisoned");
+        if let Err(e) = pm.initialize() {
+            tracing::error!(error = %e, "Failed to initialize PluginManager");
+            errors.push(format!("PluginManager: {}", e));
+        }
+        tracing::info!("PluginManager registered");
+
         if !errors.is_empty() {
             return Err(errors);
         }
@@ -630,6 +678,18 @@ impl ApplicationContext {
             }
         }
 
+        // --- PluginManager (foundation — no plugin loading/execution) ---
+        if errors.is_empty() {
+            let pm = self
+                .plugin_manager
+                .read()
+                .expect("plugin manager lock poisoned");
+            if let Err(e) = pm.start() {
+                tracing::error!(error = %e, "Failed to start PluginManager");
+                errors.push(format!("PluginManager: {}", e));
+            }
+        }
+
         if !errors.is_empty() {
             tracing::error!("Startup failed — rolling back started services");
             let _ = self.shutdown();
@@ -706,6 +766,15 @@ impl ApplicationContext {
             }
         }
 
+        // --- PluginManager (foundation shutdown — no plugins loaded) ---
+        let pm = self
+            .plugin_manager
+            .read()
+            .expect("plugin manager lock poisoned");
+        if let Err(e) = pm.shutdown() {
+            tracing::error!(error = %e, "Failed to shut down PluginManager");
+        }
+
         let result = self.lifecycle.transition_to(LifecycleStage::Shutdown);
         match &result {
             Ok(()) => {
@@ -728,6 +797,7 @@ pub struct ApplicationContextBuilder {
     event_bus: Option<Arc<EventBus<PipelineEvent>>>,
     registry: Option<Arc<RwLock<ServiceRegistry>>>,
     capability_registry: Option<CapabilityRegistry>,
+    plugin_manager: Option<PluginManager>,
 }
 
 impl ApplicationContextBuilder {
@@ -737,6 +807,7 @@ impl ApplicationContextBuilder {
             event_bus: None,
             registry: None,
             capability_registry: None,
+            plugin_manager: None,
         }
     }
 
@@ -758,6 +829,15 @@ impl ApplicationContextBuilder {
         self
     }
 
+    /// Sets the plugin manager for the context.
+    ///
+    /// If not set, a default PluginManager configured for the current
+    /// Nabu application version is created during [`build`](Self::build).
+    pub fn with_plugin_manager(mut self, pm: PluginManager) -> Self {
+        self.plugin_manager = Some(pm);
+        self
+    }
+
     /// Builds the [`ApplicationContext`].
     pub fn build(self) -> ApplicationContext {
         let event_bus = self.event_bus.unwrap_or_else(|| Arc::new(EventBus::new()));
@@ -765,6 +845,9 @@ impl ApplicationContextBuilder {
             .registry
             .unwrap_or_else(|| Arc::new(RwLock::new(ServiceRegistry::new())));
         let capability_registry = self.capability_registry.unwrap_or_default();
+        let plugin_manager = self
+            .plugin_manager
+            .unwrap_or_else(PluginManager::for_application);
 
         // Register the event bus in the registry for discoverability
         {
@@ -772,7 +855,16 @@ impl ApplicationContextBuilder {
             reg.register("event_bus", event_bus.clone());
         }
 
-        ApplicationContext::new(registry, event_bus, capability_registry)
+        tracing::info!("PluginManager created");
+        let ctx = ApplicationContext::new(
+            registry,
+            event_bus,
+            capability_registry,
+            plugin_manager,
+        );
+        tracing::info!("PluginManager registered");
+
+        ctx
     }
 }
 
@@ -804,11 +896,21 @@ pub fn build_standard_application_context() -> ApplicationContext {
     // Register built-in capabilities
     capability_registry.register_builtin();
 
-    let ctx = ApplicationContext::new(registry, event_bus, capability_registry);
+    // Construct the PluginManager for the current Nabu version.
+    // No plugin discovery or loading occurs — only manager preparation.
+    let plugin_manager = PluginManager::for_application();
+
+    let ctx = ApplicationContext::new(
+        registry,
+        event_bus,
+        capability_registry,
+        plugin_manager,
+    );
 
     tracing::info!(
         capabilities = ctx.capability_registry().capability_count(),
-        "Built-in capabilities registered"
+        plugin_manager = "ready",
+        "Built-in capabilities registered; PluginManager ready"
     );
 
     ctx
@@ -954,6 +1056,67 @@ mod tests {
     fn standard_context_has_capabilities() {
         let ctx = build_standard_application_context();
         assert!(ctx.capability_registry().capability_count() > 0);
+    }
+
+    #[test]
+    fn plugin_manager_accessible_through_context() {
+        let ctx = ApplicationContext::builder().build();
+        let pm = ctx.plugin_manager();
+        assert_eq!(pm.name(), "plugin_manager");
+        assert_eq!(pm.nabu_version(), &Version::parse(crate::APPLICATION_VERSION).unwrap_or(Version::new(0, 1, 0)));
+    }
+
+    #[test]
+    fn plugin_manager_has_builtin_capabilities() {
+        let ctx = ApplicationContext::builder().build();
+        let pm = ctx.plugin_manager();
+        assert!(pm.capability_registry().has("nabu:event_bus"));
+        assert!(pm.capability_registry().has("nabu:plugin"));
+    }
+
+    #[test]
+    fn plugin_manager_singleton_one_instance() {
+        let ctx = ApplicationContext::builder().build();
+        let pm1 = ctx.plugin_manager();
+        let pm2 = ctx.plugin_manager();
+        // Both guards point to the same underlying PluginManager
+        assert_eq!(pm1.plugin_count(), pm2.plugin_count());
+        assert_eq!(
+            pm1.capability_registry().capability_count(),
+            pm2.capability_registry().capability_count()
+        );
+    }
+
+    #[test]
+    fn plugin_manager_lifecycle_in_initialize_start_shutdown() {
+        let ctx = ApplicationContext::builder().build();
+        // PluginManager should be accessible before initialization
+        assert_eq!(ctx.plugin_manager().plugin_count(), 0);
+
+        // Lifecycle: the PluginManager's initialize/start/shutdown are
+        // no-ops but should not error.
+        assert!(ctx.plugin_manager().initialize().is_ok());
+        assert!(ctx.plugin_manager().start().is_ok());
+        assert!(ctx.plugin_manager().shutdown().is_ok());
+    }
+
+    #[test]
+    fn standard_context_has_plugin_manager() {
+        let ctx = build_standard_application_context();
+        let pm = ctx.plugin_manager();
+        assert_eq!(pm.name(), "plugin_manager");
+        // Should have built-in capabilities registered
+        assert!(pm.capability_registry().capability_count() >= 10);
+    }
+
+    #[test]
+    fn with_custom_plugin_manager() {
+        let pm = PluginManager::new(Version::new(2, 0, 0));
+        let ctx = ApplicationContext::builder()
+            .with_plugin_manager(pm)
+            .build();
+        let resolved = ctx.plugin_manager();
+        assert_eq!(resolved.nabu_version(), &Version::new(2, 0, 0));
     }
 
     #[test]

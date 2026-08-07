@@ -57,14 +57,30 @@ fn build_application_context(
     vault_path: PathBuf,
     app_handle: tauri::AppHandle,
 ) -> Result<ApplicationContext, String> {
-    // ---- 1. One EventBus + registry + capabilities ----
+    // ---- 1. One EventBus + registry + capabilities + PluginManager ----
     let event_bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
     let registry = Arc::new(RwLock::new(ServiceRegistry::new()));
 
     let mut capability_registry = nabu_core::plugin::CapabilityRegistry::new();
     capability_registry.register_builtin();
 
-    let ctx = ApplicationContext::new(registry.clone(), event_bus.clone(), capability_registry);
+    // ---- Lightweight PluginManager (foundation — always constructed) ----
+    // No plugin discovery, no manifest parsing, no binary loading.
+    // The manager is ready to accept plugin manifests from future discovery phases.
+    let plugin_manager = nabu_core::plugin::PluginManager::for_application();
+
+    let ctx = ApplicationContext::new(
+        registry.clone(),
+        event_bus.clone(),
+        capability_registry,
+        plugin_manager,
+    );
+
+    tracing::info!(
+        subsystem = "plugin",
+        component = "manager",
+        "PluginManager created and available through ApplicationContext"
+    );
 
     // Register the event bus itself (ApplicationContext::new does not
     // auto-register it — only ApplicationContextBuilder::build does).

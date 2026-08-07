@@ -1,4 +1,5 @@
 use crate::models::{CaptureSource, ObjectType};
+use crate::plugin::events::PluginEvent;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -28,6 +29,13 @@ pub enum PipelineEvent {
     ItemRetried(ItemRetriedEvent),
     /// A capability was enabled or disabled
     CapabilityStateChanged(CapabilityStateEvent),
+    /// A shared plugin event flowing through the EventBus.
+    ///
+    /// Plugins never construct `PipelineEvent` directly — they create a
+    /// [`PluginEvent`](crate::plugin::events::PluginEvent) and publish it
+    /// via [`publish_plugin_event`](crate::plugin::events::publish_plugin_event),
+    /// which wraps it in this variant.
+    Plugin(PluginEvent),
 }
 
 /// Event kind string constants for EventBus subscriptions
@@ -44,6 +52,29 @@ pub mod kinds {
     pub const ITEM_RETRIED: &str = "item.retried";
     /// A capability was enabled or disabled.
     pub const CAPABILITY_STATE_CHANGED: &str = "capability.state.changed";
+
+    // --- Plugin event kinds (shared plugin event contract) ---
+    // These constants are defined here (in event_bus::kinds) rather than in
+    // plugin::events to keep ALL event kind strings centralized for the
+    // EventBus subscription and frontend bridge. The PluginEvent::kind()
+    // method in plugin::events references these same constants.
+
+    /// A plugin was loaded.
+    pub const PLUGIN_LOADED: &str = "plugin.loaded";
+    /// A plugin was unloaded.
+    pub const PLUGIN_UNLOADED: &str = "plugin.unloaded";
+    /// A capability was registered by a plugin or the platform.
+    pub const CAPABILITY_REGISTERED: &str = "capability.registered";
+    /// A capability was removed.
+    pub const CAPABILITY_REMOVED: &str = "capability.removed";
+    /// A plugin emitted a warning.
+    pub const PLUGIN_WARNING: &str = "plugin.warning";
+    /// A plugin emitted an error.
+    pub const PLUGIN_ERROR: &str = "plugin.error";
+    /// A plugin made a request to a platform capability.
+    pub const PLUGIN_REQUEST: &str = "plugin.request";
+    /// A platform capability responded to a plugin request.
+    pub const PLUGIN_RESPONSE: &str = "plugin.response";
 }
 
 impl PipelineEvent {
@@ -60,6 +91,7 @@ impl PipelineEvent {
             PipelineEvent::ItemCancelled(_) => kinds::ITEM_CANCELLED,
             PipelineEvent::ItemRetried(_) => kinds::ITEM_RETRIED,
             PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
+            PipelineEvent::Plugin(e) => e.kind(),
         }
     }
 
@@ -70,20 +102,20 @@ impl PipelineEvent {
     /// (notably the EventBus→Tauri bridge) can attach a top-level timestamp to
     /// frontend event envelopes without pattern-matching on every variant.
     pub fn timestamp(&self) -> Option<DateTime<Utc>> {
-        let ts: &DateTime<Utc> = match self {
-            PipelineEvent::ItemCaptured(e) => &e.timestamp,
-            PipelineEvent::ItemProcessingStarted(e) => &e.timestamp,
-            PipelineEvent::ItemProcessingProgress(e) => &e.timestamp,
-            PipelineEvent::ItemProcessingCompleted(e) => &e.timestamp,
-            PipelineEvent::ItemProcessingFailed(e) => &e.timestamp,
-            PipelineEvent::ItemStored(e) => &e.timestamp,
-            PipelineEvent::IndexUpdated(e) => &e.timestamp,
-            PipelineEvent::GraphUpdated(e) => &e.timestamp,
-            PipelineEvent::ItemCancelled(e) => &e.timestamp,
-            PipelineEvent::ItemRetried(e) => &e.timestamp,
-            PipelineEvent::CapabilityStateChanged(e) => &e.timestamp,
-        };
-        Some(*ts)
+        match self {
+            PipelineEvent::ItemCaptured(e) => Some(e.timestamp),
+            PipelineEvent::ItemProcessingStarted(e) => Some(e.timestamp),
+            PipelineEvent::ItemProcessingProgress(e) => Some(e.timestamp),
+            PipelineEvent::ItemProcessingCompleted(e) => Some(e.timestamp),
+            PipelineEvent::ItemProcessingFailed(e) => Some(e.timestamp),
+            PipelineEvent::ItemStored(e) => Some(e.timestamp),
+            PipelineEvent::IndexUpdated(e) => Some(e.timestamp),
+            PipelineEvent::GraphUpdated(e) => Some(e.timestamp),
+            PipelineEvent::ItemCancelled(e) => Some(e.timestamp),
+            PipelineEvent::ItemRetried(e) => Some(e.timestamp),
+            PipelineEvent::CapabilityStateChanged(e) => Some(e.timestamp),
+            PipelineEvent::Plugin(e) => Some(e.timestamp()),
+        }
     }
 }
 

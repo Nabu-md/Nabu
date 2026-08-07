@@ -24,9 +24,11 @@
 
 pub mod application;
 pub mod context;
+pub mod health;
 pub mod lifecycle;
 
 pub use application::Application;
+pub use health::{HealthStatus, LifecycleStageInfo, ServiceEntry, ServiceHealth};
 pub use lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
 
 use std::any::Any;
@@ -133,6 +135,13 @@ impl ServiceRegistry {
     /// (either as a singleton or factory).
     pub fn has(&self, key: &str) -> bool {
         self.singletons.contains_key(key) || self.factories.contains_key(key)
+    }
+
+    /// Returns all registered singleton service keys.
+    ///
+    /// This is used by health reporting to enumerate registered services.
+    pub fn service_keys(&self) -> Vec<String> {
+        self.singletons.keys().cloned().collect()
     }
 
     /// Returns the number of registered singletons.

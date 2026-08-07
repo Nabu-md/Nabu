@@ -25,7 +25,7 @@
 //! ├── PerformanceMonitor   local metrics aggregation
 //! ├── ExportEngine         export to HTML/Markdown/etc.
 //! ├── TemplateManager      note templates
-//! └── (future: PluginManager, AI providers, etc.)
+//! └── PluginManager        plugin lifecycle coordination (foundation)
 //! ```
 //!
 //! ## Ownership
@@ -446,7 +446,7 @@ impl ApplicationBuilder {
     /// 2. Creates the service registry (or uses the provided one)
     /// 3. Registers all configured services into the registry
     /// 4. Wires EventBus subscriptions for core services
-    /// 5. Creates the `ApplicationContext`
+    /// 5. Creates the `ApplicationContext` (including PluginManager)
     /// 6. Creates and returns the `Application`
     ///
     /// # Panics
@@ -499,10 +499,12 @@ impl ApplicationBuilder {
         }
 
         // ---- 6. Create the ApplicationContext ----
+        let plugin_manager = crate::plugin::PluginManager::for_application();
         let context = ApplicationContext::new(
             registry.clone(),
             event_bus.clone(),
             crate::plugin::capability::CapabilityRegistry::new(),
+            plugin_manager,
         );
 
         // ---- 7. Create the Application ----
