@@ -207,10 +207,8 @@ impl TextRange {
     /// by `(line, character)`.
     #[inline]
     pub fn contains(&self, position: TextPosition) -> bool {
-        cmp_position(self.start, position) == std::cmp::Ordering::Less
-            || cmp_position(self.start, position) == std::cmp::Ordering::Equal
-                && cmp_position(position, self.end) == std::cmp::Ordering::Less
-            || cmp_position(position, self.end) == std::cmp::Ordering::Equal
+        cmp_position(self.start, position) <= std::cmp::Ordering::Equal
+            && cmp_position(position, self.end) <= std::cmp::Ordering::Equal
     }
 
     /// The start byte offset, if present.
@@ -1035,7 +1033,8 @@ mod tests {
         let json = serde_json::to_string(&dec).expect("serialize decoration");
         let back: Decoration = serde_json::from_str(&json).expect("deserialize decoration");
         assert_eq!(dec, back);
-        assert!(json.contains("\"underline\""));
+        // DecorationCategory uses PascalCase serde tokens (no rename_all).
+        assert!(json.contains("\"Underline\""));
     }
 
     // --- Diagnostic ---

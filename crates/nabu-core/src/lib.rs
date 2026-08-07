@@ -38,6 +38,8 @@ pub mod native;
 pub mod pipeline_migration;
 pub mod plugin;
 pub mod processing;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod process_supervisor;
 pub mod registry;
 pub mod storage;
 pub mod sync;
@@ -69,6 +71,9 @@ pub use pipeline_migration::*;
 pub use plugin::*;
 #[allow(ambiguous_glob_reexports)]
 pub use processing::*;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(ambiguous_glob_reexports)]
+pub use process_supervisor::*;
 #[allow(ambiguous_glob_reexports)]
 pub use registry::*;
 #[allow(ambiguous_glob_reexports)]

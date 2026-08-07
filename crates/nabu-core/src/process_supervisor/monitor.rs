@@ -93,17 +93,6 @@ fn publish_event(
     }
 }
 
-/// Read the `ProcessId` from a locked `ManagedProcess`.
-/// The caller must NOT be holding a lock when calling this — it acquires its own.
-fn read_id(record: &std::sync::Mutex<ManagedProcess>) -> ProcessId {
-    record.lock().unwrap().id
-}
-
-/// Read the `restart_count` from a locked `ManagedProcess`.
-fn read_restart_count(record: &std::sync::Mutex<ManagedProcess>) -> u32 {
-    record.lock().unwrap().restart_count
-}
-
 /// The monitoring task for a single managed process.
 ///
 /// This function runs as a tokio task (spawned by
@@ -114,24 +103,6 @@ fn read_restart_count(record: &std::sync::Mutex<ManagedProcess>) -> u32 {
 /// The `stop_tx` sender is stored inside the `ManagedProcess` record by the
 /// supervisor's `spawn()` method. The `stop_rx` receiver is created by the
 /// supervisor and passed here so the task can listen for stop signals.
-///
-/// ## Lifecycle
-///
-/// ```text
-///    ┌──────────────────────────────────────────────────┐
-///    │  1. Set state to Starting                          │
-///    │  2. Spawn child via tokio::process::Command       │
-///    │  3. On spawn error → Failed, evaluate restart      │
-///    │  4. On success → set Running, publish started      │
-///    │                                                      │
-///    │  5. select! { child.wait() | stop_rx.recv() }       │
-///    │     ├─ child exited → update state, evaluate restart│
-///    │     └─ stop signal → kill child, set Stopped        │
-///    │                                                      │
-///    │  6. If restart allowed → Restarting → GOTO 1       │
-///    │     Else → terminal (Stopped/Exited/Failed)         │
-///    └──────────────────────────────────────────────────┘
-/// ```
 pub(crate) async fn monitor_process(
     config: ProcessConfig,
     record: Arc<std::sync::Mutex<ManagedProcess>>,
@@ -158,7 +129,13 @@ pub(crate) async fn monitor_process(
                 process = %config.name,
                 "Supervisor shutdown — stopping process"
             );
-            set_terminal_state(&record, &event_bus, ProcessState::Stopped, None, "supervisor shutdown").await;
+            set_terminal_state(
+                &record,
+                &event_bus,
+                ProcessState::Stopped,
+                None,
+                "supervisor shutdown",
+            );
             break;
         }
 
@@ -178,12 +155,16 @@ pub(crate) async fn monitor_process(
         );
 
         // ─── Spawn the child ───
-        let spawn_result = Command::new(&config.command)
+        let mut cmd = Command::new(&config.command)
             .args(&config.args)
             .envs(&config.env)
-            .current_dir(config.working_dir.as_deref())
-            .kill_on_drop(true)
-            .spawn();
+            .kill_on_drop(true);
+
+        if let Some(dir) = &config.working_dir {
+            cmd.current_dir(dir);
+        }
+
+        let spawn_result = cmd.spawn();
 
         match spawn_result {
             Ok(mut child) => {
@@ -215,7 +196,10 @@ pub(crate) async fn monitor_process(
                         pid,
                         &config.command,
                         &config.args,
-                        config.working_dir.as_deref().map(|p| p.to_string_lossy().as_ref()),
+                        config
+                            .working_dir
+                            .as_deref()
+                            .map(|p| p.to_string_lossy().as_ref()),
                     )),
                 );
 
@@ -239,8 +223,22 @@ pub(crate) async fn monitor_process(
                     }
                 };
 
-                let exit_code = exit_status.and_then(|s| s.code()).or(Some(-1));
-                let exited_successfully = exit_status.map(|s| s.success()).unwrap_or(false);
+                // Determine exit code and success status
+                let (exit_code, exited_successfully) = match exit_status {
+                    Ok(status) => {
+                        (status.code().or(Some(-1)), status.success())
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            subsystem = "supervisor",
+                            component = "monitor",
+                            process = %config.name,
+                            error = %e,
+                            "Error waiting for child process"
+                        );
+                        (Some(-1), false)
+                    }
+                };
 
                 // Determine the terminal state
                 let (terminal_state, error_msg) = if stop_requested || ctx.is_shutting_down() {
@@ -334,10 +332,10 @@ pub(crate) async fn monitor_process(
                     let _ = rec.transition_state(ProcessState::Restarting);
                 }
 
-                let (process_id, restart_count) = (
-                    read_id(&record),
-                    read_restart_count(&record),
-                );
+                let (process_id, restart_count) = {
+                    let rec = record.lock().unwrap();
+                    (rec.id, rec.restart_count)
+                };
 
                 publish_event(
                     &event_bus,
@@ -409,10 +407,10 @@ pub(crate) async fn monitor_process(
                     let _ = rec.transition_state(ProcessState::Restarting);
                 }
 
-                let (process_id, restart_count) = (
-                    read_id(&record),
-                    read_restart_count(&record),
-                );
+                let (process_id, restart_count) = {
+                    let rec = record.lock().unwrap();
+                    (rec.id, rec.restart_count)
+                };
 
                 publish_event(
                     &event_bus,

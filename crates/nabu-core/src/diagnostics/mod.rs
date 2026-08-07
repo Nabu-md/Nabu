@@ -120,6 +120,8 @@ pub const SUBSYSTEM_EVENT_BUS: &str = "event_bus";
 pub const SUBSYSTEM_REGISTRY: &str = "registry";
 /// Pipeline migration bridge subsystem
 pub const SUBSYSTEM_PIPELINE: &str = "pipeline_migration";
+/// Process supervision subsystem
+pub const SUBSYSTEM_SUPERVISOR: &str = "supervisor";
 
 /// All recognized subsystem identifiers (for validation / documentation).
 pub const ALL_SUBSYSTEMS: &[&str] = &[
@@ -142,6 +144,7 @@ pub const ALL_SUBSYSTEMS: &[&str] = &[
     SUBSYSTEM_EVENT_BUS,
     SUBSYSTEM_REGISTRY,
     SUBSYSTEM_PIPELINE,
+    SUBSYSTEM_SUPERVISOR,
 ];
 
 // ---------------------------------------------------------------------------

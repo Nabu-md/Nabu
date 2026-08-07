@@ -80,7 +80,7 @@ impl SyncScheduleMode {
 ///
 /// `SyncConfig` is a value type (`Clone`, `Send`, `Sync`). It contains no
 /// interior mutability and no shared state.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SyncConfig {
     /// Interval in seconds between automatic sync cycles.
@@ -303,7 +303,7 @@ impl SyncConfig {
 ///
 /// [`ServiceHealth`]: crate::registry::health::ServiceHealth
 /// [`CapabilityRegistry`]: crate::plugin::capability::CapabilityRegistry
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SyncFolder {
     /// Unique identifier for this synced folder.

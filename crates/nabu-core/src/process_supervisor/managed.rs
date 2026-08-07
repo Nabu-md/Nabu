@@ -13,8 +13,6 @@
 //! - The `tokio::process::Child` is owned exclusively by the monitoring
 //!   task (it is `Send` but not `Sync`).
 
-use std::sync::Mutex as StdMutex;
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
@@ -40,7 +38,7 @@ use super::ProcessId;
 /// The `Child` itself is **not** stored here — it lives inside the
 /// monitoring task (which is `Send` but not `Sync`). Only the PID and
 /// exit code are recorded in this struct.
-pub(crate) struct ManagedProcess {
+pub struct ManagedProcess {
     /// Stable unique identifier assigned at spawn time.
     pub id: ProcessId,
 

@@ -46,7 +46,7 @@ use crate::sync::status::SyncStatus;
 /// All fields use `#[serde(default)]` so that future phases can add new
 /// fields (e.g. `transfer_rate_kbps`, `files_skipped`, `conflicts_found`)
 /// without breaking deserialization of existing serialized data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SyncProgress {
     /// Human-readable description of the current operation

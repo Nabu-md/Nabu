@@ -109,7 +109,7 @@ impl ConflictResolution {
 /// All fields use `#[serde(default)]` so that future phases can add
 /// metadata (e.g. conflict diff preview, local/remote checksums, author
 /// attribution) without breaking deserialization.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ConflictEntry {
     /// The relative path of the conflicting file, relative to the sync folder

@@ -265,10 +265,12 @@ mod tests {
     }
 
     #[test]
-    fn is_non_exhaustive_via_underscore_arm() {
-        // Ensures downstream matchers can use a `_` arm without breaking.
+    fn all_standard_variants_are_exhaustive() {
+        // Within the same crate, #[non_exhaustive] does not prevent exhaustive
+        // matching — downstream crates need a `_` arm. This test verifies every
+        // standard variant is handled.
         let cat = DiagnosticCategory::Syntax;
-        let _name = match cat {
+        let name = match cat {
             DiagnosticCategory::Syntax => "syntax",
             DiagnosticCategory::SpellCheck => "spell-check",
             DiagnosticCategory::Grammar => "grammar",
@@ -283,9 +285,8 @@ mod tests {
             DiagnosticCategory::Performance => "performance",
             DiagnosticCategory::Accessibility => "accessibility",
             DiagnosticCategory::Custom(_) => "custom",
-            _ => unreachable!(),
         };
-        assert_eq!(_name, "syntax");
+        assert_eq!(name, "syntax");
     }
 
     #[test]
