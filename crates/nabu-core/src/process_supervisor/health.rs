@@ -238,6 +238,7 @@ pub(crate) fn compute_health(
             }
         }
         ProcessState::Starting | ProcessState::Restarting => ProcessHealthStatus::Starting,
+        ProcessState::Stopping => ProcessHealthStatus::Stopped,
         ProcessState::Exited | ProcessState::Failed => ProcessHealthStatus::Unhealthy,
         ProcessState::Stopped => ProcessHealthStatus::Stopped,
         ProcessState::Created => ProcessHealthStatus::Unknown,

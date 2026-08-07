@@ -70,14 +70,6 @@ const RESTART_WINDOW: Duration = Duration::from_secs(60);
 const MAX_RESTARTS_IN_WINDOW: usize = 10;
 
 /// Grace period (in milliseconds) before sending SIGKILL during a graceful
-/// stop. This allows processes to shut down cleanly before being force-killed.
-///
-/// On Unix, `tokio::process::Child::kill()` sends SIGKILL. For graceful
-/// shutdown, we first try `SIGTERM` (via `child.id()` + platform signal),
-/// then fall back to SIGKILL after this grace period. On platforms without
-/// SIGTERM, we use the configured `grace_period_ms` value.
-const GRACE_PERIOD_MS: u64 = 5_000;
-
 /// Shared state passed to all monitoring tasks so they can coordinate
 /// shutdown.
 pub(crate) struct SupervisorContext {
@@ -138,7 +130,8 @@ fn publish_health_event(
     state: ProcessState,
 ) {
     if let Some(bus) = event_bus {
-        let event = ProcessHealthChangedEvent::new(process_id, name, status, state);
+        let event_bus_status = crate::event_bus::events::ProcessHealthStatus::from(status);
+        let event = ProcessHealthChangedEvent::new(process_id, name, event_bus_status, state);
         bus.publish(
             crate::event_bus::kinds::PROCESS_HEALTH_CHANGED,
             &PipelineEvent::Process(ProcessEvent::HealthChanged(event)),
@@ -215,7 +208,7 @@ pub(crate) async fn monitor_process(
             rec.last_error = None;
 
             // Publish health change
-            let prev_status = compute_health(&rec.state, rec.restart_count, rec.last_error.as_dereference());
+            let prev_status = compute_health(&rec.state, rec.restart_count, rec.last_error.as_deref());
             // State is now Starting, so health is Starting
             let new_status = ProcessHealthStatus::Starting;
             if prev_status != new_status {
@@ -261,21 +254,6 @@ pub(crate) async fn monitor_process(
                     let _ = rec.transition_state(ProcessState::Running);
                     rec.started_at = Some(Utc::now());
                     rec.last_error = None;
-
-                    // Check if this is a restart (restart_count > 0 means
-                    // previous runs existed). Actually restart_count is
-                    // incremented below only on restart, so if it's > 0
-                    // here, this IS a restart.
-                    let is_restart = rec.restart_count > 0;
-
-                    // Publish health: Running is Healthy or Degraded
-                    let prev_status = if is_restart {
-                        ProcessHealthStatus::Degraded
-                    } else {
-                        ProcessHealthStatus::Healthy
-                    };
-                    // Actually, we need to compute from current state before change
-                    // But we already changed to Running. Let's just publish.
                 }
 
                 tracing::info!(
@@ -560,8 +538,8 @@ pub(crate) async fn monitor_process(
 
                 {
                     let rec = record.lock().unwrap();
-                    let (pid_val, name_val, restart_count) =
-                        (rec.id, rec.name.clone(), rec.restart_count);
+                    let (pid_val, restart_count) =
+                        (rec.id, rec.restart_count);
                     drop(rec);
 
                     publish_event(
@@ -715,8 +693,8 @@ pub(crate) async fn monitor_process(
 
                 {
                     let rec = record.lock().unwrap();
-                    let (pid_val, name_val, restart_count) =
-                        (rec.id, rec.name.clone(), rec.restart_count);
+                    let (pid_val, restart_count) =
+                        (rec.id, rec.restart_count);
                     drop(rec);
 
                     publish_event(
@@ -870,6 +848,7 @@ fn compute_health(
             }
         }
         ProcessState::Starting | ProcessState::Restarting => ProcessHealthStatus::Starting,
+        ProcessState::Stopping => ProcessHealthStatus::Stopped,
         ProcessState::Exited | ProcessState::Failed => ProcessHealthStatus::Unhealthy,
         ProcessState::Stopped => ProcessHealthStatus::Stopped,
         ProcessState::Created => ProcessHealthStatus::Unknown,
@@ -883,6 +862,8 @@ fn compute_health(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ProcessId;
+    use std::sync::Mutex;
 
     #[test]
     fn compute_health_running_healthy() {
@@ -971,7 +952,7 @@ mod tests {
 
         assert!(ProcessHealthStatus::Healthy.is_running());
         assert!(ProcessHealthStatus::Degraded.is_running());
-        assert!(!ProcessHealthStatus::Stopping.is_running());
+        assert!(!ProcessHealthStatus::Unknown.is_running());
         assert!(!ProcessHealthStatus::Unhealthy.is_running());
     }
 

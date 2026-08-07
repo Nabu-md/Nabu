@@ -389,6 +389,7 @@ pub enum ProcessEvent {
     ///
     /// Carries the process ID, name, new health status, and the process
     /// state that triggered the change.
+    #[cfg(not(target_arch = "wasm32"))]
     HealthChanged(ProcessHealthChangedEvent),
 }
 
@@ -401,6 +402,7 @@ impl ProcessEvent {
             Self::Failed(_) => kinds::PROCESS_FAILED,
             Self::Restarted(_) => kinds::PROCESS_RESTARTED,
             Self::Stopped(_) => kinds::PROCESS_STOPPED,
+            #[cfg(not(target_arch = "wasm32"))]
             Self::HealthChanged(_) => kinds::PROCESS_HEALTH_CHANGED,
         }
     }
@@ -417,6 +419,7 @@ impl ProcessEvent {
             Self::Failed(e) => e.timestamp,
             Self::Restarted(e) => e.timestamp,
             Self::Stopped(e) => e.timestamp,
+            #[cfg(not(target_arch = "wasm32"))]
             Self::HealthChanged(e) => e.timestamp,
         }
     }
@@ -591,6 +594,10 @@ impl ProcessStoppedEvent {
 /// but is defined here to avoid a circular dependency between the `event_bus`
 /// and `process_supervisor` modules. The two types are kept in sync
 /// manually — changes to one must be reflected in the other.
+///
+/// Only available on non-wasm32 targets, where the process supervisor
+/// module is compiled.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProcessHealthStatus {
@@ -608,12 +615,14 @@ pub enum ProcessHealthStatus {
     Unknown,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for ProcessHealthStatus {
     fn default() -> Self {
         Self::Unknown
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ProcessHealthStatus {
     /// Returns a human-readable label.
     pub fn label(&self) -> &'static str {
@@ -633,6 +642,7 @@ impl ProcessHealthStatus {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl std::fmt::Display for ProcessHealthStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.label())
@@ -645,6 +655,7 @@ impl std::fmt::Display for ProcessHealthStatus {
 /// whenever a process transitions between health states. Subscribers can
 /// listen on the `process.health.changed` kind to receive real-time health
 /// updates without polling.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProcessHealthChangedEvent {
     /// The unique identifier of the managed process.
@@ -659,6 +670,7 @@ pub struct ProcessHealthChangedEvent {
     pub timestamp: DateTime<Utc>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ProcessHealthChangedEvent {
     pub fn new(
         process_id: ProcessId,
@@ -681,6 +693,7 @@ impl ProcessHealthChangedEvent {
 ///
 /// These types are kept separate to avoid a circular dependency, but the
 /// values map 1:1.
+#[cfg(not(target_arch = "wasm32"))]
 impl From<crate::process_supervisor::health::ProcessHealthStatus> for ProcessHealthStatus {
     fn from(status: crate::process_supervisor::health::ProcessHealthStatus) -> Self {
         match status {

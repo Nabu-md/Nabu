@@ -57,6 +57,7 @@
 
 pub mod config;
 pub mod errors;
+pub mod health;
 pub mod managed;
 pub mod monitor;
 pub mod policy;
@@ -66,6 +67,7 @@ pub mod supervisor;
 // Re-export public types at the module level for ergonomic access.
 pub use config::ProcessConfig;
 pub use errors::{ProcessResult, ProcessSupervisorError};
+pub use health::{ProcessHealth, ProcessHealthStatus};
 pub use managed::ProcessSnapshot;
 pub use policy::RestartPolicy;
 pub use state::ProcessState;

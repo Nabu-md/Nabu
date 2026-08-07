@@ -85,6 +85,20 @@ pub enum DiagnosticError {
         /// Human-readable reason.
         reason: String,
     },
+
+    /// A conversion from a producer's native diagnostic format (e.g. Harper)
+    /// failed. The `producer` identifies the source; `reason` explains the
+    /// failure.
+    #[error("conversion error from {producer}: {reason}")]
+    HarperConversion {
+        /// Human-readable reason for the failure.
+        reason: String,
+        /// The producer name (e.g. `"harper"`).
+        producer: String,
+        /// Extra structured context as key=value pairs (e.g. char index,
+        /// document length).
+        context: std::collections::HashMap<String, String>,
+    },
 }
 
 impl DiagnosticError {
@@ -101,6 +115,23 @@ impl DiagnosticError {
     pub fn invalid_diagnostic(reason: impl Into<String>) -> Self {
         Self::InvalidDiagnostic {
             reason: reason.into(),
+        }
+    }
+
+    /// Convenience constructor for [`HarperConversion`](Self::HarperConversion).
+    #[inline]
+    pub fn harper_conversion(
+        reason: impl Into<String>,
+        char_index: usize,
+        doc_len: usize,
+    ) -> Self {
+        let mut context = std::collections::HashMap::new();
+        context.insert("char_index".to_string(), char_index.to_string());
+        context.insert("doc_char_len".to_string(), doc_len.to_string());
+        Self::HarperConversion {
+            reason: reason.into(),
+            producer: "harper".to_string(),
+            context,
         }
     }
 }

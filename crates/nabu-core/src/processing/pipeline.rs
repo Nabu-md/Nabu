@@ -149,10 +149,24 @@ impl ProcessingPipeline {
                 "Processor completed"
             );
 
-            object = result.object;
+             object = result.object;
 
             // Report progress after this processor
             progress.set_progress(base_progress + segment_size * 0.8);
+
+            // Publish diagnostics through the EventBus if the processor produced any
+            if let Some(ref bus) = self.event_bus {
+                if !result.diagnostics.is_empty() {
+                    let resource_id = build_resource_id(&object);
+                    let batch = crate::diagnostic::events::DiagnosticBatch::new(
+                        processor.name(),
+                        resource_id,
+                        result.diagnostics.clone(),
+                    );
+                    let event = crate::diagnostic::events::DiagnosticEvent::BatchPublished(batch);
+                    crate::diagnostic::events::publish_diagnostic_event(bus, &event);
+                }
+            }
 
             // Publish processor-level event
             if let Some(ref bus) = self.event_bus {
@@ -233,6 +247,24 @@ impl Default for ProcessingPipeline {
     }
 }
 
+/// Build a human-readable resource identifier for a KnowledgeObject.
+///
+/// Uses the object's vault path if available, falling back to a
+/// `object:{id}` scheme for objects without a vault path.
+fn build_resource_id(object: &KnowledgeObject) -> String {
+    if let Some(vault_path) = object.custom_property_text("vault_path") {
+        if !vault_path.is_empty() {
+            return format!("vault:{}", vault_path);
+        }
+    }
+    if let Some(path) = object.custom_property_text("path") {
+        if !path.is_empty() {
+            return format!("vault:{}", path);
+        }
+    }
+    format!("object:{}", object.id)
+}
+
 /// Build the standard processing pipeline with all default processors.
 pub fn build_standard_pipeline(
     event_bus: Option<EventBus<crate::event_bus::PipelineEvent>>,
@@ -257,6 +289,8 @@ pub fn build_standard_pipeline(
         Arc::new(super::processors::PdfTextProcessor),
         Arc::new(super::processors::PdfMetadataProcessor),
         Arc::new(super::processors::PdfAnnotationProcessor),
+        // Phase 3b: Text analysis (diagnostics)
+        Arc::new(super::processors::HarperProcessor),
         // Phase 4: AI-powered processing
         Arc::new(super::processors::WhisperProcessor),
         Arc::new(super::processors::EmbeddingGenerator),
@@ -284,9 +318,10 @@ pub mod ordering {
     pub const PDF_TEXT_PROCESSOR: usize = 6;
     pub const PDF_METADATA_PROCESSOR: usize = 7;
     pub const PDF_ANNOTATION_PROCESSOR: usize = 8;
-    pub const WHISPER_PROCESSOR: usize = 9;
-    pub const EMBEDDING_GENERATOR: usize = 10;
-    pub const SEMANTIC_ENRICHER: usize = 11;
-    pub const AI_SUMMARISER: usize = 12;
-    pub const AUTO_FILER: usize = 13;
+    pub const HARPER_PROCESSOR: usize = 9;
+    pub const WHISPER_PROCESSOR: usize = 10;
+    pub const EMBEDDING_GENERATOR: usize = 11;
+    pub const SEMANTIC_ENRICER: usize = 12;
+    pub const AI_SUMMARISER: usize = 13;
+    pub const AUTO_FILER: usize = 14;
 }

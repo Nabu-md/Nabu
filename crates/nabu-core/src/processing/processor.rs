@@ -1,4 +1,4 @@
-use crate::diagnostic::{Diagnostic, DiagnosticBatch};
+use crate::diagnostic::Diagnostic;
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::KnowledgeObject;
