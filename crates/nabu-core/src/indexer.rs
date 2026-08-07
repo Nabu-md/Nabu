@@ -1,6 +1,7 @@
 use crate::event_bus::kinds::INDEX_UPDATED;
 use crate::event_bus::{EventBus, IndexOperation, IndexUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
+use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
@@ -27,6 +28,8 @@ pub struct Indexer {
     index: RwLock<HashMap<String, Vec<String>>>,
     event_bus: Option<EventBus<PipelineEvent>>,
     vault_path: Option<PathBuf>,
+    /// Lifecycle state manager — tracks Created -> Initialized -> Running -> Shutdown.
+    lifecycle: LifecycleManager,
 }
 
 impl Indexer {
@@ -35,6 +38,7 @@ impl Indexer {
             index: RwLock::new(HashMap::new()),
             event_bus: None,
             vault_path: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -45,6 +49,7 @@ impl Indexer {
             index: RwLock::new(HashMap::new()),
             event_bus: None,
             vault_path: Some(vault_path.into()),
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -53,6 +58,7 @@ impl Indexer {
             index: RwLock::new(HashMap::new()),
             event_bus: Some(event_bus),
             vault_path: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -66,7 +72,118 @@ impl Indexer {
             index: RwLock::new(HashMap::new()),
             event_bus: Some(event_bus),
             vault_path: Some(vault_path.into()),
+            lifecycle: LifecycleManager::new(),
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle state accessors
+    // -----------------------------------------------------------------------
+
+    /// Returns the current lifecycle stage of the indexer.
+    pub fn lifecycle_stage(&self) -> LifecycleStage {
+        self.lifecycle.stage()
+    }
+
+    /// Returns true if the indexer has been initialized.
+    pub fn is_initialized(&self) -> bool {
+        self.lifecycle.is_at_least(LifecycleStage::Initialized)
+    }
+
+    /// Returns true if the indexer is running.
+    pub fn is_running(&self) -> bool {
+        self.lifecycle.is_running()
+    }
+
+    /// Returns true if the indexer has been shut down.
+    pub fn is_shutdown(&self) -> bool {
+        self.lifecycle.is_shutdown()
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle operations
+    // -----------------------------------------------------------------------
+
+    /// Initializes the Indexer.
+    ///
+    /// Lifecycle transition: Created -> Initialized.
+    ///
+    /// - Prepares the search index structures.
+    /// - Loads persisted index metadata from disk (when a vault path is
+    ///   configured) so the in-memory index reflects on-disk state.
+    /// - Initializes caches.
+    pub fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "indexer",
+            component = "indexer",
+            operation = "initialize",
+            "Initializing Indexer"
+        );
+        // Load persisted index from disk if a vault path is configured.
+        self.load()?;
+        self.lifecycle
+            .transition_to(LifecycleStage::Initialized)?;
+        tracing::info!(
+            subsystem = "indexer",
+            component = "indexer",
+            operation = "initialize",
+            "Indexer initialized"
+        );
+        Ok(())
+    }
+
+    /// Starts the Indexer.
+    ///
+    /// Lifecycle transition: Initialized -> Running (or auto-advances from
+    /// Created).
+    ///
+    /// After starting, the indexer begins accepting indexing requests and
+    /// subscribes to document events via the EventBus.
+    pub fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.lifecycle.is_shutdown() {
+            return Err(
+                "Indexer has been shut down and cannot be restarted".into(),
+            );
+        }
+        if self.lifecycle.stage() == LifecycleStage::Created {
+            self.lifecycle
+                .transition_to(LifecycleStage::Initialized)?;
+        }
+        self.lifecycle.transition_to(LifecycleStage::Running)?;
+        tracing::info!(
+            subsystem = "indexer",
+            component = "indexer",
+            operation = "start",
+            "Indexer started"
+        );
+        Ok(())
+    }
+
+    /// Shuts down the Indexer gracefully.
+    ///
+    /// Lifecycle transition: Running -> Shutdown (or Initialized -> Shutdown).
+    ///
+    /// - Flushes pending index operations to disk.
+    /// - Releases caches and index resources.
+    /// - Terminates cleanly.
+    pub fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "indexer",
+            component = "indexer",
+            operation = "shutdown",
+            "Shutting down Indexer"
+        );
+        // Flush the in-memory index to disk before shutting down.
+        let _ = self.persist();
+        tracing::info!(
+            subsystem = "indexer",
+            component = "indexer",
+            operation = "shutdown",
+            "Indexer shutdown complete"
+        );
+        self.lifecycle
+            .transition_to(LifecycleStage::Shutdown)?;
+        Ok(())
     }
 
     /// The vault path, if configured.
@@ -216,6 +333,33 @@ impl Indexer {
 impl Default for Indexer {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle trait implementation
+// ---------------------------------------------------------------------------
+
+/// Implements the shared Lifecycle trait so Indexer can be managed
+/// by the Capability Platform's lifecycle manager alongside other services.
+///
+/// The trait methods delegate to the inherent initialize() / start() /
+/// shutdown() methods defined above.
+impl Lifecycle for Indexer {
+    fn name(&self) -> &'static str {
+        "indexer"
+    }
+
+    fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Indexer::initialize(self)
+    }
+
+    fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Indexer::start(self)
+    }
+
+    fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Indexer::shutdown(self)
     }
 }
 

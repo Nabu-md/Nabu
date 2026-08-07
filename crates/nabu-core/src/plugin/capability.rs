@@ -4,6 +4,7 @@
 //! uses to discover available extensions. Each capability represents a
 //! well-defined extension point in the Nabu platform.
 
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
@@ -11,7 +12,14 @@ use std::fmt;
 ///
 /// Capabilities follow the format `{namespace}:{name}` (e.g., `nabu:capture`,
 /// `plugin_xyz:ocr_provider`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+///
+/// # Serialization
+///
+/// All fields are persistent data (identifiers, metadata, and configuration).
+/// There are no runtime-only fields. This type is fully serializable via Serde
+/// `Serialize`/`Deserialize` derives, enabling future capability manifests,
+/// workspace persistence, and synchronization.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Capability {
     /// The namespace (e.g., "nabu", "plugin_xyz", "community").
     pub namespace: String,
@@ -87,7 +95,16 @@ pub fn builtin_capabilities() -> Vec<Capability> {
 /// The capability registry is the single source of truth for what the
 /// Nabu platform can do. Plugins declare capabilities when they register,
 /// and the application uses this registry to discover available extensions.
-#[derive(Debug, Clone, Default)]
+///
+/// # Serialization
+///
+/// All fields are persistent data (capability definitions, provider mappings,
+/// and enabled sets). There are no runtime-only resources. This type is
+/// fully serializable. The `#[serde(default)]` attribute ensures forward
+/// compatibility — future versions may add fields without breaking
+/// deserialization of existing serialized data.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct CapabilityRegistry {
     /// Map from capability ID to capability definition.
     capabilities: HashMap<String, Capability>,
@@ -256,5 +273,102 @@ mod tests {
         cr.register_builtin();
         let nabu_caps = cr.by_namespace("nabu");
         assert!(nabu_caps.len() >= 10);
+    }
+}
+
+#[cfg(test)]
+mod capability_serialization {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn capability_round_trips() {
+        let cap = Capability::new("nabu", "capture", "Content capture and ingestion");
+        let json = serde_json::to_string(&cap).expect("serialize");
+        let back: Capability = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(cap, back);
+        assert_eq!(cap.id(), back.id());
+    }
+
+    #[test]
+    fn capability_required_flag_preserved() {
+        let cap = Capability::required("nabu", "event_bus", "Messaging backbone");
+        assert!(cap.required);
+        let json = serde_json::to_string(&cap).expect("serialize");
+        let back: Capability = serde_json::from_str(&json).expect("deserialize");
+        assert!(back.required);
+        assert_eq!(cap, back);
+    }
+
+    #[test]
+    fn capability_builtin_round_trips() {
+        let caps = builtin_capabilities();
+        for cap in &caps {
+            let json = serde_json::to_string(cap).expect("serialize");
+            let back: Capability = serde_json::from_str(&json).expect("deserialize");
+            assert_eq!(cap, &back);
+            assert_eq!(cap.id(), back.id());
+        }
+    }
+
+    #[test]
+    fn capability_unicode_round_trip() {
+        let cap = Capability {
+            namespace: "plugin_\u{e9}".into(),
+            name: "ocr".into(),
+            description: "Optical character recognition".into(),
+            required: false,
+        };
+        let json = serde_json::to_string(&cap).expect("serialize");
+        let back: Capability = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(cap, back);
+    }
+
+    #[test]
+    fn registry_round_trips() {
+        let mut registry = CapabilityRegistry::new();
+        registry.register(
+            Capability::new("nabu", "test", "Test capability"),
+            "test_provider",
+        );
+        registry.register(
+            Capability::required("nabu", "core", "Core capability"),
+            "nabu",
+        );
+        registry.register_builtin();
+        registry.enable("nabu:event_bus");
+        registry.enable("nabu:capture");
+
+        let json = serde_json::to_string(&registry).expect("serialize");
+        let back: CapabilityRegistry = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(registry, back);
+        assert_eq!(registry.capability_count(), back.capability_count());
+        assert_eq!(registry.list(), back.list());
+        assert_eq!(registry.list_enabled(), back.list_enabled());
+    }
+
+    #[test]
+    fn registry_deserializes_empty() {
+        let json = "{}";
+        let registry: CapabilityRegistry = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(registry.capability_count(), 0);
+        assert!(registry.list().is_empty());
+    }
+
+    #[test]
+    fn capability_ignores_future_fields() {
+        let json = r#"{"namespace":"nabu","name":"capture","description":"test","required":false,"future_field":"value"}"#;
+        let cap: Capability = serde_json::from_str(json).expect("deserialize");
+        assert_eq!(cap.namespace, "nabu");
+        assert_eq!(cap.name, "capture");
+        assert!(!cap.required);
+    }
+
+    #[test]
+    fn capability_missing_field_yields_error() {
+        let json = r#"{"namespace":"nabu","name":"capture"}"#;
+        let result: Result<Capability, _> = serde_json::from_str(json);
+        assert!(result.is_err());
     }
 }

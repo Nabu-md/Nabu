@@ -31,6 +31,7 @@ use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, WorkerPool};
 use nabu_core::pipeline_migration::PipelineExecutor;
 use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::registry::context::ApplicationContext;
+use nabu_core::registry::lifecycle::Lifecycle;
 use nabu_core::registry::{CATEGORY_CAPTURE_HANDLERS, ServiceRegistry};
 use nabu_core::storage::StorageManager;
 use std::path::PathBuf;
@@ -105,6 +106,12 @@ fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
         PipelineExecutor::with_event_bus(pipeline.clone(), (*event_bus).clone())
             .with_storage(storage.clone()),
     );
+
+    // Register PipelineExecutor as a lifecycle-managed service for
+    // Application-level start/shutdown. The ExecutorRegistry (below) is
+    // the dispatch table workers use to look up the executor by processor
+    // name; the context registration enables lifecycle management.
+    ctx.register("pipeline_executor", executor.clone());
     let mut executors = ExecutorRegistry::new();
     for name in [
         "ocr_processor",

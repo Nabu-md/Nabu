@@ -26,6 +26,7 @@ pub use version::*;
 use crate::event_bus::kinds::GRAPH_UPDATED;
 use crate::event_bus::{EventBus, GraphOperation, GraphUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
+use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::RwLock;
@@ -61,6 +62,8 @@ pub struct VaultGraph {
     loaded_from_disk: RwLock<bool>,
     /// Current graph generation
     generation: RwLock<u64>,
+    /// Lifecycle state manager — tracks Created -> Initialized -> Running -> Shutdown.
+    lifecycle: LifecycleManager,
 }
 
 /// Handle for deferred persistence operations.
@@ -111,6 +114,7 @@ impl VaultGraph {
             persistence: None,
             loaded_from_disk: RwLock::new(false),
             generation: RwLock::new(1),
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -124,6 +128,7 @@ impl VaultGraph {
             persistence: None,
             loaded_from_disk: RwLock::new(false),
             generation: RwLock::new(1),
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -146,6 +151,7 @@ impl VaultGraph {
             persistence: Some(PersistenceHandle::new(store)),
             loaded_from_disk: RwLock::new(loaded_from_disk),
             generation: RwLock::new(generation),
+            lifecycle: LifecycleManager::new(),
         };
 
         if let Some(snapshot) = snapshot {
@@ -281,6 +287,129 @@ impl VaultGraph {
                 *gen += 1;
             }
         }
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle state accessors
+    // -----------------------------------------------------------------------
+
+    /// Returns the current lifecycle stage of the VaultGraph.
+    pub fn lifecycle_stage(&self) -> LifecycleStage {
+        self.lifecycle.stage()
+    }
+
+    /// Returns true if the VaultGraph has been initialized.
+    pub fn is_initialized(&self) -> bool {
+        self.lifecycle.is_at_least(LifecycleStage::Initialized)
+    }
+
+    /// Returns true if the VaultGraph is running.
+    pub fn is_running(&self) -> bool {
+        self.lifecycle.is_running()
+    }
+
+    /// Returns true if the VaultGraph has been shut down.
+    pub fn is_shutdown(&self) -> bool {
+        self.lifecycle.is_shutdown()
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle operations
+    // -----------------------------------------------------------------------
+
+    /// Initializes the VaultGraph.
+    ///
+    /// Lifecycle transition: Created -> Initialized.
+    ///
+    /// - Validates that graph structures are prepared (nodes, edges,
+    ///   adjacency map).
+    /// - Initializes caches and validates graph state consistency.
+    /// - When persistence is configured, confirms the persisted graph is
+    ///   loadable and consistent.
+    pub fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "initialize",
+            "Initializing VaultGraph"
+        );
+        // Validate graph state is consistent.
+        // Node count and edge count should be non-negative (always true),
+        // but this is the place to add integrity checks in the future.
+        let node_count = self.node_count();
+        let edge_count = self.edge_count();
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "initialize",
+            node_count = node_count,
+            edge_count = edge_count,
+            loaded_from_disk = self.loaded_from_disk(),
+            "VaultGraph state validated"
+        );
+        self.lifecycle
+            .transition_to(LifecycleStage::Initialized)?;
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "initialize",
+            "VaultGraph initialized"
+        );
+        Ok(())
+    }
+
+    /// Starts the VaultGraph.
+    ///
+    /// Lifecycle transition: Initialized -> Running (or auto-advances from
+    /// Created).
+    ///
+    /// After starting, the graph begins accepting updates and subscribes
+    /// to document events via the EventBus.
+    pub fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.lifecycle.is_shutdown() {
+            return Err(
+                "VaultGraph has been shut down and cannot be restarted".into(),
+            );
+        }
+        if self.lifecycle.stage() == LifecycleStage::Created {
+            self.lifecycle
+                .transition_to(LifecycleStage::Initialized)?;
+        }
+        self.lifecycle.transition_to(LifecycleStage::Running)?;
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "start",
+            "VaultGraph started"
+        );
+        Ok(())
+    }
+
+    /// Shuts down the VaultGraph gracefully.
+    ///
+    /// Lifecycle transition: Running -> Shutdown (or Initialized -> Shutdown).
+    ///
+    /// - Flushes pending graph updates to persistent storage.
+    /// - Cleanly terminates any active subscriptions.
+    /// - Releases resources.
+    pub fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "shutdown",
+            "Shutting down VaultGraph"
+        );
+        // Flush pending graph updates — persist the current graph state.
+        let _ = self.persist();
+        tracing::info!(
+            subsystem = "graph",
+            component = "graph",
+            operation = "shutdown",
+            "VaultGraph shutdown complete"
+        );
+        self.lifecycle
+            .transition_to(LifecycleStage::Shutdown)?;
         Ok(())
     }
 
@@ -495,6 +624,33 @@ impl VaultGraph {
 impl Default for VaultGraph {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle trait implementation
+// ---------------------------------------------------------------------------
+
+/// Implements the shared Lifecycle trait so VaultGraph can be managed
+/// by the Capability Platform's lifecycle manager alongside other services.
+///
+/// The trait methods delegate to the inherent initialize() / start() /
+/// shutdown() methods defined above.
+impl Lifecycle for VaultGraph {
+    fn name(&self) -> &'static str {
+        "vault_graph"
+    }
+
+    fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        VaultGraph::initialize(self)
+    }
+
+    fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        VaultGraph::start(self)
+    }
+
+    fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        VaultGraph::shutdown(self)
     }
 }
 

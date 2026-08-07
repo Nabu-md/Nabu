@@ -240,6 +240,11 @@ impl ApplicationContext {
         self.resolve("worker_pool")
     }
 
+    /// Returns the pipeline executor if registered.
+    pub fn pipeline_executor(&self) -> Option<Arc<crate::pipeline_migration::PipelineExecutor>> {
+        self.resolve("pipeline_executor")
+    }
+
     /// Returns the vault graph if registered.
     pub fn vault_graph(&self) -> Option<Arc<RwLock<crate::graph::VaultGraph>>> {
         self.resolve("vault_graph")
@@ -374,6 +379,27 @@ impl ApplicationContext {
             return Err(report.missing.iter().map(|s| (*s).to_string()).collect());
         }
 
+        // Initialize lifecycle-managed services in dependency order.
+        if let Some(storage) = self.storage_manager() {
+            if let Err(e) = storage.initialize() {
+                tracing::error!(error = %e, "Failed to initialize StorageManager");
+            }
+        }
+        if let Some(indexer) = self.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                if let Err(e) = idx.initialize() {
+                    tracing::error!(error = %e, "Failed to initialize Indexer");
+                }
+            }
+        }
+        if let Some(graph) = self.vault_graph() {
+            if let Ok(g) = graph.write() {
+                if let Err(e) = g.initialize() {
+                    tracing::error!(error = %e, "Failed to initialize VaultGraph");
+                }
+            }
+        }
+
         self.lifecycle
             .transition_to(LifecycleStage::Initialized)
             .unwrap_or_else(|e| {
@@ -391,12 +417,38 @@ impl ApplicationContext {
     }
 
     /// Transitions the context to the `Running` stage.
+    ///
+    /// Starts all lifecycle-managed services in dependency order:
+    /// StorageManager → Indexer → VaultGraph.
     pub fn start(&self) {
         self.lifecycle
             .transition_to(LifecycleStage::Running)
             .unwrap_or_else(|e| {
                 tracing::error!(error = %e, "Lifecycle transition to Running failed");
             });
+
+        // Start lifecycle-managed services in dependency order.
+        if let Some(storage) = self.storage_manager() {
+            if let Err(e) = storage.start() {
+                tracing::error!(error = %e, "Failed to start StorageManager");
+            }
+        }
+        if let Some(indexer) = self.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                tracing::info!("Indexer starting");
+                if let Err(e) = idx.start() {
+                    tracing::error!(error = %e, "Failed to start Indexer");
+                }
+            }
+        }
+        if let Some(graph) = self.vault_graph() {
+            if let Ok(g) = graph.write() {
+                tracing::info!("VaultGraph starting");
+                if let Err(e) = g.start() {
+                    tracing::error!(error = %e, "Failed to start VaultGraph");
+                }
+            }
+        }
 
         tracing::info!(
             stage = ?self.lifecycle_stage(),
@@ -406,8 +458,33 @@ impl ApplicationContext {
 
     /// Transitions the context to the `Shutdown` stage.
     ///
-    /// Logs the shutdown and returns any lifecycle transition error.
+    /// Shuts down all lifecycle-managed services in reverse dependency order:
+    /// VaultGraph → Indexer → StorageManager.
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
+        // Shut down lifecycle-managed services in reverse dependency order.
+        if let Some(graph) = self.vault_graph() {
+            if let Ok(g) = graph.write() {
+                tracing::info!("VaultGraph shutting down");
+                if let Err(e) = g.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down VaultGraph");
+                }
+            }
+        }
+        if let Some(indexer) = self.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                tracing::info!("Indexer shutting down");
+                if let Err(e) = idx.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down Indexer");
+                }
+            }
+        }
+        if let Some(storage) = self.storage_manager() {
+            tracing::info!("StorageManager shutting down");
+            if let Err(e) = storage.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down StorageManager");
+            }
+        }
+
         let result = self.lifecycle.transition_to(LifecycleStage::Shutdown);
         match &result {
             Ok(()) => {

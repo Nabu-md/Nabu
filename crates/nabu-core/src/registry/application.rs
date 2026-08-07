@@ -89,10 +89,11 @@ use crate::capture::CaptureEngine;
 use crate::diagnostics::PerformanceMonitor;
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::jobs::WorkerPool;
+use crate::pipeline_migration::PipelineExecutor;
 use crate::processing::ProcessingPipeline;
 use crate::registry::context::ApplicationContext;
 use crate::registry::lifecycle::{
-    LifecycleError, LifecycleManager, LifecycleStage,
+    Lifecycle, LifecycleError, LifecycleManager, LifecycleStage,
 };
 use crate::registry::ServiceRegistry;
 
@@ -121,6 +122,8 @@ pub struct Application {
     _performance_monitor: Option<Arc<PerformanceMonitor>>,
     /// Keeps the worker pool alive for the lifetime of the Application.
     _worker_pool: Option<Arc<WorkerPool>>,
+    /// Keeps the pipeline executor alive for the lifetime of the Application.
+    _pipeline_executor: Option<Arc<PipelineExecutor>>,
 }
 
 impl Application {
@@ -178,6 +181,13 @@ impl Application {
                 tracing::warn!(error = %e, "Lifecycle transition to Initialized failed");
             });
 
+        // Initialize core lifecycle-managed services.
+        if let Some(storage) = self.context.storage_manager() {
+            if let Err(e) = storage.initialize() {
+                tracing::error!(error = %e, "Failed to initialize StorageManager");
+            }
+        }
+
         tracing::info!(
             stage = ?self.lifecycle.stage(),
             services = self.context.service_count(),
@@ -209,10 +219,41 @@ impl Application {
                 tracing::error!(error = %e, "Lifecycle transition to Running failed");
             });
 
-        // Start lifecycle-managed services (e.g., WorkerPool)
+        // Start lifecycle-managed services in dependency order.
+        // StorageManager must accept requests first; then Indexer and
+        // VaultGraph subscribe to ITEM_STORED events downstream.
+        if let Some(storage) = self.context.storage_manager() {
+            if let Err(e) = storage.start() {
+                tracing::error!(error = %e, "Failed to start storage manager");
+            }
+        }
+        if let Some(engine) = self.context.capture_engine() {
+            if let Err(e) = engine.start() {
+                tracing::error!(error = %e, "Failed to start capture engine");
+            }
+        }
+        if let Some(executor) = self.context.pipeline_executor() {
+            if let Err(e) = executor.start() {
+                tracing::error!(error = %e, "Failed to start pipeline executor");
+            }
+        }
         if let Some(pool) = self.context.worker_pool() {
             if let Err(e) = pool.start() {
                 tracing::error!(error = %e, "Failed to start worker pool");
+            }
+        }
+        if let Some(indexer) = self.context.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                if let Err(e) = idx.start() {
+                    tracing::error!(error = %e, "Failed to start indexer");
+                }
+            }
+        }
+        if let Some(graph) = self.context.vault_graph() {
+            if let Ok(g) = graph.write() {
+                if let Err(e) = g.start() {
+                    tracing::error!(error = %e, "Failed to start vault graph");
+                }
             }
         }
 
@@ -227,10 +268,40 @@ impl Application {
     /// This phase stops background workers, drains queues, releases resources,
     /// and transitions to `Shutdown`.
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
-        // Shut down lifecycle-managed services first (before context shutdown)
+        // Shut down lifecycle-managed services first (before context shutdown).
+        // Reverse dependency order: storage consumers → storage owner.
+        if let Some(graph) = self.context.vault_graph() {
+            if let Ok(g) = graph.write() {
+                if let Err(e) = g.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down VaultGraph");
+                }
+            }
+        }
+        if let Some(indexer) = self.context.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                if let Err(e) = idx.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down Indexer");
+                }
+            }
+        }
         if let Some(pool) = self.context.worker_pool() {
             if let Err(e) = pool.shutdown() {
                 tracing::error!(error = %e, "Failed to shut down worker pool");
+            }
+        }
+        if let Some(executor) = self.context.pipeline_executor() {
+            if let Err(e) = executor.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down pipeline executor");
+            }
+        }
+        if let Some(engine) = self.context.capture_engine() {
+            if let Err(e) = engine.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down capture engine");
+            }
+        }
+        if let Some(storage) = self.context.storage_manager() {
+            if let Err(e) = storage.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down storage manager");
             }
         }
 
@@ -287,6 +358,8 @@ pub struct ApplicationBuilder {
     capture_engine: Option<Arc<CaptureEngine>>,
     /// Worker pool (optional — created or injected by the caller).
     worker_pool: Option<Arc<WorkerPool>>,
+    /// Pipeline executor (optional — bridges WorkerPool to ProcessingPipeline).
+    pipeline_executor: Option<Arc<PipelineExecutor>>,
 }
 
 impl ApplicationBuilder {
@@ -300,6 +373,7 @@ impl ApplicationBuilder {
             pipeline: None,
             capture_engine: None,
             worker_pool: None,
+            pipeline_executor: None,
         }
     }
 
@@ -341,6 +415,18 @@ impl ApplicationBuilder {
     /// [`Application::shutdown`].
     pub fn with_worker_pool(mut self, pool: Arc<WorkerPool>) -> Self {
         self.worker_pool = Some(pool);
+        self
+    }
+
+    /// Set the pipeline executor.
+    ///
+    /// If not set, no pipeline executor is registered and the Application
+    /// will not manage its lifecycle. When set, the executor is registered
+    /// under the `"pipeline_executor"` key and its lifecycle (`start`,
+    /// `shutdown`) is invoked automatically during [`Application::start`] and
+    /// [`Application::shutdown`].
+    pub fn with_pipeline_executor(mut self, executor: Arc<PipelineExecutor>) -> Self {
+        self.pipeline_executor = Some(executor);
         self
     }
 
@@ -406,6 +492,12 @@ impl ApplicationBuilder {
             reg.register("worker_pool", pool.clone());
         }
 
+        // ---- 6. Build and register the PipelineExecutor (if provided) ----
+        if let Some(executor) = &self.pipeline_executor {
+            let mut reg = registry.write().expect("registry lock not poisoned");
+            reg.register("pipeline_executor", executor.clone());
+        }
+
         // ---- 6. Create the ApplicationContext ----
         let context = ApplicationContext::new(
             registry.clone(),
@@ -421,6 +513,7 @@ impl ApplicationBuilder {
             _pipeline: self.pipeline,
             _performance_monitor: Some(perf_monitor),
             _worker_pool: self.worker_pool,
+            _pipeline_executor: self.pipeline_executor,
         }
     }
 }

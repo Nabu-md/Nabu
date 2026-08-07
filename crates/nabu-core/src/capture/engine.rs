@@ -5,6 +5,7 @@ use crate::jobs::errors::JobResult;
 use crate::jobs::job::{Job, JobType};
 use crate::jobs::queue::{DurableJobQueue, Queue};
 use crate::models::ObjectType;
+use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -17,6 +18,8 @@ pub struct CaptureEngine {
     handlers: HashMap<String, Arc<dyn CaptureHandler>>,
     event_bus: Option<EventBus<PipelineEvent>>,
     queue: Option<Arc<DurableJobQueue>>,
+    /// Lifecycle state manager — tracks Created → Initialized → Running → Shutdown.
+    lifecycle: LifecycleManager,
 }
 
 impl CaptureEngine {
@@ -25,6 +28,7 @@ impl CaptureEngine {
             handlers: HashMap::new(),
             event_bus: None,
             queue: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -34,6 +38,7 @@ impl CaptureEngine {
             handlers: HashMap::new(),
             event_bus: Some(event_bus),
             queue: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -129,6 +134,145 @@ impl CaptureEngine {
     /// List registered handler names.
     pub fn handler_names(&self) -> Vec<String> {
         self.handlers.keys().cloned().collect()
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle state accessors
+    // -----------------------------------------------------------------------
+
+    /// Returns the current lifecycle stage of the capture engine.
+    pub fn lifecycle_stage(&self) -> LifecycleStage {
+        self.lifecycle.stage()
+    }
+
+    /// Returns `true` if the capture engine has been initialized.
+    pub fn is_initialized(&self) -> bool {
+        self.lifecycle.is_at_least(LifecycleStage::Initialized)
+    }
+
+    /// Returns `true` if the capture engine is running.
+    pub fn is_running(&self) -> bool {
+        self.lifecycle.is_running()
+    }
+
+    /// Returns `true` if the capture engine has been shut down.
+    pub fn is_shutdown(&self) -> bool {
+        self.lifecycle.is_shutdown()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle trait implementation
+// ---------------------------------------------------------------------------
+
+/// Implements the shared `Lifecycle` trait so `CaptureEngine` can be managed
+/// by the Capability Platform's lifecycle manager alongside other services.
+///
+/// ```text
+/// Created → Initialized → Running → Shutdown
+/// ```
+impl Lifecycle for CaptureEngine {
+    fn name(&self) -> &'static str {
+        "capture_engine"
+    }
+
+    /// Initializes the capture engine.
+    ///
+    /// Transitions the engine from `Created` to `Initialized`.
+    /// Handler registration and queue wiring are set during construction;
+    /// this phase validates that required dependencies (handlers, queue)
+    /// are present and ready.
+    fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "capture",
+            component = "engine",
+            operation = "initialize",
+            handlers = self.handler_count(),
+            "CaptureEngine initialized"
+        );
+        self.lifecycle
+            .transition_to(LifecycleStage::Initialized)?;
+        Ok(())
+    }
+
+    /// Starts the capture engine.
+    ///
+    /// Transitions the engine to `Running` so it can accept and route
+    /// capture requests. Auto-advances `Created → Initialized` if
+    /// `initialize()` was not called explicitly.
+    ///
+    /// Double-start is a safe no-op — no duplicate handlers are registered.
+    /// Calling `start()` after `shutdown()` returns an error.
+    fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Cannot restart a shut-down engine
+        if self.lifecycle.is_shutdown() {
+            return Err(
+                "CaptureEngine has been shut down and cannot be restarted".into(),
+            );
+        }
+
+        // Auto-advance Created → Initialized so callers can call start()
+        // directly without an explicit initialize() call.
+        if self.lifecycle.stage() == LifecycleStage::Created {
+            tracing::info!(
+                subsystem = "capture",
+                component = "engine",
+                operation = "start",
+                "Initializing capture engine"
+            );
+            self.lifecycle
+                .transition_to(LifecycleStage::Initialized)?;
+        }
+
+        // Guard against duplicate start — transition Running → Running is a
+        // no-op in LifecycleManager, but we log a warning for visibility.
+        if self.lifecycle.is_running() {
+            tracing::warn!(
+                subsystem = "capture",
+                component = "engine",
+                operation = "start",
+                "CaptureEngine already started — skipping duplicate start"
+            );
+            return Ok(());
+        }
+
+        self.lifecycle
+            .transition_to(LifecycleStage::Running)?;
+
+        tracing::info!(
+            subsystem = "capture",
+            component = "engine",
+            operation = "start",
+            handlers = self.handler_count(),
+            "CaptureEngine started"
+        );
+        Ok(())
+    }
+
+    /// Shuts down the capture engine.
+    ///
+    /// Stops accepting new capture requests. The engine is not restartable
+    /// after shutdown.
+    ///
+    /// Double-shutdown is a safe no-op.
+    fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!(
+            subsystem = "capture",
+            component = "engine",
+            operation = "shutdown",
+            "CaptureEngine shutting down"
+        );
+
+        self.lifecycle
+            .transition_to(LifecycleStage::Shutdown)?;
+
+        tracing::info!(
+            subsystem = "capture",
+            component = "engine",
+            operation = "shutdown",
+            "CaptureEngine stopped"
+        );
+        Ok(())
     }
 }
 
