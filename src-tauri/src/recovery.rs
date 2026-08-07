@@ -385,22 +385,36 @@ pub fn mark_clean_exit(vault: &Path) {
 
 // ── Commands ────────────────────────────────────────────────────────
 
-/// Saves note content to disk and records a version snapshot. The autosave
-/// path — never pushes a history entry (typing would flood the undo stack).
+/// Saves note content through the canonical StorageManager persistence gateway.
+///
+/// Every document save flows through:
+///   Editor -> StorageManager::save() -> Persistence -> Indexer -> VaultGraph -> EventBus
+///
+/// The StorageManager writes the content file, its JSON sidecar, updates the
+/// in-memory cache, and publishes an  event that drives the
+/// Indexer and VaultGraph subscribers. A version snapshot is captured
+/// afterwards (separate from storage persistence) for crash recovery.
 #[tauri::command]
 pub fn note_save(
     path: String,
     content: String,
+    ctx: State<'_, ApplicationContext>,
     store: State<'_, SettingsStore>,
 ) -> Result<(), String> {
     let vault = vault_path(&store);
-    let abs = resolve_in_vault(&vault, &path)?;
-    if let Some(parent) = abs.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
-    }
-    std::fs::write(&abs, &content).map_err(|e| e.to_string())?;
+
+    // Route through the canonical StorageManager — the single persistence
+    // gateway. This publishes ITEM_STORED, which triggers the Indexer and
+    // VaultGraph subscribers downstream.
+    let manager = ctx
+        .storage_manager()
+        .ok_or_else(|| "StorageManager is not registered in the application context".to_string())?;
+
+    manager
+        .save_note_content(&path, &content)
+        .map_err(|e| e.to_string())?;
+
+    // Version snapshot (crash recovery) — separate from storage persistence.
     let _ = snapshot_note(&vault, &path);
     Ok(())
 }

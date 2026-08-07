@@ -348,6 +348,23 @@ pub fn run() {
             }
             ctx.start();
 
+            // Resolve lifecycle-managed capture and pipeline services.
+            // These don't require a tokio runtime context, so they start
+            // synchronously alongside the async worker pool spawn.
+            let pipeline_executor: Option<Arc<PipelineExecutor>> =
+                ctx.resolve("pipeline_executor");
+            if let Some(executor) = &pipeline_executor {
+                if let Err(e) = executor.start() {
+                    tracing::error!(
+                        error = %e,
+                        "Failed to start pipeline executor"
+                    );
+                }
+            }
+            if let Err(e) = engine.start() {
+                tracing::error!(error = %e, "Failed to start capture engine");
+            }
+
             // Make the context available to commands via Tauri managed state.
             app.manage(ctx);
 
@@ -417,10 +434,39 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 {
                     let ctx_state = app_handle.state::<ApplicationContext>();
+                    // Shut down lifecycle-managed services in reverse startup
+                    // order: WorkerPool (stop processing) → PipelineExecutor
+                    // (stop accepting jobs) → CaptureEngine (stop accepting
+                    // captures).
                     if let Some(pool) = ctx_state.worker_pool() {
                         if let Err(e) = pool.shutdown() {
-                            tracing::error!(error = %e, "Failed to shut down worker pool");
+                            tracing::error!(
+                                error = %e,
+                                "Failed to shut down worker pool"
+                            );
                         }
+                    }
+                    if let Some(executor) = ctx_state.pipeline_executor() {
+                        if let Err(e) = executor.shutdown() {
+                            tracing::error!(
+                                error = %e,
+                                "Failed to shut down pipeline executor"
+                            );
+                        }
+                    }
+                    if let Some(engine) = ctx_state.capture_engine() {
+                        if let Err(e) = engine.shutdown() {
+                            tracing::error!(
+                                error = %e,
+                                "Failed to shut down capture engine"
+                            );
+                        }
+                    }
+                    // Shut down StorageManager, Indexer, and VaultGraph
+                    // (the ApplicationContext manages these in reverse startup
+                    // order: Graph -> Indexer -> Storage).
+                    if let Err(e) = ctx_state.shutdown() {
+                        tracing::error!(error = %e, "Application context shutdown failed");
                     }
                 }
 

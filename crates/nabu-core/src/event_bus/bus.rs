@@ -18,7 +18,7 @@ struct BusInner<Events: Clone + Send + Sync + 'static> {
 
 struct SubscriberEntry<Events: Clone + Send + Sync + 'static> {
     id: SubscriberId,
-    handler: Box<dyn Fn(&Events) + Send + Sync>,
+    handler: Arc<dyn Fn(&Events) + Send + Sync>,
 }
 
 impl<Events: Clone + Send + Sync + 'static> EventBus<Events> {
@@ -47,7 +47,7 @@ impl<Events: Clone + Send + Sync + 'static> EventBus<Events> {
             .or_default()
             .push(SubscriberEntry {
                 id,
-                handler: Box::new(handler),
+                handler: Arc::new(handler),
             });
 
         let inner_clone = self.inner.clone();
@@ -66,12 +66,23 @@ impl<Events: Clone + Send + Sync + 'static> EventBus<Events> {
     }
 
     /// Publish an event to all subscribers of the given kind.
+    ///
+    /// Subscribers are collected and the internal lock is released before
+    /// any handler is invoked. This allows handlers to publish additional
+    /// events (nested publish) without deadlocking on the non-reentrant
+    /// Mutex, which is essential for the save pipeline:
+    ///   StorageManager.save() -> ITEM_STORED -> indexer.index_object() -> INDEX_UPDATED
     pub fn publish(&self, event_kind: &str, event: &Events) {
-        let inner = self.inner.lock().unwrap();
-        if let Some(subscribers) = inner.subscribers.get(event_kind) {
-            for subscriber in subscribers {
-                (subscriber.handler)(event);
+        let handlers: Vec<Arc<dyn Fn(&Events) + Send + Sync>> = {
+            let inner = self.inner.lock().unwrap();
+            if let Some(subscribers) = inner.subscribers.get(event_kind) {
+                subscribers.iter().map(|s| s.handler.clone()).collect()
+            } else {
+                Vec::new()
             }
+        };
+        for handler in &handlers {
+            handler(event);
         }
     }
 

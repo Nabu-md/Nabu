@@ -317,3 +317,150 @@ impl Lifecycle for PipelineExecutor {
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::processing::pipeline::ProcessingPipeline;
+
+    /// Create a minimal PipelineExecutor for lifecycle tests.
+    fn make_executor() -> PipelineExecutor {
+        let pipeline = Arc::new(ProcessingPipeline::new());
+        PipelineExecutor::new(pipeline)
+    }
+
+    // ── Lifecycle state tests ────────────────────────────────────────
+
+    #[test]
+    fn lifecycle_initial_state_is_created() {
+        let executor = make_executor();
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Created);
+        assert!(!executor.is_initialized());
+        assert!(!executor.is_running());
+        assert!(!executor.is_shutdown());
+    }
+
+    #[test]
+    fn lifecycle_trait_name() {
+        let executor = make_executor();
+        let executor_ref: &dyn Lifecycle = &executor;
+        assert_eq!(executor_ref.name(), "pipeline_executor");
+    }
+
+    #[test]
+    fn lifecycle_initialize_transitions_to_initialized() {
+        let executor = make_executor();
+        assert!(executor.initialize().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Initialized);
+        assert!(executor.is_initialized());
+        assert!(!executor.is_running());
+    }
+
+    #[test]
+    fn lifecycle_start_auto_advances_from_created() {
+        let executor = make_executor();
+        // start() should auto-advance Created → Initialized → Running
+        assert!(executor.start().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+        assert!(executor.is_running());
+    }
+
+    #[test]
+    fn lifecycle_full_flow() {
+        let executor = make_executor();
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Created);
+
+        assert!(executor.initialize().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Initialized);
+        assert!(executor.is_initialized());
+
+        assert!(executor.start().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+        assert!(executor.is_running());
+
+        assert!(executor.shutdown().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+        assert!(executor.is_shutdown());
+    }
+
+    #[test]
+    fn lifecycle_start_after_shutdown_returns_error() {
+        let executor = make_executor();
+        assert!(executor.start().is_ok());
+        assert!(executor.shutdown().is_ok());
+        // Cannot restart after shutdown
+        assert!(executor.start().is_err());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+    }
+
+    #[test]
+    fn lifecycle_double_shutdown_is_noop() {
+        let executor = make_executor();
+        assert!(executor.start().is_ok());
+        assert!(executor.shutdown().is_ok());
+        // Second shutdown should succeed (same stage is a no-op)
+        assert!(executor.shutdown().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+    }
+
+    #[test]
+    fn lifecycle_double_start_is_noop() {
+        let executor = make_executor();
+        assert!(executor.start().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+        // Second start should succeed (no-op)
+        assert!(executor.start().is_ok());
+        assert!(executor.is_running());
+        // Cleanup
+        assert!(executor.shutdown().is_ok());
+    }
+
+    #[test]
+    fn lifecycle_start_without_initialize() {
+        let executor = make_executor();
+        // start() should auto-advance Created → Initialized → Running
+        assert!(executor.start().is_ok());
+        assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+        assert!(executor.is_running());
+        assert!(executor.is_initialized());
+        assert!(executor.shutdown().is_ok());
+    }
+
+    #[test]
+    fn lifecycle_backward_transition_rejected() {
+        let executor = make_executor();
+        assert!(executor.start().is_ok());
+        assert!(executor.shutdown().is_ok());
+        // Cannot go backward: Shutdown → Initialized
+        assert!(executor.initialize().is_err());
+        // Cannot restart: Shutdown → Running
+        assert!(executor.start().is_err());
+    }
+
+    // ── JobExecutor still works after lifecycle ──────────────────────
+
+    #[tokio::test]
+    async fn job_executor_works_after_start() {
+        use crate::jobs::cancellation::CancellationToken;
+        use crate::jobs::workers::progress::ProgressReporter;
+        let executor = make_executor();
+        let _ = executor.start(); // just verify it compiles and runs
+
+        let job = Job::new(
+            crate::jobs::job::JobType::Custom("test".to_string()),
+            serde_json::json!({ "title": "Test Object" }),
+            "metadata_extraction_processor",
+        );
+        let progress = ProgressReporter::noop();
+        let cancellation = CancellationToken::new();
+        let result = executor.execute(&job, progress, cancellation).await;
+        // The execute method itself is unchanged; we just verify it doesn't
+        // panic when the executor is in Running state.
+        let _ = result;
+        let _ = executor.shutdown();
+    }
+}

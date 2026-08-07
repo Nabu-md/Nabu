@@ -412,4 +412,122 @@ mod tests {
         let result = engine.ingest(request).await.unwrap();
         assert!(result.is_some());
     }
+
+    // ── Lifecycle tests ────────────────────────────────────────────────
+
+    #[test]
+    fn lifecycle_initial_state_is_created() {
+        let engine = CaptureEngine::new();
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Created);
+        assert!(!engine.is_initialized());
+        assert!(!engine.is_running());
+        assert!(!engine.is_shutdown());
+    }
+
+    #[test]
+    fn lifecycle_trait_name() {
+        let engine = CaptureEngine::new();
+        let engine_ref: &dyn Lifecycle = &engine;
+        assert_eq!(engine_ref.name(), "capture_engine");
+    }
+
+    #[test]
+    fn lifecycle_initialize_transitions_to_initialized() {
+        let engine = CaptureEngine::new();
+        assert!(engine.initialize().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Initialized);
+        assert!(engine.is_initialized());
+        assert!(!engine.is_running());
+    }
+
+    #[test]
+    fn lifecycle_start_auto_advances_from_created() {
+        let engine = CaptureEngine::new();
+        // start() should auto-advance Created → Initialized → Running
+        assert!(engine.start().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+        assert!(engine.is_running());
+    }
+
+    #[test]
+    fn lifecycle_full_flow() {
+        let engine = CaptureEngine::new();
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Created);
+
+        assert!(engine.initialize().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Initialized);
+        assert!(engine.is_initialized());
+
+        assert!(engine.start().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+        assert!(engine.is_running());
+
+        assert!(engine.shutdown().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+        assert!(engine.is_shutdown());
+    }
+
+    #[test]
+    fn lifecycle_start_after_shutdown_returns_error() {
+        let engine = CaptureEngine::new();
+        assert!(engine.start().is_ok());
+        assert!(engine.shutdown().is_ok());
+        // Cannot restart after shutdown
+        assert!(engine.start().is_err());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+    }
+
+    #[test]
+    fn lifecycle_double_shutdown_is_noop() {
+        let engine = CaptureEngine::new();
+        assert!(engine.start().is_ok());
+        assert!(engine.shutdown().is_ok());
+        // Second shutdown should succeed (same stage is a no-op)
+        assert!(engine.shutdown().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+    }
+
+    #[test]
+    fn lifecycle_double_start_is_noop() {
+        let engine = CaptureEngine::new();
+        assert!(engine.start().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+        // Second start should succeed (no-op)
+        assert!(engine.start().is_ok());
+        assert!(engine.is_running());
+        // Cleanup
+        assert!(engine.shutdown().is_ok());
+    }
+
+    #[test]
+    fn lifecycle_start_without_initialize() {
+        let engine = build_default_capture_engine(None, None);
+        // start() should auto-advance Created → Initialized → Running
+        assert!(engine.start().is_ok());
+        assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+        assert!(engine.is_running());
+        assert!(engine.is_initialized());
+        assert!(engine.shutdown().is_ok());
+    }
+
+    #[test]
+    fn lifecycle_backward_transition_rejected() {
+        let engine = CaptureEngine::new();
+        assert!(engine.start().is_ok());
+        assert!(engine.shutdown().is_ok());
+        // Cannot go backward: Shutdown → Initialized
+        assert!(engine.initialize().is_err());
+        // Cannot restart: Shutdown → Running
+        assert!(engine.start().is_err());
+    }
+
+    #[test]
+    fn lifecycle_handler_count_preserved_through_lifecycle() {
+        let engine = build_default_capture_engine(None, None);
+        assert_eq!(engine.handler_count(), 11);
+        assert!(engine.start().is_ok());
+        assert_eq!(engine.handler_count(), 11);
+        assert!(engine.shutdown().is_ok());
+        assert_eq!(engine.handler_count(), 11);
+    }
 }

@@ -282,3 +282,271 @@ fn lifecycle_trait_is_implemented() {
     assert!(pool_ref.shutdown().is_ok());
     assert_eq!(pool.lifecycle_stage(), LifecycleStage::Shutdown);
 }
+
+// ---------------------------------------------------------------------------
+// CaptureEngine lifecycle integration
+// ---------------------------------------------------------------------------
+
+#[test]
+fn capture_engine_lifecycle_full_flow() {
+    use nabu_core::capture::CaptureEngine;
+
+    let engine = Arc::new(CaptureEngine::new());
+
+    // Initial state
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Created);
+    assert!(!engine.is_initialized());
+    assert!(!engine.is_running());
+    assert!(!engine.is_shutdown());
+
+    // Initialize: Created → Initialized
+    assert!(engine.initialize().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Initialized);
+    assert!(engine.is_initialized());
+
+    // Start: Initialized → Running
+    assert!(engine.start().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+    assert!(engine.is_running());
+
+    // Shutdown: Running → Shutdown
+    assert!(engine.shutdown().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+    assert!(engine.is_shutdown());
+}
+
+#[test]
+fn capture_engine_lifecycle_start_after_shutdown_error() {
+    use nabu_core::capture::CaptureEngine;
+
+    let engine = Arc::new(CaptureEngine::new());
+    assert!(engine.start().is_ok());
+    assert!(engine.shutdown().is_ok());
+    // Cannot restart after shutdown
+    assert!(engine.start().is_err());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+#[test]
+fn capture_engine_lifecycle_double_shutdown_noop() {
+    use nabu_core::capture::CaptureEngine;
+
+    let engine = Arc::new(CaptureEngine::new());
+    assert!(engine.start().is_ok());
+    assert!(engine.shutdown().is_ok());
+    // Second shutdown is a safe no-op
+    assert!(engine.shutdown().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+#[test]
+fn capture_engine_lifecycle_start_auto_advances_from_created() {
+    use nabu_core::capture::CaptureEngine;
+
+    let engine = Arc::new(CaptureEngine::new());
+    // start() auto-advances Created → Initialized → Running
+    assert!(engine.start().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+    assert!(engine.is_running());
+    assert!(engine.is_initialized());
+    assert!(engine.shutdown().is_ok());
+}
+
+#[test]
+fn capture_engine_lifecycle_trait_is_implemented() {
+    use nabu_core::capture::CaptureEngine;
+
+    let engine = CaptureEngine::new();
+    let engine_ref: &dyn Lifecycle = &engine;
+    assert_eq!(engine_ref.name(), "capture_engine");
+
+    assert!(engine_ref.initialize().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Initialized);
+
+    assert!(engine_ref.start().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+
+    assert!(engine_ref.shutdown().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+#[test]
+fn capture_engine_preserves_handlers_through_lifecycle() {
+    use nabu_core::capture::build_default_capture_engine;
+
+    let engine = build_default_capture_engine(None, None);
+    assert_eq!(engine.handler_count(), 11);
+
+    assert!(engine.start().is_ok());
+    assert_eq!(engine.handler_count(), 11);
+
+    assert!(engine.shutdown().is_ok());
+    assert_eq!(engine.handler_count(), 11);
+}
+
+// ---------------------------------------------------------------------------
+// PipelineExecutor lifecycle integration
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pipeline_executor_lifecycle_full_flow() {
+    use nabu_core::pipeline_migration::PipelineExecutor;
+    use nabu_core::processing::pipeline::ProcessingPipeline;
+
+    let pipeline = Arc::new(ProcessingPipeline::new());
+    let executor = Arc::new(PipelineExecutor::new(pipeline));
+
+    // Initial state
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Created);
+    assert!(!executor.is_initialized());
+    assert!(!executor.is_running());
+    assert!(!executor.is_shutdown());
+
+    // Initialize: Created → Initialized
+    assert!(executor.initialize().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Initialized);
+    assert!(executor.is_initialized());
+
+    // Start: Initialized → Running
+    assert!(executor.start().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+    assert!(executor.is_running());
+
+    // Shutdown: Running → Shutdown
+    assert!(executor.shutdown().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+    assert!(executor.is_shutdown());
+}
+
+#[test]
+fn pipeline_executor_lifecycle_start_after_shutdown_error() {
+    use nabu_core::pipeline_migration::PipelineExecutor;
+    use nabu_core::processing::pipeline::ProcessingPipeline;
+
+    let pipeline = Arc::new(ProcessingPipeline::new());
+    let executor = Arc::new(PipelineExecutor::new(pipeline));
+    assert!(executor.start().is_ok());
+    assert!(executor.shutdown().is_ok());
+    // Cannot restart after shutdown
+    assert!(executor.start().is_err());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+#[test]
+fn pipeline_executor_lifecycle_double_shutdown_noop() {
+    use nabu_core::pipeline_migration::PipelineExecutor;
+    use nabu_core::processing::pipeline::ProcessingPipeline;
+
+    let pipeline = Arc::new(ProcessingPipeline::new());
+    let executor = Arc::new(PipelineExecutor::new(pipeline));
+    assert!(executor.start().is_ok());
+    assert!(executor.shutdown().is_ok());
+    // Second shutdown is a safe no-op
+    assert!(executor.shutdown().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+#[test]
+fn pipeline_executor_lifecycle_trait_is_implemented() {
+    use nabu_core::pipeline_migration::PipelineExecutor;
+    use nabu_core::processing::pipeline::ProcessingPipeline;
+
+    let pipeline = Arc::new(ProcessingPipeline::new());
+    let executor = PipelineExecutor::new(pipeline);
+    let executor_ref: &dyn Lifecycle = &executor;
+    assert_eq!(executor_ref.name(), "pipeline_executor");
+
+    assert!(executor_ref.initialize().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Initialized);
+
+    assert!(executor_ref.start().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+
+    assert!(executor_ref.shutdown().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+}
+
+// ---------------------------------------------------------------------------
+// Application-level lifecycle integration for CaptureEngine & PipelineExecutor
+// ---------------------------------------------------------------------------
+
+#[test]
+fn application_manages_capture_engine_lifecycle() {
+    use nabu_core::capture::CaptureEngine;
+    use nabu_core::processing::ProcessingPipeline;
+    use nabu_core::registry::Application;
+    use nabu_core::registry::lifecycle::LifecycleStage;
+    use std::sync::Arc;
+
+    let engine = Arc::new(CaptureEngine::new());
+    let app = Application::builder()
+        .with_capture_engine(engine.clone())
+        .build();
+
+    // Before start, engine is in Created stage
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Created);
+
+    // Register required services for validation
+    app.context().register(
+        "pipeline",
+        Arc::new(ProcessingPipeline::new()),
+    );
+    app.context().register(
+        "storage_manager",
+        Arc::new(nabu_core::storage::StorageManager::new(
+            std::env::temp_dir().join("nabu-test-app-ce-lifecycle"),
+        )),
+    );
+
+    // Initialize and start the Application — this calls engine.start()
+    assert!(app.initialize().is_ok());
+    app.start();
+
+    // The Application's start() should have transitioned engine to Running
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Running);
+    assert!(engine.is_running());
+
+    // Shutdown
+    assert!(app.shutdown().is_ok());
+    assert_eq!(engine.lifecycle_stage(), LifecycleStage::Shutdown);
+    assert!(engine.is_shutdown());
+}
+
+#[test]
+fn application_manages_pipeline_executor_lifecycle() {
+    use nabu_core::capture::CaptureEngine;
+    use nabu_core::pipeline_migration::PipelineExecutor;
+    use nabu_core::processing::pipeline::ProcessingPipeline;
+    use nabu_core::registry::Application;
+    use nabu_core::registry::lifecycle::LifecycleStage;
+    use std::sync::Arc;
+
+    let pipeline = Arc::new(ProcessingPipeline::new());
+    let executor = Arc::new(PipelineExecutor::new(pipeline.clone()));
+    let app = Application::builder()
+        .with_processing_pipeline(pipeline)
+        .with_pipeline_executor(executor.clone())
+        .with_capture_engine(Arc::new(CaptureEngine::new()))
+        .build();
+
+    // Before start, executor is in Created stage
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Created);
+
+    app.context().register(
+        "storage_manager",
+        Arc::new(nabu_core::storage::StorageManager::new(
+            std::env::temp_dir().join("nabu-test-app-pe-lifecycle"),
+        )),
+    );
+
+    assert!(app.initialize().is_ok());
+    app.start();
+
+    // Application's start() should have transitioned executor to Running
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Running);
+    assert!(executor.is_running());
+
+    assert!(app.shutdown().is_ok());
+    assert_eq!(executor.lifecycle_stage(), LifecycleStage::Shutdown);
+    assert!(executor.is_shutdown());
+}
