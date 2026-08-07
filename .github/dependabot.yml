@@ -18,8 +18,6 @@ updates:
           - '@types/*'
           - 'eslint*'
           - 'prettier*'
-          - 'vitest*'
-          - 'playwright*'
         update-types:
           - 'minor'
           - 'patch'

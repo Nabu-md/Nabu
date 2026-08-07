@@ -1,20 +1,8 @@
 {
   "name": "nabu",
-<<<<<<< Updated upstream
   "private": true,
   "version": "0.1.0",
   "description": "Nabu — build-time CSS pipeline (Tailwind CSS).",
-=======
-  "version": "1.0.0",
-  "description": "Markdown-native knowledge base for developers — on disk, plain .md, zero lock-in",
-  "main": "./out/main/index.js",
-  "author": "Nabu Labs <hello@nabu.app>",
-  "homepage": "https://nabu.app",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Nabu/Nabu.git"
-  },
->>>>>>> Stashed changes
   "scripts": {
     "css:build": "tailwindcss -i ./src/styles/app.css -o ./generated/tailwind.css --minify",
     "css:watch": "tailwindcss -i ./src/styles/app.css -o ./generated/tailwind.css --watch"

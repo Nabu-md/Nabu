@@ -7,10 +7,9 @@ use async_trait::async_trait;
 /// Generates vector embeddings for KnowledgeObject content.
 ///
 /// Embeddings enable semantic search and similarity comparison.
-/// Currently a stub — in production this would call:
-/// - BGE-micro via Vectra (local-first option)
-/// - OpenAI / Anthropic embedding API (cloud option)
+/// Currently a stub — in production this would call a Rust-native embedder:
 /// - Local OSS model via candle or ort (Rust-native option)
+/// - OpenAI / Anthropic embedding API (cloud option)
 ///
 /// The embedding result:
 /// - Stores embedding vector as JSON in custom properties

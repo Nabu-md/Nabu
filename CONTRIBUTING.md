@@ -5,12 +5,19 @@ Thanks for your interest in contributing. Nabu is AGPL-3.0 open-source, and ever
 ## Quick Start
 
 ```bash
-# Prerequisites: Node.js 20+, npm 9+
+# Prerequisites: Rust toolchain (stable), Node.js + npm (for the Tailwind CSS pipeline)
 git clone https://github.com/Nabu/Nabu.git
 cd nabu
 npm install
-npm run dev
+npm run css:build   # generate ./generated/tailwind.css from src/styles/app.css
+cargo build         # build nabu-core and the Tauri backend
 ```
+
+The desktop application is built with **Tauri v2 + Rust** (backend in `src-tauri/` and
+`crates/nabu-core/`) and a **Dioxus** frontend (in `crates/nabu-ui/`). There is no
+Electron/Node backend. To run the desktop app during development, launch it through
+the Tauri workflow (e.g. `cargo tauri dev` from `src-tauri/`, or the project's
+`src-tauri/scripts/*` dev/build hooks configured in `src-tauri/tauri.conf.json`).
 
 ## Branch Strategy
 
@@ -30,55 +37,47 @@ Pull requests must be reviewed before merging. Only maintainers can merge to `ma
 
 ## Before You Open a PR
 
-Run these locally to make sure the CI will pass:
+Run these locally to make sure the checks pass:
 
 ```bash
-npm run lint          # ESLint — code must pass
-npx prettier --check . # Prettier — formatting must be consistent
-npm run typecheck     # TypeScript — no type errors
-npm run test          # Vitest — all tests pass
-npm run build         # electron-vite — production build succeeds
+cargo check --workspace   # Rust — the workspace must compile
+cargo test --workspace    # Rust — unit/integration tests must pass
+npm run css:build         # Tailwind CSS pipeline must produce output
 ```
-
-The PR Gate workflow runs these automatically. If any fail, the PR is blocked from merging.
 
 ## Code Standards
 
-- **TypeScript strict mode** is enabled. Avoid `any` — use proper types or `unknown`.
-- **Prettier** handles formatting. Run `npm run format` before committing.
-- **ESLint** enforces style. No disabling rules without a comment explaining why.
-- **Zod schemas** must be used for all new IPC message validation.
-- **Tests are mandatory.** New features must include unit tests. Bug fixes must include a regression test.
+- **Rust** is the application and backend language. The UI is Dioxus (Rust).
+- **Rust formatting** uses the standard toolchain — run `cargo fmt --check` before committing.
+- **Tests are mandatory.** New `nabu-core` / `src-tauri` functionality must include
+  Rust unit or integration tests. Bug fixes must include a regression test.
 
 ## Testing
 
 ```bash
-# Run all unit and property-based tests
-npm run test
+# Run all Rust unit and integration tests
+cargo test --workspace
 
-# Run tests in watch mode during development
-npm run test:watch
-
-# Run e2e tests (requires Playwright browsers installed)
-npx playwright install
-npm run test:e2e
+# Check the standalone Dioxus UI crate compiles
+cargo check --manifest-path crates/nabu-ui/Cargo.toml
 ```
 
-The test suite uses [Vitest](https://vitest.dev) with [fast-check](https://github.com/dubzzz/fast-check) for property-based testing. If you're adding a new module, include property-based tests for its invariants — they catch edge cases example-based tests miss.
+The test suite uses Rust `cfg(test)` unit tests plus `#[tokio::test]` integration
+tests in `crates/nabu-core`. If you're adding a new module, include tests for its
+invariants.
 
 ## Architecture Overview
 
 ```
-src/
-├── main/          # Electron main process
-├── preload/       # Context bridge (ipcRenderer exposed to renderer)
-├── renderer/      # React 19 UI (Vite + Tailwind v4)
-└── shared/        # Types, schemas, utilities shared between main and renderer
+src-tauri/        # Tauri v2 backend: commands, IPC, settings, recovery, history
+crates/nabu-core/ # Rust core: models, storage, processing, index/graph, EventBus
+crates/nabu-ui/   # Dioxus frontend (CSR, cdylib for wasm-bindgen)
+src/styles/       # Tailwind CSS source → generated/tailwind.css
 ```
 
-- **Main process** handles file I/O, markdown parsing, file watching, and IPC.
-- **Renderer process** handles UI rendering, state management, and user interaction.
-- **Shared** contains types, Zod schemas, and pure utilities used by both.
+- **Tauri/Rust** handles file I/O, markdown processing, indexing, IPC, and state.
+- **nabu-core** owns the domain models, storage, search index, and event bus.
+- **nabu-ui** renders the UI and communicates with the backend over Tauri IPC commands.
 
 ## Questions?
 
