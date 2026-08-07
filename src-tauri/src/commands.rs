@@ -599,13 +599,13 @@ pub fn note_create_file(
     // edit), snapshot the previous content first so it is never lost.
     let _ = crate::recovery::snapshot_note(&vault_path, &path);
 
-    if let Some(parent) = safe_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create directories: {}", e))?;
-        }
-    }
-    std::fs::write(&safe_path, &content).map_err(|e| e.to_string())?;
+    // Route through the canonical StorageManager -- the single persistence
+    // gateway. This publishes ITEM_STORED, which drives the Indexer and
+    // VaultGraph subscribers downstream via the Capability Platform.
+    let manager = get_storage_manager(&ctx)?;
+    manager
+        .save_note_content(&path, &content)
+        .map_err(|e| e.to_string())?;
 
     // Register an undoable history entry so creation can be reversed.
     let undo_path = safe_path.clone();

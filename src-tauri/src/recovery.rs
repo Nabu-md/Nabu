@@ -403,7 +403,10 @@ pub fn note_save(
 ) -> Result<(), String> {
     let vault = vault_path(&store);
 
-    // Route through the canonical StorageManager — the single persistence
+    // Validate the path is within the vault (prevents traversal escapes).
+    let _ = resolve_in_vault(&vault, &path)?;
+
+    // Route through the canonical StorageManager -- the single persistence
     // gateway. This publishes ITEM_STORED, which triggers the Indexer and
     // VaultGraph subscribers downstream.
     let manager = ctx
