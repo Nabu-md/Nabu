@@ -54,6 +54,14 @@ const ALL_EVENT_KINDS: &[&str] = &[
     kinds::ITEM_CANCELLED,
     kinds::ITEM_RETRIED,
     kinds::CAPABILITY_STATE_CHANGED,
+    // Shared plugin event contract kinds — forwarded to frontend for
+    // plugin platform UI (plugin list, warnings, request/response, etc.)
+    kinds::PLUGIN_LOADED,
+    kinds::PLUGIN_UNLOADED,
+    kinds::CAPABILITY_REGISTERED,
+    kinds::CAPABILITY_REMOVED,
+    kinds::PLUGIN_WARNING,
+    kinds::PLUGIN_ERROR,
     // Plugin request/response events (forwarded for plugin platform UI).
     kinds::PLUGIN_REQUEST,
     kinds::PLUGIN_RESPONSE,

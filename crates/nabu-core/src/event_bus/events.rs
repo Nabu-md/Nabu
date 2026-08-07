@@ -1,9 +1,7 @@
 use crate::diagnostic::events::DiagnosticEvent;
 use crate::models::{CaptureSource, ObjectType};
 use crate::plugin::events::PluginEvent;
-use crate::sync::SyncProgress;
-use crate::sync::SyncStatus;
-use crate::sync::SyncFolder;
+use crate::sync::SyncStatusChanged;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -123,6 +121,8 @@ pub mod kinds {
     pub const PROCESS_RESTARTED: &str = "process.restarted";
     /// A managed process has been stopped.
     pub const PROCESS_STOPPED: &str = "process.stopped";
+    /// A managed process's health status has changed.
+    pub const PROCESS_HEALTH_CHANGED: &str = "process.health.changed";
 
     // --- Diagnostic event kinds ---
     // Published by diagnostic producers (spell checkers, AI assistants,
@@ -384,9 +384,12 @@ pub enum ProcessEvent {
     /// triggered the restart.
     Restarted(ProcessRestartEvent),
     /// A managed process has been stopped.
-    ///
-    /// Carries the process ID, name, and reason for the stop.
     Stopped(ProcessStoppedEvent),
+    /// A managed process's health status has changed.
+    ///
+    /// Carries the process ID, name, new health status, and the process
+    /// state that triggered the change.
+    HealthChanged(ProcessHealthChangedEvent),
 }
 
 impl ProcessEvent {
@@ -398,6 +401,7 @@ impl ProcessEvent {
             Self::Failed(_) => kinds::PROCESS_FAILED,
             Self::Restarted(_) => kinds::PROCESS_RESTARTED,
             Self::Stopped(_) => kinds::PROCESS_STOPPED,
+            Self::HealthChanged(_) => kinds::PROCESS_HEALTH_CHANGED,
         }
     }
 
@@ -413,6 +417,7 @@ impl ProcessEvent {
             Self::Failed(e) => e.timestamp,
             Self::Restarted(e) => e.timestamp,
             Self::Stopped(e) => e.timestamp,
+            Self::HealthChanged(e) => e.timestamp,
         }
     }
 }
@@ -575,6 +580,116 @@ impl ProcessStoppedEvent {
             name: name.to_string(),
             reason: reason.to_string(),
             timestamp: Utc::now(),
+        }
+    }
+}
+
+/// The health status of a managed process, used in
+/// [`ProcessHealthChangedEvent`].
+///
+/// This mirrors [`crate::process_supervisor::health::ProcessHealthStatus`]
+/// but is defined here to avoid a circular dependency between the `event_bus`
+/// and `process_supervisor` modules. The two types are kept in sync
+/// manually — changes to one must be reflected in the other.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProcessHealthStatus {
+    /// The process is running normally.
+    Healthy,
+    /// The process is starting or restarting.
+    Starting,
+    /// The process is running but experiencing issues.
+    Degraded,
+    /// The process has exited or failed and is not running.
+    Unhealthy,
+    /// The process has been stopped and will not be restarted.
+    Stopped,
+    /// Health could not be determined.
+    Unknown,
+}
+
+impl Default for ProcessHealthStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+impl ProcessHealthStatus {
+    /// Returns a human-readable label.
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Healthy => "healthy",
+            Self::Starting => "starting",
+            Self::Degraded => "degraded",
+            Self::Unhealthy => "unhealthy",
+            Self::Stopped => "stopped",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    /// Returns `true` if the process is in a healthy state.
+    pub fn is_healthy(&self) -> bool {
+        matches!(self, Self::Healthy | Self::Degraded)
+    }
+}
+
+impl std::fmt::Display for ProcessHealthStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.label())
+    }
+}
+
+/// Published when a managed process's health status changes.
+///
+/// This event is emitted by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
+/// whenever a process transitions between health states. Subscribers can
+/// listen on the `process.health.changed` kind to receive real-time health
+/// updates without polling.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessHealthChangedEvent {
+    /// The unique identifier of the managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// The new health status.
+    pub status: ProcessHealthStatus,
+    /// The process state that produced this health status.
+    pub state: crate::process_supervisor::ProcessState,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessHealthChangedEvent {
+    pub fn new(
+        process_id: ProcessId,
+        name: &str,
+        status: ProcessHealthStatus,
+        state: crate::process_supervisor::ProcessState,
+    ) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            status,
+            state,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Convenience conversion from the process_supervisor health status to the
+/// event_bus health status.
+///
+/// These types are kept separate to avoid a circular dependency, but the
+/// values map 1:1.
+impl From<crate::process_supervisor::health::ProcessHealthStatus> for ProcessHealthStatus {
+    fn from(status: crate::process_supervisor::health::ProcessHealthStatus) -> Self {
+        match status {
+            crate::process_supervisor::health::ProcessHealthStatus::Healthy => Self::Healthy,
+            crate::process_supervisor::health::ProcessHealthStatus::Starting => Self::Starting,
+            crate::process_supervisor::health::ProcessHealthStatus::Degraded => Self::Degraded,
+            crate::process_supervisor::health::ProcessHealthStatus::Unhealthy => Self::Unhealthy,
+            crate::process_supervisor::health::ProcessHealthStatus::Stopped => Self::Stopped,
+            crate::process_supervisor::health::ProcessHealthStatus::Unknown => Self::Unknown,
         }
     }
 }

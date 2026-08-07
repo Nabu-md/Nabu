@@ -61,6 +61,8 @@ pub enum FrontendEventKind {
     ItemRetried,
     /// A capability was enabled or disabled at runtime.
     CapabilityStateChanged,
+    /// A synchronization folder's status has changed.
+    SyncStatusChanged,
 }
 
 impl FrontendEventKind {
@@ -78,6 +80,7 @@ impl FrontendEventKind {
             FrontendEventKind::ItemCancelled => kinds::ITEM_CANCELLED,
             FrontendEventKind::ItemRetried => kinds::ITEM_RETRIED,
             FrontendEventKind::CapabilityStateChanged => kinds::CAPABILITY_STATE_CHANGED,
+            FrontendEventKind::SyncStatusChanged => kinds::SYNC_STATUS_CHANGED,
         }
     }
 
@@ -97,6 +100,7 @@ impl FrontendEventKind {
             kinds::ITEM_CANCELLED => FrontendEventKind::ItemCancelled,
             kinds::ITEM_RETRIED => FrontendEventKind::ItemRetried,
             kinds::CAPABILITY_STATE_CHANGED => FrontendEventKind::CapabilityStateChanged,
+            kinds::SYNC_STATUS_CHANGED => FrontendEventKind::SyncStatusChanged,
             _ => return None,
         })
     }
@@ -115,6 +119,7 @@ impl FrontendEventKind {
         FrontendEventKind::ItemCancelled,
         FrontendEventKind::ItemRetried,
         FrontendEventKind::CapabilityStateChanged,
+        FrontendEventKind::SyncStatusChanged,
     ];
 }
 
@@ -259,6 +264,25 @@ mod tests {
             event.payload,
             PipelineEvent::CapabilityStateChanged(_)
         ));
+    }
+
+    #[test]
+    fn sync_status_changed_parses() {
+        let payload = serde_json::json!({
+            "Sync": {
+                "sync_id": "550e8400-e29b-41d4-a716-446655440000",
+                "folder_id": "folder-abc",
+                "provider_id": "syncthing",
+                "previous_status": "idle",
+                "current_status": "syncing",
+                "progress": null,
+                "error": null,
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
+        });
+        let event = parse_envelope(kinds::SYNC_STATUS_CHANGED, payload).unwrap();
+        assert_eq!(event.kind, FrontendEventKind::SyncStatusChanged);
+        assert!(matches!(event.payload, PipelineEvent::Sync(_)));
     }
 
     #[test]

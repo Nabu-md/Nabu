@@ -77,6 +77,15 @@ pub struct ManagedProcess {
     /// the child, cleans up, and exits.
     pub stop_tx: Option<broadcast::Sender<()>>,
 
+    /// Broadcast sender for requesting a restart of the managed process.
+    ///
+    /// When `restart()` is called, a `()` is sent on this channel. The
+    /// monitoring task receives it, kills the current child, transitions
+    /// through `Stopping → Stopped → Restarting`, and immediately re-spawns
+    /// the child — all within the same monitoring task. This preserves
+    /// the same `ProcessId` and supervision metadata.
+    pub restart_tx: Option<broadcast::Sender<()>>,
+
     /// Handle to the tokio task that monitors this process.
     ///
     /// Used during shutdown to wait for the task to complete after sending
@@ -99,6 +108,7 @@ impl ManagedProcess {
             exited_at: None,
             last_error: None,
             stop_tx: None,
+            restart_tx: None,
             monitor_handle: None,
         }
     }
