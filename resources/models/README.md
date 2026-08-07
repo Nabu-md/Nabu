@@ -11,4 +11,6 @@ Required files:
 - `bge-micro-v2/tokenizer_config.json`
 - Other model configuration files
 
-These files will be bundled via electron-builder's `extraResources` configuration.
+These files are bundled with the application for offline operation (via the Tauri
+bundle `resources/` configuration). Embedding generation is currently a stub in
+`crates/nabu-core/src/processing/processors/embedding_generator.rs`.

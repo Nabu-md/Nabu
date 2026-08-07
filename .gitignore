@@ -31,3 +31,7 @@ core
 
 # ── Nabu runtime data (vault-local files created by the app) ─
 .nabu/
+
+# ── Qodana / JetBrains inspection results (regenerated each run) ─
+*.xml
+*.descriptions.xml
