@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod event_bridge;
 pub mod history;
 pub mod native_messaging;
 pub mod native_messaging_socket;
@@ -31,7 +32,6 @@ use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, WorkerPool};
 use nabu_core::pipeline_migration::PipelineExecutor;
 use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::registry::context::ApplicationContext;
-use nabu_core::registry::lifecycle::Lifecycle;
 use nabu_core::registry::{CATEGORY_CAPTURE_HANDLERS, ServiceRegistry};
 use nabu_core::storage::StorageManager;
 use std::path::PathBuf;
@@ -53,7 +53,10 @@ use tauri::Manager;
 ///
 /// Every service is registered exactly once in the ServiceRegistry and is
 /// resolved by key through the [`ApplicationContext`].
-fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
+fn build_application_context(
+    vault_path: PathBuf,
+    app_handle: tauri::AppHandle,
+) -> Result<ApplicationContext, String> {
     // ---- 1. One EventBus + registry + capabilities ----
     let event_bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
     let registry = Arc::new(RwLock::new(ServiceRegistry::new()));
@@ -183,7 +186,25 @@ fn build_application_context(vault_path: PathBuf) -> ApplicationContext {
         }
     });
 
-    ctx
+    crate::event_bridge::register_event_bridge(&ctx, app_handle);
+
+    // ---- Lifecycle: initialize then start ----
+    //
+    // Initialization validates configuration and allocates resources for
+    // every lifecycle-managed service.  Startup transitions all services
+    // into the Running state in dependency-safe order.
+    // If either phase fails, the context is rolled back via shutdown().
+    tracing::info!("ApplicationContext initializing");
+    ctx.initialize()
+        .map_err(|errs| format!("Initialization failed: {}", errs.join("; ")))?;
+
+    tracing::info!("Starting lifecycle services");
+    ctx.start()
+        .map_err(|errs| format!("Startup failed: {}", errs.join("; ")))?;
+
+    tracing::info!("ApplicationContext ready");
+
+    Ok(ctx)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -318,6 +339,7 @@ pub fn run() {
             // Phase 1 — Capability Platform runtime control.
             crate::commands::capability_enable,
             crate::commands::capability_disable,
+            crate::commands::capability_list,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------
@@ -338,49 +360,19 @@ pub fn run() {
             // marker so the frontend can offer to restore the last session.
             crate::recovery::mark_running(&vault_path);
 
-            let ctx = build_application_context(vault_path);
+            // Build the application context with all lifecycle services
+            // initialized and started. The event bridge is registered inside
+            // build_application_context before services begin publishing.
+            let ctx = build_application_context(vault_path, app.handle().clone())?;
+
+            // Resolve the CaptureEngine Arc for socket state before moving
+            // ctx into Tauri managed state.
             let engine: Arc<CaptureEngine> = ctx
                 .resolve("capture_engine")
                 .expect("CaptureEngine must be registered");
-            let pool: Option<Arc<WorkerPool>> = ctx.worker_pool();
-
-            // Initialize the context lifecycle (validates core services) BEFORE
-            // moving ctx into Tauri managed state.
-            if let Err(missing) = ctx.initialize() {
-                tracing::warn!(missing = ?missing, "Application context initialization incomplete");
-            }
-            ctx.start();
-
-            // Resolve lifecycle-managed capture and pipeline services.
-            // These don't require a tokio runtime context, so they start
-            // synchronously alongside the async worker pool spawn.
-            let pipeline_executor: Option<Arc<PipelineExecutor>> =
-                ctx.resolve("pipeline_executor");
-            if let Some(executor) = &pipeline_executor {
-                if let Err(e) = executor.start() {
-                    tracing::error!(
-                        error = %e,
-                        "Failed to start pipeline executor"
-                    );
-                }
-            }
-            if let Err(e) = engine.start() {
-                tracing::error!(error = %e, "Failed to start capture engine");
-            }
 
             // Make the context available to commands via Tauri managed state.
             app.manage(ctx);
-
-            // Start the canonical worker pool. The sync start() uses
-            // Handle::try_current() to spawn workers on the Tauri async
-            // runtime, so it must be called from within a runtime context.
-            if let Some(pool) = pool {
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = pool.start() {
-                        tracing::error!(error = %e, "Failed to start worker pool");
-                    }
-                });
-            }
 
             // Start native messaging socket server. The tokio listener requires a
             // running reactor, so the server is started inside the Tauri async
@@ -431,43 +423,13 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
-            // On graceful exit, shut down the worker pool and remove the
-            // `.running` marker so the next launch knows the session ended
-            // cleanly (no crash recovery UI).
+            // On graceful exit, shut down all lifecycle-managed services in reverse
+            // startup order (the ApplicationContext manages every service) and
+            // remove the `.running` marker so the next launch knows the session
+            // ended cleanly (no crash recovery UI).
             if let tauri::RunEvent::Exit = event {
                 {
                     let ctx_state = app_handle.state::<ApplicationContext>();
-                    // Shut down lifecycle-managed services in reverse startup
-                    // order: WorkerPool (stop processing) → PipelineExecutor
-                    // (stop accepting jobs) → CaptureEngine (stop accepting
-                    // captures).
-                    if let Some(pool) = ctx_state.worker_pool() {
-                        if let Err(e) = pool.shutdown() {
-                            tracing::error!(
-                                error = %e,
-                                "Failed to shut down worker pool"
-                            );
-                        }
-                    }
-                    if let Some(executor) = ctx_state.pipeline_executor() {
-                        if let Err(e) = executor.shutdown() {
-                            tracing::error!(
-                                error = %e,
-                                "Failed to shut down pipeline executor"
-                            );
-                        }
-                    }
-                    if let Some(engine) = ctx_state.capture_engine() {
-                        if let Err(e) = engine.shutdown() {
-                            tracing::error!(
-                                error = %e,
-                                "Failed to shut down capture engine"
-                            );
-                        }
-                    }
-                    // Shut down StorageManager, Indexer, and VaultGraph
-                    // (the ApplicationContext manages these in reverse startup
-                    // order: Graph -> Indexer -> Storage).
                     if let Err(e) = ctx_state.shutdown() {
                         tracing::error!(error = %e, "Application context shutdown failed");
                     }

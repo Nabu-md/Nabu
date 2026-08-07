@@ -49,7 +49,7 @@ use chrono::Utc;
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::plugin::capability::CapabilityRegistry;
 
-use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
+use crate::registry::lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
 use crate::diagnostics::PerformanceMonitor;
@@ -439,33 +439,87 @@ impl ApplicationContext {
 
     /// Transitions the context to the `Initialized` stage.
     ///
-    /// Validates required services are present before transitioning.
-    /// Returns a list of missing required services if validation fails.
+    /// Validates that all required services are registered, then initializes
+    /// every lifecycle-managed service in dependency-safe order:
+    ///
+    /// StorageManager → WorkerPool → PipelineExecutor → CaptureEngine → Indexer → VaultGraph
+    ///
+    /// Initialization performs configuration validation, dependency
+    /// verification, and resource allocation — no background work begins.
+    ///
+    /// # Errors
+    ///
+    /// Returns a list of error descriptions if validation fails (missing
+    /// services) or if any service's `initialize()` returns an error.
+    /// If any service fails to initialize, the context remains at `Created`
+    /// and `start()` will not proceed.
     pub fn initialize(&self) -> Result<(), Vec<String>> {
         let report = self.validate_core_services();
         if !report.is_valid() {
             return Err(report.missing.iter().map(|s| (*s).to_string()).collect());
         }
 
-        // Initialize lifecycle-managed services in dependency order.
+        tracing::info!("Initializing lifecycle services");
+
+        let mut errors: Vec<String> = Vec::new();
+
+        // Initialize in dependency-safe order:
+        // StorageManager → WorkerPool → PipelineExecutor → CaptureEngine → Indexer → VaultGraph
+
+        // --- StorageManager (foundation — all other services depend on it) ---
         if let Some(storage) = self.storage_manager() {
             if let Err(e) = storage.initialize() {
                 tracing::error!(error = %e, "Failed to initialize StorageManager");
+                errors.push(format!("StorageManager: {}", e));
             }
         }
+
+        // --- WorkerPool (captures and executors dispatch jobs through it) ---
+        if let Some(pool) = self.worker_pool() {
+            if let Err(e) = pool.initialize() {
+                tracing::error!(error = %e, "Failed to initialize WorkerPool");
+                errors.push(format!("WorkerPool: {}", e));
+            }
+        }
+
+        // --- PipelineExecutor (bridges workers to the processing pipeline) ---
+        if let Some(executor) = self.pipeline_executor() {
+            if let Err(e) = executor.initialize() {
+                tracing::error!(error = %e, "Failed to initialize PipelineExecutor");
+                errors.push(format!("PipelineExecutor: {}", e));
+            }
+        }
+
+        // --- CaptureEngine (entry point for all captured content) ---
+        if let Some(engine) = self.capture_engine() {
+            if let Err(e) = engine.initialize() {
+                tracing::error!(error = %e, "Failed to initialize CaptureEngine");
+                errors.push(format!("CaptureEngine: {}", e));
+            }
+        }
+
+        // --- Indexer (full-text search, subscribes to ITEM_STORED) ---
         if let Some(indexer) = self.indexer() {
             if let Ok(idx) = indexer.lock() {
                 if let Err(e) = idx.initialize() {
                     tracing::error!(error = %e, "Failed to initialize Indexer");
+                    errors.push(format!("Indexer: {}", e));
                 }
             }
         }
+
+        // --- VaultGraph (semantic relationships, subscribes to ITEM_STORED) ---
         if let Some(graph) = self.vault_graph() {
             if let Ok(g) = graph.write() {
                 if let Err(e) = g.initialize() {
                     tracing::error!(error = %e, "Failed to initialize VaultGraph");
+                    errors.push(format!("VaultGraph: {}", e));
                 }
             }
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
         }
 
         self.lifecycle
@@ -486,50 +540,126 @@ impl ApplicationContext {
 
     /// Transitions the context to the `Running` stage.
     ///
-    /// Starts all lifecycle-managed services in dependency order:
-    /// StorageManager → Indexer → VaultGraph.
-    pub fn start(&self) {
+    /// Starts all lifecycle-managed services in dependency-safe order:
+    ///
+    /// StorageManager → WorkerPool → PipelineExecutor → CaptureEngine → Indexer → VaultGraph
+    ///
+    /// If any service fails to start, already-started services are shut
+    /// down gracefully via [`shutdown`](Self::shutdown) to avoid leaving
+    /// the application in a partially started state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a list of error descriptions for any service that failed
+    /// to start. On failure, [`shutdown`](Self::shutdown) is called
+    /// automatically to roll back progress.
+    pub fn start(&self) -> Result<(), Vec<String>> {
+        tracing::info!("Starting lifecycle services");
+
+        let mut errors: Vec<String> = Vec::new();
+
+        // Start in dependency-safe order. If a service fails, we stop
+        // starting subsequent services and roll back already-started ones.
+        // StorageManager → WorkerPool → PipelineExecutor → CaptureEngine → Indexer → VaultGraph
+
+        // --- StorageManager ---
+        if let Some(storage) = self.storage_manager() {
+            tracing::info!("Starting StorageManager");
+            if let Err(e) = storage.start() {
+                tracing::error!(error = %e, "Failed to start StorageManager");
+                errors.push(format!("StorageManager: {}", e));
+            }
+        }
+
+        // --- WorkerPool ---
+        if errors.is_empty() {
+            if let Some(pool) = self.worker_pool() {
+                tracing::info!("Starting WorkerPool");
+                if let Err(e) = pool.start() {
+                    tracing::error!(error = %e, "Failed to start WorkerPool");
+                    errors.push(format!("WorkerPool: {}", e));
+                }
+            }
+        }
+
+        // --- PipelineExecutor ---
+        if errors.is_empty() {
+            if let Some(executor) = self.pipeline_executor() {
+                tracing::info!("Starting PipelineExecutor");
+                if let Err(e) = executor.start() {
+                    tracing::error!(error = %e, "Failed to start PipelineExecutor");
+                    errors.push(format!("PipelineExecutor: {}", e));
+                }
+            }
+        }
+
+        // --- CaptureEngine ---
+        if errors.is_empty() {
+            if let Some(engine) = self.capture_engine() {
+                tracing::info!("Starting CaptureEngine");
+                if let Err(e) = engine.start() {
+                    tracing::error!(error = %e, "Failed to start CaptureEngine");
+                    errors.push(format!("CaptureEngine: {}", e));
+                }
+            }
+        }
+
+        // --- Indexer ---
+        if errors.is_empty() {
+            if let Some(indexer) = self.indexer() {
+                if let Ok(idx) = indexer.lock() {
+                    tracing::info!("Starting Indexer");
+                    if let Err(e) = idx.start() {
+                        tracing::error!(error = %e, "Failed to start Indexer");
+                        errors.push(format!("Indexer: {}", e));
+                    }
+                }
+            }
+        }
+
+        // --- VaultGraph ---
+        if errors.is_empty() {
+            if let Some(graph) = self.vault_graph() {
+                if let Ok(g) = graph.write() {
+                    tracing::info!("Starting VaultGraph");
+                    if let Err(e) = g.start() {
+                        tracing::error!(error = %e, "Failed to start VaultGraph");
+                        errors.push(format!("VaultGraph: {}", e));
+                    }
+                }
+            }
+        }
+
+        if !errors.is_empty() {
+            tracing::error!("Startup failed — rolling back started services");
+            let _ = self.shutdown();
+            return Err(errors);
+        }
+
         self.lifecycle
             .transition_to(LifecycleStage::Running)
             .unwrap_or_else(|e| {
                 tracing::error!(error = %e, "Lifecycle transition to Running failed");
             });
 
-        // Start lifecycle-managed services in dependency order.
-        if let Some(storage) = self.storage_manager() {
-            if let Err(e) = storage.start() {
-                tracing::error!(error = %e, "Failed to start StorageManager");
-            }
-        }
-        if let Some(indexer) = self.indexer() {
-            if let Ok(idx) = indexer.lock() {
-                tracing::info!("Indexer starting");
-                if let Err(e) = idx.start() {
-                    tracing::error!(error = %e, "Failed to start Indexer");
-                }
-            }
-        }
-        if let Some(graph) = self.vault_graph() {
-            if let Ok(g) = graph.write() {
-                tracing::info!("VaultGraph starting");
-                if let Err(e) = g.start() {
-                    tracing::error!(error = %e, "Failed to start VaultGraph");
-                }
-            }
-        }
-
         tracing::info!(
             stage = ?self.lifecycle_stage(),
-            "Application context started"
+            "ApplicationContext ready — startup complete"
         );
+
+        Ok(())
     }
 
     /// Transitions the context to the `Shutdown` stage.
     ///
     /// Shuts down all lifecycle-managed services in reverse dependency order:
-    /// VaultGraph → Indexer → StorageManager.
+    ///
+    /// VaultGraph → Indexer → CaptureEngine → PipelineExecutor → WorkerPool → StorageManager
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
-        // Shut down lifecycle-managed services in reverse dependency order.
+        // Shut down in reverse dependency order so that consumers stop
+        // before their providers.
+        // VaultGraph → Indexer → CaptureEngine → PipelineExecutor → WorkerPool → StorageManager
+
         if let Some(graph) = self.vault_graph() {
             if let Ok(g) = graph.write() {
                 tracing::info!("VaultGraph shutting down");
@@ -538,6 +668,7 @@ impl ApplicationContext {
                 }
             }
         }
+
         if let Some(indexer) = self.indexer() {
             if let Ok(idx) = indexer.lock() {
                 tracing::info!("Indexer shutting down");
@@ -546,6 +677,28 @@ impl ApplicationContext {
                 }
             }
         }
+
+        if let Some(engine) = self.capture_engine() {
+            tracing::info!("CaptureEngine shutting down");
+            if let Err(e) = engine.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down CaptureEngine");
+            }
+        }
+
+        if let Some(executor) = self.pipeline_executor() {
+            tracing::info!("PipelineExecutor shutting down");
+            if let Err(e) = executor.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down PipelineExecutor");
+            }
+        }
+
+        if let Some(pool) = self.worker_pool() {
+            tracing::info!("WorkerPool shutting down");
+            if let Err(e) = pool.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down WorkerPool");
+            }
+        }
+
         if let Some(storage) = self.storage_manager() {
             tracing::info!("StorageManager shutting down");
             if let Err(e) = storage.shutdown() {
@@ -706,7 +859,7 @@ mod tests {
         assert!(ctx.is_initialized());
         assert!(!ctx.is_running());
 
-        ctx.start();
+        assert!(ctx.start().is_ok());
         assert!(ctx.is_running());
         assert!(ctx.is_initialized());
 

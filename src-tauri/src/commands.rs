@@ -3490,6 +3490,37 @@ pub fn capability_disable(
     ctx.disable_capability(&capability_id)
 }
 
+/// Returns every registered capability as a JSON array.
+///
+/// This is the canonical IPC API for frontend capability discovery. It
+/// queries the [`nabu_core::plugin::capability::CapabilityRegistry`] directly
+/// (the single source of truth for what the platform can do) — no manual
+/// response construction and no second serialization format. The
+/// [`Capability`] type's existing Serde implementation (P1.2.1) is reused
+/// verbatim.
+///
+/// Runtime enabled/disabled state is **not** part of this snapshot; it is
+/// communicated reactively to the frontend via `CapabilityStateChanged`
+/// events on the `nabu-event` channel.
+#[tauri::command]
+pub fn capability_list(
+    ctx: State<'_, ApplicationContext>,
+) -> Result<Vec<nabu_core::plugin::capability::Capability>, String> {
+    // Acquire the registry read-lock once and query it entirely within that
+    // guard scope — avoids repeated lock acquisition / registry traversal.
+    let registry = ctx.capability_registry();
+    let caps: Vec<nabu_core::plugin::capability::Capability> = registry
+        .list()
+        .iter()
+        .filter_map(|id| registry.get(id))
+        .cloned()
+        .collect();
+
+    let count = caps.len();
+    tracing::info!(count, "Capabilities returned");
+    Ok(caps)
+}
+
 /// Internal helper that computes GraphData without going through Tauri state
 /// (used by `statistics_get` which already holds the vault path).
 fn graph_data_inner(vault_path: &Path) -> GraphData {

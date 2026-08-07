@@ -62,6 +62,29 @@ impl PipelineEvent {
             PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
         }
     }
+
+    /// Returns the event's timestamp, if available.
+    ///
+    /// Every `PipelineEvent` variant carries a `timestamp: DateTime<Utc>`
+    /// field. This accessor exposes it uniformly so that downstream consumers
+    /// (notably the EventBus→Tauri bridge) can attach a top-level timestamp to
+    /// frontend event envelopes without pattern-matching on every variant.
+    pub fn timestamp(&self) -> Option<DateTime<Utc>> {
+        let ts: &DateTime<Utc> = match self {
+            PipelineEvent::ItemCaptured(e) => &e.timestamp,
+            PipelineEvent::ItemProcessingStarted(e) => &e.timestamp,
+            PipelineEvent::ItemProcessingProgress(e) => &e.timestamp,
+            PipelineEvent::ItemProcessingCompleted(e) => &e.timestamp,
+            PipelineEvent::ItemProcessingFailed(e) => &e.timestamp,
+            PipelineEvent::ItemStored(e) => &e.timestamp,
+            PipelineEvent::IndexUpdated(e) => &e.timestamp,
+            PipelineEvent::GraphUpdated(e) => &e.timestamp,
+            PipelineEvent::ItemCancelled(e) => &e.timestamp,
+            PipelineEvent::ItemRetried(e) => &e.timestamp,
+            PipelineEvent::CapabilityStateChanged(e) => &e.timestamp,
+        };
+        Some(*ts)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
