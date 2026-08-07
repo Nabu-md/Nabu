@@ -97,7 +97,7 @@ pub mod status;
 
 pub use conflict::{ConflictEntry, ConflictResolution};
 pub use error::{SyncError, SyncResult};
-pub use events::{publish_sync_status_changed, SyncStatusChanged};
+pub use events::{publish_sync_status_changed, SyncStatusChanged, SyncSubscriber};
 pub use folder::{SyncConfig, SyncFolder, SyncScheduleMode};
 pub use progress::SyncProgress;
 pub use status::SyncStatus;

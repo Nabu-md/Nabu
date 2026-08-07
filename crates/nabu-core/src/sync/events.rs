@@ -253,7 +253,7 @@ impl SyncStatusChanged {
     ///     SyncStatus::Idle,                         // current status
     /// ).with_previous(SyncStatus::Syncing);        // previous status
     ///
-    /// publish_sync_status_changes(&event_bus, &event);
+    /// publish_sync_status_changed(&event_bus, &event);
     /// ```
     pub fn new(
         folder_id: impl Into<String>,
@@ -451,7 +451,7 @@ pub fn publish_sync_status_changed(
 ///
 /// let bus = EventBus::<PipelineEvent>::new();
 ///
-/// let subscriber = SyncSubscriber::new(|event| {
+/// let subscriber = SyncSubscriber::from(|event| {
 ///     // Forward to IPC bridge...
 /// });
 /// subscriber.register(&bus);

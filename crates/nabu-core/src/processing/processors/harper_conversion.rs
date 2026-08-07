@@ -143,7 +143,8 @@ fn lint_kind_to_category(lint_kind: LintKind) -> DiagnosticCategory {
 
 /// Convert a Harper [`Suggestion`] into a Nabu [`Suggestion`] (quick-fix).
 ///
-/// The range is the lint's span range (already resolved to positions).
+/// The range is the lint's span range (already resolved to positions with byte
+/// offsets).
 /// - `ReplaceWith` → suggestion that replaces the span with the new text
 /// - `InsertAfter` → suggestion that inserts text at the end of the span
 /// - `Remove` → suggestion that replaces the span with empty text
@@ -167,9 +168,16 @@ fn convert_suggestion(
         }
         HarperSuggestion::InsertAfter(chars) => {
             let new_text: String = chars.iter().collect();
+            let insert_pos = range.end;
+            let end_offset = range.end_offset;
+            let empty_range = if let (Some(off), _) = (end_offset, end_offset) {
+                TextRange::try_with_offsets(insert_pos, insert_pos, off, off)?
+            } else {
+                TextRange::empty(insert_pos)
+            };
             Suggestion::try_new(
                 "Insert after".to_string(),
-                TextRange::empty(range.end),
+                empty_range,
                 new_text,
             )
             .map(|s| {
@@ -287,9 +295,10 @@ mod tests {
     #[test]
     fn char_index_to_position_single_line() {
         let source: Vec<char> = "hello world".chars().collect();
-        let pos = char_index_to_position(5, &source).unwrap();
+        let (pos, byte_offset) = char_index_to_position(5, &source).unwrap();
         assert_eq!(pos.line, 0);
         assert_eq!(pos.character, 5);
+        assert_eq!(byte_offset, 5); // ASCII: char index == byte offset
     }
 
     #[test]
@@ -297,29 +306,34 @@ mod tests {
         let text = "hello\nworld\nfoo";
         let source: Vec<char> = text.chars().collect();
 
-        let pos0 = char_index_to_position(0, &source).unwrap();
+        let (pos0, off0) = char_index_to_position(0, &source).unwrap();
         assert_eq!(pos0.line, 0);
         assert_eq!(pos0.character, 0);
+        assert_eq!(off0, 0);
 
-        let pos6 = char_index_to_position(6, &source).unwrap();
+        let (pos6, off6) = char_index_to_position(6, &source).unwrap();
         assert_eq!(pos6.line, 1);
         assert_eq!(pos6.character, 0);
+        assert_eq!(off6, 6); // 'hello\n' = 6 bytes
 
-        let pos11 = char_index_to_position(11, &source).unwrap();
+        let (pos11, off11) = char_index_to_position(11, &source).unwrap();
         assert_eq!(pos11.line, 1);
         assert_eq!(pos11.character, 5);
+        assert_eq!(off11, 11);
 
-        let pos12 = char_index_to_position(12, &source).unwrap();
+        let (pos12, off12) = char_index_to_position(12, &source).unwrap();
         assert_eq!(pos12.line, 2);
         assert_eq!(pos12.character, 0);
+        assert_eq!(off12, 12); // 'hello\nworld\n' = 12 bytes
     }
 
     #[test]
     fn char_index_to_position_at_end() {
         let source: Vec<char> = "abc".chars().collect();
-        let pos = char_index_to_position(3, &source).unwrap();
+        let (pos, byte_offset) = char_index_to_position(3, &source).unwrap();
         assert_eq!(pos.line, 0);
         assert_eq!(pos.character, 3);
+        assert_eq!(byte_offset, 3);
     }
 
     #[test]
@@ -327,6 +341,23 @@ mod tests {
         let source: Vec<char> = "abc".chars().collect();
         let result = char_index_to_position(10, &source);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn char_index_to_position_utf8_byte_offset() {
+        // "héllo" — the 'é' is 2 bytes in UTF-8 but 1 char.
+        // Character index 1 → position (0, 1), byte offset 1.
+        // Character index 2 → position (0, 2), byte offset 3.
+        let source: Vec<char> = "héllo".chars().collect();
+        let (pos1, off1) = char_index_to_position(1, &source).unwrap();
+        assert_eq!(pos1.line, 0);
+        assert_eq!(pos1.character, 1);
+        assert_eq!(off1, 1);
+
+        let (pos2, off2) = char_index_to_position(2, &source).unwrap();
+        assert_eq!(pos2.line, 0);
+        assert_eq!(pos2.character, 2);
+        assert_eq!(off2, 3); // 'h' = 1 byte + 'é' = 2 bytes = 3 bytes total
     }
 
     #[test]
@@ -342,6 +373,8 @@ mod tests {
         assert_eq!(diag.range.start.line, 0);
         assert_eq!(diag.range.start.character, 0);
         assert_eq!(diag.range.end.character, 3);
+        assert_eq!(diag.range.start_byte_offset(), Some(0));
+        assert_eq!(diag.range.end_byte_offset(), Some(3));
     }
 
     #[test]
@@ -379,6 +412,9 @@ mod tests {
         assert_eq!(diag.suggestions[0].new_text, "have");
         assert_eq!(diag.suggestions[0].range.start.character, 2);
         assert_eq!(diag.suggestions[0].range.end.character, 5);
+        // Replace suggestions carry byte offsets from the lint's span.
+        assert_eq!(diag.suggestions[0].range.start_byte_offset(), Some(2));
+        assert_eq!(diag.suggestions[0].range.end_byte_offset(), Some(5));
     }
 
     #[test]
@@ -397,6 +433,9 @@ mod tests {
         assert_eq!(diag.suggestions[0].new_text, ",");
         assert_eq!(diag.suggestions[0].range.start.character, 5);
         assert!(diag.suggestions[0].range.is_empty());
+        // Insert-after suggestions carry the byte offset from the end of the span.
+        assert_eq!(diag.suggestions[0].range.start_byte_offset(), Some(5));
+        assert_eq!(diag.suggestions[0].range.end_byte_offset(), Some(5));
     }
 
     #[test]
