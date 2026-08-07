@@ -27,6 +27,7 @@ pub mod context;
 pub mod lifecycle;
 
 pub use application::Application;
+pub use lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
 
 use std::any::Any;
 use std::collections::HashMap;

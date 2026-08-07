@@ -88,9 +88,12 @@ use std::sync::Arc;
 use crate::capture::CaptureEngine;
 use crate::diagnostics::PerformanceMonitor;
 use crate::event_bus::{EventBus, PipelineEvent};
+use crate::jobs::WorkerPool;
 use crate::processing::ProcessingPipeline;
 use crate::registry::context::ApplicationContext;
-use crate::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
+use crate::registry::lifecycle::{
+    LifecycleError, LifecycleManager, LifecycleStage,
+};
 use crate::registry::ServiceRegistry;
 
 // ---------------------------------------------------------------------------
@@ -116,6 +119,8 @@ pub struct Application {
     _capture_engine: Option<Arc<CaptureEngine>>,
     _pipeline: Option<Arc<ProcessingPipeline>>,
     _performance_monitor: Option<Arc<PerformanceMonitor>>,
+    /// Keeps the worker pool alive for the lifetime of the Application.
+    _worker_pool: Option<Arc<WorkerPool>>,
 }
 
 impl Application {
@@ -204,6 +209,13 @@ impl Application {
                 tracing::error!(error = %e, "Lifecycle transition to Running failed");
             });
 
+        // Start lifecycle-managed services (e.g., WorkerPool)
+        if let Some(pool) = self.context.worker_pool() {
+            if let Err(e) = pool.start() {
+                tracing::error!(error = %e, "Failed to start worker pool");
+            }
+        }
+
         tracing::info!(
             stage = ?self.lifecycle.stage(),
             "Application started"
@@ -215,6 +227,13 @@ impl Application {
     /// This phase stops background workers, drains queues, releases resources,
     /// and transitions to `Shutdown`.
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
+        // Shut down lifecycle-managed services first (before context shutdown)
+        if let Some(pool) = self.context.worker_pool() {
+            if let Err(e) = pool.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down worker pool");
+            }
+        }
+
         let result = self.lifecycle.transition_to(LifecycleStage::Shutdown);
         match &result {
             Ok(()) => {
@@ -266,6 +285,8 @@ pub struct ApplicationBuilder {
     pipeline: Option<Arc<ProcessingPipeline>>,
     /// Capture engine.
     capture_engine: Option<Arc<CaptureEngine>>,
+    /// Worker pool (optional — created or injected by the caller).
+    worker_pool: Option<Arc<WorkerPool>>,
 }
 
 impl ApplicationBuilder {
@@ -278,6 +299,7 @@ impl ApplicationBuilder {
             performance_monitor: None,
             pipeline: None,
             capture_engine: None,
+            worker_pool: None,
         }
     }
 
@@ -307,6 +329,18 @@ impl ApplicationBuilder {
     /// Set the capture engine.
     pub fn with_capture_engine(mut self, engine: Arc<CaptureEngine>) -> Self {
         self.capture_engine = Some(engine);
+        self
+    }
+
+    /// Set the worker pool.
+    ///
+    /// If not set, no worker pool is registered and the Application will
+    /// not manage worker pool lifecycle. When set, the pool is registered
+    /// under the `"worker_pool"` key and its lifecycle (`start`, `shutdown`)
+    /// is invoked automatically during [`Application::start`] and
+    /// [`Application::shutdown`].
+    pub fn with_worker_pool(mut self, pool: Arc<WorkerPool>) -> Self {
+        self.worker_pool = Some(pool);
         self
     }
 
@@ -366,20 +400,27 @@ impl ApplicationBuilder {
             reg.register("capture_engine", engine.clone());
         }
 
-        // ---- 5. Create the ApplicationContext ----
+        // ---- 5. Build and register the WorkerPool (if provided) ----
+        if let Some(pool) = &self.worker_pool {
+            let mut reg = registry.write().expect("registry lock not poisoned");
+            reg.register("worker_pool", pool.clone());
+        }
+
+        // ---- 6. Create the ApplicationContext ----
         let context = ApplicationContext::new(
             registry.clone(),
             event_bus.clone(),
             crate::plugin::capability::CapabilityRegistry::new(),
         );
 
-        // ---- 6. Create the Application ----
+        // ---- 7. Create the Application ----
         Application {
             context,
             lifecycle: LifecycleManager::new(),
             _capture_engine: self.capture_engine,
             _pipeline: self.pipeline,
             _performance_monitor: Some(perf_monitor),
+            _worker_pool: self.worker_pool,
         }
     }
 }

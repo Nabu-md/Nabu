@@ -344,10 +344,14 @@ pub fn run() {
             // Make the context available to commands via Tauri managed state.
             app.manage(ctx);
 
-            // Start the canonical worker pool on the Tauri async runtime.
+            // Start the canonical worker pool. The sync start() uses
+            // Handle::try_current() to spawn workers on the Tauri async
+            // runtime, so it must be called from within a runtime context.
             if let Some(pool) = pool {
                 tauri::async_runtime::spawn(async move {
-                    pool.start().await;
+                    if let Err(e) = pool.start() {
+                        tracing::error!(error = %e, "Failed to start worker pool");
+                    }
                 });
             }
 
@@ -400,9 +404,19 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
-            // On graceful exit, remove the `.running` marker so the next
-            // launch knows the session ended cleanly (no crash recovery UI).
+            // On graceful exit, shut down the worker pool and remove the
+            // `.running` marker so the next launch knows the session ended
+            // cleanly (no crash recovery UI).
             if let tauri::RunEvent::Exit = event {
+                {
+                    let ctx_state = app_handle.state::<ApplicationContext>();
+                    if let Some(pool) = ctx_state.worker_pool() {
+                        if let Err(e) = pool.shutdown() {
+                            tracing::error!(error = %e, "Failed to shut down worker pool");
+                        }
+                    }
+                }
+
                 let settings = app_handle.state::<crate::settings::SettingsStore>().get();
                 let path = settings.last_vault_path.trim().to_string();
                 if !path.is_empty() {
