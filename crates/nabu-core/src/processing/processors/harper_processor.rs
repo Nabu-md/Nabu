@@ -165,6 +165,25 @@ fn run_harper(text: &str) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::d
     Ok(diagnostics)
 }
 
+/// Run Harper grammar/spell-checking on arbitrary text and return the resulting
+/// diagnostics.
+///
+/// This is the public entry point for on-demand diagnostic analysis (e.g. via
+/// the `diagnostic_requested` IPC command). It wraps [`run_harper`] and is
+/// `Send + Sync` because it only returns owned `Diagnostic` values.
+///
+/// Returns `DiagnosticError::HarperConversion` if the internal conversion fails;
+/// otherwise returns the full set of diagnostics (which may be empty if text is
+/// empty or no issues are found).
+pub fn analyze_text_with_harper(
+    text: &str,
+) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::diagnostic::DiagnosticError> {
+    if text.is_empty() {
+        return Ok(Vec::new());
+    }
+    run_harper(text)
+}
+
 fn strip_html_tags(html: &str) -> String {
     let mut result = String::with_capacity(html.len());
     let mut in_tag = false;

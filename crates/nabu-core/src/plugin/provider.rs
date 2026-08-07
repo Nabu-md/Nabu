@@ -150,6 +150,9 @@ use crate::plugin::capability::{Capability, CapabilityRegistry};
 use crate::plugin::events::{
     PluginErrorEvent, PluginEvent, PluginEventSeverity, PluginWarningEvent, publish_plugin_event,
 };
+use crate::plugin::invocation::{
+    PluginInvocationError, PluginInvocationRequest, PluginInvocationResponse,
+};
 use crate::plugin::version::Version;
 
 // ---------------------------------------------------------------------------
@@ -459,6 +462,61 @@ pub trait CapabilityProvider: Send + Sync + std::fmt::Debug {
     /// Return [`ProviderError::ShutdownFailed`] if cleanup fails.
     fn shutdown(&self) -> Result<(), ProviderError> {
         Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Capability Invocation
+    // -----------------------------------------------------------------------
+
+    /// Synchronously invoke a capability method on this provider.
+    ///
+    /// This is the canonical entry point for plugin-to-host IPC. The
+    /// [`PluginManager`](crate::plugin::PluginManager) resolves the target
+    /// provider and calls this method with the structured request.
+    ///
+    /// The default implementation returns a
+    /// [`PluginInvocationError`] with code `"CAPABILITY_NOT_SUPPORTED"`,
+    /// indicating that this provider does not implement invocation for the
+    /// requested capability/method. Providers that support invocation should
+    /// override this method and return a [`PluginInvocationResponse`].
+    ///
+    /// # Arguments
+    ///
+    /// - `request` — the structured invocation request containing the
+    ///   `plugin_id`, `capability`, `method`, `input` payload, and
+    ///   optional `metadata` (request ID, timeout, caller).
+    ///
+    /// # Returns
+    ///
+    /// A [`PluginInvocationResponse`] containing the result payload (on
+    /// success), execution metadata, and a structured error (on failure).
+    ///
+    /// # Future Compatibility
+    ///
+    /// This method is designed to be replaced or augmented by future
+    /// asynchronous and streaming invocation paths. When those are added,
+    /// they will coexist as additional trait methods with default
+    /// implementations, so existing providers continue to compile.
+    ///
+    /// # Errors
+    ///
+    /// This method returns `Ok(PluginInvocationResponse::error(...))` for
+    /// invocation failures (invalid input, resource exhaustion, etc.) rather
+    /// than panicking. A panicking provider will be caught by the
+    /// [`PluginManager`] which converts the catch_unwind result into a
+    /// structured error response.
+    fn invoke(
+        &self,
+        request: &PluginInvocationRequest,
+    ) -> PluginInvocationResponse {
+        let _ = request;
+        PluginInvocationResponse::error(
+            PluginInvocationError::new(
+                "CAPABILITY_NOT_SUPPORTED",
+                "This provider does not support capability invocation",
+            ),
+            None,
+        )
     }
 
     // -----------------------------------------------------------------------

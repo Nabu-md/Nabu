@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod diagnostics;
 pub mod event_bridge;
 pub mod history;
 pub mod native_messaging;
@@ -361,6 +362,10 @@ pub fn run() {
             crate::commands::capability_list,
             // Phase 1.5.1 — Health reporting diagnostics.
             crate::commands::health_check,
+            // Phase 6.3.1 — Plugin-to-Host IPC invocation bridge.
+            crate::commands::plugin_call,
+            // Diagnostic IPC — editor diagnostic bridge.
+            crate::commands::diagnostic_requested,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------

@@ -298,6 +298,38 @@ impl ApplicationContext {
             .expect("plugin manager lock poisoned")
     }
 
+    /// Dispatch a plugin invocation request through the [`PluginManager`].
+    ///
+    /// This is the canonical entry point for the `plugin_call` IPC command.
+    /// It acquires a read lock on the `PluginManager` and delegates to
+    /// [`PluginManager::invoke_capability`], which locates the target provider
+    /// and dispatches the request through the `CapabilityProvider::invoke`
+    /// abstraction.
+    ///
+    /// The method is `Send + Sync`-safe: the `PluginManager` is guarded by
+    /// an `RwLock`, and `invoke_capability` takes a shared `&self` reference.
+    /// Concurrent invocations from different IPC calls are serialized only
+    /// by the read lock (which permits concurrent readers), so multiple
+    /// invocations can proceed in parallel as long as the providers are
+    /// thread-safe.
+    ///
+    /// # Arguments
+    ///
+    /// - `request` — the structured [`PluginInvocationRequest`] containing the
+    ///   plugin ID, capability, method, input payload, and metadata.
+    ///
+    /// # Returns
+    ///
+    /// A [`PluginInvocationResponse`] with the result or a structured error.
+    /// No panics are propagated from this method.
+    pub fn invoke_plugin(
+        &self,
+        request: crate::plugin::PluginInvocationRequest,
+    ) -> crate::plugin::PluginInvocationResponse {
+        let pm = self.plugin_manager.read().expect("plugin manager lock poisoned");
+        pm.invoke_capability(request)
+    }
+
     /// Resolves a service from the registry by key.
     ///
     /// Convenience wrapper around `registry.read().unwrap().resolve::<T>(key)`.

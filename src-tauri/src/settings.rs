@@ -486,6 +486,7 @@ mod tests {
                     path: "/vaults/alpha".into(),
                     name: "Alpha".into(),
                 }],
+                ..Default::default()
             })
             .unwrap();
         assert_eq!(saved.theme, "dark");

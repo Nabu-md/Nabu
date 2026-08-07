@@ -3636,6 +3636,108 @@ fn graph_data_inner(vault_path: &Path) -> GraphData {
     }
 }
 
+/// ── Diagnostic IPC ──────────────────────────────────────────────
+
+/// Request payload for the `diagnostic_requested` IPC command.
+///
+/// The editor (or any frontend consumer) calls `diagnostic_requested` when it
+/// needs diagnostics for a specific document. The backend runs the requested
+/// analysis engine(s) and returns a [`DiagnosticBatch`] containing all
+/// diagnostics for the given `resource_id`.
+///
+/// `text` is the full document text to analyze. `resource_id` is a stable
+/// identifier (typically a vault path like `"vault:notes/example.md"`) used
+/// by subscribers to correlate diagnostics with the right document. `origin`
+/// is an optional label for the analysis engine (defaults to `"harper"`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiagnosticRequest {
+    /// Document text to analyze.
+    pub text: String,
+    /// Stable resource identifier (e.g. `"vault:notes/example.md"`).
+    pub resource_id: String,
+    /// Optional origin/producer label. If `None`, defaults to `"harper"`.
+    #[serde(default = "default_origin")]
+    pub origin: Option<String>,
+}
+
+fn default_origin() -> Option<String> {
+    Some("harper".to_string())
+}
+
+/// Response payload for the `diagnostic_requested` IPC command.
+///
+/// Carries the full [`DiagnosticBatch`] plus the resolved
+/// [`DiagnosticStyleMap`](nabu_core::diagnostic::DiagnosticStyleMap) so the
+/// editor can render each diagnostic without a second round-trip. The style
+/// map is the canonical severity→style mapping from
+/// [`nabu_core::diagnostic::mapping`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiagnosticResponse {
+    /// The diagnostic batch containing all diagnostics for the resource.
+    pub batch: nabu_core::diagnostic::DiagnosticBatch,
+    /// The canonical severity→style mapping for rendering.
+    pub style_map: nabu_core::diagnostic::DiagnosticStyleMap,
+}
+
+/// Runs on-demand diagnostic analysis on a document and returns the resulting
+/// diagnostics with their presentation styles.
+///
+/// This is the canonical IPC entry point for the editor's diagnostic bridge.
+/// It delegates to the registered analysis engine (currently Harper) via the
+/// [`ApplicationContext`'s] processing pipeline services. The returned
+/// [`DiagnosticResponse`] contains a [`DiagnosticBatch`] with all diagnostics
+/// and the canonical [`DiagnosticStyleMap`] so the editor can render them
+/// without a second IPC call.
+///
+/// Errors are returned as structured strings — no panics. If the analysis
+/// engine is unavailable or fails, the error is propagated.
+#[tauri::command]
+pub async fn diagnostic_requested(
+    ctx: State<'_, ApplicationContext>,
+    request: DiagnosticRequest,
+) -> Result<DiagnosticResponse, String> {
+    let origin = request.origin.unwrap_or_else(|| "harper".to_string());
+
+    if request.text.is_empty() {
+        return Err("document text must not be empty".to_string());
+    }
+    if request.resource_id.is_empty() {
+        return Err("resource_id must not be empty".to_string());
+    }
+
+    tracing::info!(
+        origin = %origin,
+        resource_id = %request.resource_id,
+        text_len = request.text.len(),
+        "Diagnostic analysis requested via IPC"
+    );
+
+    let diagnostics = tokio::task::spawn_blocking(move || {
+        nabu_core::processing::processors::analyze_text_with_harper(&request.text)
+    })
+    .await
+    .map_err(|e| format!("analysis task failed: {}", e))?;
+
+    let diagnostics = diagnostics.map_err(|e| format!("harper analysis error: {}", e))?;
+
+    let batch = nabu_core::diagnostic::DiagnosticBatch::new(
+        origin,
+        request.resource_id,
+        diagnostics,
+    );
+
+    let style_map = nabu_core::diagnostic::DiagnosticStyleMap::default();
+
+    tracing::info!(
+        origin = %batch.origin,
+        resource_id = %batch.resource_id,
+        diagnostic_count = batch.diagnostic_count(),
+        "Diagnostic analysis completed"
+    );
+
+    Ok(DiagnosticResponse { batch, style_map })
+}
+
 /// Simple union-find for cluster counting.
 struct UnionFind {
     parent: Vec<usize>,
@@ -3677,4 +3779,68 @@ impl UnionFind {
         }
         roots.len()
     }
+}
+
+// ---------------------------------------------------------------------------
+// Plugin IPC — plugin_call
+// ---------------------------------------------------------------------------
+
+/// Frontend-facing IPC command that dispatches a plugin capability invocation.
+///
+/// This is the **canonical** entry point for frontend-to-plugin communication.
+/// The frontend serializes a [`PluginInvocationRequest`] as JSON (with
+/// `serde_json::Value` for the `input` field), and the host dispatches it
+/// through the `PluginManager` to the appropriate `CapabilityProvider::invoke`.
+///
+/// ## Workflow
+///
+/// 1. The frontend sends a JSON object with `plugin_id`, `capability`,
+///    `method`, optional `input`, and optional `metadata`.
+/// 2. Tauri deserializes it into a [`PluginInvocationRequest`].
+/// 3. The `ApplicationContext` acquires a read lock on the `PluginManager`.
+/// 4. The `PluginManager` locates the provider, validates the capability,
+///    and calls `CapabilityProvider::invoke`.
+/// 5. The structured [`PluginInvocationResponse`] is returned to the
+///    frontend.
+///
+/// The frontend never holds a reference to the provider or the
+/// `PluginManager` — all access goes through this single command.
+///
+/// [`PluginInvocationRequest`]: nabu_core::plugin::PluginInvocationRequest
+/// [`PluginInvocationResponse`]: nabu_core::plugin::PluginInvocationResponse
+#[tauri::command]
+pub fn plugin_call(
+    ctx: State<'_, ApplicationContext>,
+    request: nabu_core::plugin::PluginInvocationRequest,
+) -> Result<nabu_core::plugin::PluginInvocationResponse, String> {
+    tracing::debug!(
+        plugin_id = %request.plugin_id,
+        capability = %request.capability,
+        method = %request.method,
+        "plugin_call IPC requested"
+    );
+
+    let plugin_id = request.plugin_id.clone();
+    let capability = request.capability.clone();
+
+    let response = ctx.invoke_plugin(request);
+
+    if response.success {
+        tracing::debug!(
+            provider = response.execution.as_ref().and_then(|e| e.provider.as_deref()),
+            duration_ms = response.execution.as_ref().and_then(|e| e.duration_ms),
+            "plugin_call IPC completed successfully"
+        );
+    } else {
+        if let Some(err) = &response.error {
+            tracing::warn!(
+                plugin_id = %plugin_id,
+                capability = %capability,
+                error_code = %err.code,
+                "plugin_call IPC failed"
+            );
+        }
+    }
+
+    Ok(response)
 }

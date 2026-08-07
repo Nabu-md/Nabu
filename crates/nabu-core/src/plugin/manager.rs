@@ -76,6 +76,9 @@ use crate::plugin::events::{
     PluginEventSeverity, PluginLoadedEvent, PluginUnloadedEvent, publish_plugin_event,
 };
 use crate::plugin::features::FeatureRegistry;
+use crate::plugin::invocation::{
+    ExecutionMetadata, PluginInvocationError, PluginInvocationRequest, PluginInvocationResponse,
+};
 use crate::plugin::lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 use crate::plugin::manifest::{CompatibilityCheck, PluginManifest};
 use crate::plugin::permissions::PermissionEvaluator;
@@ -911,6 +914,132 @@ impl PluginManager {
     /// The current Nabu version used for compatibility checks.
     pub fn nabu_version(&self) -> &Version {
         &self.nabu_version
+    }
+
+    // -----------------------------------------------------------------------
+    // Capability Invocation
+    // -----------------------------------------------------------------------
+
+    /// Dispatch a plugin invocation request to the appropriate provider.
+    ///
+    /// This is the sole entry point for the `plugin_call` IPC command.
+    /// The method:
+    ///
+    /// 1. Validates the request fields (plugin_id, capability, method).
+    /// 2. Locates the target provider by `plugin_id`.
+    /// 3. Validates that the capability exists in the registry and is owned
+    ///    by (or registered to) the target provider.
+    /// 4. Dispatches to the provider's [`invoke`](CapabilityProvider::invoke)
+    ///    method.
+    /// 5. Returns a structured [`PluginInvocationResponse`].
+    ///
+    /// The PluginManager is the sole coordinator — the frontend never
+    /// accesses providers directly. All errors are normalized into
+    /// structured responses; no panics are propagated.
+    ///
+    /// # Thread Safety
+    ///
+    /// This method takes a shared `&self` reference. Provider invocation
+    /// happens through the `Arc<dyn CapabilityProvider>` trait object,
+    /// which is `Send + Sync`. Concurrent invocations from different
+    /// threads are safe as long as the provider itself is thread-safe
+    /// (the trait requires `Send + Sync`).
+    pub fn invoke_capability(
+        &self,
+        mut request: PluginInvocationRequest,
+    ) -> PluginInvocationResponse {
+        use std::time::Instant;
+
+        let start = Instant::now();
+        let request_id = request.ensure_request_id();
+
+        // 1. Validate request fields.
+        if let Err(e) = request.validate() {
+            return PluginInvocationResponse::error(
+                PluginInvocationError::new("INVALID_REQUEST", e),
+                Some(ExecutionMetadata {
+                    request_id: Some(request_id),
+                    capability: Some(request.capability.clone()),
+                    ..Default::default()
+                }),
+            );
+        }
+
+        // 2. Locate the target provider.
+        let provider = match self.providers.get(&request.plugin_id) {
+            Some(p) => p.clone(),
+            None => {
+                return PluginInvocationResponse::error(
+                    PluginInvocationError::new(
+                        "PLUGIN_NOT_FOUND",
+                        format!(
+                            "No provider registered for plugin '{}'",
+                            request.plugin_id
+                        ),
+                    ),
+                    Some(ExecutionMetadata {
+                        request_id: Some(request_id),
+                        capability: Some(request.capability.clone()),
+                        ..Default::default()
+                    }),
+                );
+            }
+        };
+
+        // 3. Validate that the capability is registered and owned by this provider.
+        if !self.capability_registry.has(&request.capability) {
+            return PluginInvocationResponse::error(
+                PluginInvocationError::new(
+                    "CAPABILITY_NOT_FOUND",
+                    format!(
+                        "Capability '{}' is not registered",
+                        request.capability
+                    ),
+                ),
+                Some(ExecutionMetadata {
+                    request_id: Some(request_id),
+                    provider: Some(request.plugin_id.clone()),
+                    capability: Some(request.capability.clone()),
+                    ..Default::default()
+                }),
+            );
+        }
+
+        let owner = self.capability_registry.provider(&request.capability);
+        if owner != Some(request.plugin_id.as_str()) {
+            return PluginInvocationResponse::error(
+                PluginInvocationError::new(
+                    "CAPABILITY_NOT_FOUND",
+                    format!(
+                        "Capability '{}' is not provided by plugin '{}'",
+                        request.capability, request.plugin_id
+                    ),
+                ),
+                Some(ExecutionMetadata {
+                    request_id: Some(request_id),
+                    provider: Some(request.plugin_id.clone()),
+                    capability: Some(request.capability.clone()),
+                    ..Default::default()
+                }),
+            );
+        }
+
+        // 4. Dispatch to the provider's invoke method.
+        let response = provider.invoke(&request);
+
+        // 5. Enrich with execution metadata (provider, capability, duration).
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let mut response = response;
+        let exec = response.execution.take().unwrap_or_default();
+        response.execution = Some(ExecutionMetadata {
+            request_id: Some(request_id),
+            provider: exec.provider.or(Some(request.plugin_id.clone())),
+            capability: exec.capability.or(Some(request.capability.clone())),
+            duration_ms: Some(duration_ms),
+            api_version: exec.api_version,
+        });
+
+        response
     }
 
     /// Run dependency analysis on all registered manifests.

@@ -106,6 +106,7 @@ pub mod capability;
 pub mod dependency;
 pub mod events;
 pub mod features;
+pub mod invocation;
 pub mod lifecycle;
 pub mod manager;
 pub mod manifest;
@@ -123,6 +124,11 @@ pub use events::{
     PluginUnloadedEvent, PluginUnregisteredEvent, PluginWarningEvent, publish_plugin_event,
 };
 pub use features::{FeatureFlag, FeatureRegistry, FeatureStage};
+pub use invocation::{
+    CapabilityId, ExecutionMetadata, InvocationMetadata, MethodId, PluginId,
+    PluginInvocationError, PluginInvocationRequest, PluginInvocationResponse,
+    PluginInvocationStatus,
+};
 pub use lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};
 pub use manager::{
     InstallationReport, ManagerError, ManagerReport, PluginManager, RegistrationIssue,
