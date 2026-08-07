@@ -338,7 +338,7 @@ impl SocketManager {
     /// non-socket file (e.g. a regular file left behind by a crashed process).
     /// Does nothing if the path doesn't exist or is a live socket.
     fn cleanup_stale_socket(socket_path: &Path) -> std::io::Result<()> {
-        use std::os::unix::fs::PermissionsExt;
+        use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 
         if !socket_path.exists() {
             return Ok(());
@@ -446,9 +446,9 @@ impl SocketManager {
                         match result {
                             Ok((stream, addr)) => {
                                 tracing::debug!(
-                                    "Accepted connection from '{}' on '{}'",
-                                    addr.display().to_string(),
-                                    socket_path.display()
+                                    "Accepted connection on '{}' (peer: {})",
+                                    socket_path.display(),
+                                    addr
                                 );
                                 let handler = handler.clone();
                                 tokio::spawn(async move {
@@ -638,7 +638,7 @@ impl SocketManager {
             listener,
             handler,
             self.handle.clone(),
-            socket_path,
+            socket_path.clone(),
         );
 
         {

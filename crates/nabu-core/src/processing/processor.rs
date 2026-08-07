@@ -33,6 +33,111 @@ impl ProcessingContext {
     }
 }
 
+/// Processing statistics produced during a processing run.
+///
+/// Each processor may populate this with its own metrics (e.g. number of
+/// lints found, duration, bytes processed). The pipeline aggregates
+/// these into the final [`ProcessingResult`].
+///
+/// All fields are optional with `#[serde(default)]` for forward compatibility —
+/// future processors can add new keys without breaking deserialization.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct ProcessingStats {
+    /// Number of diagnostics produced by this processor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostics_count: Option<usize>,
+
+    /// Number of lints/issues found by Harper (or other analyzer).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lints_found: Option<usize>,
+
+    /// Duration of processing in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+
+    /// Arbitrary processor-specific key-value metrics.
+    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    pub extra: std::collections::HashMap<String, String>,
+}
+
+impl ProcessingStats {
+    /// Create a new empty `ProcessingStats`.
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Builder: set the diagnostics count.
+    #[inline]
+    pub fn with_diagnostics_count(mut self, count: usize) -> Self {
+        self.diagnostics_count = Some(count);
+        self
+    }
+
+    /// Builder: set the lints found count.
+    #[inline]
+    pub fn with_lints_found(mut self, count: usize) -> Self {
+        self.lints_found = Some(count);
+        self
+    }
+
+    /// Builder: set the processing duration in milliseconds.
+    #[inline]
+    pub fn with_duration_ms(mut self, ms: u64) -> Self {
+        self.duration_ms = Some(ms);
+        self
+    }
+
+    /// Builder: insert an arbitrary key-value metric.
+    #[inline]
+    pub fn with_metric(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+
+    /// Returns `true` when this stats object is in its default (all-`None`/empty) state.
+    #[inline]
+    pub fn is_default(&self) -> bool {
+        self.diagnostics_count.is_none()
+            && self.lints_found.is_none()
+            && self.duration_ms.is_none()
+            && self.extra.is_empty()
+    }
+}
+
+/// Execution status of a processor or pipeline run.
+///
+/// This is a high-level status indicator. Detailed errors are captured in
+/// [`ProcessingResult::error`]. Diagnostics from partial failures are
+/// surfaced in [`ProcessingResult::diagnostics`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ExecutionStatus {
+    /// Processing completed successfully (may still have diagnostics).
+    Success,
+    /// Processing completed with one or more diagnostics but no fatal error.
+    CompletedWithDiagnostics,
+    /// Processing partially failed — some diagnostics may be present.
+    PartialFailure,
+    /// Processing was cancelled by the caller.
+    Cancelled,
+    /// Processing failed entirely.
+    Failed,
+}
+
+impl Default for ExecutionStatus {
+    #[inline]
+    fn default() -> Self {
+        Self::Success
+    }
+}
+
+/// Serde predicate: `true` when `ExecutionStatus` is the default (`Success`).
+#[inline]
+fn is_default_status(status: &ExecutionStatus) -> bool {
+    *status == ExecutionStatus::Success
+}
+
 /// The result of processing a KnowledgeObject through a processor.
 ///
 /// ## Diagnostics
@@ -83,6 +188,21 @@ pub struct ProcessingResult {
     /// as `Vec::new()`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub diagnostics: Vec<Diagnostic>,
+
+    /// Lightweight processing statistics (lint count, duration, etc.).
+    ///
+    /// Populated by processors that choose to report metrics. Forward-compatible:
+    /// new fields use `#[serde(default)]` so older serialized payloads still
+    /// deserialize.
+    #[serde(default, skip_serializing_if = "ProcessingStats::is_default")]
+    pub stats: ProcessingStats,
+
+    /// High-level execution status of the processing run.
+    ///
+    /// Defaults to [`ExecutionStatus::Success`]. Processors that encounter
+    /// non-fatal issues set `CompletedWithDiagnostics` or `PartialFailure`.
+    #[serde(default, skip_serializing_if = "is_default_status")]
+    pub status: ExecutionStatus,
 }
 
 impl ProcessingResult {

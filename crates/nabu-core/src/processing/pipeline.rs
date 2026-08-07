@@ -94,6 +94,8 @@ impl ProcessingPipeline {
                     metadata: std::collections::HashMap::new(),
                     error: Some("Pipeline cancelled".to_string()),
                     diagnostics: Vec::new(),
+                    stats: crate::processing::processor::ProcessingStats::new(),
+                    status: crate::processing::processor::ExecutionStatus::Cancelled,
                 };
             }
 
@@ -154,7 +156,9 @@ impl ProcessingPipeline {
             // Report progress after this processor
             progress.set_progress(base_progress + segment_size * 0.8);
 
-            // Publish diagnostics through the EventBus if the processor produced any
+            // Publish diagnostics through the EventBus if the processor produced any.
+            // For diagnostic producers that found zero issues, publish a BatchCleared
+            // so subscribers can retract any previously-published diagnostics for this resource.
             if let Some(ref bus) = self.event_bus {
                 if !result.diagnostics.is_empty() {
                     let resource_id = build_resource_id(&object);
@@ -164,6 +168,14 @@ impl ProcessingPipeline {
                         result.diagnostics.clone(),
                     );
                     let event = crate::diagnostic::events::DiagnosticEvent::BatchPublished(batch);
+                    crate::diagnostic::events::publish_diagnostic_event(bus, &event);
+                } else if is_diagnostic_producer(processor.name()) {
+                    let resource_id = build_resource_id(&object);
+                    let cleared = crate::diagnostic::events::BatchClearedEvent::new(
+                        processor.name(),
+                        resource_id,
+                    );
+                    let event = crate::diagnostic::events::DiagnosticEvent::BatchCleared(cleared);
                     crate::diagnostic::events::publish_diagnostic_event(bus, &event);
                 }
             }
@@ -217,6 +229,8 @@ impl ProcessingPipeline {
             metadata: std::collections::HashMap::new(),
             error: None,
             diagnostics: Vec::new(),
+            stats: crate::processing::processor::ProcessingStats::new(),
+            status: crate::processing::processor::ExecutionStatus::Success,
         }
     }
 
@@ -245,6 +259,19 @@ impl Default for ProcessingPipeline {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Returns `true` if the named processor is a diagnostic producer —
+/// i.e. it outputs diagnostics that should be published through the EventBus
+/// as standardized `Diagnostic` objects.
+///
+/// The pipeline publishes a `BatchCleared` event for these producers when
+/// they produce zero diagnostics, so subscribers can retract stale findings.
+fn is_diagnostic_producer(name: &str) -> bool {
+    matches!(
+        name,
+        "harper_processor" | "harper" | "spell_checker" | "grammar" | "ai_diagnostics" | "ocr" | "metadata_validator" | "lsp_adapter"
+    )
 }
 
 /// Build a human-readable resource identifier for a KnowledgeObject.

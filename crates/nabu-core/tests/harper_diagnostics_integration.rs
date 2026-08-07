@@ -11,7 +11,7 @@ use nabu_core::diagnostic::{DiagnosticSeverity, TextRange, TextPosition};
 use nabu_core::event_bus::kinds;
 use nabu_core::event_bus::{EventBus, PipelineEvent};
 use nabu_core::models::{KnowledgeObject, ObjectContent, ObjectType};
-use nabu_core::processing::processor::{ProcessingContext, Processor};
+use nabu_core::processing::processor::{ExecutionStatus, ProcessingContext, Processor};
 use nabu_core::processing::processors::harper_conversion::convert_lint;
 use std::sync::Arc;
 
@@ -34,6 +34,17 @@ async fn harper_processor_produces_diagnostics_for_text_content() {
     // All diagnostics should have source = "harper"
     for diag in &result.diagnostics {
         assert_eq!(diag.source.as_deref(), Some("harper"));
+    }
+    // Stats should reflect the diagnostics count.
+    assert_eq!(
+        result.stats.diagnostics_count,
+        Some(result.diagnostics.len())
+    );
+    // Status should reflect whether diagnostics were found.
+    if !result.diagnostics.is_empty() {
+        assert_eq!(result.status, ExecutionStatus::CompletedWithDiagnostics);
+    } else {
+        assert_eq!(result.status, ExecutionStatus::Success);
     }
 }
 
@@ -111,14 +122,24 @@ async fn pipeline_publishes_harper_diagnostics_through_event_bus() {
 #[tokio::test]
 async fn pipeline_does_not_publish_empty_diagnostic_batches() {
     let bus = EventBus::<PipelineEvent>::new();
-    let received = Arc::new(std::sync::Mutex::new(0usize));
-    let received_clone = received.clone();
+    let published = Arc::new(std::sync::Mutex::new(0usize));
+    let cleared = Arc::new(std::sync::Mutex::new(0usize));
+    let published_clone = published.clone();
+    let cleared_clone = cleared.clone();
 
     bus.subscribe(kinds::DIAGNOSTIC_BATCH_PUBLISHED, move |pe: &PipelineEvent| {
         if let PipelineEvent::Diagnostic(e) = pe {
                 if e.origin() == "harper_processor" {
-                    *received_clone.lock().unwrap() += 1;
+                    *published_clone.lock().unwrap() += 1;
                 }
+        }
+    });
+
+    bus.subscribe(kinds::DIAGNOSTIC_BATCH_CLEARED, move |pe: &PipelineEvent| {
+        if let PipelineEvent::Diagnostic(e) = pe {
+            if e.origin() == "harper_processor" {
+                *cleared_clone.lock().unwrap() += 1;
+            }
         }
     });
 
@@ -137,7 +158,15 @@ async fn pipeline_does_not_publish_empty_diagnostic_batches() {
     let result = pipeline.run(obj, progress, cancellation).await;
 
     assert!(!result.has_diagnostics());
-    assert_eq!(*received.lock().unwrap(), 0, "no events should be published for empty diagnostics");
+    assert_eq!(
+        *published.lock().unwrap(), 0,
+        "no batch events should be published for empty diagnostics"
+    );
+    // Harper is a diagnostic producer, so BatchCleared should fire.
+    assert_eq!(
+        *cleared.lock().unwrap(), 1,
+        "BatchCleared should be published for diagnostic producers with zero findings"
+    );
 }
 
 #[test]

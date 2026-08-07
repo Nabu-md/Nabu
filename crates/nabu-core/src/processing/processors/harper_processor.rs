@@ -22,10 +22,11 @@
 //!
 //! [`Lint`]: harper_core::linting::Lint
 
+use crate::diagnostic::DiagnosticProvider;
 use crate::jobs::cancellation::CancellationToken;
 use crate::jobs::workers::progress::ProgressReporter;
 use crate::models::{ObjectContent, ObjectType};
-use crate::processing::processor::{ProcessingContext, ProcessingResult, Processor};
+use crate::processing::processor::{ExecutionStatus, ProcessingStats, ProcessingContext, ProcessingResult, Processor};
 use crate::processing::processors::harper_conversion::convert_lint;
 use async_trait::async_trait;
 use harper_core::linting::{LintGroup, Linter};
@@ -77,27 +78,35 @@ impl Processor for HarperProcessor {
         cancellation: CancellationToken,
     ) -> ProcessingResult {
         if cancellation.is_cancelled() {
-            return ProcessingResult::unmodified(context.object.clone());
+            return ProcessingResult::unmodified(context.object.clone())
+                .with_stats(ProcessingStats::new().with_diagnostics_count(0))
+                .with_status(ExecutionStatus::Cancelled);
         }
 
         let text = match Self::extract_text(&context.object) {
             Some(t) if !t.is_empty() => t,
-            _ => return ProcessingResult::unmodified(context.object.clone()),
+            _ => {
+                return ProcessingResult::unmodified(context.object.clone())
+                    .with_stats(ProcessingStats::new().with_diagnostics_count(0))
+                    .with_status(ExecutionStatus::Success);
+            }
         };
 
         progress.set_progress(0.1);
 
         let text_for_task = text.clone();
 
+        let start = std::time::Instant::now();
         let result = tokio::task::spawn_blocking(move || {
             run_harper(&text_for_task)
         })
         .await;
+        let duration_ms = start.elapsed().as_millis() as u64;
 
         progress.set_progress(0.9);
 
-        let diagnostics = match result {
-            Ok(Ok(diags)) => diags,
+        let (diagnostics, lints_count) = match result {
+            Ok(Ok((diags, count))) => (diags, count),
             Ok(Err(e)) => {
                 tracing::warn!(
                     subsystem = "processing",
@@ -106,7 +115,7 @@ impl Processor for HarperProcessor {
                     error = %e,
                     "Harper processing failed"
                 );
-                vec![]
+                (vec![], 0)
             }
             Err(_) => {
                 tracing::warn!(
@@ -115,12 +124,27 @@ impl Processor for HarperProcessor {
                     object_id = %context.object.id,
                     "Harper task panicked"
                 );
-                vec![]
+                (vec![], 0)
             }
         };
 
         progress.set_progress(1.0);
-        ProcessingResult::new(context.object.clone()).with_diagnostics(diagnostics)
+
+        let status = if diagnostics.is_empty() {
+            ExecutionStatus::Success
+        } else {
+            ExecutionStatus::CompletedWithDiagnostics
+        };
+
+        let stats = ProcessingStats::new()
+            .with_diagnostics_count(diagnostics.len())
+            .with_lints_found(lints_count)
+            .with_duration_ms(duration_ms);
+
+        ProcessingResult::new(context.object.clone())
+            .with_diagnostics(diagnostics)
+            .with_stats(stats)
+            .with_status(status)
     }
 
     fn supports(&self, object_type: &ObjectType) -> bool {
@@ -140,7 +164,7 @@ impl Processor for HarperProcessor {
 /// This function is `Send` because it creates a fresh `LintGroup` and `Document`
 /// internally (both `!Send`), runs the linter, converts lints to `Diagnostic`
 /// (which is `Send + Sync`), and returns only the `Diagnostic` collection.
-fn run_harper(text: &str) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::diagnostic::DiagnosticError> {
+fn run_harper(text: &str) -> Result<(Vec<crate::diagnostic::Diagnostic>, usize), crate::diagnostic::DiagnosticError> {
     let dict = FstDictionary::curated();
     let parser = PlainEnglish;
     let document = Document::new_curated(text, &parser);
@@ -150,6 +174,7 @@ fn run_harper(text: &str) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::d
 
     let source_chars = document.get_source().to_vec();
 
+    let lints_count = lints.len();
     let mut diagnostics = Vec::with_capacity(lints.len());
     for lint in &lints {
         match convert_lint(lint, &source_chars) {
@@ -162,7 +187,7 @@ fn run_harper(text: &str) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::d
         }
     }
 
-    Ok(diagnostics)
+    Ok((diagnostics, lints_count))
 }
 
 /// Run Harper grammar/spell-checking on arbitrary text and return the resulting
@@ -181,7 +206,34 @@ pub fn analyze_text_with_harper(
     if text.is_empty() {
         return Ok(Vec::new());
     }
-    run_harper(text)
+    let (diagnostics, _) = run_harper(text)?;
+    Ok(diagnostics)
+}
+
+/// Diagnostic provider that wraps the Harper grammar/spell-checking engine.
+///
+/// This struct implements [`DiagnosticProvider`] so it can be registered with
+/// the [`DiagnosticPlatform`](crate::diagnostic::DiagnosticPlatform). The
+/// platform calls [`DiagnosticProvider::analyze`](crate::diagnostic::DiagnosticProvider::analyze),
+/// which delegates to [`analyze_text_with_harper`], ensuring Harper is never
+/// called directly from the editor bridge or IPC layer.
+///
+/// ## Thread Safety
+///
+/// `HarperDiagnosticProvider` is stateless and `Send + Sync`. The underlying
+/// Harper types (`Document`, `LintGroup`) are `!Send` / `!Sync`, but
+/// [`analyze_text_with_harper`] creates them fresh on each call inside the
+/// provider method — no shared mutable Harper state is retained.
+pub struct HarperDiagnosticProvider;
+
+impl DiagnosticProvider for HarperDiagnosticProvider {
+    fn origin(&self) -> &str {
+        HARPER_ORIGIN
+    }
+
+    fn analyze(&self, text: &str) -> Result<Vec<crate::diagnostic::Diagnostic>, crate::diagnostic::DiagnosticError> {
+        analyze_text_with_harper(text)
+    }
 }
 
 fn strip_html_tags(html: &str) -> String {

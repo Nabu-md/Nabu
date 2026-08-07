@@ -39,13 +39,13 @@ use harper_core::linting::{Lint, LintKind, Suggestion as HarperSuggestion};
 /// Returns `DiagnosticError::HarperConversion` if the span cannot be resolved
 /// against the document text (e.g. indices are out of bounds).
 pub fn convert_lint(lint: &Lint, source_chars: &[char]) -> Result<Diagnostic, DiagnosticError> {
-    let start_pos = char_index_to_position(lint.span.start, source_chars)?;
-    let end_pos = char_index_to_position(lint.span.end, source_chars)?;
+    let (start_pos, start_offset) = char_index_to_position(lint.span.start, source_chars)?;
+    let (end_pos, end_offset) = char_index_to_position(lint.span.end, source_chars)?;
 
     let severity = lint_kind_to_severity(lint.lint_kind);
     let category = lint_kind_to_category(lint.lint_kind);
 
-    let range = TextRange::try_new(start_pos, end_pos)?;
+    let range = TextRange::try_with_offsets(start_pos, end_pos, start_offset, end_offset)?;
 
     let code = lint.lint_kind.to_string_key();
 
@@ -214,7 +214,7 @@ fn convert_suggestion(
 pub fn char_index_to_position(
     char_index: usize,
     source_chars: &[char],
-) -> Result<TextPosition, DiagnosticError> {
+) -> Result<(TextPosition, usize), DiagnosticError> {
     if char_index > source_chars.len() {
         return Err(DiagnosticError::harper_conversion(
             "char index out of bounds",
@@ -232,7 +232,11 @@ pub fn char_index_to_position(
                 .iter()
                 .collect();
             let character = utf8_str_to_utf16_units(&line_chars);
-            return Ok(TextPosition::new(line, character as u32));
+            let byte_offset = source_chars[..i]
+                .iter()
+                .map(|c| c.len_utf8())
+                .sum();
+            return Ok((TextPosition::new(line, character as u32), byte_offset));
         }
         if c == '\n' {
             line += 1;
@@ -245,13 +249,13 @@ pub fn char_index_to_position(
             .iter()
             .collect();
         let character = utf8_str_to_utf16_units(&line_str);
-        return Ok(TextPosition::new(line, character as u32));
+        let byte_offset = source_chars
+            .iter()
+            .map(|c| c.len_utf8())
+            .sum();
+        return Ok((TextPosition::new(line, character as u32), byte_offset));
     }
 
-    // Unreachable: the initial guard `char_index > source_chars.len()` already
-    // handles all out-of-bounds cases, and the loop + `char_index == len`
-    // branch cover all valid indices. The compiler still wants a return
-    // value, so we emit an error for the theoretically-impossible case.
     Err(DiagnosticError::harper_conversion(
         "unreachable: char index fell through all branches",
         char_index,

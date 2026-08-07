@@ -108,6 +108,7 @@ pub mod error;
 pub mod events;
 pub mod mapping;
 pub mod model;
+pub mod platform;
 pub mod severity;
 pub mod style;
 
@@ -122,6 +123,7 @@ pub use model::{
     Decoration, Diagnostic, Suggestion, SuggestionApplicability, SuggestionPriority, TextPosition,
     TextRange,
 };
+pub use platform::{DiagnosticPlatform, DiagnosticPlatformError, DiagnosticProvider};
 pub use severity::DiagnosticSeverity;
 pub use style::{
     AccessibilityMeta, DecorationCategory, DiagnosticIcon, DiagnosticStyle, DiagnosticStyleMap,

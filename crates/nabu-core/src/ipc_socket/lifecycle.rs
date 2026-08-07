@@ -98,9 +98,17 @@ impl From<SocketLifecycle> for LifecycleStage {
 ///
 /// Uses a `AtomicU8` for lock-free stage transitions, following the same
 /// pattern as [`LifecycleManager`](crate::registry::lifecycle::LifecycleManager).
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SocketLifecycleManager {
     stage: AtomicU8,
+}
+
+impl Clone for SocketLifecycleManager {
+    fn clone(&self) -> Self {
+        Self {
+            stage: AtomicU8::new(self.stage.load(Ordering::Acquire)),
+        }
+    }
 }
 
 impl SocketLifecycleManager {

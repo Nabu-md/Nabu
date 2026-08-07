@@ -31,7 +31,8 @@ pub mod diagnostics;
 pub mod event_bus;
 pub mod graph;
 pub mod history;
-// pub mod ipc_socket;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ipc_socket;
 pub mod indexer;
 pub mod jobs;
 pub mod models;

@@ -75,6 +75,8 @@ impl Processor for WhisperProcessor {
                     metadata: std::collections::HashMap::new(),
                     error: Some(e.to_string()),
                     diagnostics: Vec::new(),
+                    stats: crate::processing::processor::ProcessingStats::new(),
+                    status: crate::processing::processor::ExecutionStatus::Failed,
                 };
             }
             Err(_) => return ProcessingResult::unmodified(object),
