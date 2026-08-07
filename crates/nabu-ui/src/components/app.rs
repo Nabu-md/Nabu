@@ -6,8 +6,7 @@
 //! overlay surfaces) takes over.
 //!
 //! View switching within the workspace is driven by [`NavContext::view_mode`];
-//! actual view content is rendered by [`ViewContent`] which delegates to
-//! placeholder components for each view (migrated in later phases).
+//! actual view content is rendered by [`ViewContent`].
 
 use crate::components::contexts::{use_nav, NavContext, use_workspace};
 use crate::components::contexts::{
@@ -51,7 +50,7 @@ pub fn App() -> Element {
 
 // ── Vault-state-aware router ─────────────────────────────────────
 
-/// Vault check lifecycle — mirrors the LePtOS `AppScreen` enum.
+/// Vault check lifecycle.
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum VaultCheckState {
     Loading,
@@ -109,7 +108,7 @@ pub fn AppRouter() -> Element {
             div { class: "flex h-screen w-screen items-center justify-center bg-gray-950 text-gray-100",
                 div { class: "flex flex-col items-center gap-4",
                     div { class: "w-6 h-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" }
-                    div { "Opening Nabu…" }
+                    div { "Opening Nabu..." }
                 }
             }
         },
@@ -146,11 +145,6 @@ pub fn AppRouter() -> Element {
 // ── View content (switching) ─────────────────────────────────────
 
 /// Switches views based on [`NavContext::view_mode`].
-///
-/// Feature screens are rendered as placeholders; future phases replace them
-/// with migrated views. The view-switching framework itself (reading the
-/// signal, matching, and rendering the right container) is what this phase
-/// delivers.
 #[component]
 pub fn ViewContent() -> Element {
     let nav: NavContext = use_nav();
@@ -181,18 +175,12 @@ pub fn ViewContent() -> Element {
         ViewMode::Search => rsx! { SearchPage {} },
         ViewMode::Settings => rsx! {
             div { class: "max-w-4xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::Settings, Some("w-4 h-4 inline mr-1"))}
-                    "Settings placeholder — migrated in a later phase."
-                }
+                crate::components::settings::settings_panel::SettingsPanel {}
             }
         },
         ViewMode::Inbox => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::Inbox, Some("w-4 h-4 inline mr-1"))}
-                    "Inbox placeholder — migrated in a later phase."
-                }
+                crate::components::inbox::Inbox {}
             }
         },
         ViewMode::ReadingQueue => rsx! {
@@ -205,10 +193,7 @@ pub fn ViewContent() -> Element {
         },
         ViewMode::Templates => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::ClipboardList, Some("w-4 h-4 inline mr-1"))}
-                    "Templates placeholder — migrated in a later phase."
-                }
+                crate::components::template_editor::TemplateEditor {}
             }
         },
         ViewMode::Trash => rsx! {
@@ -221,18 +206,12 @@ pub fn ViewContent() -> Element {
         },
         ViewMode::History => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::History, Some("w-4 h-4 inline mr-1"))}
-                    "Version history placeholder — migrated in a later phase."
-                }
+                crate::components::recovery::version_history::VersionHistory {}
             }
         },
         ViewMode::Recovery => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::LifeBuoy, Some("w-4 h-4 inline mr-1"))}
-                    "Recovery manager placeholder — migrated in a later phase."
-                }
+                crate::components::recovery::recovery_manager::RecoveryManager {}
             }
         },
         ViewMode::Calendar => rsx! { CalendarPage {} },
@@ -264,10 +243,7 @@ pub fn ViewContent() -> Element {
         },
         ViewMode::Statistics => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                div { class: "text-sm text-gray-400",
-                    {render_icon(Icon::TrendingUp, Some("w-4 h-4 inline mr-1"))}
-                    "Statistics placeholder — migrated in a later phase."
-                }
+                crate::components::statistics::StatisticsView {}
             }
         },
     }

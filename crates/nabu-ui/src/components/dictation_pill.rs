@@ -131,11 +131,12 @@ pub fn DictationPill() -> Element {
                     let clipboard = window.navigator().clipboard();
                     let _promise = clipboard.write_text(&text);
                     toasts.success("Clipboard", "Copied to clipboard");
-                    let mut cache = clipboard_cache.write();
-                    cache.push(text.clone());
-                    if cache.len() > 10 {
-                        cache.drain(0..cache.len() - 10);
-                    }
+                    clipboard_cache.with_mut(|cache| {
+                        cache.push(text.clone());
+                        if cache.len() > 10 {
+                            cache.drain(0..cache.len() - 10);
+                        }
+                    });
                 }
             },
             {render_icon_view(Icon::Copy)}

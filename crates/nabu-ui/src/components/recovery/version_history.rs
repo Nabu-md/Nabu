@@ -1,4 +1,4 @@
-//! # Version History screen
+//! # Version History screen (Dioxus)
 //!
 //! Browse the snapshots of a note: list versions, preview their content, diff
 //! two revisions, restore an old version (undoable), duplicate it as a new
@@ -9,11 +9,15 @@
 //! - middle: the version timeline for the selected note
 //! - right: preview + diff of the selected version vs. another / current
 //!
-//! ## Reactivity note
-//!
-//! Toast / history contexts are `Copy` and captured at render time, then
-//! threaded into async tasks — never via `expect_context` inside a
-//! `spawn_local` future.
+//! Migration notes (LePtOS → Dioxus):
+//! - `RwSignal<T>` → `Signal<T>` (with `mut` on the binding for `set`/`with_mut`)
+//! - `state.get()` / `state.update(|s| …)` → `state.read()` / `state.with_mut(|s| …)`
+//! - `Effect::new(move |_| { ... })` → `use_effect(move || { ... })`
+//! - `Callback::new(closure)` + `.run(arg)` → `Callback::new(closure)` + `.call(arg)`
+//! - `view!` / `.into_any()` / `collect_view()` → `rsx!` / `for` / `Element`
+//! - `event_target_value(&ev)` → `ev.value()`
+//! - `class=move || format!(...)` → `class: { format!(...) }`
+//! - `move || { … view!{} … }` reactive blocks → compute during render
 
 use crate::components::recovery::diff_view::{DiffRow, DiffView};
 use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
@@ -21,7 +25,7 @@ use crate::components::ui::dialog::{ConfirmDialog, PromptDialog};
 use crate::components::ui::feedback::use_toast;
 use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
-use leptos::prelude::*;
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use wasm_bindgen_futures::spawn_local;
@@ -48,8 +52,7 @@ pub struct NoteSummary {
     pub last_snapshot_at: Option<String>,
 }
 
-/// Relative time for display ("5m ago", "3d ago"). Uses the JS clock to avoid
-/// chrono's wasm clock panic (see trash.rs).
+/// Short relative timestamp for display ("5m ago", "3d ago").
 fn relative_time(rfc3339: &str) -> String {
     let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(rfc3339) else {
         return "recently".to_string();
@@ -68,9 +71,8 @@ fn relative_time(rfc3339: &str) -> String {
     }
 }
 
-/// Displays a short timestamp (used in the timeline). Formats the parsed UTC
-/// instant directly — `chrono::Local` requires the `clock` feature, which is
-/// deliberately disabled for the wasm build (see the Cargo.toml note).
+/// Absolute timestamp formatted directly (no Local clock, which is disabled
+/// for the wasm build — see Cargo.toml).
 pub(crate) fn absolute_time(rfc3339: &str) -> String {
     chrono::DateTime::parse_from_rfc3339(rfc3339)
         .map(|t| t.format("%b %e, %H:%M").to_string())
@@ -89,14 +91,13 @@ fn human_size(bytes: usize) -> String {
 }
 
 /// Fetches the list of notes that have snapshots.
-fn fetch_all_notes(state: RwSignal<VersionState>) {
+fn fetch_all_notes(mut state: Signal<VersionState>) {
     spawn_local(async move {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("versions_all", empty_args).await;
         if let Ok(summaries) = serde_wasm_bindgen::from_value::<Vec<NoteSummary>>(result) {
-            state.update(|s| {
+            state.with_mut(|s| {
                 s.notes = summaries;
-                // Keep the selection valid.
                 if let Some(sel) = &s.selected_note {
                     if !s.notes.iter().any(|n| n.path == *sel) {
                         s.selected_note = None;
@@ -111,7 +112,7 @@ fn fetch_all_notes(state: RwSignal<VersionState>) {
 }
 
 /// Loads the version list for the selected note and auto-picks the newest.
-fn load_versions(path: String, state: RwSignal<VersionState>) {
+fn load_versions(path: String, mut state: Signal<VersionState>) {
     spawn_local(async move {
         let args = serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path.clone() }))
             .unwrap();
@@ -119,16 +120,16 @@ fn load_versions(path: String, state: RwSignal<VersionState>) {
         match serde_wasm_bindgen::from_value::<Vec<VersionMeta>>(result) {
             Ok(versions) => {
                 let newest = versions.last().map(|v| v.id.clone());
-                state.update(|s| {
+                state.with_mut(|s| {
                     s.versions = versions;
                     s.selected_version = newest.clone();
                     s.diff = None;
                 });
                 if let Some(id) = newest {
-                    preview_version(path.clone(), id, state);
+                    preview_version(path, id, state);
                 }
             }
-            Err(_) => state.update(|s| {
+            Err(_) => state.with_mut(|s| {
                 s.versions.clear();
                 s.preview_content = None;
                 s.diff = None;
@@ -138,13 +139,14 @@ fn load_versions(path: String, state: RwSignal<VersionState>) {
 }
 
 /// Loads the content of one version into the preview pane.
-fn preview_version(path: String, id: String, state: RwSignal<VersionState>) {
+fn preview_version(path: String, id: String, mut state: Signal<VersionState>) {
     spawn_local(async move {
         let args =
-            serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path, "id": id })).unwrap();
+            serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path, "id": id.clone() }))
+                .unwrap();
         let result = crate::ipc::tauri_invoke("versions_get", args).await;
         if let Ok(content) = serde_wasm_bindgen::from_value::<String>(result) {
-            state.update(|s| {
+            state.with_mut(|s| {
                 s.selected_version = Some(id);
                 s.preview_content = Some(content);
                 s.diff = None;
@@ -159,7 +161,7 @@ fn fetch_diff(
     path: String,
     from_id: String,
     to_id: Option<String>,
-    state: RwSignal<VersionState>,
+    mut state: Signal<VersionState>,
     toasts: crate::components::ui::feedback::ToastContext,
 ) {
     spawn_local(async move {
@@ -171,7 +173,7 @@ fn fetch_diff(
         .unwrap();
         let result = crate::ipc::tauri_invoke("versions_diff", args).await;
         match serde_wasm_bindgen::from_value::<Vec<DiffRow>>(result) {
-            Ok(rows) => state.update(|s| s.diff = Some(rows)),
+            Ok(rows) => state.with_mut(|s| s.diff = Some(rows)),
             Err(_) => toasts.error("Diff", "Could not compute the diff"),
         }
     });
@@ -194,295 +196,379 @@ struct VersionState {
 
 /// The Version History screen (ViewMode::History).
 #[component]
-pub fn VersionHistory() -> impl IntoView {
-    let state = RwSignal::new(VersionState::default());
+pub fn VersionHistory() -> Element {
+    let mut state = use_signal(|| VersionState::default());
     let toasts = use_toast();
 
-    // Dialog open signals — synced from state so the ConfirmDialog's internal
-    // `open.set(false)` (overlay / Escape / cancel) stays consistent.
-    let restore_open = RwSignal::new(false);
-    let duplicate_open = RwSignal::new(false);
-    Effect::new(move |_| {
-        let s = state.get();
-        restore_open.set(s.confirm_restore);
-        duplicate_open.set(s.duplicate_open);
+    // Dialog open signals — synced from state.
+    let mut restore_open = use_signal(|| false);
+    let mut duplicate_open = use_signal(|| false);
+    use_effect(move || {
+        restore_open.set(state.read().confirm_restore);
+        duplicate_open.set(state.read().duplicate_open);
     });
 
     fetch_all_notes(state);
 
-    let select_note = move |path: String| {
-        state.update(|s| {
-            s.selected_note = Some(path.clone());
-        });
-        load_versions(path, state);
+    // ── Read state for rendering ───────────────────────────────────────────
+    let notes = state.read().notes.clone();
+    let selected_note_name = state
+        .read()
+        .selected_note
+        .as_deref()
+        .and_then(|p| Path::new(p).file_name())
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "Select a note".to_string());
+    let versions: Vec<VersionMeta> = if state.read().versions.is_empty() {
+        Vec::new()
+    } else {
+        state.read().versions.clone()
     };
+    let diff_rows = state.read().diff.clone();
+    let preview_content = state.read().preview_content.clone();
 
-    let select_version = move |id: String| {
-        if let Some(path) = state.get().selected_note.clone() {
-            preview_version(path, id, state);
-        }
-    };
+    rsx! {
+        div {
+            class: "version-history flex h-full bg-gray-950 text-gray-100 overflow-hidden",
 
-    let on_manual_snapshot = Callback::new(move |_: web_sys::MouseEvent| {
-        let Some(path) = state.get().selected_note.clone() else {
-            toasts.info("Snapshot", "Select a note first");
-            return;
-        };
-        spawn_local(async move {
-            let args =
-                serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path.clone() }))
-                    .unwrap();
-            let result = crate::ipc::tauri_invoke("snapshot_create", args).await;
-            match serde_wasm_bindgen::from_value::<VersionMeta>(result) {
-                Ok(_meta) => {
-                    toasts.success(
-                        "Snapshot created",
-                        format!("Captured a snapshot of '{}'", path),
-                    );
-                    // Refresh the timeline so the new version appears.
-                    load_versions(path, state);
-                }
-                Err(_) => toasts.error("Snapshot", "Could not create a snapshot"),
-            }
-        });
-    });
-
-    let confirm_restore = Callback::new(move |_| {
-        state.update(|s| s.confirm_restore = false);
-        let Some(path) = state.get().selected_note.clone() else { return; };
-        let Some(id) = state.get().selected_version.clone() else { return; };
-        let toasts_confirm = toasts;
-        let state_confirm = state;
-        spawn_local(async move {
-            let args =
-                serde_wasm_bindgen::to_value(&serde_json::json!({ "path": path.clone(), "id": id }))
-                    .unwrap();
-            let result = crate::ipc::tauri_invoke("versions_restore", args).await;
-            match serde_wasm_bindgen::from_value::<()>(result) {
-                Ok(()) => {
-                    toasts_confirm.success("Restored", "The note was restored to this version.");
-                    // Refresh the timeline (the restore also snapshots the
-                    // pre-restore content).
-                    load_versions(path.clone(), state_confirm);
-                }
-                Err(e) => toasts_confirm.error("Restore", e.to_string()),
-            }
-        });
-    });
-
-    let duplicate_submit = Callback::new(move |dest: String| {
-        state.update(|s| s.duplicate_open = false);
-        let dest = dest.trim().to_string();
-        if dest.is_empty() {
-            return;
-        }
-        let Some(path) = state.get().selected_note.clone() else { return; };
-        let Some(id) = state.get().selected_version.clone() else { return; };
-        let toasts_dup = toasts;
-        spawn_local(async move {
-            let args = serde_wasm_bindgen::to_value(&serde_json::json!({
-                "path": path,
-                "id": id,
-                "dest": dest,
-            }))
-            .unwrap();
-            let result = crate::ipc::tauri_invoke("versions_duplicate", args).await;
-            match serde_wasm_bindgen::from_value::<()>(result) {
-                Ok(()) => toasts_dup.success("Duplicated", "Created a new note from this version."),
-                Err(e) => toasts_dup.error("Duplicate", e.to_string()),
-            }
-        });
-    });
-
-    // The selected version drives the "diff vs current" quick action.
-    let diff_vs_current = Callback::new(move |_| {
-        let Some(path) = state.get().selected_note.clone() else { return; };
-        let Some(from) = state.get().selected_version.clone() else { return; };
-        fetch_diff(path, from, None, state, toasts);
-    });
-
-    view! {
-        <div class="version-history flex h-full bg-gray-950 text-gray-100 overflow-hidden">
             // ── Left: snapshot browser ──
-            <div class="flex-none w-72 border-r border-gray-800 flex flex-col min-w-0">
-                <div class="px-4 py-3 border-b border-gray-800">
-                    <h2 class="text-base font-semibold text-gray-50">"Version History"</h2>
-                    <p class="text-xs text-gray-500">{move || format!("{} notes with snapshots", state.get().notes.len())}</p>
-                </div>
-                <div class="flex-1 overflow-y-auto">
-                    {move || {
-                        let notes = state.get().notes.clone();
-                        if notes.is_empty() {
-                            view! {
-                                <EmptyState
-                                    icon=Icon::History
-                                    title="No snapshots yet".to_string()
-                                    description="Save a note and it will appear here with version history.".to_string()
-                                ></EmptyState>
-                            }.into_any()
-                        } else {
-                            view! {
-                                <div class="divide-y divide-gray-800">
-                                    {notes.into_iter().map(|note| {
-                                        let path = note.path.clone();
-                                        let name = Path::new(&path).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| path.clone());
-                                        let count = note.version_count;
-                                        let last = note.last_snapshot_at.clone();
-                                        // Clone for the closure so `path` stays usable in the click handler.
-                                        let path_check = path.clone();
-                                        let is_selected = move || state.get().selected_note.as_deref() == Some(path_check.as_str());
-                                        view! {
-                                            <button
-                                                class=move || format!("w-full text-left px-3 py-2 hover:bg-gray-800/60 transition-colors {}", if is_selected() { "bg-gray-800 border-l-2 border-l-blue-500" } else { "border-l-2 border-l-transparent" })
-                                                on:click=move |_| select_note(path.clone())
-                                            >
-                                                <div class="flex items-center justify-between gap-2">
-                                                    <span class="text-sm font-medium truncate">{name}</span>
-                                                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">{count}</span>
-                                                </div>
-                                                <div class="text-xs text-gray-500 mt-0.5 truncate">
-                                                    {last.as_deref().map(relative_time).unwrap_or_default()}
-                                                </div>
-                                            </button>
+            div {
+                class: "flex-none w-72 border-r border-gray-800 flex flex-col min-w-0",
+            }
+            div { class: "px-4 py-3 border-b border-gray-800" }
+            h2 { class: "text-base font-semibold text-gray-50", "Version History" }
+            p { class: "text-xs text-gray-500", format!("{} notes with snapshots", notes.len()) }
+
+            div { class: "flex-1 overflow-y-auto" }
+            {if notes.is_empty() {
+                rsx! {
+                    EmptyState {
+                        icon: Icon::History,
+                        title: "No snapshots yet".to_string(),
+                        description: "Save a note and it will appear here with version history.".to_string(),
+                    }
+                }
+            } else {
+                rsx! {
+                    div { class: "divide-y divide-gray-800" }
+                    for note in &notes {
+                        {
+                            let path = note.path.clone();
+                            let name = Path::new(&path)
+                                .file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_else(|| path.clone());
+                            let count = note.version_count;
+                            let last = note.last_snapshot_at.clone();
+                            let path_check = path.clone();
+                            let s = state;
+                            let is_selected = {
+                                let s = state.read();
+                                s.selected_note.as_deref() == Some(path_check.as_str())
+                            };
+                            rsx! {
+                                button {
+                                    class: { format!(
+                                        "w-full text-left px-3 py-2 hover:bg-gray-800/60 transition-colors {}",
+                                        if is_selected {
+                                            "bg-gray-800 border-l-2 border-l-blue-500"
+                                        } else {
+                                            "border-l-2 border-l-transparent"
                                         }
-                                    }).collect_view()}
-                                </div>
-                            }.into_any()
+                                    ) },
+                                    onclick: move |_: MouseEvent| {
+                                        s.with_mut(|sn| {
+                                            sn.selected_note = Some(path.clone());
+                                        });
+                                        load_versions(path.clone(), s);
+                                    },
+                                    div { class: "flex items-center justify-between gap-2" }
+                                    span { class: "text-sm font-medium truncate", "{name}" }
+                                    span { class: "text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300", "{count}" }
+                                }
+                                div { class: "text-xs text-gray-500 mt-0.5 truncate" }
+                                {if let Some(at) = &last {
+                                    {relative_time(at)}
+                                } else {
+                                    rsx! {}
+                                }}
+                            }
                         }
-                    }}
-                </div>
-            </div>
+                    }
+                }
+            }}
 
             // ── Middle: version timeline ──
-            <div class="flex-none w-80 border-r border-gray-800 flex flex-col min-w-0">
-                <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-2">
-                    <h3 class="text-sm font-semibold text-gray-300 truncate">
-                        {move || state.get().selected_note.as_deref().and_then(|p| Path::new(p).file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "Select a note".to_string())}
-                    </h3>
-                    <Button size=ButtonSize::Sm on_click=on_manual_snapshot title="Capture a manual snapshot of the current content">
-                        "Snapshot"
-                    </Button>
-                </div>
-                <div class="flex-1 overflow-y-auto">
-                    {move || {
-                        let versions = state.get().versions.clone();
-                        if versions.is_empty() {
-                            view! { <div class="px-4 py-3 text-xs text-gray-500">"No versions recorded yet."</div> }.into_any()
-                        } else {
-                            view! {
-                                <div class="divide-y divide-gray-800">
-                                    {versions.into_iter().rev().map(|version| {
-                                        let id = version.id.clone();
-                                        // Clone for the closure so `id` stays usable in the click handler.
-                                        let id_check = id.clone();
-                                        let is_selected = move || state.get().selected_version.as_deref() == Some(id_check.as_str());
-                                        view! {
-                                            <button
-                                                class=move || format!("w-full text-left px-3 py-2 hover:bg-gray-800/60 transition-colors {}", if is_selected() { "bg-gray-800 border-l-2 border-l-blue-500" } else { "border-l-2 border-l-transparent" })
-                                                on:click=move |_| select_version(id.clone())
-                                            >
-                                                <div class="flex items-center justify-between gap-2">
-                                                    <span class="text-sm font-medium">{version.summary.clone().unwrap_or_else(|| "Untitled version".to_string())}</span>
-                                                    {if version.manual {
-                                                        view! { <span class="text-xs px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300">"Manual"</span> }.into_any()
-                                                    } else {
-                                                        view! {}.into_any()
-                                                    }}
-                                                </div>
-                                                <div class="text-xs text-gray-500 mt-0.5">
-                                                    {absolute_time(&version.created_at)}
-                                                    <span class="mx-1">"•"</span>
-                                                    {relative_time(&version.created_at)}
-                                                </div>
-                                                <div class="text-xs text-gray-600">
-                                                    {human_size(version.size)}
-                                                    <span class="mx-1">"•"</span>
-                                                    {format!("{} chars", version.char_count)}
-                                                </div>
-                                            </button>
+            div {
+                class: "flex-none w-80 border-r border-gray-800 flex flex-col min-w-0",
+            }
+            div {
+                class: "px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-2",
+            }
+            h3 {
+                class: "text-sm font-semibold text-gray-300 truncate",
+                "{selected_note_name}",
+            }
+            Button {
+                size: ButtonSize::Sm,
+                on_click: move |_: MouseEvent| {
+                    if let Some(path) = state.read().selected_note.clone() {
+                        let args = serde_wasm_bindgen::to_value(
+                            &serde_json::json!({ "path": path.clone() }),
+                        )
+                        .unwrap();
+                        let toasts_snap = toasts;
+                        spawn_local(async move {
+                            let result = crate::ipc::tauri_invoke("snapshot_create", args).await;
+                            match serde_wasm_bindgen::from_value::<VersionMeta>(result) {
+                                Ok(_meta) => {
+                                    toasts_snap.success(
+                                        "Snapshot created",
+                                        format!("Captured a snapshot of '{}'", path),
+                                    );
+                                    load_versions(path, state);
+                                }
+                                Err(_) => toasts_snap.error(
+                                    "Snapshot",
+                                    "Could not create a snapshot",
+                                ),
+                            }
+                        });
+                    } else {
+                        toasts.info("Snapshot", "Select a note first");
+                    }
+                },
+                title: "Capture a manual snapshot of the current content",
+                {"Snapshot"}
+            }
+
+            div { class: "flex-1 overflow-y-auto" }
+            {if versions.is_empty() {
+                rsx! {
+                    div {
+                        class: "px-4 py-3 text-xs text-gray-500",
+                        "No versions recorded yet.",
+                    }
+                }
+            } else {
+                rsx! {
+                    div { class: "divide-y divide-gray-800" }
+                    for version in versions.iter().rev() {
+                        {
+                            let id = version.id.clone();
+                            let id_check = id.clone();
+                            let s = state;
+                            let is_selected = {
+                                let s = state.read();
+                                s.selected_version.as_deref() == Some(id_check.as_str())
+                            };
+                            let summary_text =
+                                version.summary.clone().unwrap_or_else(|| "Untitled version".to_string());
+                            let created_abs = absolute_time(&version.created_at);
+                            let created_rel = relative_time(&version.created_at);
+                            let size_text = human_size(version.size);
+                            let char_text = format!("{} chars", version.char_count);
+                            rsx! {
+                                button {
+                                    key: "{id}",
+                                    class: { format!(
+                                        "w-full text-left px-3 py-2 hover:bg-gray-800/60 transition-colors {}",
+                                        if is_selected {
+                                            "bg-gray-800 border-l-2 border-l-blue-500"
+                                        } else {
+                                            "border-l-2 border-l-transparent"
                                         }
-                                    }).collect_view()}
-                                </div>
-                            }.into_any()
+                                    ) },
+                                    onclick: move |_: MouseEvent| {
+                                        if let Some(p) = s.read().selected_note.clone() {
+                                            preview_version(p, id.clone(), s);
+                                        }
+                                    },
+                                    div { class: "flex items-center justify-between gap-2" }
+                                    span { class: "text-sm font-medium", "{summary_text}" }
+                                    {if version.manual {
+                                        rsx! {
+                                            span {
+                                                class: "text-xs px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300",
+                                                "Manual",
+                                            }
+                                        }
+                                    } else {
+                                        rsx! {}
+                                    }}
+                                }
+                                div { class: "text-xs text-gray-500 mt-0.5" }
+                                "{created_abs}"
+                                span { class: "mx-1", "•" }
+                                "{created_rel}"
+                                div { class: "text-xs text-gray-600" }
+                                "{size_text}"
+                                span { class: "mx-1", "•" }
+                                "{char_text}"
+                            }
                         }
-                    }}
-                </div>
-            </div>
+                    }
+                }
+            }}
 
             // ── Right: preview + diff ──
-            <div class="flex-1 overflow-y-auto p-4 min-w-0">
-                {move || {
-                    if let Some(rows) = state.get().diff.clone() {
-                        view! {
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <h3 class="text-sm font-semibold text-gray-300">"Diff"</h3>
-                                    <Button size=ButtonSize::Sm variant=ButtonVariant::Ghost on_click=Callback::new(move |_| state.update(|s| s.diff = None))>
-                                        {render_icon_view(Icon::X)} Close
-                                    </Button>
-                                </div>
-                                <DiffView rows=rows old_label="Version".to_string() new_label="Current / Other".to_string() />
-                            </div>
-                        }.into_any()
-                    } else if let Some(content) = state.get().preview_content.clone() {
-                        view! {
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between gap-2 flex-wrap">
-                                    <h3 class="text-sm font-semibold text-gray-300">"Preview"</h3>
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <Button size=ButtonSize::Sm on_click=diff_vs_current> "Diff vs current" </Button>
-                                        <Button
-                                            size=ButtonSize::Sm
-                                            variant=ButtonVariant::Destructive
-                                            on_click=Callback::new(move |_| state.update(|s| s.confirm_restore = true))
-                                        >
-                                            "Restore this version"
-                                        </Button>
-                                        <Button
-                                            size=ButtonSize::Sm
-                                            variant=ButtonVariant::Outline
-                                            on_click=Callback::new(move |_| state.update(|s| s.duplicate_open = true))
-                                        >
-                                            "Duplicate…"
-                                        </Button>
-                                    </div>
-                                </div>
-                                <pre class="text-xs text-gray-300 bg-gray-900 p-3 rounded-lg overflow-auto max-h-96 whitespace-pre-wrap border border-gray-800">{content}</pre>
-                            </div>
-                        }.into_any()
-                    } else {
-                        view! {
-                            <EmptyState
-                                icon=Icon::Eye
-                                title="Select a note and a version".to_string()
-                                description="Preview the content, compare revisions, restore, or duplicate it.".to_string()
-                            ></EmptyState>
-                        }.into_any()
+            div { class: "flex-1 overflow-y-auto p-4 min-w-0" }
+            {if let Some(rows) = &diff_rows {
+                rsx! {
+                    div { class: "space-y-3" }
+                    div { class: "flex items-center justify-between gap-2" }
+                    h3 { class: "text-sm font-semibold text-gray-300", "Diff" }
+                    Button {
+                        size: ButtonSize::Sm,
+                        variant: ButtonVariant::Ghost,
+                        on_click: move |_: MouseEvent| {
+                            state.with_mut(|s| s.diff = None);
+                        },
+                        {render_icon_view(Icon::X)} " Close"
                     }
-                }}
-            </div>
+                    DiffView {
+                        rows: rows.clone(),
+                        old_label: "Version".to_string(),
+                        new_label: "Current / Other".to_string(),
+                    }
+                }
+            } else if let Some(content) = &preview_content {
+                rsx! {
+                    div { class: "space-y-3" }
+                    div { class: "flex items-center justify-between gap-2 flex-wrap" }
+                    h3 { class: "text-sm font-semibold text-gray-300", "Preview" }
+                    div { class: "flex items-center gap-2 flex-wrap" }
+                    Button {
+                        size: ButtonSize::Sm,
+                        on_click: move |_: MouseEvent| {
+                            if let Some(path) = state.read().selected_note.clone() {
+                                if let Some(from) = state.read().selected_version.clone() {
+                                    let toasts_df = toasts;
+                                    fetch_diff(path, from, None, state, toasts_df);
+                                }
+                            }
+                        },
+                        "Diff vs current"
+                    }
+                    Button {
+                        size: ButtonSize::Sm,
+                        variant: ButtonVariant::Destructive,
+                        on_click: move |_: MouseEvent| {
+                            state.with_mut(|s| s.confirm_restore = true);
+                        },
+                        "Restore this version"
+                    }
+                    Button {
+                        size: ButtonSize::Sm,
+                        variant: ButtonVariant::Outline,
+                        on_click: move |_: MouseEvent| {
+                            state.with_mut(|s| s.duplicate_open = true);
+                        },
+                        "Duplicate…"
+                    }
+                    pre {
+                        class: "text-xs text-gray-300 bg-gray-900 p-3 rounded-lg overflow-auto max-h-96 whitespace-pre-wrap border border-gray-800",
+                        "{content}",
+                    }
+                }
+            } else {
+                rsx! {
+                    EmptyState {
+                        icon: Icon::Eye,
+                        title: "Select a note and a version".to_string(),
+                        description: "Preview the content, compare revisions, restore, or duplicate it.".to_string(),
+                    }
+                }
+            }}
+            }
 
             // ── Dialogs ──
-            <ConfirmDialog
-                open=restore_open
-                title="Restore this version?".to_string()
-                message="The note will be replaced with this snapshot. The current content is snapshotted first, and you can undo the restore.".to_string()
-                confirm_label="Restore"
-                cancel_label="Cancel"
-                danger=false
-                on_confirm=confirm_restore
-                on_cancel=Callback::new(move |_| state.update(|s| s.confirm_restore = false))
-            />
+            ConfirmDialog {
+                open: restore_open,
+                title: "Restore this version?".to_string(),
+                message: "The note will be replaced with this snapshot. The current content is snapshotted first, and you can undo the restore.".to_string(),
+                confirm_label: "Restore",
+                cancel_label: "Cancel",
+                danger: false,
+                on_confirm: move |_: ()| {
+                    state.with_mut(|s| s.confirm_restore = false);
+                    let path = {
+                        let s = state.read();
+                        s.selected_note.clone()
+                    };
+                    let id = {
+                        let s = state.read();
+                        s.selected_version.clone()
+                    };
+                    if let (Some(path), Some(id)) = (path, id) {
+                        let toasts_c = toasts;
+                        spawn_local(async move {
+                            let args = serde_wasm_bindgen::to_value(
+                                &serde_json::json!({ "path": path.clone(), "id": id }),
+                            )
+                            .unwrap();
+                            let result =
+                                crate::ipc::tauri_invoke("versions_restore", args).await;
+                            match serde_wasm_bindgen::from_value::<()>(result) {
+                                Ok(()) => {
+                                    toasts_c.success(
+                                        "Restored",
+                                        "The note was restored to this version.",
+                                    );
+                                    let _ = path.clone();
+                                    load_versions(path, state);
+                                }
+                                Err(e) => toasts_c.error("Restore", e.to_string()),
+                            }
+                        });
+                    }
+                },
+                on_cancel: move |_: ()| {
+                    state.with_mut(|s| s.confirm_restore = false);
+                },
+            }
 
-            <PromptDialog
-                open=duplicate_open
-                title="Duplicate version as new note".to_string()
-                message="Enter the new note path (e.g. copy-of-note.md):".to_string()
-                confirm_label="Duplicate"
-                cancel_label="Cancel"
-                on_submit=duplicate_submit
-                on_cancel=Callback::new(move |_| state.update(|s| s.duplicate_open = false))
-            />
-        </div>
+            PromptDialog {
+                open: duplicate_open,
+                title: "Duplicate version as new note".to_string(),
+                message: "Enter the new note path (e.g. copy-of-note.md):".to_string(),
+                confirm_label: "Duplicate",
+                cancel_label: "Cancel",
+                on_submit: move |dest: String| {
+                    state.with_mut(|s| s.duplicate_open = false);
+                    let dest = dest.trim().to_string();
+                    if dest.is_empty() {
+                        return;
+                    }
+                    let path = {
+                        let s = state.read();
+                        s.selected_note.clone()
+                    };
+                    let id = {
+                        let s = state.read();
+                        s.selected_version.clone()
+                    };
+                    if let (Some(path), Some(id)) = (path, id) {
+                        let toasts_d = toasts;
+                        spawn_local(async move {
+                            let args = serde_wasm_bindgen::to_value(
+                                &serde_json::json!({ "path": path, "id": id, "dest": dest }),
+                            )
+                            .unwrap();
+                            let result =
+                                crate::ipc::tauri_invoke("versions_duplicate", args).await;
+                            match serde_wasm_bindgen::from_value::<()>(result) {
+                                Ok(()) => toasts_d
+                                    .success("Duplicated", "Created a new note from this version."),
+                                Err(e) => toasts_d.error("Duplicate", e.to_string()),
+                            }
+                        });
+                    }
+                },
+                on_cancel: move |_: ()| {
+                    state.with_mut(|s| s.duplicate_open = false);
+                },
+            }
+        }
     }
 }
