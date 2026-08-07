@@ -1,4 +1,4 @@
-//! # Statistics & Insights — vault-wide metrics dashboard
+//! # Statistics & Insights — Dioxus migration
 //!
 //! Displays comprehensive vault statistics: note count, folder count, tag
 //! count, graph connections, orphan notes, writing streaks, recently
@@ -6,10 +6,10 @@
 //! usage. Data is computed on demand by the backend `statistics_get`
 //! command — no persistent index to maintain.
 
-use crate::components::navigation::state::use_nav;
+use crate::components::contexts::{open_tab, use_nav, use_workspace};
+use crate::components::ui::feedback::{ErrorPanel, Skeleton};
 use crate::components::ui::icons::{render_icon_view, Icon};
-use crate::components::workspace::{open_tab, use_workspace};
-use leptos::prelude::*;
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
@@ -56,282 +56,288 @@ struct VaultStatistics {
     active_days_last_30: usize,
 }
 
-// ── Statistics Component ────────────────────────────────────────────
+/// Human-readable byte size.
+fn format_bytes(bytes: u64) -> String {
+    if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{:.1} KB", bytes as f64 / 1024.0)
+    } else if bytes < 1024 * 1024 * 1024 {
+        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
+    } else {
+        format!("{:.1} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
+    }
+}
+
+/// Triggers a settings save so the theme change is persisted.
+fn save_theme(theme: &str) {
+    let args = serde_wasm_bindgen::to_value(
+        &serde_json::json!({ "key": "theme", "value": theme }),
+    )
+    .unwrap();
+    spawn_local(async move {
+        let _ = crate::ipc::tauri_invoke("settings_set", args).await;
+    });
+}
+
+/// Loads vault statistics from the backend.
+fn reload_stats(
+    stats: Signal<VaultStatistics>,
+    loaded: Signal<bool>,
+    error: Signal<Option<String>>,
+) {
+    let mut stats = stats;
+    let mut loaded = loaded;
+    let mut error = error;
+    loaded.set(false);
+    error.set(None);
+    spawn_local(async move {
+        let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+        let result = crate::ipc::tauri_invoke("statistics_get", empty).await;
+        match serde_wasm_bindgen::from_value::<VaultStatistics>(result) {
+            Ok(s) => stats.set(s),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loaded.set(true);
+    });
+}
 
 #[component]
-pub fn StatisticsView() -> impl IntoView {
-    let nav = use_nav();
+pub fn StatisticsView() -> Element {
+    let nav: crate::components::navigation::state::NavContext = use_nav();
     let workspace = use_workspace();
 
-    let (stats, set_stats) = signal(VaultStatistics::default());
-    let (loaded, set_loaded) = signal(false);
-    let (load_error, set_load_error) = signal(None::<String>);
-    let (tag_filter, set_tag_filter) = signal(String::new());
+    let mut stats = use_signal(VaultStatistics::default);
+    let mut loaded = use_signal(|| false);
+    let mut load_error = use_signal(|| None::<String>);
+    let mut tag_filter = use_signal(String::new);
 
-    let load_stats = Callback::new(move |_| {
-        set_loaded.set(false);
-        set_load_error.set(None);
-        spawn_local(async move {
-            let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
-            let result = crate::ipc::tauri_invoke("statistics_get", empty).await;
-            match serde_wasm_bindgen::from_value::<VaultStatistics>(result) {
-                Ok(s) => set_stats.set(s),
-                Err(e) => set_load_error.set(Some(e.to_string())),
-            }
-            set_loaded.set(true);
-        });
-    });
-
-    load_stats.run(());
+    // Initial load — mirrors LePtOS `load_stats.run(())` on mount.
+    let mut loaded_once = use_signal(|| false);
+    if !*loaded_once.read() {
+        loaded_once.set(true);
+        reload_stats(stats, loaded, load_error);
+    }
 
     let open_note = move |path: String| {
-        open_tab(workspace, &path);
-        nav.view_mode.set(crate::components::navigation::state::ViewMode::Editor);
+        let ws = workspace;
+        open_tab(ws, &path);
     };
 
-    let format_bytes = |bytes: u64| -> String {
-        if bytes < 1024 {
-            format!("{} B", bytes)
-        } else if bytes < 1024 * 1024 {
-            format!("{:.1} KB", bytes as f64 / 1024.0)
-        } else if bytes < 1024 * 1024 * 1024 {
-            format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
-        } else {
-            format!("{:.1} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
+    rsx! {
+        div { class: "statistics-view h-full overflow-y-auto bg-gray-950 text-gray-100" }
+        div { class: "max-w-6xl mx-auto p-6 space-y-6" }
+
+        // Header
+        div { class: "flex items-center justify-between" }
+        div {
+            h1 { class: "text-xl font-semibold text-gray-200", "Statistics & Insights" }
+            p { class: "text-sm text-gray-500", "Vault-wide metrics and writing insights" }
         }
-    };
-
-    let max_growth = move || {
-        stats
-            .get()
-            .growth
-            .iter()
-            .map(|g| g.count)
-            .max()
-            .unwrap_or(1)
-    };
-
-    let filtered_tags = move || {
-        let f = tag_filter.get().to_lowercase();
-        let s = stats.get();
-        if f.is_empty() {
-            s.tags.clone()
-        } else {
-            s.tags.iter().filter(|t| t.tag.to_lowercase().contains(&f)).cloned().collect()
+        button {
+            class: "px-3 py-1.5 text-sm bg-gray-800 rounded hover:bg-gray-700 border border-gray-700",
+            onclick: move |_: MouseEvent| reload_stats(stats, loaded, load_error),
+            {render_icon_view(Icon::RefreshCw)}
+            " Refresh"
         }
-    };
 
-    view! {
-        <div class="statistics-view h-full overflow-y-auto bg-gray-950 text-gray-100">
-            <div class="max-w-6xl mx-auto p-6 space-y-6">
-                // Header
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-xl font-semibold text-gray-200">"Statistics & Insights"</h1>
-                        <p class="text-sm text-gray-500">"Vault-wide metrics and writing insights"</p>
-                    </div>
-                    <button
-                        class="px-3 py-1.5 text-sm bg-gray-800 rounded hover:bg-gray-700 border border-gray-700"
-                        on:click=move |_| load_stats.run(())
-                    >
-                        {render_icon_view(Icon::RefreshCw)} Refresh
-                    </button>
-                </div>
-
-                {move || {
-                    if let Some(err) = load_error.get() {
-                        view! {
-                            <crate::components::ui::feedback::ErrorPanel
-                                title="Couldn't load statistics".to_string()
-                                message="Failed to compute vault statistics.".to_string()
-                                details=err
-                                recovery="Make sure your vault is accessible, then try again.".to_string()
-                                on_retry=load_stats
-                            />
-                        }.into_any()
-                    } else if !loaded.get() {
-                        view! {
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {(0..8).map(|_| view! {
-                                    <crate::components::ui::feedback::Skeleton width="100%" height="80px" />
-                                }).collect_view()}
-                            </div>
-                        }.into_any()
-                    } else {
-                        view! {}.into_any()
+        // Error / loading state
+        {move || {
+            let err = load_error.read().clone();
+            if let Some(err) = err {
+                rsx! {
+                    ErrorPanel {
+                        title: "Couldn't load statistics".to_string(),
+                        message: "Failed to compute vault statistics.".to_string(),
+                        details: err,
+                        recovery: "Make sure your vault is accessible, then try again.".to_string(),
+                        on_retry: move |_: ()| reload_stats(stats, loaded, load_error),
                     }
-                }}
-
-                {move || {
-                    if !loaded.get() {
-                        return view! {}.into_any();
+                }
+            } else if !loaded.read() {
+                rsx! {
+                    div { class: "grid grid-cols-2 md:grid-cols-4 gap-4" }
+                    for _ in 0..8 {
+                        Skeleton { width: "100%", height: "80px" }
                     }
-                    let s = stats.get();
+                }
+            }
+        }}
 
-                    view! {
-                        // Key metrics grid
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-blue-400">{s.note_count}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Notes"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-green-400">{s.folder_count}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Folders"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-purple-400">{s.tag_count}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Unique Tags"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-yellow-400">{s.total_tags}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Total Tag Uses"</div>
-                            </div>
-                        </div>
+        // Main content (only when loaded)
+        {move || {
+            if !loaded.read() {
+                return rsx! {};
+            }
+            let s = stats.read().clone();
+            let max_growth = s.growth.iter().map(|g| g.count).max().unwrap_or(1);
+            let query = tag_filter.read().to_lowercase();
+            let filtered_tags: Vec<TagStat> = if query.is_empty() {
+                s.tags.clone()
+            } else {
+                s.tags.iter()
+                    .filter(|t| t.tag.to_lowercase().contains(&query))
+                    .cloned()
+                    .collect()
+            };
 
-                        // Graph metrics
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-cyan-400">{s.graph_nodes}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Graph Nodes"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-indigo-400">{s.graph_edges}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Graph Connections"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-orange-400">{s.graph_orphans}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Orphan Notes"</div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <div class="text-2xl font-bold text-pink-400">{s.graph_clusters}</div>
-                                <div class="text-xs text-gray-500 mt-1">"Clusters"</div>
-                            </div>
-                        </div>
+            rsx! {
+                // Key metrics grid
+                div { class: "grid grid-cols-2 md:grid-cols-4 gap-4" }
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-blue-400", "{s.note_count}" }
+                div { class: "text-xs text-gray-500 mt-1", "Notes" }
 
-                        // Writing streak & storage
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">{render_icon_view(Icon::Flame)}</span>
-                                <div>
-                                    <div class="text-2xl font-bold text-red-400">{s.writing_streak_days}</div>
-                                    <div class="text-xs text-gray-500">"Day writing streak"</div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">{render_icon_view(Icon::Calendar)}</span>
-                                <div>
-                                    <div class="text-2xl font-bold text-green-400">{s.active_days_last_30}</div>
-                                    <div class="text-xs text-gray-500">"Active days (last 30)"</div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3">
-                                <span class="text-3xl">{render_icon_view(Icon::HardDrive)}</span>
-                                <div>
-                                    <div class="text-2xl font-bold text-blue-400">{format_bytes(s.storage_bytes)}</div>
-                                    <div class="text-xs text-gray-500">"Storage usage"</div>
-                                </div>
-                            </div>
-                        </div>
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-green-400", "{s.folder_count}" }
+                div { class: "text-xs text-gray-500 mt-1", "Folders" }
 
-                        // Vault growth histogram
-                        <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                            <h3 class="text-sm font-semibold text-gray-300 mb-3">"Vault Growth (30 days)"</h3>
-                            <div class="flex items-end gap-1 h-32">
-                                {s.growth.iter().map(|point| {
-                                    let max = max_growth();
-                                    let height = if max > 0 { (point.count as f64 / max as f64 * 100.0) as u32 } else { 0 };
-                                    let height = height.max(2);
-                                    view! {
-                                        <div class="flex-1 flex flex-col items-center justify-end group relative">
-                                            <div class="w-full bg-blue-600 rounded-t hover:bg-blue-500 transition-colors"
-                                                style=format!("height: {}%", height)
-                                            ></div>
-                                            <div class="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 whitespace-nowrap">
-                                                {format!("{}: {}", point.date, point.count)}
-                                            </div>
-                                        </div>
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-purple-400", "{s.tag_count}" }
+                div { class: "text-xs text-gray-500 mt-1", "Unique Tags" }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-yellow-400", "{s.total_tags}" }
+                div { class: "text-xs text-gray-500 mt-1", "Total Tag Uses" }
+
+                // Graph metrics
+                div { class: "grid grid-cols-2 md:grid-cols-4 gap-4" }
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-cyan-400", "{s.graph_nodes}" }
+                div { class: "text-xs text-gray-500 mt-1", "Graph Nodes" }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-indigo-400", "{s.graph_edges}" }
+                div { class: "text-xs text-gray-500 mt-1", "Graph Connections" }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-orange-400", "{s.graph_orphans}" }
+                div { class: "text-xs text-gray-500 mt-1", "Orphan Notes" }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "text-2xl font-bold text-pink-400", "{s.graph_clusters}" }
+                div { class: "text-xs text-gray-500 mt-1", "Clusters" }
+
+                // Writing streak & storage
+                div { class: "grid grid-cols-1 md:grid-cols-3 gap-4" }
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3" }
+                span { class: "text-3xl", {render_icon_view(Icon::Flame)} }
+                div {
+                    div { class: "text-2xl font-bold text-red-400", "{s.writing_streak_days}" }
+                    div { class: "text-xs text-gray-500", "Day writing streak" }
+                }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3" }
+                span { class: "text-3xl", {render_icon_view(Icon::Calendar)} }
+                div {
+                    div { class: "text-2xl font-bold text-green-400", "{s.active_days_last_30}" }
+                    div { class: "text-xs text-gray-500", "Active days (last 30)" }
+                }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-3" }
+                span { class: "text-3xl", {render_icon_view(Icon::HardDrive)} }
+                div {
+                    div { class: "text-2xl font-bold text-blue-400", "{format_bytes(s.storage_bytes)}" }
+                    div { class: "text-xs text-gray-500", "Storage usage" }
+                }
+
+                // Vault growth histogram
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Vault Growth (30 days)" }
+                div { class: "flex items-end gap-1 h-32" }
+                for point in &s.growth {
+                    {
+                        let pct = if max_growth > 0 {
+                            (point.count as f64 / max_growth as f64 * 100.0) as u32
+                        } else {
+                            0
+                        };
+                        let height = pct.max(2);
+                        let label = format!("{}: {}", point.date, point.count);
+                        rsx! {
+                            div { class: "flex-1 flex flex-col items-center justify-end group relative" }
+                            div {
+                                class: "w-full bg-blue-600 rounded-t hover:bg-blue-500 transition-colors",
+                                style: "height: {height}%",
+                            }
+                            div { class: "absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 whitespace-nowrap", "{label}" }
+                        }
+                    }
+                }
+                div { class: "flex justify-between mt-2 text-xs text-gray-600" }
+                span { "{s.growth.first().map(|g| g.date.clone()).unwrap_or_default()}" }
+                span { "{s.growth.last().map(|g| g.date.clone()).unwrap_or_default()}" }
+
+                // Tags
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                div { class: "flex items-center justify-between mb-3" }
+                h3 { class: "text-sm font-semibold text-gray-300", "Tags" }
+                input {
+                    r#type: "text",
+                    placeholder: "Filter tags…",
+                    class: "bg-gray-800 text-gray-100 rounded px-2 py-1 text-xs border border-gray-700",
+                    value: "{tag_filter.read()}",
+                    oninput: move |ev: FormEvent| tag_filter.set(ev.value()),
+                }
+                {if filtered_tags.is_empty() {
+                    rsx! { div { class: "text-sm text-gray-500", "No tags found" } }
+                } else {
+                    rsx! {
+                        div { class: "flex flex-wrap gap-2" }
+                        for t in &filtered_tags {
+                            {
+                                let label = format!("{} ({})", t.tag, t.count);
+                                rsx! {
+                                    span {
+                                        class: "px-2 py-1 text-xs bg-gray-800 rounded text-gray-300 border border-gray-700",
+                                        "{label}"
                                     }
-                                }).collect_view()}
-                            </div>
-                            <div class="flex justify-between mt-2 text-xs text-gray-600">
-                                <span>{s.growth.first().map(|g| g.date.clone()).unwrap_or_default()}</span>
-                                <span>{s.growth.last().map(|g| g.date.clone()).unwrap_or_default()}</span>
-                            </div>
-                        </div>
-
-                        // Tags
-                        <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-sm font-semibold text-gray-300">"Tags"</h3>
-                                <input
-                                    type="text"
-                                    placeholder="Filter tags…"
-                                    class="bg-gray-800 text-gray-100 rounded px-2 py-1 text-xs border border-gray-700"
-                                    on:input=move |ev| set_tag_filter.set(event_target_value(&ev))
-                                />
-                            </div>
-                            {move || {
-                                let tags = filtered_tags();
-                                if tags.is_empty() {
-                                    view! { <div class="text-sm text-gray-500">"No tags found"</div> }.into_any()
-                                } else {
-                                    view! {
-                                        <div class="flex flex-wrap gap-2">
-                                            {tags.iter().take(100).map(|t| {
-                                                view! {
-                                                    <span class="px-2 py-1 text-xs bg-gray-800 rounded text-gray-300 border border-gray-700">
-                                                        {format!("{} ({})", t.tag, t.count)}
-                                                    </span>
-                                                }
-                                            }).collect_view()}
-                                        </div>
-                                    }.into_any()
                                 }
-                            }}
-                        </div>
-
-                        // Recently modified
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-gray-300 mb-3">"Recently Modified"</h3>
-                                <div class="space-y-1">
-                                    {s.recently_modified.iter().take(10).map(|n| {
-                                        let path = n.path.clone();
-                                        let title = n.title.clone();
-                                        view! {
-                                            <div class="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2"
-                                                on:click=move |_| open_note(path.clone())
-                                            >
-                                                <span class="text-sm text-gray-300 truncate">{title}</span>
-                                                <span class="text-xs text-gray-500">{format_bytes(n.size as u64)}</span>
-                                            </div>
-                                        }
-                                    }).collect_view()}
-                                </div>
-                            </div>
-
-                            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-gray-300 mb-3">"Recently Created"</h3>
-                                <div class="space-y-1">
-                                    {s.recently_created.iter().take(10).map(|n| {
-                                        let path = n.path.clone();
-                                        let title = n.title.clone();
-                                        view! {
-                                            <div class="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2"
-                                                on:click=move |_| open_note(path.clone())
-                                            >
-                                                <span class="text-sm text-gray-300 truncate">{title}</span>
-                                                <span class="text-xs text-gray-500">{format_bytes(n.size as u64)}</span>
-                                            </div>
-                                        }
-                                    }).collect_view()}
-                                </div>
-                            </div>
-                        </div>
-                    }.into_any()
+                            }
+                        }
+                    }
                 }}
-            </div>
-        </div>
+
+                // Recently modified & recently created
+                div { class: "grid grid-cols-1 md:grid-cols-2 gap-4" }
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Recently Modified" }
+                div { class: "space-y-1" }
+                for n in &s.recently_modified {
+                    {
+                        let path = n.path.clone();
+                        let title = n.title.clone();
+                        let size = n.size;
+                        rsx! {
+                            div {
+                                class: "flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2",
+                                onclick: move |_: MouseEvent| open_note(path),
+                                span { class: "text-sm text-gray-300 truncate", "{title}" }
+                                span { class: "text-xs text-gray-500", "{format_bytes(size as u64)}" }
+                            }
+                        }
+                    }
+                }
+
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Recently Created" }
+                div { class: "space-y-1" }
+                for n in &s.recently_created {
+                    {
+                        let path = n.path.clone();
+                        let title = n.title.clone();
+                        let size = n.size;
+                        rsx! {
+                            div {
+                                class: "flex items-center justify-between py-1 cursor-pointer hover:bg-gray-800 rounded px-2",
+                                onclick: move |_: MouseEvent| open_note(path),
+                                span { class: "text-sm text-gray-300 truncate", "{title}" }
+                                span { class: "text-xs text-gray-500", "{format_bytes(size as u64)}" }
+                            }
+                        }
+                    }
+                }
+            }
+        }}
     }
 }

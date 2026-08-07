@@ -1,11 +1,13 @@
-//! # Session persistence — frontend helpers
+//! # Session persistence — frontend helpers (Dioxus migration)
 //!
 //! Bridges the frontend to the backend session + crash-recovery commands
 //! (`session_save` / `session_load` / `session_clear` / `recovery_check` /
-//! `recovery_discard`). Workspace state — active note, cursor, scroll,
-//! sidebar toggles — is captured on change and restored on launch.
+//! `recovery_discard`).
+//!
+//! Changes from LePtOS: `leptos::prelude::*` → `dioxus::prelude::*`,
+//! `Callback::run` → `Callback::call`, `RwSignal` → `Signal`.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
@@ -56,8 +58,10 @@ pub fn session_load(on_result: Callback<Option<SessionState>>) {
     spawn_local(async move {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
         let result = crate::ipc::tauri_invoke("session_load", empty_args).await;
-        let parsed = serde_wasm_bindgen::from_value::<Option<SessionState>>(result).ok().flatten();
-        on_result.run(parsed);
+        let parsed = serde_wasm_bindgen::from_value::<Option<SessionState>>(result)
+            .ok()
+            .flatten();
+        on_result.call(parsed);
     });
 }
 
@@ -80,11 +84,11 @@ pub fn recovery_check(on_result: Callback<RecoveryStatus>) {
                 has_session: false,
                 session: None,
             });
-        on_result.run(status);
+        on_result.call(status);
     });
 }
 
-/// Clears the recovery-pending marker after the user restored/discarded.
+/// Clears the recovery-pending marker after the user restored / discarded.
 pub fn recovery_discard() {
     spawn_local(async move {
         let empty_args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();

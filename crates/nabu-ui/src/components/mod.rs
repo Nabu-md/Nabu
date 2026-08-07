@@ -25,4 +25,5 @@ pub mod navigation;
 pub mod note_editor;
 pub mod note_view;
 pub mod property_editor;
+pub mod settings;
 pub mod ui;

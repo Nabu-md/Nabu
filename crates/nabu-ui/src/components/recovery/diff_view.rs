@@ -1,10 +1,12 @@
-//! # Side-by-side diff viewer
+//! # Side-by-side diff viewer (Dioxus migration)
 //!
 //! Renders [`DiffRow`]s returned by the backend `versions_diff` command as a
-//! two-column comparison. Additions are highlighted green, removals red, and
-//! unchanged lines neutral; line numbers are shown for both sides.
+//! two-column comparison.
+//!
+//! Changes: `leptos::prelude::*` → `dioxus::prelude::*`, `view!` → `rsx!`,
+//! `impl IntoView` → `Element`, `.into_any()` removed, `collect_view()` → `for`.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// One row of a diff (mirrors the backend `DiffRow`).
@@ -26,46 +28,43 @@ pub struct DiffRow {
 
 /// Side-by-side diff viewer.
 #[component]
-pub fn DiffView(rows: Vec<DiffRow>, old_label: String, new_label: String) -> impl IntoView {
-    view! {
-        <div class="diff-view">
-            <div class="diff-headers">
-                <div class="diff-header diff-header-old">{old_label}</div>
-                <div class="diff-header diff-header-new">{new_label}</div>
-            </div>
-            <div class="diff-body">
-                {rows.into_iter().map(|row| {
-                    let kind = row.kind;
-                    let old_line = row.old_line.map(|l| l.to_string()).unwrap_or_default();
-                    let new_line = row.new_line.map(|l| l.to_string()).unwrap_or_default();
-                    let display = if row.text.is_empty() {
-                        " ".to_string()
-                    } else {
-                        row.text.clone()
-                    };
-                    let text_old = display.clone();
-                    let text_new = display;
-                    let (old_class, new_class, tag) = match kind {
-                        DiffKind::Same => ("", "", ""),
-                        DiffKind::Added => ("diff-cell dim", "diff-cell diff-added", "+"),
-                        DiffKind::Removed => ("diff-cell diff-removed", "diff-cell dim", "−"),
-                    };
-                    view! {
-                        <div class="diff-row">
-                            <div class=format!("diff-cell diff-old {old_class}")>
-                                <span class="diff-lineno">{old_line}</span>
-                                <span class="diff-mark" aria-hidden="true">{if kind == DiffKind::Added { "" } else { tag }}</span>
-                                <span class="diff-text">{text_old}</span>
-                            </div>
-                            <div class=format!("diff-cell diff-new {new_class}")>
-                                <span class="diff-lineno">{new_line}</span>
-                                <span class="diff-mark" aria-hidden="true">{if kind == DiffKind::Removed { "" } else { tag }}</span>
-                                <span class="diff-text">{text_new}</span>
-                            </div>
-                        </div>
-                    }
-                }).collect_view()}
-            </div>
-        </div>
+pub fn DiffView(rows: Vec<DiffRow>, old_label: String, new_label: String) -> Element {
+    rsx! {
+        div { class: "diff-view" }
+        div { class: "diff-headers" }
+        div { class: "diff-header diff-header-old", "{old_label}" }
+        div { class: "diff-header diff-header-new", "{new_label}" }
+
+        div { class: "diff-body" }
+        for row in rows {
+            {
+                let kind = row.kind;
+                let old_line = row.old_line.map(|l| l.to_string()).unwrap_or_default();
+                let new_line = row.new_line.map(|l| l.to_string()).unwrap_or_default();
+                let display = if row.text.is_empty() { " " } else { &row.text };
+                let text_old = display;
+                let text_new = display;
+                let (old_class, new_class, tag) = match kind {
+                    DiffKind::Same => ("", "", ""),
+                    DiffKind::Added => ("diff-cell dim", "diff-cell diff-added", "+"),
+                    DiffKind::Removed => ("diff-cell diff-removed", "diff-cell dim", "−"),
+                };
+                let old_class = old_class;
+                let new_class = new_class;
+                let tag = tag;
+                rsx! {
+                    div { class: "diff-row" }
+                    div { class: "diff-cell diff-old {old_class}" }
+                    span { class: "diff-lineno", "{old_line}" }
+                    span { class: "diff-mark", "aria-hidden": "true", "{if kind == DiffKind::Added { \"\" } else { tag }}" }
+                    span { class: "diff-text", "{text_old}" }
+
+                    div { class: "diff-cell diff-new {new_class}" }
+                    span { class: "diff-lineno", "{new_line}" }
+                    span { class: "diff-mark", "aria-hidden": "true", "{if kind == DiffKind::Removed { \"\" } else { tag }}" }
+                    span { class: "diff-text", "{text_new}" }
+                }
+            }
+        }
     }
 }

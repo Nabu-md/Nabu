@@ -1,15 +1,13 @@
-//! # Autosave status — "Saving… / Saved / Save failed / Retrying"
+//! # Autosave status — "Saving… / Saved / Save failed / Retrying" (Dioxus)
 //!
 //! A small shared context that reports the current save state of the active
 //! note without interrupting the workflow. The [`SaveStatusIndicator`] renders
-//! it in the status bar; the note editor drives it as it autosaves.
+//! it in the status bar.
 //!
-//! ## Reactivity note
-//!
-//! The context is `Copy` and must be captured at render time — never via
-//! `expect_context` inside a `spawn_local` future or a raw DOM callback.
+//! Changes from LePtOS: `RwSignal` → `Signal`, `provide_context` wrapped in a
+//! provider component, `view!` → `rsx!`, `impl IntoView` → `Element`.
 
-use leptos::prelude::*;
+use dioxus::prelude::*;
 
 /// Current save state of the active note.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -52,42 +50,45 @@ impl SaveStatus {
 /// Shared autosave status context.
 #[derive(Clone, Copy)]
 pub struct SaveStatusContext {
-    pub status: RwSignal<SaveStatus>,
+    pub status: Signal<SaveStatus>,
     /// Extra detail shown as a tooltip (e.g. the note path).
-    pub detail: RwSignal<String>,
+    pub detail: Signal<String>,
 }
 
-/// Provides the autosave status context (call at the app root).
+/// Provides the autosave status context (call inside a `#[component]`).
 pub fn provide_save_status() {
     provide_context(SaveStatusContext {
-        status: RwSignal::new(SaveStatus::Idle),
-        detail: RwSignal::new(String::new()),
+        status: use_signal(|| SaveStatus::Idle),
+        detail: use_signal(String::new),
     });
+}
+
+/// Provider component for save-status tracking.
+#[component]
+pub fn SaveStatusProvider(children: Element) -> Element {
+    provide_save_status();
+    rsx! { {children} }
 }
 
 /// Retrieves the autosave status context.
 pub fn use_save_status() -> SaveStatusContext {
-    expect_context::<SaveStatusContext>()
+    use_context::<SaveStatusContext>()
 }
 
 /// A compact status-bar indicator for the save state.
 #[component]
-pub fn SaveStatusIndicator() -> impl IntoView {
+pub fn SaveStatusIndicator() -> Element {
     let ctx = use_save_status();
-    view! {
-        <span
-            class="save-status"
-            role="status"
-            aria-live="polite"
-            title={move || ctx.detail.get()}
-        >
-            <span
-                class=move || format!("save-dot {}", ctx.status.get().dot_class())
-                aria-hidden="true"
-            ></span>
-            <span class="save-status-label">
-                {move || ctx.status.get().label()}
-            </span>
-        </span>
+    rsx! {
+        span {
+            class: "save-status",
+            role: "status",
+            "aria-live": "polite",
+        }
+        span {
+            class: { format!("save-dot {}", ctx.status.read().dot_class()) },
+            "aria-hidden": "true",
+        }
+        span { class: "save-status-label", "{ctx.status.read().label()}" }
     }
 }
