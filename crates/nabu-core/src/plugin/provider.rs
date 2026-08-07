@@ -56,18 +56,20 @@
 //!
 //! To create a new provider, implement `CapabilityProvider`:
 //!
-//! ```
+//! ```ignore
 //! use std::sync::Arc;
 //! use nabu_core::plugin::capability::{Capability, CapabilityRegistry};
 //! use nabu_core::plugin::version::Version;
 //! use nabu_core::plugin::provider::{CapabilityProvider, ProviderError};
 //!
-//! struct MyProvider;
+//! struct MyProvider {
+//!     version: Version,
+//! }
 //!
 //! impl CapabilityProvider for MyProvider {
 //!     fn id(&self) -> &str { "com.example.my-plugin" }
 //!     fn name(&self) -> &str { "My Plugin" }
-//!     fn version(&self) -> &Version { &Version::new(1, 0, 0) }
+//!     fn version(&self) -> &Version { &self.version }
 //!     fn description(&self) -> &str { "An example provider" }
 //!
 //!     fn capabilities(&self) -> Vec<Capability> {

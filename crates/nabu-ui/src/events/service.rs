@@ -90,7 +90,7 @@ impl Inner {
 /// so components receive it by value via [`use_event_service`](super::use_event_service).
 #[derive(Clone)]
 pub struct EventService {
-    pub(crate) inner: SharedInner,
+    inner: SharedInner,
 }
 
 impl Default for EventService {
@@ -423,11 +423,11 @@ mod tests {
 
         let _a = service.subscribe(FrontendEventKind::ItemStored, {
             let s = stored_hits.clone();
-            move |_ev: &FrontendEvent| s.fetch_add(1, Ordering::SeqCst)
+            move |_ev: &FrontendEvent| { s.fetch_add(1, Ordering::SeqCst); }
         });
         let _b = service.subscribe(FrontendEventKind::ItemProcessingProgress, {
             let s = progress_hits.clone();
-            move |_ev: &FrontendEvent| s.fetch_add(1, Ordering::SeqCst)
+            move |_ev: &FrontendEvent| { s.fetch_add(1, Ordering::SeqCst); }
         });
 
         let event = item_stored_event();
@@ -443,7 +443,7 @@ mod tests {
         let total = Arc::new(AtomicUsize::new(0));
         let _sub = service.subscribe_all({
             let t = total.clone();
-            move |_ev: &FrontendEvent| t.fetch_add(1, Ordering::SeqCst)
+            move |_ev: &FrontendEvent| { t.fetch_add(1, Ordering::SeqCst); }
         });
         service.dispatch(&item_stored_event());
         assert_eq!(total.load(Ordering::SeqCst), 1);
@@ -455,7 +455,7 @@ mod tests {
         let hits = Arc::new(AtomicUsize::new(0));
         let sub = service.subscribe(FrontendEventKind::ItemStored, {
             let h = hits.clone();
-            move |_ev: &FrontendEvent| h.fetch_add(1, Ordering::SeqCst)
+            move |_ev: &FrontendEvent| { h.fetch_add(1, Ordering::SeqCst); }
         });
         assert_eq!(service.subscriber_count(), 1);
 
@@ -474,7 +474,7 @@ mod tests {
         {
             let _sub = service.subscribe(FrontendEventKind::ItemStored, {
                 let h = hits.clone();
-                move |_ev: &FrontendEvent| h.fetch_add(1, Ordering::SeqCst)
+                move |_ev: &FrontendEvent| { h.fetch_add(1, Ordering::SeqCst); }
             });
             assert_eq!(service.subscriber_count(), 1);
         } // _sub dropped -> unsubscribed

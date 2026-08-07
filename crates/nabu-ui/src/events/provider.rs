@@ -101,10 +101,13 @@ pub fn use_event_service() -> EventService {
 /// # Example
 ///
 /// ```no_run
-/// # use dioxus::prelude::*;
-/// # use crate::events::{use_event_listener, FrontendEvent, FrontendEventKind};
-/// # use nabu_core::event_bus::PipelineEvent;
-/// // (inside a component body, under an EventServiceProvider)
+/// use dioxus::prelude::*;
+/// use nabu_ui::events::{use_event_listener, FrontendEvent, FrontendEventKind};
+/// use nabu_core::event_bus::PipelineEvent;
+///
+/// // Call this from within a component body (under an EventServiceProvider).
+/// // The subscription lives as long as the component and is torn down on
+/// // unmount — no manual cleanup needed.
 /// use_event_listener(FrontendEventKind::ItemStored, move |ev: &FrontendEvent| {
 ///     if let PipelineEvent::ItemStored(stored) = &ev.payload {
 ///         tracing::info!(path = &stored.vault_path, "note stored");

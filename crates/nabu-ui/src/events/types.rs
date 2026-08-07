@@ -228,12 +228,15 @@ mod tests {
 
     #[test]
     fn item_stored_envelope_parses() {
-        // ITEM_STORED payload shape mirrors `ItemStoredEvent` from nabu-core.
+        // `payload` mirrors `serde_json::to_value(PipelineEvent)` — i.e. the
+        // externally-tagged enum form emitted by the backend bridge.
         let payload = serde_json::json!({
-            "object_id": "12345678-1234-1234-1234-123456789abc",
-            "vault_path": "notes/foo.md",
-            "object_type": "Note",
-            "timestamp": "2024-01-01T00:00:00Z",
+            "ItemStored": {
+                "object_id": "12345678-1234-1234-1234-123456789abc",
+                "vault_path": "notes/foo.md",
+                "object_type": "Note",
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
         });
         let event = parse_envelope(kinds::ITEM_STORED, payload).unwrap();
         assert_eq!(event.kind, FrontendEventKind::ItemStored);
@@ -244,13 +247,18 @@ mod tests {
     #[test]
     fn capability_state_changed_parses() {
         let payload = serde_json::json!({
-            "capability_id": "capture:file",
-            "enabled": true,
-            "timestamp": "2024-01-01T00:00:00Z",
+            "CapabilityStateChanged": {
+                "capability_id": "capture:file",
+                "enabled": true,
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
         });
         let event = parse_envelope(kinds::CAPABILITY_STATE_CHANGED, payload).unwrap();
         assert_eq!(event.kind, FrontendEventKind::CapabilityStateChanged);
-        assert!(matches!(event.payload, PipelineEvent::CapabilityStateChanged(_)));
+        assert!(matches!(
+            event.payload,
+            PipelineEvent::CapabilityStateChanged(_)
+        ));
     }
 
     #[test]
@@ -273,10 +281,12 @@ mod tests {
             event_type: kinds::ITEM_STORED.to_string(),
             timestamp: None,
             payload: serde_json::json!({
-                "object_id": "12345678-1234-1234-1234-123456789abc",
-                "vault_path": "notes/foo.md",
-                "object_type": "Note",
-                "timestamp": "2024-01-01T00:00:00Z",
+                "ItemStored": {
+                    "object_id": "12345678-1234-1234-1234-123456789abc",
+                    "vault_path": "notes/foo.md",
+                    "object_type": "Note",
+                    "timestamp": "2024-01-01T00:00:00Z",
+                }
             }),
         };
         let event = parse_raw(raw).unwrap();
