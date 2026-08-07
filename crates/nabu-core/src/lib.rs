@@ -26,6 +26,7 @@
 //! ```
 
 pub mod capture;
+pub mod diagnostic;
 pub mod diagnostics;
 pub mod event_bus;
 pub mod graph;
@@ -39,12 +40,17 @@ pub mod plugin;
 pub mod processing;
 pub mod registry;
 pub mod storage;
+pub mod sync;
 
 // Re-export key types for convenient access
 // Ambiguous glob re-exports are intentional — all public API types should
 // be available at the crate root for ergonomic use by consumers.
 #[allow(ambiguous_glob_reexports)]
 pub use capture::*;
+#[allow(ambiguous_glob_reexports)]
+pub use diagnostic::*;
+#[allow(ambiguous_glob_reexports)]
+pub use diagnostics::*;
 #[allow(ambiguous_glob_reexports)]
 pub use event_bus::*;
 #[allow(ambiguous_glob_reexports)]
@@ -67,3 +73,5 @@ pub use processing::*;
 pub use registry::*;
 #[allow(ambiguous_glob_reexports)]
 pub use storage::*;
+#[allow(ambiguous_glob_reexports)]
+pub use sync::*;

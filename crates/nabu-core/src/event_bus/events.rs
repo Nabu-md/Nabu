@@ -36,6 +36,11 @@ pub enum PipelineEvent {
     /// via [`publish_plugin_event`](crate::plugin::events::publish_plugin_event),
     /// which wraps it in this variant.
     Plugin(PluginEvent),
+    /// A process supervision event flowing through the EventBus.
+    ///
+    /// Published by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
+    /// when a managed subprocess starts, exits, fails, restarts, or stops.
+    Process(ProcessEvent),
 }
 
 /// Event kind string constants for EventBus subscriptions
@@ -75,6 +80,21 @@ pub mod kinds {
     pub const PLUGIN_REQUEST: &str = "plugin.request";
     /// A platform capability responded to a plugin request.
     pub const PLUGIN_RESPONSE: &str = "plugin.response";
+
+    // --- Process supervision event kinds ---
+    // These are published by the ProcessSupervisor through the EventBus,
+    // following the same pattern as capability and plugin events.
+
+    /// A managed process has started.
+    pub const PROCESS_STARTED: &str = "process.started";
+    /// A managed process has exited.
+    pub const PROCESS_EXITED: &str = "process.exited";
+    /// A managed process has failed.
+    pub const PROCESS_FAILED: &str = "process.failed";
+    /// A managed process has been restarted.
+    pub const PROCESS_RESTARTED: &str = "process.restarted";
+    /// A managed process has been stopped.
+    pub const PROCESS_STOPPED: &str = "process.stopped";
 }
 
 impl PipelineEvent {
@@ -92,6 +112,7 @@ impl PipelineEvent {
             PipelineEvent::ItemRetried(_) => kinds::ITEM_RETRIED,
             PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
             PipelineEvent::Plugin(e) => e.kind(),
+            PipelineEvent::Process(e) => e.kind(),
         }
     }
 
@@ -115,6 +136,7 @@ impl PipelineEvent {
             PipelineEvent::ItemRetried(e) => Some(e.timestamp),
             PipelineEvent::CapabilityStateChanged(e) => Some(e.timestamp),
             PipelineEvent::Plugin(e) => Some(e.timestamp()),
+            PipelineEvent::Process(e) => Some(e.timestamp()),
         }
     }
 }
@@ -259,6 +281,246 @@ impl ItemStoredEvent {
             object_id,
             vault_path,
             object_type,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Process supervision events
+// ---------------------------------------------------------------------------
+
+/// A unique identifier for a managed subprocess.
+///
+/// This is a `Uuid` allocated when the [`ProcessSupervisor`] spawns the
+/// process. It is stable for the lifetime of the managed process and is
+/// used to correlate events, queries, and operations.
+pub type ProcessId = Uuid;
+
+/// All process supervision events published through the EventBus.
+///
+/// Published by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
+/// when a managed subprocess transitions through its lifecycle. The
+/// `PipelineEvent::Process` variant wraps a `ProcessEvent` for EventBus
+/// transport.
+///
+/// Each variant wraps a dedicated event struct that derives
+/// [`Serialize`] and [`Deserialize`] and carries a `timestamp` field
+/// for uniform access via [`PipelineEvent::timestamp`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ProcessEvent {
+    /// A managed process has started.
+    ///
+    /// Carries the process ID, name, PID (when available), and command.
+    Started(ProcessStartedEvent),
+    /// A managed process has exited.
+    ///
+    /// Carries the process ID, name, and exit code. The restart count
+    /// reflects how many times the process has been restarted by the
+    /// supervisor.
+    Exited(ProcessExitedEvent),
+    /// A managed process has failed.
+    ///
+    /// Carries the process ID, name, exit code (when available), error
+    /// message, and restart count.
+    Failed(ProcessFailedEvent),
+    /// A managed process has been restarted.
+    ///
+    /// Carries the process ID, name, restart count, and the cause that
+    /// triggered the restart.
+    Restarted(ProcessRestartEvent),
+    /// A managed process has been stopped.
+    ///
+    /// Carries the process ID, name, and reason for the stop.
+    Stopped(ProcessStoppedEvent),
+}
+
+impl ProcessEvent {
+    /// Returns the event kind string used for EventBus subscription.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Started(_) => kinds::PROCESS_STARTED,
+            Self::Exited(_) => kinds::PROCESS_EXITED,
+            Self::Failed(_) => kinds::PROCESS_FAILED,
+            Self::Restarted(_) => kinds::PROCESS_RESTARTED,
+            Self::Stopped(_) => kinds::PROCESS_STOPPED,
+        }
+    }
+
+    /// Returns the timestamp when this event was produced.
+    ///
+    /// Delegates to the inner event struct's `timestamp` field, so that
+    /// [`PipelineEvent::timestamp`] can access it uniformly across all
+    /// variants without pattern-matching each inner struct.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        match self {
+            Self::Started(e) => e.timestamp,
+            Self::Exited(e) => e.timestamp,
+            Self::Failed(e) => e.timestamp,
+            Self::Restarted(e) => e.timestamp,
+            Self::Stopped(e) => e.timestamp,
+        }
+    }
+}
+
+/// Published when a managed process has started.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessStartedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// The OS process ID, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<u32>,
+    /// The command that was executed.
+    pub command: String,
+    /// Command-line arguments.
+    pub args: Vec<String>,
+    /// Working directory for the process.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub working_dir: Option<String>,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessStartedEvent {
+    pub fn new(
+        process_id: ProcessId,
+        name: &str,
+        pid: Option<u32>,
+        command: &str,
+        args: &[String],
+        working_dir: Option<&str>,
+    ) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            pid,
+            command: command.to_string(),
+            args: args.to_vec(),
+            working_dir: working_dir.map(|s| s.to_string()),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a managed process has exited (successfully or not).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessExitedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// The exit code, when available.
+    /// `None` indicates the process was terminated by a signal.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// How many times the supervisor has restarted this process.
+    pub restart_count: u32,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessExitedEvent {
+    pub fn new(process_id: ProcessId, name: &str, exit_code: Option<i32>, restart_count: u32) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            exit_code,
+            restart_count,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a managed process has failed.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessFailedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// The exit code, when available.
+    /// `None` indicates the process was terminated by a signal or never
+    /// produced an exit status (e.g. spawn failure).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// Human-readable error message describing the failure.
+    pub error: String,
+    /// How many times the supervisor has restarted this process.
+    pub restart_count: u32,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessFailedEvent {
+    pub fn new(
+        process_id: ProcessId,
+        name: &str,
+        exit_code: Option<i32>,
+        error: &str,
+        restart_count: u32,
+    ) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            exit_code,
+            error: error.to_string(),
+            restart_count,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a managed process has been restarted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessRestartEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// How many times the supervisor has restarted this process (including
+    /// the restart that triggered this event).
+    pub restart_count: u32,
+    /// The reason for the restart (e.g. "process exited", "spawn failure").
+    pub reason: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessRestartEvent {
+    pub fn new(process_id: ProcessId, name: &str, restart_count: u32, reason: &str) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            restart_count,
+            reason: reason.to_string(),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a managed process has been stopped.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcessStoppedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name from the process configuration.
+    pub name: String,
+    /// The reason for the stop (e.g. "supervisor shutdown", "user requested stop").
+    pub reason: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl ProcessStoppedEvent {
+    pub fn new(process_id: ProcessId, name: &str, reason: &str) -> Self {
+        Self {
+            process_id,
+            name: name.to_string(),
+            reason: reason.to_string(),
             timestamp: Utc::now(),
         }
     }
