@@ -29,3 +29,8 @@ wasm-bindgen-futures = "0.4.50"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 getrandom = { version = "0.2", features = ["js"] }
 console_error_panic_hook = "0.1.7"
+# Frontend diagnostics for the event layer (and future real-time features).
+# Mirrors `nabu_core::diagnostics` on the backend — routes `tracing` macros to
+# the webview console via a wasm subscriber installed once by the event provider.
+tracing = "0.1"
+tracing-wasm = "0.2"

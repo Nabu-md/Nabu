@@ -28,17 +28,19 @@ use wasm_bindgen_futures::spawn_local;
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     rsx! {
-        ThemeProvider { initial_theme: "dark".to_string() }
-        ToastProvider {
-            TaskProvider {
-                HistoryProvider {
-                    SaveStatusProvider {
-                        WorkspaceProvider {
-                            NavProvider {
-                                CommandPalette {}
-                                QuickSwitcher {}
-                                ShortcutReference {}
-                                crate::components::app::AppRouter {}
+        crate::events::EventServiceProvider {
+            ThemeProvider { initial_theme: "dark".to_string() }
+            ToastProvider {
+                TaskProvider {
+                    HistoryProvider {
+                        SaveStatusProvider {
+                            WorkspaceProvider {
+                                NavProvider {
+                                    CommandPalette {}
+                                    QuickSwitcher {}
+                                    ShortcutReference {}
+                                    crate::components::app::AppRouter {}
+                                }
                             }
                         }
                     }

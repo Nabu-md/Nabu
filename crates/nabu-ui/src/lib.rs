@@ -9,6 +9,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub mod components;
+pub mod events;
 pub mod history;
 pub mod ipc;
 pub mod models;
