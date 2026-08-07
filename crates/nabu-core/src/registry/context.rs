@@ -410,6 +410,16 @@ impl ApplicationContext {
         self.resolve("performance_monitor")
     }
 
+    /// Returns the diagnostic platform if registered.
+    ///
+    /// The `DiagnosticPlatform` is the canonical entry point for editor
+    /// diagnostic requests. It routes `diagnostic_requested` IPC calls to
+    /// registered `DiagnosticProvider` implementations (e.g. Harper) without
+    /// exposing the provider type to editors.
+    pub fn diagnostic_platform(&self) -> Option<Arc<crate::diagnostic::DiagnosticPlatform>> {
+        self.resolve("diagnostic_platform")
+    }
+
     // -----------------------------------------------------------------------
     // Service health & validation
     // -----------------------------------------------------------------------

@@ -67,6 +67,13 @@ const ALL_EVENT_KINDS: &[&str] = &[
     kinds::PLUGIN_RESPONSE,
     // Synchronization status-change events (forwarded for sync dashboard / UI).
     kinds::SYNC_STATUS_CHANGED,
+    // --- Diagnostic event kinds ---
+    // Published by the DiagnosticPlatform when editors request on-demand
+    // diagnostics. These events enable async subscribers (background panels,
+    // lint lists) to receive diagnostic updates without an explicit IPC request.
+    kinds::DIAGNOSTIC_BATCH_PUBLISHED,
+    kinds::DIAGNOSTIC_BATCH_CLEARED,
+    kinds::DIAGNOSTIC_BATCH_REMOVED,
 ];
 
 /// A single structured payload broadcast on the `nabu-event` channel.

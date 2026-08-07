@@ -93,6 +93,20 @@ fn build_application_context(
         reg.register("event_bus", event_bus.clone());
     }
 
+    // ---- 1.5. One DiagnosticPlatform (unified diagnostic retrieval) ----
+    // The platform aggregates diagnostic providers and is the canonical entry
+    // point for the `diagnostic_requested` IPC command. It is registered before
+    // the storage manager so the registry is available when providers are
+    // registered.
+    let diagnostic_platform = Arc::new(
+        nabu_core::diagnostic::DiagnosticPlatform::with_event_bus((*event_bus).clone()),
+    );
+    // Register the Harper provider — the only built-in provider currently.
+    diagnostic_platform.register_provider(Arc::new(
+        nabu_core::processing::processors::HarperDiagnosticProvider,
+    ));
+    ctx.register("diagnostic_platform", diagnostic_platform.clone());
+
     // ---- 2. One StorageManager (canonical storage owner) ----
     let storage = Arc::new(StorageManager::with_event_bus(
         vault_path.clone(),

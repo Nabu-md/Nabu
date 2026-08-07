@@ -21,7 +21,7 @@
 //! See the [`SocketManager`](nabu_core::ipc_socket::SocketManager) documentation
 //! for full lifecycle and permission model details.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use nabu_core::capture::{CaptureData, CaptureEngine, CaptureRequest};

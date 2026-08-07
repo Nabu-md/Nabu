@@ -18,7 +18,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex as StdMutex;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
@@ -444,11 +443,10 @@ impl SocketManager {
                     }
                     result = listener.accept() => {
                         match result {
-                            Ok((stream, addr)) => {
+                            Ok((stream, _addr)) => {
                                 tracing::debug!(
-                                    "Accepted connection on '{}' (peer: {})",
-                                    socket_path.display(),
-                                    addr
+                                    "Accepted connection on '{}'",
+                                    socket_path.display()
                                 );
                                 let handler = handler.clone();
                                 tokio::spawn(async move {
@@ -630,9 +628,10 @@ impl SocketManager {
                 SocketError::lifecycle(socket_path.clone(), "Failed to transition to Running")
             })?;
 
+        let socket_path_for_err = socket_path.clone();
         self.lifecycle
             .transition_to(LifecycleStage::Running)
-            .map_err(|e| SocketError::lifecycle(socket_path, e.to_string()))?;
+            .map_err(|e| SocketError::lifecycle(socket_path_for_err, e.to_string()))?;
 
         let accept_handle = Self::spawn_accept_loop(
             listener,
@@ -743,7 +742,7 @@ impl Drop for SocketManager {
         if self.config.socket_path.exists() {
             if let Err(e) = std::fs::remove_file(&self.config.socket_path) {
                 if e.kind() != std::io::ErrorKind::NotFound {
-                    tracing::error!(
+                    tracing::debug!(
                         "Failed to remove socket file '{}' in Drop: {}",
                         self.config.socket_path.display(),
                         e
@@ -797,12 +796,14 @@ impl std::fmt::Debug for SocketManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn test_socket_path(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join("nabu-socket-test");
+        let dir = std::env::temp_dir().join(format!("nabu-socket-test-{}", name));
         std::fs::create_dir_all(&dir).ok();
-        dir.join(name)
+        dir.join("socket.sock")
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -983,6 +984,28 @@ mod tests {
         std::fs::write(&socket_path, b"not a socket").expect("write");
         assert!(!SocketManager::is_stale_socket(&socket_path));
 
+        let _ = std::fs::remove_file(&socket_path);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn is_stale_socket_returns_false_for_live_socket() {
+        use std::os::unix::net::UnixListener as StdUnixListener;
+
+        let dir = std::env::temp_dir().join("nabu-stale-live-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create dir");
+        let socket_path = dir.join("live.sock");
+        let _ = std::fs::remove_file(&socket_path);
+
+        let listener = StdUnixListener::bind(&socket_path).expect("bind");
+
+        assert!(
+            !SocketManager::is_stale_socket(&socket_path),
+            "live socket should not be detected as stale"
+        );
+
+        drop(listener);
         let _ = std::fs::remove_file(&socket_path);
         let _ = std::fs::remove_dir_all(&dir);
     }

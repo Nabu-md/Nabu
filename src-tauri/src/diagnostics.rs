@@ -3,6 +3,56 @@
 //! Connects the Tauri backend's [`DiagnosticBatch`] delivery to the editor
 //! frontend via a structured, editor-agnostic representation.
 //!
+//! ## Request/Response Flow
+//!
+//! ```text
+//!  Editor
+//!      │  1. diagnostic_requested(text, resource_id, origin?)
+//!      ▼
+//!  IPC Handler → DiagnosticPlatform::retrieve(text, resource_id, origin)
+//!      │  2. Provider (e.g. Harper) runs analysis → Vec<Diagnostic>
+//!      │  3. DiagnosticPlatform validates + publishes
+//!      │     DiagnosticEvent::BatchPublished via EventBus
+//!      │  4. DiagnosticBatch + DiagnosticStyleMap returned
+//!      ▼
+//!  DiagnosticResponse { batch, style_map }
+//!      │
+//!      ▼
+//!  EditorDiagnosticBridge::resolve_response(&response)
+//!      │  5. Each Diagnostic paired with its resolved DiagnosticStyle
+//!      ▼
+//!  ResolvedBatch { resource_id, origin, batch_id, diagnostics: [EditorDiagnostic] }
+//!      │
+//!      ▼
+//!  Editor renders: squiggles, gutters, tooltips, quick-fixes
+//! ```
+//!
+//! ## EventBus Compatibility
+//!
+//! The platform publishes `DiagnosticEvent::BatchPublished` events through the
+//! EventBus on every retrieval. These events are forwarded to the frontend via
+//! the `nabu-event` channel (see `event_bridge.rs`), enabling async subscribers
+//! (background panels, lint lists) to receive diagnostic updates without an
+//! explicit IPC request.
+//!
+//! - **IPC** is used for explicit, on-demand requests (e.g. editor opens a
+//!   document).
+//! - **EventBus** is used for asynchronous, pub/sub delivery (e.g. live
+//!   background analysis, plugin diagnostics).
+//!
+//! These channels do not duplicate each other — the IPC response is the
+//! authoritative result for the requesting editor; the EventBus event is a
+//! side-channel notification for subscribers that don't participate in the IPC
+//! round-trip.
+//!
+//! ## Provider Independence
+//!
+//! The bridge is completely independent of any analysis engine. The
+//! `DiagnosticPlatform` resolves providers by `origin` string (e.g. `"harper"`,
+//! `"ai-assistant"`, `"lsp-markdown"`). Future engines register a new
+//! [`DiagnosticProvider`](nabu_core::diagnostic::DiagnosticProvider) — no
+//! backend or editor changes required.
+//!
 //! ## Architecture
 //!
 //! ```text
@@ -36,6 +86,20 @@
 //!   and decorations.
 //! - Keep the bridge pure and side-effect-free — no I/O, no EventBus
 //!   interaction, no Tauri handle access.
+//!
+//! ## Integration Workflow
+//!
+//! Future editor implementations (Dioxus, Monaco, CodeMirror, mobile) should:
+//!
+//! 1. Call the `diagnostic_requested` Tauri command with a
+//!    `DiagnosticRequest` containing `text`, `resource_id`, and optional
+//!    `origin`.
+//! 2. Receive the `DiagnosticResponse` containing a `DiagnosticBatch` and
+//!    `DiagnosticStyleMap`.
+//! 3. Pass the response to `EditorDiagnosticBridge::resolve_response` to
+//!    obtain a `ResolvedBatch` with each diagnostic paired to its resolved style.
+//! 4. Translate each `EditorDiagnostic` into the editor's native rendering
+//!    API (squiggles, gutters, tooltips, quick-fixes).
 
 use nabu_core::diagnostic::{
     Diagnostic, DiagnosticBatch, DiagnosticStyleMap, DiagnosticStyle,
@@ -138,6 +202,23 @@ impl EditorDiagnosticBridge {
             batch_id: batch.batch_id,
             diagnostics,
         }
+    }
+
+    /// Resolve a `DiagnosticResponse` (as returned by the `diagnostic_requested`
+    /// IPC command) into a [`ResolvedBatch`].
+    ///
+    /// This is the primary entry point for editors: after calling the IPC
+    /// command and receiving a `DiagnosticResponse`, editors pass it here to
+    /// get a fully style-resolved batch ready for rendering.
+    ///
+    /// The response's embedded `style_map` is used for style resolution,
+    /// falling back to the canonical default map if the response's style map
+    /// is missing a severity.
+    pub fn resolve_response(
+        &self,
+        response: &crate::commands::DiagnosticResponse,
+    ) -> ResolvedBatch {
+        self.resolve_batch(&response.batch, Some(&response.style_map))
     }
 
     /// Resolve the style for a diagnostic using the provided style map, or the
@@ -383,5 +464,84 @@ mod tests {
         let resolved = bridge.resolve_batch(&batch, None);
         assert!(resolved.diagnostics.is_empty());
         assert_eq!(bridge.summarize(&resolved), [0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn bridge_resolves_response_with_style_map() {
+        let batch = sample_batch();
+        let response = crate::commands::DiagnosticResponse {
+            batch,
+            style_map: DiagnosticStyleMap::default(),
+        };
+
+        let bridge = EditorDiagnosticBridge::new();
+        let resolved = bridge.resolve_response(&response);
+
+        assert_eq!(resolved.diagnostics.len(), 1);
+        assert_eq!(resolved.origin, "harper");
+        assert_eq!(resolved.resource_id, "vault:notes/sample.md");
+
+        let ed = &resolved.diagnostics[0];
+        assert_eq!(ed.diagnostic.severity, DiagnosticSeverity::Warning);
+        // Style resolved from the response's style map.
+        assert_eq!(
+            ed.style,
+            nabu_core::diagnostic::mapping::diagnostic_style(DiagnosticSeverity::Warning)
+        );
+    }
+
+    #[test]
+    fn bridge_resolves_response_with_empty_diagnostics() {
+        let batch = DiagnosticBatch::new("harper", "vault:empty.md", vec![]);
+        let response = crate::commands::DiagnosticResponse {
+            batch,
+            style_map: DiagnosticStyleMap::default(),
+        };
+
+        let bridge = EditorDiagnosticBridge::new();
+        let resolved = bridge.resolve_response(&response);
+
+        assert!(resolved.diagnostics.is_empty());
+        assert_eq!(resolved.origin, "harper");
+        assert_eq!(resolved.resource_id, "vault:empty.md");
+    }
+
+    #[test]
+    fn bridge_resolves_response_preserves_batch_id() {
+        let batch = sample_batch();
+        let batch_id = batch.batch_id;
+        let response = crate::commands::DiagnosticResponse {
+            batch,
+            style_map: DiagnosticStyleMap::default(),
+        };
+
+        let bridge = EditorDiagnosticBridge::new();
+        let resolved = bridge.resolve_response(&response);
+
+        assert_eq!(resolved.batch_id, batch_id);
+    }
+
+    #[test]
+    fn bridge_full_workflow_from_batch_to_render_ready() {
+        let batch = sample_batch();
+        let bridge = EditorDiagnosticBridge::new();
+
+        // Step 1: Resolve with default style map
+        let resolved = bridge.resolve_batch(&batch, None);
+        assert_eq!(resolved.diagnostics.len(), 1);
+
+        // Step 2: Filter by severity (only errors and above: level 3-4)
+        let filtered = bridge.filter_by_severity(&resolved, 3, 4);
+        assert_eq!(filtered.len(), 0); // Our sample is a Warning (level 2)
+
+        // Step 3: Summarize
+        let summary = bridge.summarize(&resolved);
+        assert_eq!(summary, [0, 0, 1, 0, 0]); // One warning
+
+        // Step 4: Get render-ready pairs
+        let pairs: Vec<(Diagnostic, DiagnosticStyle)> = resolved.into();
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0].0.severity, DiagnosticSeverity::Warning);
+        assert_eq!(pairs[0].0.message, "typo detected");
     }
 }

@@ -3641,36 +3641,52 @@ fn graph_data_inner(vault_path: &Path) -> GraphData {
 /// Request payload for the `diagnostic_requested` IPC command.
 ///
 /// The editor (or any frontend consumer) calls `diagnostic_requested` when it
-/// needs diagnostics for a specific document. The backend runs the requested
-/// analysis engine(s) and returns a [`DiagnosticBatch`] containing all
-/// diagnostics for the given `resource_id`.
+/// needs diagnostics for a specific document. The backend routes the request
+/// through the [`DiagnosticPlatform`], which dispatches to the registered
+/// [`DiagnosticProvider`](nabu_core::diagnostic::DiagnosticProvider) for the
+/// requested origin and returns a standardized [`DiagnosticBatch`].
+///
+/// The editor never calls Harper, LSP, or any specific analysis engine directly —
+/// it only specifies the `origin` (which identifies the provider) and the `text`
+/// to analyze. Adding a new analysis engine requires only registering a new
+/// provider with the platform; no IPC or editor changes are needed.
 ///
 /// `text` is the full document text to analyze. `resource_id` is a stable
-/// identifier (typically a vault path like `"vault:notes/example.md"`) used
-/// by subscribers to correlate diagnostics with the right document. `origin`
-/// is an optional label for the analysis engine (defaults to `"harper"`).
+/// identifier (typically a vault path like `"vault:notes/example.md"`) used by
+/// subscribers to correlate diagnostics with the right document. `origin` is
+/// an optional label for the analysis engine (defaults to `"harper"` when
+/// `None`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticRequest {
     /// Document text to analyze.
     pub text: String,
     /// Stable resource identifier (e.g. `"vault:notes/example.md"`).
     pub resource_id: String,
-    /// Optional origin/producer label. If `None`, defaults to `"harper"`.
-    #[serde(default = "default_origin")]
+    /// Optional origin/producer label. If `None`, the platform defaults to
+    /// `"harper"`.
     pub origin: Option<String>,
 }
 
-fn default_origin() -> Option<String> {
-    Some("harper".to_string())
+impl Default for DiagnosticRequest {
+    fn default() -> Self {
+        Self {
+            text: String::new(),
+            resource_id: String::new(),
+            origin: Some("harper".to_string()),
+        }
+    }
 }
 
 /// Response payload for the `diagnostic_requested` IPC command.
 ///
-/// Carries the full [`DiagnosticBatch`] plus the resolved
+/// Carries the full [`DiagnosticBatch`] plus the canonical
 /// [`DiagnosticStyleMap`](nabu_core::diagnostic::DiagnosticStyleMap) so the
-/// editor can render each diagnostic without a second round-trip. The style
-/// map is the canonical severity→style mapping from
+/// editor can render each diagnostic without a second round-trip. The style map
+/// is the canonical severity→style mapping from
 /// [`nabu_core::diagnostic::mapping`].
+///
+/// Editors should use the [`EditorDiagnosticBridge`](crate::diagnostics::EditorDiagnosticBridge)
+/// to resolve the batch into per-diagnostic style-resolved structures.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticResponse {
     /// The diagnostic batch containing all diagnostics for the resource.
@@ -3682,28 +3698,50 @@ pub struct DiagnosticResponse {
 /// Runs on-demand diagnostic analysis on a document and returns the resulting
 /// diagnostics with their presentation styles.
 ///
-/// This is the canonical IPC entry point for the editor's diagnostic bridge.
-/// It delegates to the registered analysis engine (currently Harper) via the
-/// [`ApplicationContext`'s] processing pipeline services. The returned
-/// [`DiagnosticResponse`] contains a [`DiagnosticBatch`] with all diagnostics
-/// and the canonical [`DiagnosticStyleMap`] so the editor can render them
-/// without a second IPC call.
+/// This is the **canonical IPC entry point** for the editor's diagnostic bridge.
+/// It delegates to the [`DiagnosticPlatform`] (resolved from the
+/// [`ApplicationContext`]), which routes the request to the registered
+/// [`DiagnosticProvider`](nabu_core::diagnostic::DiagnosticProvider) for the
+/// requested origin.
 ///
-/// Errors are returned as structured strings — no panics. If the analysis
-/// engine is unavailable or fails, the error is propagated.
+/// The returned [`DiagnosticResponse`] contains a [`DiagnosticBatch`] with all
+/// diagnostics and the canonical [`DiagnosticStyleMap`] so the editor can render
+/// them without a second IPC call.
+///
+/// ## Provider Independence
+///
+/// The command does **not** call Harper directly. It resolves the
+/// `DiagnosticPlatform` from the application context and delegates to whatever
+/// provider is registered under the requested origin. Adding a new analysis
+/// engine (AI, LSP, plugin) requires only registering a new provider — no IPC
+/// or command changes.
+///
+/// ## EventBus Integration
+///
+/// Every successful retrieval publishes a `DiagnosticEvent::BatchPublished`
+/// event through the EventBus (via the platform), enabling asynchronous
+/// subscribers (e.g. background panels, lint lists) to receive diagnostic
+/// updates without an explicit IPC request. The IPC response is independent of
+/// the EventBus — editors get their results directly from the return value.
+///
+/// ## Error Handling
+///
+/// Returns structured [`DiagnosticPlatformError`] values (serialized as JSON via
+/// Tauri's error handling) — no panics. Errors cover:
+/// - Invalid input (empty text or resource_id)
+/// - Provider not found for the requested origin
+/// - Provider analysis failure
+/// - Invalid diagnostic produced by a provider
+///
+/// [`DiagnosticPlatform`]: nabu_core::diagnostic::DiagnosticPlatform
+/// [`DiagnosticProvider`]: nabu_core::diagnostic::DiagnosticProvider
+/// [`DiagnosticPlatformError`]: nabu_core::diagnostic::DiagnosticPlatformError
 #[tauri::command]
 pub async fn diagnostic_requested(
     ctx: State<'_, ApplicationContext>,
     request: DiagnosticRequest,
-) -> Result<DiagnosticResponse, String> {
-    let origin = request.origin.unwrap_or_else(|| "harper".to_string());
-
-    if request.text.is_empty() {
-        return Err("document text must not be empty".to_string());
-    }
-    if request.resource_id.is_empty() {
-        return Err("resource_id must not be empty".to_string());
-    }
+) -> Result<DiagnosticResponse, nabu_core::diagnostic::DiagnosticPlatformError> {
+    let origin = request.origin.as_ref().map(|s| s.as_str()).unwrap_or("harper");
 
     tracing::info!(
         origin = %origin,
@@ -3712,19 +3750,28 @@ pub async fn diagnostic_requested(
         "Diagnostic analysis requested via IPC"
     );
 
-    let diagnostics = tokio::task::spawn_blocking(move || {
-        nabu_core::processing::processors::analyze_text_with_harper(&request.text)
+    // Resolve the DiagnosticPlatform from the application context.
+    let platform = ctx
+        .diagnostic_platform()
+        .ok_or(nabu_core::diagnostic::DiagnosticPlatformError::ProviderNotFound {
+            origin: "diagnostic_platform".to_string(),
+        })?;
+
+    // Run analysis on a blocking thread — providers (e.g. Harper) may use
+    // non-Send types internally. The platform's `retrieve` method handles
+    // validation, EventBus publication, and error mapping.
+    let text = request.text.clone();
+    let resource_id = request.resource_id.clone();
+    let origin_owned = request.origin.clone();
+
+    let batch = tokio::task::spawn_blocking(move || {
+        platform.retrieve(&text, &resource_id, origin_owned.as_deref())
     })
     .await
-    .map_err(|e| format!("analysis task failed: {}", e))?;
-
-    let diagnostics = diagnostics.map_err(|e| format!("harper analysis error: {}", e))?;
-
-    let batch = nabu_core::diagnostic::DiagnosticBatch::new(
-        origin,
-        request.resource_id,
-        diagnostics,
-    );
+    .map_err(|e| nabu_core::diagnostic::DiagnosticPlatformError::ProviderError {
+        origin: origin.to_string(),
+        detail: format!("analysis task failed: {}", e),
+    })??;
 
     let style_map = nabu_core::diagnostic::DiagnosticStyleMap::default();
 
