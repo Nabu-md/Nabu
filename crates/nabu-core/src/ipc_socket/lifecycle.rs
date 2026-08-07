@@ -98,7 +98,7 @@ impl From<SocketLifecycle> for LifecycleStage {
 ///
 /// Uses a `AtomicU8` for lock-free stage transitions, following the same
 /// pattern as [`LifecycleManager`](crate::registry::lifecycle::LifecycleManager).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SocketLifecycleManager {
     stage: AtomicU8,
 }
@@ -165,6 +165,11 @@ impl SocketLifecycleManager {
 
     pub fn is_shutdown(&self) -> bool {
         self.stage() == SocketLifecycle::Shutdown
+    }
+
+    /// Returns `true` if this stage is at or after `other`.
+    pub fn is_at_least(&self, other: SocketLifecycle) -> bool {
+        self.stage() >= other
     }
 }
 

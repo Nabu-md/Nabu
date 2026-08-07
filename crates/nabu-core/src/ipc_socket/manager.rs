@@ -305,6 +305,7 @@ impl SocketManager {
     ///    connect succeeds, the socket is live and should NOT be removed.
     ///    If it fails with "connection refused", the socket is stale.
     fn is_stale_socket(socket_path: &Path) -> bool {
+        use std::os::unix::fs::FileTypeExt;
         use std::os::unix::net::UnixStream as StdUnixStream;
 
         match std::fs::symlink_metadata(socket_path) {
@@ -546,7 +547,7 @@ impl SocketManager {
 
         self.lifecycle
             .transition_to(LifecycleStage::Initialized)
-            .map_err(|e| SocketError::lifecycle(socket_path, e.to_string()))?;
+            .map_err(|e| SocketError::lifecycle(socket_path.clone(), e.to_string()))?;
 
         tracing::info!("Socket '{}' initialized", socket_path.display());
         Ok(())

@@ -454,6 +454,16 @@ pub fn run() {
             // remove the `.running` marker so the next launch knows the session
             // ended cleanly (no crash recovery UI).
             if let tauri::RunEvent::Exit = event {
+                // Shut down the native messaging socket server first — this
+                // stops accepting new connections, closes the listener,
+                // and removes the socket file. Done before core service
+                // shutdown so no new IPC requests can arrive during teardown.
+                {
+                    let socket_state =
+                        app_handle.state::<crate::native_messaging_socket::SocketServerHandleState>();
+                    socket_state.shutdown();
+                }
+
                 {
                     let ctx_state = app_handle.state::<ApplicationContext>();
                     if let Err(e) = ctx_state.shutdown() {

@@ -93,6 +93,8 @@ impl ProcessingResult {
             metadata: std::collections::HashMap::new(),
             error: None,
             diagnostics: Vec::new(),
+            stats: ProcessingStats::new(),
+            status: ExecutionStatus::Success,
         }
     }
 
@@ -103,6 +105,8 @@ impl ProcessingResult {
             metadata: std::collections::HashMap::new(),
             error: None,
             diagnostics: Vec::new(),
+            stats: ProcessingStats::new(),
+            status: ExecutionStatus::Success,
         }
     }
 
@@ -138,6 +142,34 @@ impl ProcessingResult {
     #[inline]
     pub fn has_diagnostics(&self) -> bool {
         !self.diagnostics.is_empty()
+    }
+
+    /// Builder: set processing statistics.
+    #[inline]
+    pub fn with_stats(mut self, stats: ProcessingStats) -> Self {
+        self.stats = stats;
+        self
+    }
+
+    /// Builder: set execution status.
+    #[inline]
+    pub fn with_status(mut self, status: ExecutionStatus) -> Self {
+        self.status = status;
+        self
+    }
+
+    /// Builder: set the optional error message.
+    #[inline]
+    pub fn with_error(mut self, error: impl Into<String>) -> Self {
+        self.error = Some(error.into());
+        self
+    }
+
+    /// Builder: set the optional error message only if `Some`.
+    #[inline]
+    pub fn with_error_opt(mut self, error: Option<String>) -> Self {
+        self.error = error;
+        self
     }
 }
 

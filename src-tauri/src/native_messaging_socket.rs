@@ -7,20 +7,55 @@
 //!
 //! The wire protocol matches the shared `native_messaging::Message` type used
 //! by the Safari extension host — nothing custom, no side paths.
+//!
+//! ## Lifecycle & Security
+//!
+//! The socket server is built on [`SocketManager`] from `nabu-core`, which
+//! provides:
+//!
+//! - Secure permissions (`0600`) on socket files.
+//! - Stale socket cleanup before binding.
+//! - Graceful shutdown via [`SocketServerHandle::shutdown`].
+//! - Lifecycle integration (`Created → Initialized → Running → Shutdown`).
+//!
+//! See the [`SocketManager`](nabu_core::ipc_socket::SocketManager) documentation
+//! for full lifecycle and permission model details.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use nabu_core::capture::{CaptureData, CaptureEngine, CaptureRequest};
+use nabu_core::ipc_socket::{SocketConfig, SocketManager};
+use nabu_core::registry::lifecycle::Lifecycle;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::UnixStream;
 
 use crate::native_messaging::Message;
 
-const SOCKET_PATH: &str = "/tmp/nabu-native-messaging.sock";
-const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024; // 10 MB max message size
+/// The filesystem path for the native messaging socket.
+///
+/// This constant is shared between the socket server (this module) and the
+/// native messaging host binary (`bin/native_messaging_host.rs`) to ensure
+/// both agree on the IPC endpoint location.
+pub const SOCKET_PATH: &str = "/tmp/nabu-native-messaging.sock";
 
-/// Errors that can occur during socket operations
+/// Maximum message size: 10 MB.
+const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024;
+
+// ---------------------------------------------------------------------------
+// Socket Server State
+// ---------------------------------------------------------------------------
+
+/// Shared state for the socket server.
+pub struct SocketServerState {
+    pub engine: Arc<CaptureEngine>,
+}
+
+// ---------------------------------------------------------------------------
+// Errors
+// ---------------------------------------------------------------------------
+
+/// Errors that can occur during socket operations.
 #[derive(Debug, thiserror::Error)]
 pub enum SocketError {
     #[error("IO error: {0}")]
@@ -34,15 +69,17 @@ pub enum SocketError {
 
     #[error("Validation error: {0}")]
     ValidationError(String),
+
+    #[error("Socket lifecycle error: {0}")]
+    LifecycleError(String),
 }
 
-/// Result type for socket operations
+/// Result type for socket operations.
 pub type SocketResult<T> = Result<T, SocketError>;
 
-/// Shared state for the socket server
-pub struct SocketServerState {
-    pub engine: Arc<CaptureEngine>,
-}
+// ---------------------------------------------------------------------------
+// Message validation & conversion
+// ---------------------------------------------------------------------------
 
 /// Validates a native messaging capture message.
 ///
@@ -124,7 +161,6 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
         .or_else(|| payload.get("content"))
         .and_then(|v| v.as_str())
         .map(String::from);
-    // For reader-mode capture the Safari extension sends the full page HTML.
     let html = payload
         .get("html")
         .and_then(|v| v.as_str())
@@ -133,7 +169,6 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
     let capture_type = message.capture_type.as_deref().unwrap_or("note");
 
     let data = if capture_type == "screen_capture" {
-        // Trigger a live screen capture via the ScreenshotHandler.
         let selection = payload
             .get("selection")
             .and_then(|v| v.as_array())
@@ -151,7 +186,6 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
             });
         CaptureData::ScreenCapture { selection }
     } else if capture_type == "reader_mode" || capture_type == "safari_reader" {
-        // Reader mode: prefer HTML content, fall back to text, then URL.
         if let Some(html) = html {
             CaptureData::Text(html)
         } else if let Some(text) = text {
@@ -178,7 +212,6 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
     } else if let Some(html) = html {
         CaptureData::Text(html)
     } else {
-        // Fall back to a text representation of the payload.
         CaptureData::Text(payload.to_string())
     };
 
@@ -192,100 +225,49 @@ fn message_to_capture_request(message: &Message) -> CaptureRequest {
     request
 }
 
-/// Starts the Unix socket server for native messaging communication.
+// ---------------------------------------------------------------------------
+// Connection handling
+// ---------------------------------------------------------------------------
+
+/// Handles a single client connection.
 ///
-/// The server listens for connections from the native messaging host binary
-/// and processes capture requests. Each connection is handled in a separate
-/// task.
-pub fn start_socket_server(state: Arc<SocketServerState>) -> SocketResult<SocketServerHandle> {
-    // Remove existing socket file if it exists
-    let socket_path = PathBuf::from(SOCKET_PATH);
-    if socket_path.exists() {
-        std::fs::remove_file(&socket_path)?;
-    }
-
-    let listener = UnixListener::bind(&socket_path)?;
-
-    // Set socket permissions to allow the native messaging host to connect
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let metadata = std::fs::metadata(&socket_path)?;
-        let mut perms = metadata.permissions();
-        perms.set_mode(0o777);
-        std::fs::set_permissions(&socket_path, perms)?;
-    }
-
-    let engine = state.engine.clone();
-    let handle = SocketServerHandle {
-        socket_path,
-        shutdown_tx: Arc::new(tokio::sync::Notify::new()),
-    };
-
-    // Spawn server task
-    let shutdown_tx = handle.shutdown_tx.clone();
-    tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                _ = shutdown_tx.notified() => {
-                    break;
-                }
-                result = listener.accept() => {
-                    match result {
-                        Ok((stream, _)) => {
-                            let engine = engine.clone();
-                            tokio::spawn(async move {
-                                if let Err(e) = handle_connection(stream, engine).await {
-                                    eprintln!("Connection error: {}", e);
-                                }
-                            });
-                        }
-                        Err(e) => {
-                            eprintln!("Accept error: {}", e);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Clean up socket file on shutdown
-        let _ = std::fs::remove_file(SOCKET_PATH);
-    });
-
-    Ok(handle)
-}
-
-/// Handles a single client connection
-async fn handle_connection(mut stream: UnixStream, engine: Arc<CaptureEngine>) -> SocketResult<()> {
+/// Reads length-prefixed JSON messages, validates them, converts to
+/// `CaptureRequest`, dispatches through `CaptureEngine::ingest`, and writes
+/// length-prefixed JSON responses.
+async fn handle_connection(mut stream: UnixStream, engine: Arc<CaptureEngine>) {
     loop {
-        // Read message length (4 bytes, big-endian)
         let mut length_bytes = [0u8; 4];
         match stream.read_exact(&mut length_bytes).await {
             Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                // Client disconnected
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
+            Err(e) => {
+                tracing::error!("Read length error: {}", e);
                 break;
             }
-            Err(e) => return Err(e.into()),
         }
         let length = u32::from_be_bytes(length_bytes) as usize;
 
-        // Validate message size
         if length > MAX_MESSAGE_SIZE {
-            eprintln!("Message size {} exceeds maximum allowed size", length);
+            tracing::warn!("Message size {} exceeds maximum allowed size", length);
             break;
         }
 
-        // Read message body
         let mut buffer = vec![0u8; length];
-        stream.read_exact(&mut buffer).await?;
+        if let Err(e) = stream.read_exact(&mut buffer).await {
+            tracing::error!("Read body error: {}", e);
+            break;
+        }
 
-        // Deserialize message
-        let message: Message = serde_json::from_slice(&buffer)?;
+        let message: Message = match serde_json::from_slice(&buffer) {
+            Ok(msg) => msg,
+            Err(e) => {
+                tracing::error!("Deserialization error: {}", e);
+                break;
+            }
+        };
 
-        // Validate the request before dispatching
         if let Err(e) = validate_capture_message(&message) {
-            eprintln!("Invalid capture request: {}", e);
+            tracing::warn!("Invalid capture request: {}", e);
             let error_response = Message {
                 request_id: message.request_id,
                 command: "capture".to_string(),
@@ -295,14 +277,14 @@ async fn handle_connection(mut stream: UnixStream, engine: Arc<CaptureEngine>) -
                 error: Some(e.to_string()),
                 result: None,
             };
-            write_message(&mut stream, &error_response).await?;
+            if let Err(e) = write_message(&mut stream, &error_response).await {
+                tracing::error!("Failed to write error response: {}", e);
+            }
             continue;
         }
 
-        // Convert to canonical CaptureRequest
         let request = message_to_capture_request(&message);
 
-        // Dispatch through the canonical CaptureEngine → Queue → Workers flow.
         let response = match engine.ingest(request).await {
             Ok(Some(object_id)) => Message {
                 request_id: message.request_id,
@@ -333,59 +315,143 @@ async fn handle_connection(mut stream: UnixStream, engine: Arc<CaptureEngine>) -
             },
         };
 
-        write_message(&mut stream, &response).await?;
+        if let Err(e) = write_message(&mut stream, &response).await {
+            tracing::error!("Failed to write response: {}", e);
+            break;
+        }
     }
-
-    Ok(())
 }
 
 /// Writes a length-prefixed `Message` to the stream.
-async fn write_message(stream: &mut UnixStream, message: &Message) -> SocketResult<()> {
+async fn write_message(stream: &mut UnixStream, message: &Message) -> Result<(), SocketError> {
     let json = serde_json::to_vec(message).map_err(SocketError::SerializationError)?;
     let length = json.len() as u32;
-    let mut length_bytes = length.to_be_bytes();
-    stream.write_all(&mut length_bytes).await?;
+    let length_bytes = length.to_be_bytes();
+    stream.write_all(&length_bytes).await?;
     stream.write_all(&json).await?;
     stream.flush().await?;
     Ok(())
 }
 
-/// Handle for controlling the socket server
+// ---------------------------------------------------------------------------
+// Server lifecycle
+// ---------------------------------------------------------------------------
+
+/// Starts the Unix socket server for native messaging communication.
+///
+/// Uses [`SocketManager`] from `nabu-core` for lifecycle management, secure
+/// permissions (`0600`), and stale socket cleanup. The server listens for
+/// connections from the native messaging host binary and processes capture
+/// requests through the canonical `CaptureEngine::ingest` flow.
+///
+/// Returns a [`SocketServerHandle`] that can be used to signal shutdown.
+/// The handle should be stored as Tauri managed state and shut down on
+/// `Exit` to ensure graceful shutdown.
+pub fn start_socket_server(state: Arc<SocketServerState>) -> Result<SocketServerHandle, SocketError> {
+    let engine = state.engine.clone();
+
+    let config = SocketConfig::new(SOCKET_PATH.to_string())
+        .with_handler(move |stream| {
+            let engine = engine.clone();
+            async move {
+                handle_connection(stream, engine).await;
+                true
+            }
+        });
+
+    let manager = SocketManager::new(config);
+
+    manager
+        .initialize()
+        .map_err(|e| SocketError::LifecycleError(e.to_string()))?;
+
+    manager
+        .start()
+        .map_err(|e| SocketError::LifecycleError(e.to_string()))?;
+
+    Ok(SocketServerHandle {
+        manager: Arc::new(manager),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Socket Server Handle
+// ---------------------------------------------------------------------------
+
+/// Handle for controlling the socket server.
+///
+/// Wraps an [`Arc<SocketManager>`] so that the manager stays alive for the
+/// lifetime of the handle. This ensures the accept loop task is not orphaned
+/// and can be gracefully shut down on application exit.
 pub struct SocketServerHandle {
-    socket_path: PathBuf,
-    shutdown_tx: Arc<tokio::sync::Notify>,
+    manager: Arc<SocketManager>,
 }
 
 impl SocketServerHandle {
-    /// Signals the server to shut down
-    pub fn shutdown(self) {
-        self.shutdown_tx.notify_one();
+    /// Signals the socket server to shut down gracefully.
+    ///
+    /// Safe to call multiple times — subsequent calls are no-ops.
+    pub fn shutdown(&self) {
+        let _ = self.manager.shutdown();
     }
 
-    /// Returns the path to the socket file
-    pub fn socket_path(&self) -> &PathBuf {
-        &self.socket_path
+    /// Returns the path to the socket file.
+    pub fn socket_path(&self) -> &Path {
+        self.manager.socket_path()
+    }
+
+    /// Returns `true` if the socket is currently running.
+    pub fn is_running(&self) -> bool {
+        self.manager.is_running()
+    }
+
+    /// Returns `true` if the socket has been shut down.
+    pub fn is_shutdown(&self) -> bool {
+        self.manager.is_shutdown()
     }
 }
+
+impl Clone for SocketServerHandle {
+    fn clone(&self) -> Self {
+        Self {
+            manager: self.manager.clone(),
+        }
+    }
+}
+
+/// State wrapper for the socket handle, stored as Tauri managed state.
+///
+/// Uses `Option` so that the setup closure can store `None` if the socket
+/// server failed to start. The Exit handler checks for `Some` before calling
+/// `shutdown()`.
+pub struct SocketServerHandleState(pub Option<SocketServerHandle>);
+
+impl SocketServerHandleState {
+    /// Returns the socket handle if the server started successfully.
+    pub fn handle(&self) -> Option<&SocketServerHandle> {
+        self.0.as_ref()
+    }
+
+    /// Shuts down the socket server if it is running.
+    /// Safe to call when the server never started (no-op).
+    pub fn shutdown(&self) {
+        if let Some(handle) = &self.0 {
+            handle.shutdown();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::native_messaging::Message;
 
     #[test]
-    fn test_socket_server_creation() {
-        let engine = Arc::new(CaptureEngine::new());
-        let state = Arc::new(SocketServerState { engine });
-
-        // This test just verifies the server can be created
-        let socket_path = PathBuf::from(SOCKET_PATH);
-        if socket_path.exists() {
-            let _ = std::fs::remove_file(&socket_path);
-        }
-
-        // Verify socket path is correct
-        assert_eq!(socket_path, PathBuf::from(SOCKET_PATH));
+    fn test_socket_path_constant() {
+        assert_eq!(SOCKET_PATH, "/tmp/nabu-native-messaging.sock");
     }
 
     #[test]
@@ -450,5 +516,18 @@ mod tests {
         };
         let request = message_to_capture_request(&note);
         assert!(matches!(request.data, CaptureData::Text(ref t) if t == "Hello world"));
+    }
+
+    #[test]
+    fn test_socket_error_display() {
+        let err = SocketError::ValidationError("test error".to_string());
+        assert_eq!(err.to_string(), "Validation error: test error");
+    }
+
+    #[test]
+    fn test_socket_handle_state_shutdown_is_noop_when_none() {
+        let state = SocketServerHandleState(None);
+        state.shutdown();
+        assert!(state.handle().is_none());
     }
 }

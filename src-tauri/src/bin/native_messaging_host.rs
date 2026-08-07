@@ -14,9 +14,10 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 // The native messaging protocol types live in the app library crate.
+// The socket path is shared with the socket server module so both sides
+// always agree on the IPC endpoint location.
 use app_lib::native_messaging::{Message, NativeMessagingError, NativeMessagingHost};
-
-const SOCKET_PATH: &str = "/tmp/nabu-native-messaging.sock";
+use app_lib::native_messaging_socket::SOCKET_PATH;
 
 fn main() {
     if let Err(e) = run() {
