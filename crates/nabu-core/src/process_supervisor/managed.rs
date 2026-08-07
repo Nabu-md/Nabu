@@ -177,12 +177,10 @@ pub struct ProcessSnapshot {
     pub last_error: Option<String>,
 
     /// Whether the process is currently running.
-    #[serde(skip)]
     #[serde(default)]
     pub is_running: bool,
 
     /// Whether the process is in a terminal state.
-    #[serde(skip)]
     #[serde(default)]
     pub is_terminal: bool,
 }
@@ -321,6 +319,7 @@ mod tests {
             .with_args(vec!["hello".to_string()])
             .with_restart_policy(RestartPolicy::Always);
         let mut proc = ManagedProcess::new(id, config);
+        proc.transition_state(ProcessState::Starting).unwrap();
         proc.transition_state(ProcessState::Running).unwrap();
         proc.pid = Some(12345);
 

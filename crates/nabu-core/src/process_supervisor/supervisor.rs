@@ -62,8 +62,9 @@ use super::monitor::{monitor_process, SupervisorContext};
 use super::state::ProcessState;
 use super::ProcessId;
 
-/// The fixed timeout for waiting for monitoring tasks to finish during
-/// `stop()` and `shutdown()`.
+/// The timeout for waiting for monitoring tasks to finish during
+/// `shutdown()`.
+#[allow(dead_code)]
 const STOP_WAIT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// The fixed timeout for waiting for all monitoring tasks to finish during
@@ -258,6 +259,7 @@ impl ProcessSupervisor {
 
         // ─── Create the process record ───
         let id = Uuid::new_v4();
+        let process_name = config.name.clone();
         let record = Arc::new(Mutex::new(ManagedProcess::new(id, config.clone())));
 
         // ─── Create broadcast channel for stop signaling ───
@@ -274,10 +276,9 @@ impl ProcessSupervisor {
         // ─── Spawn the monitoring task ───
         let event_bus = self.event_bus.clone();
         let ctx = self.ctx.clone();
-        let config_for_task = config;
 
         let handle = runtime.spawn(monitor_process(
-            config_for_task,
+            config,
             record.clone(),
             event_bus,
             ctx,
@@ -303,7 +304,7 @@ impl ProcessSupervisor {
             subsystem = "supervisor",
             component = "supervisor",
             operation = "spawn",
-            process = %config.name,
+            process = %process_name,
             process_id = %id,
             "Managed process spawned"
         );
@@ -376,48 +377,13 @@ impl ProcessSupervisor {
             true
         };
 
-        drop(stop_sent); // silence unused warning
+        let _ = stop_sent;
+        // Note: stop() is synchronous and does not block-wait for the
+        // monitoring task to reach a terminal state. Callers should poll
+        // `get_state()` after a short async sleep if they need to confirm
+        // the state change.
 
-        // ─── Wait for the process to reach a terminal state ───
-        let start = std::time::Instant::now();
-        loop {
-            let is_terminal = {
-                let processes = self
-                    .processes
-                    .read()
-                    .expect("process map lock not poisoned");
-                let record = match processes.get(&id) {
-                    Some(r) => r,
-                    None => return Ok(()),
-                };
-                let guard = record.lock().unwrap();
-                guard.state.is_terminal()
-            };
-
-            if is_terminal {
-                tracing::info!(
-                    subsystem = "supervisor",
-                    component = "supervisor",
-                    operation = "stop",
-                    process_id = %id,
-                    "Process stopped"
-                );
-                return Ok(());
-            }
-
-            if start.elapsed() >= STOP_WAIT_TIMEOUT {
-                tracing::warn!(
-                    subsystem = "supervisor",
-                    component = "supervisor",
-                    operation = "stop",
-                    process_id = %id,
-                    "Stop wait timed out — the monitoring task may still be running"
-                );
-                return Ok(());
-            }
-
-            std::thread::sleep(POLL_INTERVAL);
-        }
+        Ok(())
     }
 
     /// Stop all managed processes and shut down the supervisor.
@@ -448,7 +414,7 @@ impl ProcessSupervisor {
 
             let mut handles = Vec::new();
             for (id, record) in processes.iter() {
-                let guard = record.lock().unwrap();
+                let mut guard = record.lock().unwrap();
 
                 if guard.state.is_terminal() {
                     continue;
@@ -458,8 +424,8 @@ impl ProcessSupervisor {
                     let _ = tx.send(());
                 }
 
-                if let Some(handle) = &guard.monitor_handle {
-                    handles.push(handle.clone());
+                if let Some(handle) = guard.monitor_handle.take() {
+                    handles.push(handle);
                 }
 
                 tracing::debug!(
@@ -817,8 +783,8 @@ impl std::fmt::Debug for ProcessSupervisor {
 mod tests {
     use super::*;
     use crate::event_bus::EventBus;
+    use crate::process_supervisor::policy::RestartPolicy;
     use std::sync::Arc;
-    use tokio::time::sleep;
 
     #[test]
     fn new_supervisor_starts_in_created() {
@@ -913,7 +879,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn spawn_process_that_exists_and_exits() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -944,7 +910,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn spawn_process_and_stop() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -965,6 +931,8 @@ mod tests {
 
         // Stop it
         supervisor.stop(id).expect("stop should succeed");
+        // Allow the monitor task to process the stop signal and reach Stopped
+        tokio::time::sleep(Duration::from_millis(200)).await;
         let state = supervisor.get_state(id);
         assert_eq!(
             state,
@@ -975,7 +943,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn restart_on_failure_with_always_policy() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -1003,7 +971,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn restart_limited_retries_policy() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -1032,7 +1000,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn process_not_found_returns_error() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -1051,7 +1019,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn stop_nonexistent_returns_not_found() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.initialize().is_ok());
@@ -1065,7 +1033,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn summary_reflects_state() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.start().is_ok());
@@ -1087,7 +1055,7 @@ mod tests {
         supervisor.shutdown().unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn spawn_after_shutdown_fails() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.start().is_ok());
@@ -1102,7 +1070,7 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn debug_format_works() {
         let supervisor = ProcessSupervisor::new();
         let debug_str = format!("{:?}", supervisor);
@@ -1110,14 +1078,14 @@ mod tests {
         assert!(debug_str.contains("process_count"));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn lifecycle_trait_name() {
         let supervisor = ProcessSupervisor::new();
         let supervisor_ref: &dyn Lifecycle = &supervisor;
         assert_eq!(supervisor_ref.name(), "process_supervisor");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn multiple_processes_managed() {
         let supervisor = ProcessSupervisor::new();
         assert!(supervisor.start().is_ok());

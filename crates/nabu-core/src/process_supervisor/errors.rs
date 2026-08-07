@@ -18,7 +18,7 @@ use super::state::ProcessState;
 use super::ProcessId;
 
 /// Errors that can occur during process supervision.
-#[derive(Debug, Clone, Error, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProcessSupervisorError {
     /// The specified process ID was not found in the supervisor's registry.
     #[error("process not found: {0}")]
@@ -80,7 +80,7 @@ impl ProcessSupervisorError {
     pub fn is_retryable(&self) -> bool {
         match self {
             Self::SpawnFailed(_) | Self::NoRuntime => true,
-            Self::NotFound
+            Self::NotFound(_)
             | Self::NotRunning { .. }
             | Self::InvalidStateTransition { .. }
             | Self::ShuttingDown

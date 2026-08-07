@@ -36,7 +36,6 @@ use crate::event_bus::{EventBus, PipelineEvent, ProcessEvent};
 use super::config::ProcessConfig;
 use super::managed::ManagedProcess;
 use super::state::ProcessState;
-use super::ProcessId;
 
 /// The fixed delay applied between a process exit and a restart attempt.
 ///
@@ -119,6 +118,7 @@ pub(crate) async fn monitor_process(
         command = %config.command_line(),
         "Monitoring task started"
     );
+    
 
     loop {
         // ─── Check for global shutdown ───
@@ -155,16 +155,14 @@ pub(crate) async fn monitor_process(
         );
 
         // ─── Spawn the child ───
-        let mut cmd = Command::new(&config.command)
-            .args(&config.args)
-            .envs(&config.env)
-            .kill_on_drop(true);
+        let mut cmd = Command::new(config.command.clone());
+        cmd.args(&config.args).envs(&config.env).kill_on_drop(true);
 
-        if let Some(dir) = &config.working_dir {
-            cmd.current_dir(dir);
-        }
-
-        let spawn_result = cmd.spawn();
+        let spawn_result = if let Some(dir) = &config.working_dir {
+            cmd.current_dir(dir).spawn()
+        } else {
+            cmd.spawn()
+        };
 
         match spawn_result {
             Ok(mut child) => {
@@ -196,10 +194,7 @@ pub(crate) async fn monitor_process(
                         pid,
                         &config.command,
                         &config.args,
-                        config
-                            .working_dir
-                            .as_deref()
-                            .map(|p| p.to_string_lossy().as_ref()),
+                        config.working_dir.as_ref().and_then(|p| p.to_str()),
                     )),
                 );
 
@@ -211,6 +206,7 @@ pub(crate) async fn monitor_process(
                     }
                     _ = stop_rx.recv() => {
                         stop_requested = true;
+                        
                         tracing::info!(
                             subsystem = "supervisor",
                             component = "monitor",
@@ -260,6 +256,11 @@ pub(crate) async fn monitor_process(
                     rec.exited_at = Some(Utc::now());
                     rec.restart_count += 1;
                     rec.last_error = error_msg.clone();
+                    // When stopping, transition through the Stopping
+                    // intermediate state first (Running → Stopping → Stopped).
+                    if stop_requested && terminal_state == ProcessState::Stopped {
+                        let _ = rec.transition_state(ProcessState::Stopping);
+                    }
                     let _ = rec.transition_state(terminal_state);
                 }
 

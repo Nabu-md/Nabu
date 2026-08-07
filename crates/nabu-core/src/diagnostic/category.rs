@@ -42,7 +42,7 @@
 //! ## Serialization
 //!
 //! Standard variants serialize to stable kebab-case tokens (`"syntax"`,
-//! `"spell-check"`, …). The [`Custom`] variant serializes as an
+//! `"spell-check"`, …). The [`DiagnosticCategory::Custom`] variant serializes as an
 //! internally-tagged object: `{"custom":"com.example.rules"}`. This is the
 //! same pattern used by [`crate::models::RelationType::Custom`].
 
@@ -113,7 +113,7 @@ pub enum DiagnosticCategory {
 impl DiagnosticCategory {
     /// Short, kebab-case machine identifier matching the serde token.
     ///
-    /// For the [`Custom`] variant this returns `"custom"` — use
+    /// For the [`DiagnosticCategory::Custom`] variant this returns `"custom"` — use
     /// [`as_str`](Self::as_str) to obtain the inner string, or
     /// [`Display`](Self) for a human-readable form.
     #[inline]
@@ -137,7 +137,7 @@ impl DiagnosticCategory {
         }
     }
 
-    /// Returns the inner identifier for the [`Custom`] variant, or the
+    /// Returns the inner identifier for the [`DiagnosticCategory::Custom`] variant, or the
     /// kebab-case name for standard variants.
     #[inline]
     pub fn as_str(&self) -> String {

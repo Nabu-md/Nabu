@@ -1,8 +1,10 @@
 //! # Diagnostic Construction Errors
 //!
 //! Structured errors returned when constructing or validating diagnostic
-//! domain models ([`Diagnostic`], [`Decoration`], [`Suggestion`],
-//! [`TextRange`]).
+//! domain models ([`crate::diagnostic::Diagnostic`],
+//! [`crate::diagnostic::Decoration`],
+//! [`crate::diagnostic::Suggestion`],
+//! [`crate::diagnostic::TextRange`]).
 //!
 //! ## Design
 //!
