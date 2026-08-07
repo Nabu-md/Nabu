@@ -67,7 +67,10 @@ fn build_application_context(
     // ---- Lightweight PluginManager (foundation — always constructed) ----
     // No plugin discovery, no manifest parsing, no binary loading.
     // The manager is ready to accept plugin manifests from future discovery phases.
-    let plugin_manager = nabu_core::plugin::PluginManager::for_application();
+    // The EventBus is attached so that provider registration and lifecycle events
+    // flow through the shared plugin event contract.
+    let plugin_manager = nabu_core::plugin::PluginManager::for_application()
+        .with_event_bus((*event_bus).clone());
 
     let ctx = ApplicationContext::new(
         registry.clone(),

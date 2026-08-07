@@ -1077,9 +1077,13 @@ pub fn build_standard_application_context() -> ApplicationContext {
     // Register built-in capabilities
     capability_registry.register_builtin();
 
-    // Construct the PluginManager for the current Nabu version.
-    // No plugin discovery or loading occurs — only manager preparation.
-    let plugin_manager = PluginManager::for_application();
+    // Construct the PluginManager for the current Nabu version and attach
+    // the EventBus so that provider lifecycle events (PluginLoaded,
+    // PluginUnloaded, PluginError) flow through the shared plugin event
+    // contract. No plugin discovery or loading occurs — only manager
+    // preparation.
+    let plugin_manager = PluginManager::for_application()
+        .with_event_bus((*event_bus).clone());
 
     let ctx = ApplicationContext::new(
         registry,

@@ -21,6 +21,44 @@
 //! Capability Platform
 //! ```
 //!
+//! ## Event Contract Integration
+//!
+//! Providers participate in the shared plugin event system through the
+//! [`EventBus`](crate::event_bus::EventBus) and the [`PluginEventContract`]:
+//!
+//! ```text
+//! CapabilityProvider
+//!   │
+//!   │  emit_warning() / emit_error()  (optional hooks)
+//!   │  publish_warning() / publish_error()  (default helpers)
+//!   ▼
+//! PluginEvent (PluginWarning / PluginError)
+//!   │
+//!   ▼
+//! publish_plugin_event()  ──▶  PipelineEvent::Plugin
+//!   │
+//!   ▼
+//! EventBus<PipelineEvent>
+//!   │
+//!   ▼
+//! Platform Services & Frontend Bridge
+//! ```
+//!
+//! When the `PluginManager` has an `EventBus` attached (via
+//! [`PluginManager::with_event_bus`]):
+//!
+//! - **`PluginLoadedEvent`** is published on provider registration.
+//! - **`PluginUnloadedEvent`** is published on provider removal.
+//! - **`CapabilityRegisteredEvent`** / **`CapabilityRemovedEvent`** are
+//!   published for each capability.
+//! - **`PluginErrorEvent`** is published when a provider's `initialize` or
+//!   `shutdown` hook fails, during `initialize_providers` / `shutdown_providers`
+//!   or during `unregister_provider`.
+//!
+//! Providers can also emit warnings and errors directly by overriding the
+//! `emit_warning` / `emit_error` default methods, which the `PluginManager`
+//! invokes on lifecycle failures.
+//!
 //! The `PluginManager` depends on this trait (the *abstraction*), never on
 //! concrete plugin implementations. Every future plugin type — built-in,
 //! native, WASM, scripting, remote, or bundled packs — will implement this
@@ -48,6 +86,9 @@
 //! 4. The registry checks for duplicate capability IDs and stores the
 //!    capability + provider mapping.
 //! 5. The PluginManager stores the provider for later lifecycle operations.
+//! 6. If an `EventBus` is attached, `PluginLoadedEvent` and
+//!    `CapabilityRegisteredEvent`(s) are published through the shared
+//!    plugin event contract.
 //!
 //! Registration is **metadata-only**: no plugin code is executed, no
 //! directories are scanned, and no capability initialization occurs.
@@ -104,7 +145,11 @@
 
 use std::sync::Arc;
 
+use crate::event_bus::{EventBus, PipelineEvent};
 use crate::plugin::capability::{Capability, CapabilityRegistry};
+use crate::plugin::events::{
+    PluginErrorEvent, PluginEvent, PluginEventSeverity, PluginWarningEvent, publish_plugin_event,
+};
 use crate::plugin::version::Version;
 
 // ---------------------------------------------------------------------------
@@ -137,6 +182,14 @@ use crate::plugin::version::Version;
 pub enum ProviderError {
     /// A provider with the given ID is already registered.
     DuplicateProvider {
+        provider_id: String,
+    },
+    /// A provider with the given ID is not (or is no longer) registered to the
+    /// [`PluginManager`]. Returned by unregistration and provider-level query
+    /// operations that target an unknown provider.
+    ///
+    /// [`PluginManager`]: crate::plugin::PluginManager
+    UnknownProvider {
         provider_id: String,
     },
     /// A capability with the given ID is already registered — either by this
@@ -174,6 +227,9 @@ impl std::fmt::Display for ProviderError {
         match self {
             Self::DuplicateProvider { provider_id } => {
                 write!(f, "Provider '{}' is already registered", provider_id)
+            }
+            Self::UnknownProvider { provider_id } => {
+                write!(f, "Provider '{}' is not registered", provider_id)
             }
             Self::DuplicateCapability {
                 capability_id,
@@ -404,6 +460,99 @@ pub trait CapabilityProvider: Send + Sync + std::fmt::Debug {
     fn shutdown(&self) -> Result<(), ProviderError> {
         Ok(())
     }
+
+    // -----------------------------------------------------------------------
+    // Event Contract Participation (optional)
+    // -----------------------------------------------------------------------
+
+    /// Emits a warning through the shared plugin event contract.
+    ///
+    /// This is an optional hook — the default implementation is a no-op.
+    /// Providers may override this to publish a [`PluginWarningEvent`]
+    /// through the [`EventBus`] when an unexpected but recoverable condition
+    /// occurs during `initialize`, `shutdown`, or capability registration.
+    ///
+    /// The `PluginManager` invokes this method when calling `initialize` or
+    /// `shutdown` and those hooks return an error, so that failures are
+    /// observable through the existing event architecture without providers
+    /// needing direct `EventBus` access.
+    ///
+    /// Implementations should call [`publish_plugin_event`] to forward the
+    /// event through the shared event contract and into the `EventBus`.
+    fn emit_warning(
+        &self,
+        _event_bus: &EventBus<PipelineEvent>,
+        _severity: PluginEventSeverity,
+        _message: &str,
+        _code: Option<&str>,
+    ) {
+    }
+
+    /// Emits an error through the shared plugin event contract.
+    ///
+    /// This is an optional hook — the default implementation is a no-op.
+    /// Providers may override this to publish a [`PluginErrorEvent`]
+    /// through the [`EventBus`] when a failure occurs during `initialize`,
+    /// `shutdown`, or capability registration.
+    ///
+    /// The `PluginManager` invokes this method when calling `initialize` or
+    /// `shutdown` and those hooks return an error, so that failures are
+    /// observable through the existing event architecture without providers
+    /// needing direct `EventBus` access.
+    ///
+    /// Implementations should call [`publish_plugin_event`] to forward the
+    /// event through the shared event contract and into the `EventBus`.
+    fn emit_error(
+        &self,
+        _event_bus: &EventBus<PipelineEvent>,
+        _severity: PluginEventSeverity,
+        _error: &str,
+        _code: Option<&str>,
+    ) {
+    }
+
+    /// Default implementation that publishes a warning event through the
+    /// EventBus via the shared plugin event contract.
+    ///
+    /// Providers that do not override `emit_warning` can call this helper
+    /// to publish a [`PluginWarningEvent`] without needing to construct
+    /// the event boilerplate themselves. The `PluginManager` calls this
+    /// during error paths when the provider has not overridden `emit_warning`.
+    fn publish_warning(
+        &self,
+        event_bus: &EventBus<PipelineEvent>,
+        severity: PluginEventSeverity,
+        message: &str,
+        code: Option<&str>,
+    ) {
+        let mut event = PluginWarningEvent::new(self.id(), message);
+        event.severity = severity;
+        event.code = code.map(|c| c.to_string());
+        publish_plugin_event(event_bus, &PluginEvent::PluginWarning(event));
+    }
+
+    /// Default implementation that publishes an error event through the
+    /// EventBus via the shared plugin event contract.
+    ///
+    /// Providers that do not override `emit_error` can call this helper to
+    /// publish a [`PluginErrorEvent`]. The `PluginManager` calls this during
+    /// error paths when the provider has not overridden `emit_error`.
+    fn publish_error(
+        &self,
+        event_bus: &EventBus<PipelineEvent>,
+        severity: PluginEventSeverity,
+        error: &str,
+        code: Option<&str>,
+    ) {
+        let mut event = if severity == PluginEventSeverity::Critical {
+            PluginErrorEvent::critical(self.id(), error)
+        } else {
+            PluginErrorEvent::new(self.id(), error)
+        };
+        event.severity = severity;
+        event.code = code.map(|c| c.to_string());
+        publish_plugin_event(event_bus, &PluginEvent::PluginError(event));
+    }
 }
 
 /// A type alias for a shared, thread-safe capability provider.
@@ -567,6 +716,11 @@ mod tests {
             provider_id: "test.plugin".into(),
         };
         assert!(format!("{}", err).contains("test.plugin"));
+
+        let err = ProviderError::UnknownProvider {
+            provider_id: "missing.plugin".into(),
+        };
+        assert!(format!("{}", err).contains("missing.plugin"));
 
         let err = ProviderError::DuplicateCapability {
             capability_id: "test:ocr".into(),

@@ -771,4 +771,265 @@ mod plugin_integration {
         // Ensure no unused variable warning
         let _ = caps;
     }
+
+    // ===========================================================================
+    // Provider Event Lifecycle Tests
+    // ===========================================================================
+
+    use nabu_core::event_bus::{EventBus, PipelineEvent};
+    use nabu_core::event_bus::kinds;
+    use nabu_core::plugin::events::{
+        PluginErrorEvent, PluginEvent, PluginLoadedEvent, PluginUnloadedEvent,
+    };
+
+    /// A subscriber capture helper: collects events of a specific kind.
+    fn capture_events(
+        bus: &EventBus<PipelineEvent>,
+        kind: &'static str,
+    ) -> Arc<std::sync::Mutex<Vec<PluginEvent>>> {
+        let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let cap_clone = captured.clone();
+        bus.subscribe(kind, move |pe: &PipelineEvent| {
+            if let PipelineEvent::Plugin(e) = pe {
+                cap_clone.lock().unwrap().push(e.clone());
+            }
+        });
+        captured
+    }
+
+    #[test]
+    fn register_provider_publishes_plugin_loaded_event() {
+        let bus = EventBus::new();
+        let loaded = capture_events(&bus, kinds::PLUGIN_LOADED);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(StaticProvider::new(
+            "com.example.loaded",
+            "Loaded Plugin",
+            vec![Capability::new("ext", "feat", "Feature")],
+        )))
+        .unwrap();
+
+        let events = loaded.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            PluginEvent::PluginLoaded(e) => {
+                assert_eq!(e.plugin_id, "com.example.loaded");
+                assert_eq!(e.plugin_name, "Loaded Plugin");
+            }
+            other => panic!("Expected PluginLoaded, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn unregister_provider_publishes_plugin_unloaded_event() {
+        let bus = EventBus::new();
+        let loaded = capture_events(&bus, kinds::PLUGIN_LOADED);
+        let unloaded = capture_events(&bus, kinds::PLUGIN_UNLOADED);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(StaticProvider::new(
+            "com.example.unload",
+            "Unload Me",
+            vec![Capability::new("ext2", "feat", "Feature")],
+        )))
+        .unwrap();
+
+        pm.unregister_provider("com.example.unload").unwrap();
+
+        // PluginLoaded should have fired during registration
+        assert_eq!(loaded.lock().unwrap().len(), 1);
+
+        // PluginUnloaded should have fired during unregistration
+        let events = unloaded.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            PluginEvent::PluginUnloaded(e) => {
+                assert_eq!(e.plugin_id, "com.example.unload");
+            }
+            other => panic!("Expected PluginUnloaded, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn register_provider_without_event_bus_silent() {
+        // Without an EventBus, registration is silent but functional.
+        let mut pm = PluginManager::new(Version::new(1, 0, 0));
+        let result = pm.register_provider(Arc::new(StaticProvider::new(
+            "com.example.silent",
+            "Silent",
+            vec![Capability::new("silent", "cap", "Cap")],
+        )));
+        assert!(result.is_ok());
+        assert!(pm.capability_registry().has("silent:cap"));
+    }
+
+    #[test]
+    fn initialize_provider_failure_publishes_plugin_error() {
+        // The FailingInitProvider always fails initialize.
+        let bus = EventBus::new();
+        let mut errors = capture_events(&bus, kinds::PLUGIN_ERROR);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(FailingInitProvider {
+            id: "com.example.fail_init".to_string(),
+            version: Version::new(1, 0, 0),
+        }))
+        .unwrap();
+
+        // initialize_providers should return failures and publish errors.
+        let failures = pm.initialize_providers();
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "com.example.fail_init");
+
+        let events = errors.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            PluginEvent::PluginError(e) => {
+                assert_eq!(e.plugin_id, "com.example.fail_init");
+                assert!(e.error.contains("simulated"));
+                assert_eq!(e.code, Some("INIT_FAILED".to_string()));
+            }
+            other => panic!("Expected PluginError, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn shutdown_provider_failure_publishes_plugin_error() {
+        // A provider whose shutdown fails.
+        let bus = EventBus::new();
+        let mut errors = capture_events(&bus, kinds::PLUGIN_ERROR);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(FailingShutdownProvider {
+            id: "com.example.fail_shutdown".to_string(),
+            version: Version::new(1, 0, 0),
+        }))
+        .unwrap();
+
+        let failures = pm.shutdown_providers();
+        assert_eq!(failures.len(), 1);
+        assert_eq!(failures[0].0, "com.example.fail_shutdown");
+
+        let events = errors.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            PluginEvent::PluginError(e) => {
+                assert_eq!(e.plugin_id, "com.example.fail_shutdown");
+                assert_eq!(e.code, Some("SHUTDOWN_FAILED".to_string()));
+            }
+            other => panic!("Expected PluginError, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn unregister_provider_shutdown_failure_publishes_plugin_error() {
+        let bus = EventBus::new();
+        let mut errors = capture_events(&bus, kinds::PLUGIN_ERROR);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(FailingShutdownProvider {
+            id: "com.example.unreg_fail".to_string(),
+            version: Version::new(1, 0, 0),
+        }))
+        .unwrap();
+
+        // Unregister should surface the shutdown error but still complete.
+        let result = pm.unregister_provider("com.example.unreg_fail");
+        assert!(result.is_err());
+
+        let events = errors.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            PluginEvent::PluginError(e) => {
+                assert_eq!(e.plugin_id, "com.example.unreg_fail");
+                assert_eq!(e.code, Some("SHUTDOWN_FAILED".to_string()));
+            }
+            other => panic!("Expected PluginError, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn successful_lifecycle_no_error_events() {
+        let bus = EventBus::new();
+        let loaded = capture_events(&bus, kinds::PLUGIN_LOADED);
+        let unloaded = capture_events(&bus, kinds::PLUGIN_UNLOADED);
+        let errors = capture_events(&bus, kinds::PLUGIN_ERROR);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(StaticProvider::new(
+            "com.example.clean",
+            "Clean",
+            vec![Capability::new("clean", "cap", "Cap")],
+        )))
+        .unwrap();
+
+        pm.initialize_providers();
+        pm.shutdown_providers();
+        pm.unregister_provider("com.example.clean").unwrap();
+
+        assert_eq!(loaded.lock().unwrap().len(), 1);
+        assert_eq!(unloaded.lock().unwrap().len(), 1);
+        assert!(errors.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn provider_events_serialize_correctly() {
+        let bus = EventBus::new();
+        let loaded = capture_events(&bus, kinds::PLUGIN_LOADED);
+
+        let mut pm = PluginManager::new(Version::new(1, 0, 0)).with_event_bus(bus);
+        pm.register_provider(Arc::new(StaticProvider::new(
+            "com.example.serialize",
+            "Serialize",
+            vec![Capability::new("ser", "cap", "Cap")],
+        )))
+        .unwrap();
+
+        let events = loaded.lock().unwrap();
+        assert_eq!(events.len(), 1);
+
+        // Serialize to JSON and back — the event contract must round-trip.
+        let json = serde_json::to_string(&events[0]).unwrap();
+        let back: PluginEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(events[0], back);
+
+        // Also verify PluginLoadedEvent individually
+        match &events[0] {
+            PluginEvent::PluginLoaded(e) => {
+                let json = serde_json::to_string(e).unwrap();
+                let back: PluginLoadedEvent = serde_json::from_str(&json).unwrap();
+                assert_eq!(e, &back);
+            }
+            _ => panic!("Expected PluginLoaded"),
+        }
+    }
+
+    // A provider whose shutdown hook always fails.
+    #[derive(Debug)]
+    struct FailingShutdownProvider {
+        id: String,
+        version: Version,
+    }
+
+    impl CapabilityProvider for FailingShutdownProvider {
+        fn id(&self) -> &str {
+            &self.id
+        }
+        fn name(&self) -> &str {
+            &self.id
+        }
+        fn version(&self) -> &Version {
+            &self.version
+        }
+        fn capabilities(&self) -> Vec<Capability> {
+            vec![]
+        }
+        fn shutdown(&self) -> Result<(), ProviderError> {
+            Err(ProviderError::ShutdownFailed {
+                provider_id: self.id.clone(),
+                reason: "simulated shutdown failure".to_string(),
+            })
+        }
+    }
 }

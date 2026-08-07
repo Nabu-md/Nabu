@@ -275,6 +275,46 @@ impl CapabilityRegistry {
             .map(|(id, _)| id.clone())
             .collect()
     }
+
+    /// Remove a single capability by its identifier, if it is registered.
+    ///
+    /// Removes the capability definition, its provider mapping, and its
+    /// enabled state. Returns `true` if a capability was removed.
+    ///
+    /// This is the inverse of [`register`](Self::register). Like the rest of
+    /// the registry API it is a single, atomic mutation.
+    pub fn remove(&mut self, id: &str) -> bool {
+        let removed = self.capabilities.remove(id).is_some();
+        if removed {
+            self.providers.remove(id);
+            self.enabled.remove(id);
+        }
+        removed
+    }
+
+    /// Remove every capability owned by the given provider.
+    ///
+    /// Returns the IDs of the capabilities that were removed, sorted. This is
+    /// used when a provider is unregistered from the [`PluginManager`] — the
+    /// manager delegates the actual removal here so the registry remains the
+    /// single owner of registered capability state.
+    ///
+    /// [`PluginManager`]: crate::plugin::PluginManager
+    pub fn remove_by_provider(&mut self, provider: &str) -> Vec<String> {
+        let mut removed: Vec<String> = self
+            .providers
+            .iter()
+            .filter(|(_, p)| p.as_str() == provider)
+            .map(|(id, _)| id.clone())
+            .collect();
+        removed.sort();
+        for id in &removed {
+            self.capabilities.remove(id);
+            self.providers.remove(id);
+            self.enabled.remove(id);
+        }
+        removed
+    }
 }
 
 #[cfg(test)]
@@ -376,6 +416,50 @@ mod tests {
         cr.register_builtin();
         let nabu_caps = cr.by_namespace("nabu");
         assert!(nabu_caps.len() >= 10);
+    }
+
+    #[test]
+    fn remove_single_capability() {
+        let mut cr = CapabilityRegistry::new();
+        cr.register(Capability::new("ns", "a", "A"), "p1");
+        cr.register(Capability::new("ns", "b", "B"), "p2");
+        cr.enable("ns:a");
+
+        assert!(cr.remove("ns:a"));
+        assert!(!cr.has("ns:a"));
+        assert!(!cr.is_enabled("ns:a"));
+        assert_eq!(cr.provider("ns:a"), None);
+        // Unrelated capability is untouched.
+        assert!(cr.has("ns:b"));
+
+        // Removing an unknown ID reports false.
+        assert!(!cr.remove("ns:missing"));
+    }
+
+    #[test]
+    fn remove_by_provider_removes_only_owned() {
+        let mut cr = CapabilityRegistry::new();
+        cr.register(Capability::new("ns", "a", "A"), "p1");
+        cr.register(Capability::new("ns", "b", "B"), "p1");
+        cr.register(Capability::new("ns", "c", "C"), "p2");
+        cr.enable("ns:a");
+
+        let removed = cr.remove_by_provider("p1");
+        assert_eq!(removed, vec!["ns:a".to_string(), "ns:b".to_string()]);
+        assert!(!cr.has("ns:a"));
+        assert!(!cr.has("ns:b"));
+        assert!(!cr.is_enabled("ns:a"));
+        // Capabilities owned by other providers remain.
+        assert!(cr.has("ns:c"));
+        assert_eq!(cr.provider_capabilities("p1"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn remove_by_provider_unknown_returns_empty() {
+        let mut cr = CapabilityRegistry::new();
+        cr.register_builtin();
+        assert_eq!(cr.remove_by_provider("no_such_provider"), Vec::<String>::new());
+        assert!(cr.has("nabu:event_bus"));
     }
 }
 

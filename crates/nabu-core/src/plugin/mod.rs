@@ -43,6 +43,25 @@
 //! in [`events`] — never raw `PipelineEvent` values. The
 //! [`publish_plugin_event`] helper is the canonical publishing entry point.
 //!
+//! ## Provider Event Lifecycle
+//!
+//! The `CapabilityProvider` trait is the integration point for provider event
+//! participation. When the `PluginManager` has an `EventBus` attached (via
+//! `with_event_bus`), the provider lifecycle flows through the shared event
+//! contracts:
+//!
+//! 1. **`register_provider`** → publishes `PluginLoadedEvent` +
+//!    `CapabilityRegisteredEvent` (per capability)
+//! 2. **`initialize` (via `start`)** → on failure, publishes
+//!    `PluginErrorEvent` with code `INIT_FAILED`
+//! 3. **`unregister_provider`** → publishes `PluginUnloadedEvent` +
+//!    `CapabilityRemovedEvent` (per capability)
+//! 4. **`shutdown` (via `start`/`shutdown`)** → on failure, publishes
+//!    `PluginErrorEvent` with code `SHUTDOWN_FAILED`
+//!
+//! Providers can also emit warnings and errors directly by overriding the
+//! `emit_warning` / `emit_error` default methods on `CapabilityProvider`.
+//!
 //! ## Key Design Decisions
 //!
 //! 1. **No code execution** — the foundation validates metadata only.
@@ -97,10 +116,11 @@ pub mod version;
 // Re-exports
 pub use capability::CapabilityRegistry;
 pub use events::{
-    CapabilityRegisteredEvent, CapabilityRemovedEvent, PluginApiVersion, PluginErrorEvent,
-    PluginEvent, PluginEventContract, PluginEventError, PluginEventSeverity,
-    PluginLoadedEvent, PluginRequestEvent, PluginResponseEvent, PluginResponseStatus,
-    PluginUnloadedEvent, PluginWarningEvent, publish_plugin_event,
+    CapabilityRegisteredEvent, CapabilityRemovedEvent, EventSource, PluginApiVersion, PluginErrorEvent,
+    PluginEvent, PluginEventCategory, PluginEventContract, PluginEventError, PluginEventSeverity,
+    PluginLifecycleState, PluginLoadedEvent, PluginRegisteredEvent, PluginRequestEvent,
+    PluginResponseEvent, PluginResponseStatus, PluginStartedEvent, PluginStoppedEvent,
+    PluginUnloadedEvent, PluginUnregisteredEvent, PluginWarningEvent, publish_plugin_event,
 };
 pub use features::{FeatureFlag, FeatureRegistry, FeatureStage};
 pub use lifecycle::{PluginLifecycle, PluginLifecycleEvent, PluginStage};

@@ -89,6 +89,14 @@ pub mod kinds {
     pub const PLUGIN_REQUEST: &str = "plugin.request";
     /// A platform capability responded to a plugin request.
     pub const PLUGIN_RESPONSE: &str = "plugin.response";
+    /// A plugin was registered (manifest accepted by the PluginManager).
+    pub const PLUGIN_REGISTERED: &str = "plugin.registered";
+    /// A plugin was unregistered (manifest removed from the PluginManager).
+    pub const PLUGIN_UNREGISTERED: &str = "plugin.unregistered";
+    /// A plugin started executing (runtime activated).
+    pub const PLUGIN_STARTED: &str = "plugin.started";
+    /// A plugin stopped executing (runtime deactivated).
+    pub const PLUGIN_STOPPED: &str = "plugin.stopped";
 
     // --- Process supervision event kinds ---
     // These are published by the ProcessSupervisor through the EventBus,
