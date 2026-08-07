@@ -42,7 +42,9 @@
 //! `ApplicationContext` is `Send + Sync` and designed to be shared as
 //! `Arc<ApplicationContext>` across threads.
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
+
+use chrono::Utc;
 
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::plugin::capability::CapabilityRegistry;
@@ -144,7 +146,12 @@ pub struct ApplicationContext {
     /// The central event bus for publish/subscribe communication.
     pub event_bus: Arc<EventBus<PipelineEvent>>,
     /// Plugin capability registry — describes what the system can do.
-    pub capability_registry: CapabilityRegistry,
+    ///
+    /// Guarded by a `RwLock` so that IPC commands (which hold only a shared
+    /// `&ApplicationContext`) can safely enable/disable capabilities against
+    /// concurrently-running readers. The lock is the *single synchronization
+    /// point* for capability state; every mutation routes through it.
+    pub capability_registry: RwLock<CapabilityRegistry>,
     /// Manages service lifecycle (init → start → shutdown).
     lifecycle: LifecycleManager,
 }
@@ -161,7 +168,7 @@ impl ApplicationContext {
         Self {
             registry,
             event_bus,
-            capability_registry,
+            capability_registry: RwLock::new(capability_registry),
             lifecycle: LifecycleManager::new(),
         }
     }
@@ -185,9 +192,70 @@ impl ApplicationContext {
         &self.event_bus
     }
 
-    /// Returns a reference to the capability registry.
-    pub fn capability_registry(&self) -> &CapabilityRegistry {
-        &self.capability_registry
+    /// Returns a read guard for the capability registry.
+    ///
+    /// Acquire this to inspect capability state. Mutations (enable/disable)
+    /// must go through [`enable_capability`](Self::enable_capability) /
+    /// [`disable_capability`](Self::disable_capability), which take the write
+    /// lock and publish state-change events on the EventBus.
+    pub fn capability_registry(&self) -> RwLockReadGuard<'_, CapabilityRegistry> {
+        self.capability_registry
+            .read()
+            .expect("capability registry lock poisoned")
+    }
+
+    /// Enable a registered capability by its identifier.
+    ///
+    /// Delegates the state transition to the [`CapabilityRegistry`] (the single
+    /// synchronization point for capability state). On success, publishes a
+    /// `CapabilityStateChanged` event through the [`EventBus`] so any EventBus
+    /// bridge can forward it to the frontend.
+    ///
+    /// Duplicate or invalid transitions are rejected cleanly — see
+    /// [`CapabilityRegistry::enable_checked`].
+    pub fn enable_capability(&self, id: &str) -> Result<(), String> {
+        {
+            let mut reg = self
+                .capability_registry
+                .write()
+                .expect("capability registry lock poisoned");
+            reg.enable_checked(id)?;
+        }
+        let event = crate::event_bus::CapabilityStateEvent {
+            capability_id: id.to_string(),
+            enabled: true,
+            timestamp: Utc::now(),
+        };
+        self.event_bus.publish(
+            crate::event_bus::kinds::CAPABILITY_STATE_CHANGED,
+            &crate::event_bus::PipelineEvent::CapabilityStateChanged(event),
+        );
+        Ok(())
+    }
+
+    /// Disable a registered capability by its identifier (the inverse of
+    /// [`enable_capability`](Self::enable_capability)).
+    ///
+    /// Delegates the state transition to the [`CapabilityRegistry`] and publishes
+    /// a `CapabilityStateChanged` event on success.
+    pub fn disable_capability(&self, id: &str) -> Result<(), String> {
+        {
+            let mut reg = self
+                .capability_registry
+                .write()
+                .expect("capability registry lock poisoned");
+            reg.disable_checked(id)?;
+        }
+        let event = crate::event_bus::CapabilityStateEvent {
+            capability_id: id.to_string(),
+            enabled: false,
+            timestamp: Utc::now(),
+        };
+        self.event_bus.publish(
+            crate::event_bus::kinds::CAPABILITY_STATE_CHANGED,
+            &crate::event_bus::PipelineEvent::CapabilityStateChanged(event),
+        );
+        Ok(())
     }
 
     /// Resolves a service from the registry by key.
@@ -409,7 +477,7 @@ impl ApplicationContext {
         tracing::info!(
             stage = ?self.lifecycle_stage(),
             services = self.service_count(),
-            capabilities = self.capability_registry.capability_count(),
+            capabilities = self.capability_registry().capability_count(),
             "Application context initialized"
         );
 
@@ -586,7 +654,7 @@ pub fn build_standard_application_context() -> ApplicationContext {
     let ctx = ApplicationContext::new(registry, event_bus, capability_registry);
 
     tracing::info!(
-        capabilities = ctx.capability_registry.capability_count(),
+        capabilities = ctx.capability_registry().capability_count(),
         "Built-in capabilities registered"
     );
 
@@ -726,13 +794,13 @@ mod tests {
             .with_capability_registry(CapabilityRegistry::new())
             .build();
 
-        assert!(ctx.capability_registry.capability_count() == 0);
+        assert!(ctx.capability_registry().capability_count() == 0);
     }
 
     #[test]
     fn standard_context_has_capabilities() {
         let ctx = build_standard_application_context();
-        assert!(ctx.capability_registry.capability_count() > 0);
+        assert!(ctx.capability_registry().capability_count() > 0);
     }
 
     #[test]

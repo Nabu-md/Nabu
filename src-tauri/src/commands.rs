@@ -3465,6 +3465,31 @@ pub fn statistics_get(
     })
 }
 
+#[tauri::command]
+pub fn capability_enable(
+    ctx: State<'_, ApplicationContext>,
+    capability_id: String,
+) -> Result<(), String> {
+    // Capability state is owned and validated by the CapabilityRegistry (the
+    // single source of truth); ApplicationContext provides the thread-safe
+    // access surface. An empty ID is rejected here as clearly invalid input.
+    if capability_id.is_empty() {
+        return Err("capability_id must not be empty".to_string());
+    }
+    ctx.enable_capability(&capability_id)
+}
+
+#[tauri::command]
+pub fn capability_disable(
+    ctx: State<'_, ApplicationContext>,
+    capability_id: String,
+) -> Result<(), String> {
+    if capability_id.is_empty() {
+        return Err("capability_id must not be empty".to_string());
+    }
+    ctx.disable_capability(&capability_id)
+}
+
 /// Internal helper that computes GraphData without going through Tauri state
 /// (used by `statistics_get` which already holds the vault path).
 fn graph_data_inner(vault_path: &Path) -> GraphData {

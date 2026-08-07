@@ -157,6 +157,9 @@ impl CapabilityRegistry {
     }
 
     /// Enable a capability.
+    ///
+    /// Prefer [`enable_checked`](Self::enable_checked) for IPC-driven state
+    /// changes, which validates the transition and rejects duplicates.
     pub fn enable(&mut self, id: &str) {
         if self.capabilities.contains_key(id) {
             self.enabled.insert(id.to_string());
@@ -164,8 +167,61 @@ impl CapabilityRegistry {
     }
 
     /// Disable a capability.
+    ///
+    /// Prefer [`disable_checked`](Self::disable_checked) for IPC-driven state
+    /// changes, which validates the transition and rejects duplicates.
     pub fn disable(&mut self, id: &str) {
         self.enabled.remove(id);
+    }
+
+    /// Enable a capability with full validation of the state transition.
+    ///
+    /// This is the canonical entry point for runtime capability activation
+    /// (e.g. from the PluginManager or the `capability_enable` IPC command).
+    /// It is the *single* operation that mutates a capability's enabled state:
+    /// all transitions must route through the registry.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` when:
+    /// - the capability is **not registered**: `"Capability '<id>' not found in registry"`
+    /// - the capability is **already enabled**: `"Capability '<id>' is already enabled"`
+    pub fn enable_checked(&mut self, id: &str) -> Result<(), String> {
+        if !self.capabilities.contains_key(id) {
+            tracing::warn!(capability = %id, "Enable failed: capability not registered");
+            return Err(format!("Capability '{}' not found in registry", id));
+        }
+        if self.enabled.contains(id) {
+            tracing::warn!(capability = %id, "Enable failed: already enabled");
+            return Err(format!("Capability '{}' is already enabled", id));
+        }
+        self.enabled.insert(id.to_string());
+        tracing::info!(capability = %id, "Capability enabled");
+        Ok(())
+    }
+
+    /// Disable a capability with full validation of the state transition.
+    ///
+    /// This is the canonical entry point for runtime capability deactivation
+    /// and the inverse of [`enable_checked`](Self::enable_checked).
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` when:
+    /// - the capability is **not registered**: `"Capability '<id>' not found in registry"`
+    /// - the capability is **already disabled**: `"Capability '<id>' is already disabled"`
+    pub fn disable_checked(&mut self, id: &str) -> Result<(), String> {
+        if !self.capabilities.contains_key(id) {
+            tracing::warn!(capability = %id, "Disable failed: capability not registered");
+            return Err(format!("Capability '{}' not found in registry", id));
+        }
+        if !self.enabled.contains(id) {
+            tracing::warn!(capability = %id, "Disable failed: already disabled");
+            return Err(format!("Capability '{}' is already disabled", id));
+        }
+        self.enabled.remove(id);
+        tracing::info!(capability = %id, "Capability disabled");
+        Ok(())
     }
 
     /// Check if a capability is enabled.
@@ -245,6 +301,53 @@ mod tests {
         assert!(cr.is_enabled("test:feature"));
         cr.disable("test:feature");
         assert!(!cr.is_enabled("test:feature"));
+    }
+
+    #[test]
+    fn enable_checked_transitions_and_validates() {
+        let mut cr = CapabilityRegistry::new();
+        cr.register(Capability::new("test", "feature", "A feature"), "provider");
+
+        // Not-yet-enabled -> Ok and state flips.
+        assert!(cr.enable_checked("test:feature").is_ok());
+        assert!(cr.is_enabled("test:feature"));
+
+        // Duplicate enable is rejected without a state change.
+        let err = cr.enable_checked("test:feature").unwrap_err();
+        assert!(err.contains("already enabled"));
+        assert!(cr.enabled_count() == 1);
+    }
+
+    #[test]
+    fn enable_checked_rejects_unknown_capability() {
+        let mut cr = CapabilityRegistry::new();
+        let err = cr.enable_checked("unknown:thing").unwrap_err();
+        assert!(err.contains("not found"));
+        assert!(!cr.is_enabled("unknown:thing"));
+    }
+
+    #[test]
+    fn disable_checked_transitions_and_validates() {
+        let mut cr = CapabilityRegistry::new();
+        cr.register(Capability::new("test", "feature", "A feature"), "provider");
+        cr.enable("test:feature");
+        assert!(cr.is_enabled("test:feature"));
+
+        // Active -> Ok and state flips.
+        assert!(cr.disable_checked("test:feature").is_ok());
+        assert!(!cr.is_enabled("test:feature"));
+
+        // Duplicate disable is rejected without a state change.
+        let err = cr.disable_checked("test:feature").unwrap_err();
+        assert!(err.contains("already disabled"));
+        assert!(!cr.is_enabled("test:feature"));
+    }
+
+    #[test]
+    fn disable_checked_rejects_unknown_capability() {
+        let mut cr = CapabilityRegistry::new();
+        let err = cr.disable_checked("unknown:thing").unwrap_err();
+        assert!(err.contains("not found"));
     }
 
     #[test]

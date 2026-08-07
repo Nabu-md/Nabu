@@ -26,6 +26,8 @@ pub enum PipelineEvent {
     ItemCancelled(ItemCancelledEvent),
     /// Item has been retried
     ItemRetried(ItemRetriedEvent),
+    /// A capability was enabled or disabled
+    CapabilityStateChanged(CapabilityStateEvent),
 }
 
 /// Event kind string constants for EventBus subscriptions
@@ -40,6 +42,8 @@ pub mod kinds {
     pub const GRAPH_UPDATED: &str = "graph.updated";
     pub const ITEM_CANCELLED: &str = "item.cancelled";
     pub const ITEM_RETRIED: &str = "item.retried";
+    /// A capability was enabled or disabled.
+    pub const CAPABILITY_STATE_CHANGED: &str = "capability.state.changed";
 }
 
 impl PipelineEvent {
@@ -55,6 +59,7 @@ impl PipelineEvent {
             PipelineEvent::GraphUpdated(_) => kinds::GRAPH_UPDATED,
             PipelineEvent::ItemCancelled(_) => kinds::ITEM_CANCELLED,
             PipelineEvent::ItemRetried(_) => kinds::ITEM_RETRIED,
+            PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
         }
     }
 }
@@ -156,6 +161,21 @@ pub struct ItemRetriedEvent {
     pub job_id: Uuid,
     pub retry_count: u32,
     pub max_retries: u32,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// A capability was enabled or disabled at runtime.
+///
+/// Published on the `capability.state.changed` kind whenever the
+/// [`crate::plugin::capability::CapabilityRegistry`] enables or disables a
+/// capability. The EventBus bridge forwards these to the UI as
+/// `nabu-event` payloads.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CapabilityStateEvent {
+    /// Full capability identifier (`namespace:name`).
+    pub capability_id: String,
+    /// Whether the capability is now enabled.
+    pub enabled: bool,
     pub timestamp: DateTime<Utc>,
 }
 

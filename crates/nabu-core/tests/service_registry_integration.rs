@@ -359,7 +359,7 @@ fn context_capability_count() {
     let ctx = ApplicationContext::builder()
         .with_capability_registry(cr)
         .build();
-    assert_eq!(ctx.capability_registry.capability_count(), 0);
+    assert_eq!(ctx.capability_registry().capability_count(), 0);
 }
 
 // ---------------------------------------------------------------------------

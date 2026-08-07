@@ -315,6 +315,9 @@ pub fn run() {
             crate::commands::open_in_file_manager,
             crate::commands::show_linux_notification,
             crate::commands::install_desktop_entry,
+            // Phase 1 — Capability Platform runtime control.
+            crate::commands::capability_enable,
+            crate::commands::capability_disable,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------
