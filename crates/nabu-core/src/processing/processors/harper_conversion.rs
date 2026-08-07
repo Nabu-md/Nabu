@@ -451,9 +451,24 @@ mod tests {
     #[test]
     fn convert_lint_invalid_range_rejected() {
         let source: Vec<char> = "text".chars().collect();
-        let lint = make_lint(3, 0, LintKind::Spelling, "inverted span");
-
+        // Harper's Span::new panics if start > end, so we test with a valid
+        // span that produces an inverted position range after char-to-line
+        // conversion. We achieve this by crafting a multi-line scenario where
+        // char indices map to inverted line positions — but since char_index_to_position
+        // is monotonic, we instead test that convert_lint returns an error
+        // when the span end precedes the start by using a custom lint.
+        //
+        // Instead, let's test the boundary: span start == end (empty range)
+        // should succeed, and a span beyond the document length should fail
+        // at the char_index_to_position step.
+        let lint = make_lint(0, 2, LintKind::Spelling, "inverted span");
         let result = convert_lint(&lint, &source);
+        // This should succeed (valid range)
+        assert!(result.is_ok());
+
+        // Now test with an out-of-bounds span
+        let bad_lint = make_lint(0, 99, LintKind::Spelling, "out of bounds");
+        let result = convert_lint(&bad_lint, &source);
         assert!(result.is_err());
     }
 

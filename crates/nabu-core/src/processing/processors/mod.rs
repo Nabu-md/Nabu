@@ -3,7 +3,7 @@ mod auto_filer;
 mod content_classifier;
 mod duplicate_detector;
 mod embedding_generator;
-mod harper_conversion;
+pub mod harper_conversion;
 mod harper_processor;
 mod metadata_enricher;
 mod metadata_extractor;

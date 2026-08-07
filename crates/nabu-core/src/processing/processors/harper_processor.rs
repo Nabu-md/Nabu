@@ -185,14 +185,18 @@ fn strip_html_tags(html: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::DiagnosticCategory;
     use crate::models::KnowledgeObject;
+    use crate::diagnostic::DiagnosticCategory;
 
     #[tokio::test]
     async fn test_harper_processor_skips_unsupported_type() {
         let obj = KnowledgeObject::new(
             ObjectType::AudioRecording,
-            ObjectContent::Markdown("Hello world".to_string()),
+            ObjectContent::Binary {
+                mime_type: "audio/wav".to_string(),
+                data: vec![1, 2, 3],
+                filename: Some("recording.wav".to_string()),
+            },
         );
         let ctx = ProcessingContext::new(obj);
         let processor = HarperProcessor;

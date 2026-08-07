@@ -195,4 +195,28 @@ mod tests {
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<DiagnosticError>();
     }
+
+    #[test]
+    fn harper_conversion_error_serializable() {
+        let err = DiagnosticError::harper_conversion("char index out of bounds", 99, 10);
+        let json = serde_json::to_string(&err).expect("serialize");
+        let back: DiagnosticError = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(err, back);
+    }
+
+    #[test]
+    fn harper_conversion_error_display() {
+        let err = DiagnosticError::harper_conversion("test failure", 5, 20);
+        let s = err.to_string();
+        assert!(s.contains("harper"));
+        assert!(s.contains("test failure"));
+    }
+
+    #[test]
+    fn harper_conversion_error_is_send_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<DiagnosticError>();
+        let err = DiagnosticError::harper_conversion("x", 1, 2);
+        let _: &dyn std::fmt::Display = &err;
+    }
 }
