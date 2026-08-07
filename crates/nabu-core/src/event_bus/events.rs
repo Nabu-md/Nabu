@@ -1,3 +1,4 @@
+use crate::diagnostic::events::DiagnosticEvent;
 use crate::models::{CaptureSource, ObjectType};
 use crate::plugin::events::PluginEvent;
 use chrono::{DateTime, Utc};
@@ -36,6 +37,14 @@ pub enum PipelineEvent {
     /// via [`publish_plugin_event`](crate::plugin::events::publish_plugin_event),
     /// which wraps it in this variant.
     Plugin(PluginEvent),
+    /// A diagnostic event flowing through the EventBus.
+    ///
+    /// Every diagnostic producer (spell checker, grammar engine, AI assistant,
+    /// plugin, LSP adapter, OCR engine, metadata validator, etc.) publishes
+    /// diagnostics by creating a [`DiagnosticEvent`] and publishing it via
+    /// [`publish_diagnostic_event`](crate::diagnostic::events::publish_diagnostic_event),
+    /// which wraps it in this variant.
+    Diagnostic(DiagnosticEvent),
     /// A process supervision event flowing through the EventBus.
     ///
     /// Published by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
@@ -95,6 +104,18 @@ pub mod kinds {
     pub const PROCESS_RESTARTED: &str = "process.restarted";
     /// A managed process has been stopped.
     pub const PROCESS_STOPPED: &str = "process.stopped";
+
+    // --- Diagnostic event kinds ---
+    // Published by diagnostic producers (spell checkers, AI assistants,
+    // plugins, LSP adapters, OCR engines, metadata validators, etc.)
+    // through the EventBus via DiagnosticEvent to PipelineEvent::Diagnostic.
+
+    /// A batch of diagnostics was published (created or updated).
+    pub const DIAGNOSTIC_BATCH_PUBLISHED: &str = "diagnostic.batch.published";
+    /// All diagnostics from an origin were cleared for a resource.
+    pub const DIAGNOSTIC_BATCH_CLEARED: &str = "diagnostic.batch.cleared";
+    /// A specific previously-published diagnostic batch was removed.
+    pub const DIAGNOSTIC_BATCH_REMOVED: &str = "diagnostic.batch.removed";
 }
 
 impl PipelineEvent {
@@ -113,6 +134,7 @@ impl PipelineEvent {
             PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
             PipelineEvent::Plugin(e) => e.kind(),
             PipelineEvent::Process(e) => e.kind(),
+            PipelineEvent::Diagnostic(e) => e.kind(),
         }
     }
 
@@ -137,6 +159,7 @@ impl PipelineEvent {
             PipelineEvent::CapabilityStateChanged(e) => Some(e.timestamp),
             PipelineEvent::Plugin(e) => Some(e.timestamp()),
             PipelineEvent::Process(e) => Some(e.timestamp()),
+            PipelineEvent::Diagnostic(e) => Some(e.timestamp()),
         }
     }
 }

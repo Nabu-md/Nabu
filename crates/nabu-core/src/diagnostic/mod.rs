@@ -105,6 +105,7 @@
 
 pub mod category;
 pub mod error;
+pub mod events;
 pub mod mapping;
 pub mod model;
 pub mod severity;
@@ -112,6 +113,10 @@ pub mod style;
 
 pub use category::DiagnosticCategory;
 pub use error::DiagnosticError;
+pub use events::{
+    BatchClearedEvent, BatchRemovedEvent, DiagnosticBatch, DiagnosticEvent,
+    DiagnosticEventContract, DiagnosticEventError, publish_diagnostic_event,
+};
 pub use mapping::{default_severity_styles, diagnostic_style};
 pub use model::{
     Decoration, Diagnostic, Suggestion, SuggestionApplicability, SuggestionPriority, TextPosition,
