@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use nabu_core::event_bus::{EventBus, PipelineEvent};
-use nabu_core::registry::lifecycle::LifecycleStage;
+use nabu_core::registry::lifecycle::{Lifecycle, LifecycleStage};
 use nabu_core::registry::Application;
 
 // ---------------------------------------------------------------------------
@@ -186,11 +186,11 @@ fn context_health_check() {
     let app = Application::builder().build();
     assert_eq!(
         app.context().check_health("event_bus"),
-        nabu_core::registry::context::ServiceHealth::Healthy,
+        nabu_core::registry::context::ServiceStatus::Healthy,
     );
     assert_eq!(
         app.context().check_health("nonexistent"),
-        nabu_core::registry::context::ServiceHealth::NotFound,
+        nabu_core::registry::context::ServiceStatus::NotFound,
     );
 }
 
@@ -328,4 +328,47 @@ fn category_constants_are_defined() {
         nabu_core::registry::CATEGORY_CONTENT_PROVIDERS,
         "content_providers"
     );
+}
+
+// ---------------------------------------------------------------------------
+// PluginManager integration — PluginManager is always constructed during
+// application startup and accessible through the ApplicationContext.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn application_context_has_plugin_manager() {
+    let app = Application::builder().build();
+    let pm = app.context().plugin_manager();
+    assert_eq!(pm.name(), "plugin_manager");
+}
+
+#[test]
+fn application_context_plugin_manager_is_singleton() {
+    let app = Application::builder().build();
+    // The ApplicationContext owns exactly one PluginManager instance.
+    let pm1 = app.context().plugin_manager();
+    let pm2 = app.context().plugin_manager();
+    assert_eq!(pm1.plugin_count(), pm2.plugin_count());
+    assert_eq!(
+        pm1.capability_registry().capability_count(),
+        pm2.capability_registry().capability_count()
+    );
+}
+
+#[test]
+fn application_context_plugin_manager_has_builtin_capabilities() {
+    let app = Application::builder().build();
+    let pm = app.context().plugin_manager();
+    assert!(pm.capability_registry().has("nabu:event_bus"));
+    assert!(pm.capability_registry().has("nabu:capture"));
+    assert!(pm.capability_registry().has("nabu:plugin"));
+}
+
+#[test]
+fn application_context_plugin_manager_has_nabu_version() {
+    let app = Application::builder().build();
+    let pm = app.context().plugin_manager();
+    let expected = nabu_core::plugin::Version::parse(nabu_core::APPLICATION_VERSION)
+        .unwrap_or(nabu_core::plugin::Version::new(0, 1, 0));
+    assert_eq!(pm.nabu_version(), &expected);
 }

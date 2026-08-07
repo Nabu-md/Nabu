@@ -53,7 +53,7 @@ use crate::plugin::PluginManager;
 #[cfg(test)]
 use crate::plugin::Version;
 
-use crate::registry::health::{HealthStatus, ServiceEntry, ServiceHealth, ServiceLifecycleStageInfo};
+use crate::registry::health::{HealthStatus, ServiceEntry, ServiceHealth};
 use crate::registry::lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
 use crate::registry::ServiceRegistry;
 
@@ -383,13 +383,194 @@ impl ApplicationContext {
     // -----------------------------------------------------------------------
 
     /// Checks the health of a single service by key.
-    pub fn check_health(&self, key: &str) -> ServiceHealth {
+    pub fn check_health(&self, key: &str) -> ServiceStatus {
         let registry = self.registry.read().expect("registry lock not poisoned");
         if registry.has(key) {
-            ServiceHealth::Healthy
+            ServiceStatus::Healthy
         } else {
-            ServiceHealth::NotFound
+            ServiceStatus::NotFound
         }
+    }
+
+    /// Queries the LifecycleManager and ServiceRegistry to construct a
+    /// structured [`ServiceHealth`] report representing the current operational
+    /// state of the application's core services.
+    ///
+    /// This is the canonical health API for the Capability Platform. It gathers
+    /// information directly from the lifecycle managers — no duplicate state is
+    /// maintained and no services are re-initialized.
+    ///
+    /// # Lifecycle-managed services reported
+    ///
+    /// The following known lifecycle-managed services are queried for their
+    /// current stage:
+    ///
+    /// - `capture_engine` (CaptureEngine)
+    /// - `worker_pool` (WorkerPool)
+    /// - `pipeline_executor` (PipelineExecutor)
+    /// - `storage_manager` (StorageManager)
+    /// - `vault_graph` (VaultGraph, behind RwLock)
+    /// - `indexer` (Indexer, behind Mutex)
+    ///
+    /// Services without lifecycle management (e.g. `event_bus`, `pipeline`)
+    /// are included in `service_names` and `registered_services` but do not
+    /// appear in the per-service `services` list.
+    ///
+    /// # Thread safety
+    ///
+    /// All lock acquisitions are released before acquiring the next,
+    /// avoiding nested lock ordering issues. Lock errors are recorded in the
+    /// `error` field rather than causing a panic.
+    pub fn health_check(&self) -> ServiceHealth {
+        tracing::info!("Health check requested");
+
+        // ── 1. Read-only snapshot of registry info (released immediately) ─
+        let (registered_services, service_names) = {
+            let registry = match self.registry.read() {
+                Ok(guard) => guard,
+                Err(_) => {
+                    tracing::error!("Registry lock poisoned during health check");
+                    return ServiceHealth {
+                        overall_status: HealthStatus::Unhealthy,
+                        lifecycle_stage: self.lifecycle.stage().into(),
+                        initialized: self.is_initialized(),
+                        running: self.is_running(),
+                        startup_success: self.is_initialized(),
+                        registered_services: 0,
+                        service_names: Vec::new(),
+                        services: Vec::new(),
+                        running_service_count: 0,
+                        stopped_service_count: 0,
+                        failed_service_count: 0,
+                        capability_count: 0,
+                        error: Some("Registry lock poisoned".to_string()),
+                    };
+                }
+            };
+            let count = registry.singleton_count() + registry.factory_count();
+            let mut keys = registry.service_keys();
+            keys.sort();
+            (count, keys)
+        };
+
+        // ── 2. Read the lifecycle stage (lock-free atomic) ─
+        let lifecycle_stage = self.lifecycle.stage();
+        tracing::info!(
+            stage = ?lifecycle_stage,
+            registered_services,
+            "Lifecycle status collected"
+        );
+
+        // ── 3. Capability count (separate lock, acquired independently) ─
+        let capability_count = self
+            .capability_registry()
+            .capability_count();
+
+        // ── 4. Collect per-service lifecycle for known managed services ─
+        let mut services: Vec<ServiceEntry> = Vec::new();
+        let mut running_count = 0usize;
+        let mut stopped_count = 0usize;
+        let mut lock_error_count = 0usize;
+        let mut errors: Vec<String> = Vec::new();
+
+        // Helper: register a service's lifecycle stage into the report.
+        let mut record_service = |name: &str, stage: LifecycleStage| {
+            let healthy = stage.is_at_least(LifecycleStage::Created);
+            if stage == LifecycleStage::Running {
+                running_count += 1;
+            }
+            if stage == LifecycleStage::Shutdown {
+                stopped_count += 1;
+            }
+            services.push(ServiceEntry {
+                name: name.to_string(),
+                stage: stage.into(),
+                healthy,
+            });
+        };
+
+        // CaptureEngine
+        if let Some(engine) = self.capture_engine() {
+            record_service("capture_engine", engine.lifecycle_stage());
+        }
+
+        // WorkerPool
+        if let Some(pool) = self.worker_pool() {
+            record_service("worker_pool", pool.lifecycle_stage());
+        }
+
+        // PipelineExecutor
+        if let Some(executor) = self.pipeline_executor() {
+            record_service("pipeline_executor", executor.lifecycle_stage());
+        }
+
+        // StorageManager
+        if let Some(storage) = self.storage_manager() {
+            record_service("storage_manager", storage.lifecycle_stage());
+        }
+
+        // VaultGraph (behind RwLock)
+        if let Some(graph) = self.vault_graph() {
+            match graph.read() {
+                Ok(g) => record_service("vault_graph", g.lifecycle_stage()),
+                Err(_) => {
+                    errors.push("vault_graph: lock poisoned".to_string());
+                    lock_error_count += 1;
+                }
+            }
+        }
+
+        // Indexer (behind Mutex)
+        if let Some(indexer) = self.indexer() {
+            match indexer.lock() {
+                Ok(idx) => record_service("indexer", idx.lifecycle_stage()),
+                Err(_) => {
+                    errors.push("indexer: lock poisoned".to_string());
+                    lock_error_count += 1;
+                }
+            }
+        }
+
+        // Derive failed_count from collected services + lock errors.
+        let failed_count = services.iter().filter(|s| !s.healthy).count() + lock_error_count;
+
+        // ── 5. Determine overall status ─
+        let overall_status = if !errors.is_empty() {
+            HealthStatus::Unhealthy
+        } else if stopped_count > 0 || failed_count > 0 {
+            HealthStatus::Degraded
+        } else {
+            HealthStatus::Healthy
+        };
+
+        tracing::info!("Health report generated");
+
+        let health = ServiceHealth {
+            overall_status,
+            lifecycle_stage: lifecycle_stage.into(),
+            initialized: self.is_initialized(),
+            running: self.is_running(),
+            startup_success: self.is_initialized(),
+            registered_services,
+            service_names,
+            services,
+            running_service_count: running_count,
+            stopped_service_count: stopped_count,
+            failed_service_count: failed_count,
+            capability_count,
+            error: if errors.is_empty() {
+                None
+            } else {
+                Some(errors.join("; "))
+            },
+        };
+
+        tracing::info!(
+            status = health.status_label(),
+            services = health.services.len(),
+            "Health check completed"
+        );
+        health
     }
 
     /// Validates that all required services are present.
@@ -1005,8 +1186,22 @@ mod tests {
     #[test]
     fn health_check() {
         let ctx = ApplicationContext::builder().build();
-        assert_eq!(ctx.check_health("event_bus"), ServiceHealth::Healthy);
-        assert_eq!(ctx.check_health("nonexistent"), ServiceHealth::NotFound);
+        assert_eq!(ctx.check_health("event_bus"), ServiceStatus::Healthy);
+        assert_eq!(ctx.check_health("nonexistent"), ServiceStatus::NotFound);
+    }
+
+    #[test]
+    fn health_check_returns_service_health() {
+        let ctx = ApplicationContext::builder().build();
+        let health = ctx.health_check();
+        assert_eq!(
+            health.lifecycle_stage,
+            crate::registry::health::LifecycleStageInfo::Created
+        );
+        assert_eq!(health.overall_status, HealthStatus::Healthy);
+        assert!(health.service_names.contains(&"event_bus".to_string()));
+        assert!(!health.initialized);
+        assert!(!health.running);
     }
 
     #[test]

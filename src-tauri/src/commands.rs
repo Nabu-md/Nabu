@@ -3521,6 +3521,34 @@ pub fn capability_list(
     Ok(caps)
 }
 
+/// Returns a structured [`ServiceHealth`] report describing the current
+/// operational state of the application's core services.
+///
+/// This is the canonical health endpoint for the Capability Platform. It
+/// queries the `LifecycleManager` (the single source of truth for lifecycle
+/// state) and the `ServiceRegistry` — no duplicate state is maintained.
+///
+/// The returned [`ServiceHealth`] struct is fully serializable and designed
+/// for forward-compatible extension: future phases can add fields
+/// (uptime, version, performance metrics, plugin status, etc.) without
+/// breaking existing consumers.
+///
+/// [`ServiceHealth`]: nabu_core::registry::ServiceHealth
+#[tauri::command]
+pub fn health_check(
+    ctx: State<'_, ApplicationContext>,
+) -> Result<nabu_core::registry::ServiceHealth, String> {
+    tracing::info!("Health check IPC requested");
+    let health = ctx.health_check();
+    tracing::info!(
+        status = health.status_label(),
+        lifecycle_stage = ?health.lifecycle_stage,
+        registered_services = health.registered_services,
+        "Health check IPC completed"
+    );
+    Ok(health)
+}
+
 /// Internal helper that computes GraphData without going through Tauri state
 /// (used by `statistics_get` which already holds the vault path).
 fn graph_data_inner(vault_path: &Path) -> GraphData {

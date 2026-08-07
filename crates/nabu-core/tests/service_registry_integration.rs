@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use nabu_core::registry::context::{
-    ApplicationContext, ApplicationContextBuilder, ServiceHealth, ValidationReport,
+    ApplicationContext, ApplicationContextBuilder, ServiceStatus, ValidationReport,
 };
 use nabu_core::registry::lifecycle::{LifecycleError, LifecycleManager, LifecycleStage};
 use nabu_core::registry::ServiceRegistry;
@@ -217,8 +217,8 @@ fn context_validate_core_services() {
 #[test]
 fn context_health_check() {
     let ctx = ApplicationContext::builder().build();
-    assert_eq!(ctx.check_health("event_bus"), ServiceHealth::Healthy);
-    assert_eq!(ctx.check_health("missing"), ServiceHealth::NotFound);
+    assert_eq!(ctx.check_health("event_bus"), ServiceStatus::Healthy);
+    assert_eq!(ctx.check_health("missing"), ServiceStatus::NotFound);
 }
 
 // ---------------------------------------------------------------------------
@@ -295,19 +295,19 @@ fn validation_report_with_unhealthy() {
 }
 
 // ---------------------------------------------------------------------------
-// ServiceHealth enum tests
+// ServiceStatus enum tests
 // ---------------------------------------------------------------------------
 
 #[test]
-fn service_health_variants() {
-    assert_ne!(ServiceHealth::Healthy, ServiceHealth::NotFound);
-    assert_ne!(ServiceHealth::Healthy, ServiceHealth::NotInitialized);
+fn service_status_variants() {
+    assert_ne!(ServiceStatus::Healthy, ServiceStatus::NotFound);
+    assert_ne!(ServiceStatus::Healthy, ServiceStatus::NotInitialized);
     assert_ne!(
-        ServiceHealth::Unhealthy("err".into()),
-        ServiceHealth::Healthy
+        ServiceStatus::Unhealthy("err".into()),
+        ServiceStatus::Healthy
     );
-    match ServiceHealth::Unhealthy("reason".into()) {
-        ServiceHealth::Unhealthy(r) => assert_eq!(r, "reason"),
+    match ServiceStatus::Unhealthy("reason".into()) {
+        ServiceStatus::Unhealthy(r) => assert_eq!(r, "reason"),
         _ => panic!("Expected Unhealthy variant"),
     }
 }

@@ -356,6 +356,8 @@ pub fn run() {
             crate::commands::capability_enable,
             crate::commands::capability_disable,
             crate::commands::capability_list,
+            // Phase 1.5.1 — Health reporting diagnostics.
+            crate::commands::health_check,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------
