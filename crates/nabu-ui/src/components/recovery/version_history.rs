@@ -237,7 +237,7 @@ pub fn VersionHistory() -> Element {
             }
             div { class: "px-4 py-3 border-b border-gray-800" }
             h2 { class: "text-base font-semibold text-gray-50", "Version History" }
-            p { class: "text-xs text-gray-500", format!("{} notes with snapshots", notes.len()) }
+            p { class: "text-xs text-gray-500", {format!("{} notes with snapshots", notes.len())} }
 
             div { class: "flex-1 overflow-y-auto" }
             {if notes.is_empty() {
@@ -480,7 +480,6 @@ pub fn VersionHistory() -> Element {
                     }
                 }
             }}
-            }
 
             // ── Dialogs ──
             ConfirmDialog {

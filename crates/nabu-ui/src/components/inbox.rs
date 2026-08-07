@@ -244,7 +244,7 @@ fn confidence_bar(score: f64) -> Element {
     };
     rsx! {
         div { class: "w-full bg-gray-700 rounded h-1.5 mt-1 overflow-hidden" }
-        div { class: "{bar_class} h-1.5 rounded transition-all", style: { format!("width: {}%", pct) } }
+        div { class: {format!("{} h-1.5 rounded transition-all", bar_class)}, style: { format!("width: {}%", pct) } }
     }
 }
 
@@ -328,7 +328,7 @@ pub fn Inbox() -> Element {
     };
 
     // Batch action handlers
-    let batch_approve: EventHandler<MouseEvent> = {
+    let batch_approve: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent| {
         let st = state;
         let t = toasts;
         move |_: MouseEvent| {
@@ -352,10 +352,10 @@ pub fn Inbox() -> Element {
                     }
                 });
             }
-        }
+        });
     };
 
-    let batch_reject: EventHandler<MouseEvent> = {
+    let batch_reject: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
         let st = state;
         let t = toasts;
         move |_: MouseEvent| {
@@ -383,10 +383,10 @@ pub fn Inbox() -> Element {
                     }
                 });
             }
-        }
+        });
     };
 
-    let batch_delete: EventHandler<MouseEvent> = {
+    let batch_delete: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
         let st = state;
         let t = toasts;
         move |_: MouseEvent| {
@@ -410,10 +410,10 @@ pub fn Inbox() -> Element {
                     }
                 });
             }
-        }
+        });
     };
 
-    let batch_retry: EventHandler<MouseEvent> = {
+    let batch_retry: EventHandler<MouseEvent> = Callback::new(move |_: MouseEvent|
         let st = state;
         let t = toasts;
         move |_: MouseEvent| {
@@ -656,22 +656,22 @@ pub fn Inbox() -> Element {
                     button {
                         class: "px-2 py-1 text-xs bg-green-700 rounded hover:bg-green-600",
                         onclick: batch_approve,
-                        "\"Approve\""
+                        "Approve"
                     }
                     button {
                         class: "px-2 py-1 text-xs bg-red-700 rounded hover:bg-red-600",
                         onclick: batch_reject,
-                        "\"Reject\""
+                        "Reject"
                     }
                     button {
                         class: "px-2 py-1 text-xs bg-yellow-700 rounded hover:bg-yellow-600",
                         onclick: batch_retry,
-                        "\"Retry\""
+                        "Retry"
                     }
                     button {
                         class: "px-2 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600",
                         onclick: batch_delete,
-                        "\"Delete\""
+                        "Delete"
                     }
                 }
             } else { rsx! {} }}
@@ -738,7 +738,7 @@ pub fn Inbox() -> Element {
                                 }
                                 div { class: "flex items-center gap-2 mt-1 ml-7" }
                                 span { class: "text-xs text-gray-500", "{source}" }
-                                span { class: "text-xs text-gray-600", "\"•\"" }
+                                span { class: "text-xs text-gray-600", "•" }
                                 span { class: "text-xs text-gray-500", "{object_type}" }
                                 {suggested_folder.as_ref().map(|folder| rsx! {
                                     span { class: "text-xs text-blue-400 mt-1 block", {render_icon_view(Icon::MapPin)} " {folder}" }
@@ -758,7 +758,7 @@ pub fn Inbox() -> Element {
                                     rsx! {
                                         div { class: "ml-7 mt-1 w-full max-w-[120px]" }
                                         {confidence_bar(score)}
-                                        span { class: "{colour} text-xs", "{pct}% confidence" }
+                                        span { class: {format!("{} text-xs", colour)}, "{pct}% confidence" }
                                     }
                                 })}
                             }
@@ -771,9 +771,9 @@ pub fn Inbox() -> Element {
             div { class: "flex items-center justify-between px-3 py-2 border-t border-gray-800 text-xs text-gray-500" }
             span { "{total_count} items" }
             div { class: "flex gap-2" }
-            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Timestamp), "\"Sort by Date\"" }
-            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Title), "\"Sort by Title\"" }
-            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Status), "\"Sort by Status\"" }
+            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Timestamp), "Sort by Date" }
+            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Title), "Sort by Title" }
+            button { class: "hover:text-gray-300", onclick: move |_: MouseEvent| on_sort_change(SortField::Status), "Sort by Status" }
         }
 
         // ── Right panel: Preview ──
@@ -788,13 +788,13 @@ pub fn Inbox() -> Element {
                         div { class: "flex-none w-72 border-l border-gray-800 overflow-y-auto p-4", {InboxMetadataSidebar { item: item }} }
                     },
                     None => rsx! {
-                        div { class: "flex items-center justify-center h-full text-gray-500", "\"Select an item to preview\"" }
+                        div { class: "flex items-center justify-center h-full text-gray-500", "Select an item to preview" }
                     },
                 }
             }
         } else {
             rsx! {
-                div { class: "flex items-center justify-center h-full text-gray-500", "\"Select an item to preview\"" }
+                div { class: "flex items-center justify-center h-full text-gray-500", "Select an item to preview" }
             }
         }}
     }
@@ -918,22 +918,25 @@ fn InboxDetails(item: InboxItem) -> Element {
         label { class: "text-xs text-gray-500 uppercase tracking-wide", "Source File" }
         p { class: "text-sm text-gray-400 truncate", "{item.source_file.clone().unwrap_or_default()}" }
 
-        {if item.metadata.custom.get("classification").is_some() {
+        {{let classification_text = item.metadata.custom.get("classification")
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_default();
+        if item.metadata.custom.get("classification").is_some() {
             rsx! {
                 div { class: "mt-3" }
                 label { class: "text-xs text-gray-500 uppercase tracking-wide", "Classification" }
                 div { class: "flex items-center gap-2 mt-1" }
-                span { class: "text-sm font-medium text-blue-300", "{item.metadata.custom.get("classification").and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default()}" }
+                span { class: "text-sm font-medium text-blue-300", "{classification_text}" }
                 {if let Some(score) = item.confidence {
                     let colour = confidence_color(score);
                     let pct = ((score * 100.0).round() as i64).clamp(0, 100);
                     rsx! {
-                        span { class: "{colour} text-xs", "{pct}% confidence" }
+                        span { class: {format!("{} text-xs", colour)}, "{pct}% confidence" }
                     }
                 } else { rsx! {} }}
             }
             {item.confidence.map(|score| rsx! { {confidence_bar(score)} })}
-        } else { rsx! {} }}
+        } else { rsx! {} }}}
 
         {if let Some(folder) = item.suggested_folder.clone() {
             rsx! {
@@ -989,9 +992,9 @@ fn InboxDuplicateReview(item: InboxItem) -> Element {
                 p { class: "text-gray-300", "{dup.candidate_ids.len()} found" }
 
                 div { class: "flex gap-2" }
-                button { class: "px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600", "\"Keep Both\"" }
-                button { class: "px-3 py-1.5 text-sm bg-blue-700 rounded hover:bg-blue-600", "\"Replace\"" }
-                button { class: "px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600", "\"Ignore\"" }
+                button { class: "px-3 py-1.5 text-sm bg-green-700 rounded hover:bg-green-600", "Keep Both" }
+                button { class: "px-3 py-1.5 text-sm bg-blue-700 rounded hover:bg-blue-600", "Replace" }
+                button { class: "px-3 py-1.5 text-sm bg-gray-700 rounded hover:bg-gray-600", "Ignore" }
             }
         } else {
             rsx! {

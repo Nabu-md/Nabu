@@ -10,7 +10,6 @@ use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::selection::{Segmented, SegmentedOption};
 use dioxus::prelude::*;
 use dioxus::web::WebEventExt;
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
 /// The floating dictation / scratchpad / drop-zone pill.
@@ -48,7 +47,7 @@ pub fn DictationPill() -> Element {
     rsx! {
         div {
             class: "dictation-pill flex flex-col items-center gap-2 p-3 rounded-lg shadow-lg bg-gray-800 text-gray-100",
-            style: "opacity: {*opacity.read()};",
+            style: format!("opacity: {};", opacity.read()),
             onmouseenter: move |_: MouseEvent| opacity.set(1.0),
             onmouseleave: move |_: MouseEvent| opacity.set(0.8),
             ondragenter: move |_: DragEvent| is_dragging.set(true),
@@ -102,12 +101,14 @@ pub fn DictationPill() -> Element {
         }
 
         // Recording pulse indicator
-        if is_dictating.read() {
-            div { class: "flex space-x-1" }
-            div { class: "h-4 w-1 bg-white animate-pulse" }
-            div { class: "h-6 w-1 bg-white animate-pulse delay-75" }
-            div { class: "h-4 w-1 bg-white animate-pulse delay-150" }
-        }
+        {if *is_dictating.read() {
+            rsx! {
+                div { class: "flex space-x-1" }
+                div { class: "h-4 w-1 bg-white animate-pulse" }
+                div { class: "h-6 w-1 bg-white animate-pulse delay-75" }
+                div { class: "h-4 w-1 bg-white animate-pulse delay-150" }
+            }
+        } else { rsx! {} }}
 
         // Mode selector
         Segmented {
@@ -154,18 +155,18 @@ pub fn DictationPill() -> Element {
         }
 
         // Mode-specific content
-        match mode.read().as_str() {
+        {match mode.read().as_str() {
             "dictation" => rsx! {
                 Button {
                     variant: ButtonVariant::Primary,
                     on_click: move |_: MouseEvent| {
-                        is_dictating.set(!is_dictating.read());
+                        is_dictating.set(!*is_dictating.read());
                         let args = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
                         spawn_local(async move {
                             let _ = crate::ipc::tauri_invoke("start_dictation", args).await;
                         });
                     },
-                    {if is_dictating.read() { "Stop" } else { "Record" }}
+                    {if *is_dictating.read() { "Stop" } else { "Record" }}
                 }
             },
             "scratchpad" => rsx! {
@@ -179,17 +180,17 @@ pub fn DictationPill() -> Element {
             "drop" => rsx! {
                 div {
                     class: "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-                    style: { format!("border-color: {};", if *is_dragging.read() { "#60a5fa" } else { "#4b5563" }) },
+                    style: format!("border-color: {};", if *is_dragging.read() { "#60a5fa" } else { "#4b5563" }),
                 }
                 div { {render_icon_view(Icon::Upload)} }
                 p { class: "text-sm text-gray-400 mt-2", "Drop files here or click to browse" }
                 p { class: "text-xs text-gray-500 mt-1", "Files will be captured to your inbox" }
             },
             _ => rsx! {},
-        }
+        }}
 
         // Clipboard cache panel
-        if !clipboard_cache.read().is_empty() {
+        {if !clipboard_cache.read().is_empty() {
             rsx! {
                 div { class: "mt-2" }
                 div { class: "text-xs text-gray-500 mb-1", "Recent clipboard:" }
@@ -212,6 +213,6 @@ pub fn DictationPill() -> Element {
                     }
                 }
             }
-        }
+        } else { rsx! {} }}
     }
 }

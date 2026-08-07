@@ -51,17 +51,18 @@ pub fn DiffView(rows: Vec<DiffRow>, old_label: String, new_label: String) -> Ele
                 };
                 let old_class = old_class;
                 let new_class = new_class;
-                let tag = tag;
+                let mark_old = if kind == DiffKind::Added { "" } else { tag };
+                let mark_new = if kind == DiffKind::Removed { "" } else { tag };
                 rsx! {
                     div { class: "diff-row" }
-                    div { class: "diff-cell diff-old {old_class}" }
+                    div { class: {format!("diff-cell diff-old {}", old_class)} }
                     span { class: "diff-lineno", "{old_line}" }
-                    span { class: "diff-mark", "aria-hidden": "true", "{if kind == DiffKind::Added { \"\" } else { tag }}" }
+                    span { class: "diff-mark", "aria-hidden": "true", "{mark_old}" }
                     span { class: "diff-text", "{text_old}" }
 
-                    div { class: "diff-cell diff-new {new_class}" }
+                    div { class: {format!("diff-cell diff-new {}", new_class)} }
                     span { class: "diff-lineno", "{new_line}" }
-                    span { class: "diff-mark", "aria-hidden": "true", "{if kind == DiffKind::Removed { \"\" } else { tag }}" }
+                    span { class: "diff-mark", "aria-hidden": "true", "{mark_new}" }
                     span { class: "diff-text", "{text_new}" }
                 }
             }
