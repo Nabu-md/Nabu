@@ -26,11 +26,14 @@
 //! ```
 
 pub mod capture;
+pub mod conversations;
 pub mod diagnostic;
 pub mod diagnostics;
 pub mod event_bus;
 pub mod graph;
 pub mod history;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod io_stream;
 pub mod ipc_socket;
 pub mod indexer;
 pub mod jobs;
@@ -61,6 +64,9 @@ pub use event_bus::*;
 pub use graph::*;
 #[allow(ambiguous_glob_reexports)]
 pub use history::*;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(ambiguous_glob_reexports)]
+pub use io_stream::*;
 #[allow(ambiguous_glob_reexports)]
 pub use indexer::*;
 #[allow(ambiguous_glob_reexports)]

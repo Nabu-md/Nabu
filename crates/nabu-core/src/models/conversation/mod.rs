@@ -75,4 +75,4 @@ pub use message::Message;
 pub use participant::Participant;
 pub use role::Role;
 pub use thread::Thread;
-pub use turn::Turn;
+pub use turn::{Turn, TurnContent};

@@ -1,4 +1,3 @@
-use std::fmt;
 use uuid::Uuid;
 
 /// Structured errors for the conversation persistence layer.
@@ -8,92 +7,86 @@ use uuid::Uuid;
 /// operating whenever safe recovery is possible (e.g. skipping a corrupted
 /// thread on startup).
 #[derive(Debug, Clone)]
-pub enum ConversationError {
-    /// The persistence file or directory does not exist.
-    NotFound {
-        /// The thread ID that was not found.
+pub enum PersistenceError {
+    /// The thread was not found in the cache or on disk.
+    ThreadNotFound {
         thread_id: Uuid,
     },
     /// The persistence file exists but contained invalid JSON.
     SerializationError {
-        /// Human-readable serde_json error message.
         message: String,
     },
     /// The deserialization failed (missing fields, type mismatch, etc.).
     DeserializationError {
-        /// The thread ID or file path that failed to deserialize.
         target: String,
-        /// Human-readable serde error message.
         message: String,
     },
-    /// The thread failed validation after deserialization (e.g. empty title,
-    /// invalid message ordering).
+    /// The thread failed model-level validation after deserialization.
     ValidationError {
-        /// The thread ID that failed validation.
         thread_id: Uuid,
-        /// Human-readable validation error.
         reason: String,
     },
     /// An I/O error occurred while reading or writing a persistence file.
     IoError {
-        /// Human-readable I/O error message.
         message: String,
     },
-    /// The persistence store has been shut down and cannot accept requests.
+    /// The store has been shut down and cannot accept requests.
     Shutdown,
     /// The given thread ID conflicts with an existing thread (duplicate).
     DuplicateId {
-        /// The conflicting thread ID.
         thread_id: Uuid,
     },
 }
 
-impl fmt::Display for ConversationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for PersistenceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConversationError::NotFound { thread_id } => {
+            PersistenceError::ThreadNotFound { thread_id } => {
                 write!(f, "Thread not found: {}", thread_id)
             }
-            ConversationError::SerializationError { message } => {
+            PersistenceError::SerializationError { message } => {
                 write!(f, "Serialization error: {}", message)
             }
-            ConversationError::DeserializationError { target, message } => {
+            PersistenceError::DeserializationError { target, message } => {
                 write!(f, "Deserialization error for '{}': {}", target, message)
             }
-            ConversationError::ValidationError { thread_id, reason } => {
+            PersistenceError::ValidationError { thread_id, reason } => {
                 write!(
                     f,
                     "Validation failed for thread {}: {}",
                     thread_id, reason
                 )
             }
-            ConversationError::IoError { message } => {
+            PersistenceError::IoError { message } => {
                 write!(f, "I/O error: {}", message)
             }
-            ConversationError::Shutdown => {
+            PersistenceError::Shutdown => {
                 write!(f, "ConversationStore has been shut down")
             }
-            ConversationError::DuplicateId { thread_id } => {
+            PersistenceError::DuplicateId { thread_id } => {
                 write!(f, "Duplicate thread ID: {}", thread_id)
             }
         }
     }
 }
 
-impl std::error::Error for ConversationError {}
+impl std::error::Error for PersistenceError {}
 
-impl From<std::io::Error> for ConversationError {
+impl From<std::io::Error> for PersistenceError {
     fn from(e: std::io::Error) -> Self {
-        ConversationError::IoError {
+        PersistenceError::IoError {
             message: e.to_string(),
         }
     }
 }
 
-impl From<serde_json::Error> for ConversationError {
+impl From<serde_json::Error> for PersistenceError {
     fn from(e: serde_json::Error) -> Self {
-        ConversationError::SerializationError {
+        PersistenceError::SerializationError {
             message: e.to_string(),
         }
     }
 }
+
+/// Result type alias for persistence operations.
+pub type PersistenceResult<T> = Result<T, PersistenceError>;
