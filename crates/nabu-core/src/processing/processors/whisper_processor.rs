@@ -74,6 +74,7 @@ impl Processor for WhisperProcessor {
                     modified: false,
                     metadata: std::collections::HashMap::new(),
                     error: Some(e.to_string()),
+                    diagnostics: Vec::new(),
                 };
             }
             Err(_) => return ProcessingResult::unmodified(object),

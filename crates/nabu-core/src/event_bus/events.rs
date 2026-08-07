@@ -1,6 +1,9 @@
 use crate::diagnostic::events::DiagnosticEvent;
 use crate::models::{CaptureSource, ObjectType};
 use crate::plugin::events::PluginEvent;
+use crate::sync::SyncProgress;
+use crate::sync::SyncStatus;
+use crate::sync::SyncFolder;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -45,6 +48,14 @@ pub enum PipelineEvent {
     /// [`publish_diagnostic_event`](crate::diagnostic::events::publish_diagnostic_event),
     /// which wraps it in this variant.
     Diagnostic(DiagnosticEvent),
+    /// A synchronization status-change event flowing through the EventBus.
+    ///
+    /// Every synchronization provider (Syncthing, iCloud, Git, WebDAV, etc.)
+    /// publishes status changes by creating a [`SyncStatusChanged`] and
+    /// publishing it via
+    /// [`publish_sync_status_changed`](crate::sync::events::publish_sync_status_changed),
+    /// which wraps it in this variant.
+    Sync(SyncStatusChanged),
     /// A process supervision event flowing through the EventBus.
     ///
     /// Published by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
@@ -124,6 +135,15 @@ pub mod kinds {
     pub const DIAGNOSTIC_BATCH_CLEARED: &str = "diagnostic.batch.cleared";
     /// A specific previously-published diagnostic batch was removed.
     pub const DIAGNOSTIC_BATCH_REMOVED: &str = "diagnostic.batch.removed";
+
+    // --- Synchronization event kinds ---
+    // Published by synchronization providers (Syncthing, iCloud, Git, WebDAV, etc.)
+    // through the EventBus. Providers create `SyncStatusChanged` events and
+    // publish via `publish_sync_status_changed`, which wraps them in
+    // `PipelineEvent::Sync(...)` for EventBus transport.
+
+    /// A synchronization folder's status has changed.
+    pub const SYNC_STATUS_CHANGED: &str = "sync.status.changed";
 }
 
 impl PipelineEvent {
@@ -143,6 +163,7 @@ impl PipelineEvent {
             PipelineEvent::Plugin(e) => e.kind(),
             PipelineEvent::Process(e) => e.kind(),
             PipelineEvent::Diagnostic(e) => e.kind(),
+            PipelineEvent::Sync(e) => e.kind(),
         }
     }
 
@@ -168,6 +189,7 @@ impl PipelineEvent {
             PipelineEvent::Plugin(e) => Some(e.timestamp()),
             PipelineEvent::Process(e) => Some(e.timestamp()),
             PipelineEvent::Diagnostic(e) => Some(e.timestamp()),
+            PipelineEvent::Sync(e) => Some(e.timestamp()),
         }
     }
 }

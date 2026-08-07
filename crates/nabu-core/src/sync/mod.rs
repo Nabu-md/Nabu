@@ -63,14 +63,41 @@
 //! - Validation is performed by explicit `validate()` methods that return
 //!   [`SyncError`] — never panics.
 
+//! ## Module structure
+//!
+//! | Module         | Contents                                              |
+//! |----------------|-------------------------------------------------------|
+//! | [`events`]     | `SyncStatusChanged` event, EventBus publishing helper |
+//! | [`folder`]     | `SyncFolder`, `SyncConfig`, `SyncScheduleMode`        |
+//! | [`status`]     | `SyncStatus`                                          |
+//! | [`progress`]   | `SyncProgress`                                        |
+//! | [`conflict`]   | `ConflictResolution`, `ConflictEntry`                 |
+//! | [`error`]      | `SyncError`, `SyncResult`                             |
+
+//! ## Synchronization event pipeline
+//!
+//! Synchronization state changes flow through the existing [`EventBus`] — not
+//! through a sync-specific bus. Every provider publishes
+//! [`SyncStatusChanged`] events via
+//! [`publish_sync_status_changed`](events::publish_sync_status_changed),
+//! which wraps the event in `PipelineEvent::Sync(...)` and publishes it under
+//! the [`SYNC_STATUS_CHANGED`](crate::event_bus::kinds::SYNC_STATUS_CHANGED)
+//! kind. The EventBus→Tauri bridge forwards this kind to the frontend over the
+//! `nabu-event` channel.
+//!
+//! See the [`events`](events/index.html) module for the complete event
+//! lifecycle documentation.
+
 pub mod conflict;
 pub mod error;
+pub mod events;
 pub mod folder;
 pub mod progress;
 pub mod status;
 
 pub use conflict::{ConflictEntry, ConflictResolution};
 pub use error::{SyncError, SyncResult};
+pub use events::{publish_sync_status_changed, SyncStatusChanged};
 pub use folder::{SyncConfig, SyncFolder, SyncScheduleMode};
 pub use progress::SyncProgress;
 pub use status::SyncStatus;

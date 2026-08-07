@@ -93,6 +93,7 @@ impl ProcessingPipeline {
                     modified: true,
                     metadata: std::collections::HashMap::new(),
                     error: Some("Pipeline cancelled".to_string()),
+                    diagnostics: Vec::new(),
                 };
             }
 
@@ -201,6 +202,7 @@ impl ProcessingPipeline {
             modified: true,
             metadata: std::collections::HashMap::new(),
             error: None,
+            diagnostics: Vec::new(),
         }
     }
 
