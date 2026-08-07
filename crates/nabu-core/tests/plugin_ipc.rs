@@ -21,6 +21,11 @@ use nabu_core::plugin::manager::PluginManager;
 use nabu_core::plugin::provider::CapabilityProvider;
 use nabu_core::plugin::version::Version;
 
+use nabu_core::event_bus::{EventBus, PipelineEvent};
+use nabu_core::plugin::events::{
+    PluginEvent, PluginRequestEvent, PluginResponseEvent,
+};
+
 // ===========================================================================
 // Test Provider Implementations
 // ===========================================================================
@@ -127,6 +132,33 @@ impl CapabilityProvider for NoopProvider {
     }
     fn capabilities(&self) -> Vec<Capability> {
         self.caps.clone()
+    }
+}
+
+/// A provider whose `invoke` panics.
+#[derive(Debug)]
+struct PanickingProvider {
+    id: String,
+    version: Version,
+    caps: Vec<Capability>,
+}
+
+impl CapabilityProvider for PanickingProvider {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    fn name(&self) -> &str {
+        &self.id
+    }
+    fn version(&self) -> &Version {
+        &self.version
+    }
+    fn capabilities(&self) -> Vec<Capability> {
+        self.caps.clone()
+    }
+
+    fn invoke(&self, _request: &PluginInvocationRequest) -> PluginInvocationResponse {
+        panic!("intentional panic in test provider");
     }
 }
 
@@ -596,4 +628,253 @@ fn response_is_error_works() {
         None,
     );
     assert!(error.is_error());
+}
+
+// ===========================================================================
+// Panic Safety Tests
+// ===========================================================================
+
+#[test]
+fn invoke_catches_provider_panic_and_returns_structured_error() {
+    let mut pm = make_manager();
+    let provider = Arc::new(PanickingProvider {
+        id: "com.example.panic".to_string(),
+        version: Version::new(1, 0, 0),
+        caps: vec![Capability::new("panic", "test", "Panic cap")],
+    });
+    pm.register_provider(provider).unwrap();
+
+    let req = PluginInvocationRequest::new("com.example.panic", "panic:test", "boom");
+    let resp = pm.invoke_capability(req);
+
+    assert!(!resp.success);
+    assert_eq!(resp.status, PluginInvocationStatus::Error);
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, "PROVIDER_PANIC");
+    assert!(err.message.contains("com.example.panic"));
+    assert!(err.message.contains("panic:test"));
+    assert!(err.detail.is_some());
+    assert!(err.detail.as_ref().unwrap().contains("intentional panic"));
+
+    // Execution metadata should still be present with provider/capability info
+    let exec = resp.execution.unwrap();
+    assert_eq!(exec.provider, Some("com.example.panic".to_string()));
+    assert_eq!(exec.capability, Some("panic:test".to_string()));
+}
+
+#[test]
+fn invoke_panic_caught_in_concurrent_context() {
+    let mut pm = make_manager();
+    let provider = Arc::new(PanickingProvider {
+        id: "com.example.panic_concurrent".to_string(),
+        version: Version::new(1, 0, 0),
+        caps: vec![Capability::new("pctest", "cap", "Concurrent panic cap")],
+    });
+    pm.register_provider(provider).unwrap();
+
+    let pm = Arc::new(pm);
+    let n = 5usize;
+    let mut handles = Vec::new();
+
+    for i in 0..n {
+        let pm = pm.clone();
+        handles.push(std::thread::spawn(move || {
+            let req = PluginInvocationRequest::new("com.example.panic_concurrent", "pctest:cap", "m");
+            let resp = pm.invoke_capability(req);
+            assert!(!resp.success, "invocation {} should have failed", i);
+            assert_eq!(resp.error.as_ref().unwrap().code, "PROVIDER_PANIC");
+        }));
+    }
+
+    for h in handles {
+        h.join().expect("thread panicked even though catch_unwind should prevent it");
+    }
+}
+
+// ===========================================================================
+// Capability Enabled/Disabled Tests
+// ===========================================================================
+
+#[test]
+fn invoke_returns_capability_disabled_when_capability_not_enabled() {
+    let mut pm = make_manager();
+    let provider = Arc::new(EchoProvider::new(
+        "com.example.disabled",
+        vec![Capability::new("disabled", "test", "Disabled cap")],
+    ));
+    pm.register_provider(provider).unwrap();
+
+    // Manually disable the capability in the registry.
+    pm.capability_registry_mut().disable("disabled:test");
+
+    let req = PluginInvocationRequest::new("com.example.disabled", "disabled:test", "method");
+    let resp = pm.invoke_capability(req);
+
+    assert!(!resp.success);
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, "CAPABILITY_DISABLED");
+    assert!(err.message.contains("disabled:test"));
+}
+
+#[test]
+fn invoke_dispatches_when_capability_is_enabled() {
+    let mut pm = make_manager();
+    let provider = Arc::new(EchoProvider::new(
+        "com.example.enabled",
+        vec![Capability::new("enabled", "test", "Enabled cap")],
+    ));
+    pm.register_provider(provider).unwrap();
+
+    // The capability should be enabled automatically by register_provider.
+    assert!(pm.capability_registry().is_enabled("enabled:test"));
+
+    let req = PluginInvocationRequest::new("com.example.enabled", "enabled:test", "ping");
+    let resp = pm.invoke_capability(req);
+
+    assert!(resp.success);
+}
+
+// ===========================================================================
+// EventBus Invocation Lifecycle Tests
+// ===========================================================================
+
+#[test]
+fn invoke_publishes_request_and_response_events_on_event_bus() {
+    use std::sync::Mutex;
+
+    let mut pm = PluginManager::new(Version::new(1, 0, 0))
+        .with_event_bus(EventBus::<PipelineEvent>::new());
+
+    let provider = Arc::new(EchoProvider::new(
+        "com.example.events",
+        vec![Capability::new("ev", "test", "Event cap")],
+    ));
+    pm.register_provider(provider).unwrap();
+
+    let pm = Arc::new(pm);
+
+    let request_events = Arc::new(Mutex::new(Vec::<PluginRequestEvent>::new()));
+    let response_events = Arc::new(Mutex::new(Vec::<PluginResponseEvent>::new()));
+
+    let bus = pm.event_bus_ref().expect("event bus should be attached");
+
+    let req_kind = nabu_core::event_bus::kinds::PLUGIN_REQUEST;
+    let resp_kind = nabu_core::event_bus::kinds::PLUGIN_RESPONSE;
+
+    let req_events = request_events.clone();
+    bus.subscribe(req_kind, move |pe: &PipelineEvent| {
+        if let PipelineEvent::Plugin(PluginEvent::PluginRequest(re)) = pe {
+            req_events.lock().unwrap().push(re.clone());
+        }
+    });
+
+    let resp_events = response_events.clone();
+    bus.subscribe(resp_kind, move |pe: &PipelineEvent| {
+        if let PipelineEvent::Plugin(PluginEvent::PluginResponse(re)) = pe {
+            resp_events.lock().unwrap().push(re.clone());
+        }
+    });
+
+    let req = PluginInvocationRequest::new("com.example.events", "ev:test", "ping")
+        .with_input(serde_json::json!({ "k": "v" }));
+
+    let resp = pm.invoke_capability(req);
+    assert!(resp.success);
+
+    // Verify a request event was published
+    let req_events = request_events.lock().unwrap();
+    assert_eq!(req_events.len(), 1);
+    assert_eq!(req_events[0].plugin_id, "com.example.events");
+    assert_eq!(req_events[0].method, "ev:test:ping");
+
+    // Verify a response event was published
+    let resp_events = response_events.lock().unwrap();
+    assert_eq!(resp_events.len(), 1);
+    assert_eq!(resp_events[0].plugin_id, "com.example.events");
+    assert_eq!(resp_events[0].method, "ev:test:ping");
+    assert_eq!(resp_events[0].status, nabu_core::plugin::events::PluginResponseStatus::Success);
+}
+
+#[test]
+fn invoke_publishes_response_event_on_error() {
+    use std::sync::Mutex;
+
+    let mut pm = PluginManager::new(Version::new(1, 0, 0))
+        .with_event_bus(EventBus::<PipelineEvent>::new());
+
+    let pm = Arc::new(pm);
+    let response_events = Arc::new(Mutex::new(Vec::<PluginResponseEvent>::new()));
+
+    let bus = pm.event_bus_ref().expect("event bus should be attached");
+    let resp_events = response_events.clone();
+    bus.subscribe(nabu_core::event_bus::kinds::PLUGIN_RESPONSE, move |pe: &PipelineEvent| {
+        if let PipelineEvent::Plugin(PluginEvent::PluginResponse(re)) = pe {
+            resp_events.lock().unwrap().push(re.clone());
+        }
+    });
+
+    // Invoke a capability that doesn't exist on nabu provider — triggers
+    // PLUGIN_NOT_FOUND error path.
+    let req = PluginInvocationRequest::new("nabu", "nabu:storage", "read");
+    let resp = pm.invoke_capability(req);
+    assert!(!resp.success);
+
+    let resp_events = response_events.lock().unwrap();
+    assert_eq!(resp_events.len(), 1);
+    assert_eq!(resp_events[0].status, nabu_core::plugin::events::PluginResponseStatus::Error);
+}
+
+#[test]
+fn invoke_publishes_response_event_on_panic() {
+    use std::sync::Mutex;
+
+    let mut pm = PluginManager::new(Version::new(1, 0, 0))
+        .with_event_bus(EventBus::<PipelineEvent>::new());
+
+    let provider = Arc::new(PanickingProvider {
+        id: "com.example.panic_ev".to_string(),
+        version: Version::new(1, 0, 0),
+        caps: vec![Capability::new("pev", "test", "Panic event cap")],
+    });
+    pm.register_provider(provider).unwrap();
+
+    let pm = Arc::new(pm);
+    let response_events = Arc::new(Mutex::new(Vec::<PluginResponseEvent>::new()));
+
+    let bus = pm.event_bus_ref().expect("event bus should be attached");
+    let resp_events = response_events.clone();
+    bus.subscribe(nabu_core::event_bus::kinds::PLUGIN_RESPONSE, move |pe: &PipelineEvent| {
+        if let PipelineEvent::Plugin(PluginEvent::PluginResponse(re)) = pe {
+            resp_events.lock().unwrap().push(re.clone());
+        }
+    });
+
+    let req = PluginInvocationRequest::new("com.example.panic_ev", "pev:test", "boom");
+    let resp = pm.invoke_capability(req);
+    assert!(!resp.success);
+    assert_eq!(resp.error.as_ref().unwrap().code, "PROVIDER_PANIC");
+
+    // Both a request and response event should have been published.
+    let resp_events = response_events.lock().unwrap();
+    assert_eq!(resp_events.len(), 1);
+    assert_eq!(resp_events[0].status, nabu_core::plugin::events::PluginResponseStatus::Error);
+    assert!(resp_events[0].error.as_ref().unwrap().contains("PROVIDER_PANIC"));
+}
+
+#[test]
+fn invoke_without_event_bus_does_not_publish_events() {
+    // When no EventBus is attached, invocation should still work normally.
+    let mut pm = make_manager();
+    let provider = Arc::new(EchoProvider::new(
+        "com.example.no_ev",
+        vec![Capability::new("noev", "test", "No event cap")],
+    ));
+    pm.register_provider(provider).unwrap();
+
+    let req = PluginInvocationRequest::new("com.example.no_ev", "noev:test", "ping");
+    let resp = pm.invoke_capability(req);
+
+    assert!(resp.success);
+    // The manager has no event bus, so invocations should still succeed
+    // silently.
 }

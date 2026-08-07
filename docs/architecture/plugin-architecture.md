@@ -35,7 +35,10 @@ crates/nabu-core/src/plugin/
 ├── lifecycle.rs       # PluginLifecycle, PluginStage, PluginLifecycleEvent
 ├── manager.rs         # PluginManager — orchestration and installation reports
 ├── permissions.rs     # Permission, PermissionSet, PermissionEvaluator, RiskLevel
-└── version.rs         # Version, VersionRequirement — semantic versioning + parsing
+├── version.rs         # Version, VersionRequirement — semantic versioning + parsing
+├── events.rs          # PluginEvent, PluginEventContract, shared event types
+├── invocation.rs      # PluginInvocationRequest/Response, ExecutionMetadata, errors
+└── provider.rs        # CapabilityProvider trait, ProviderError, register_capabilities
 ```
 
 > **Note:** The code samples in the sections below are illustrative of the
@@ -280,3 +283,118 @@ architecture is ready:
 7. **Shutdown** — `PluginManager::disable(id)` + lifecycle `Unloaded`, unregister capabilities
 
 No architectural changes needed — only the plugin loader itself.
+
+---
+
+## Invocation Pipeline (Phase 6.3.1)
+
+The invocation pipeline routes structured requests from the frontend through the
+`PluginManager` and into `CapabilityProvider::invoke`, returning structured
+responses. This section documents the complete flow, validation layers, error
+normalization, and observability.
+
+### Architecture
+
+```text
+Frontend (Dioxus)
+  │  (serializes PluginInvocationRequest as JSON)
+  ▼
+plugin_call IPC command (src-tauri/src/commands.rs)
+  │  (deserializes via Tauri's State<ApplicationContext>)
+  ▼
+ApplicationContext::invoke_plugin() (registry/context.rs)
+  │  (acquires RwLock on PluginManager, delegates)
+  ▼
+PluginManager::invoke_capability() (plugin/manager.rs)
+  │  1. Validates request fields (plugin_id, capability, method non-empty)
+  │  2. Locates provider by plugin_id in providers HashMap
+  │  3. Validates capability is registered in CapabilityRegistry
+  │  4. Validates capability is owned by the target provider
+  │  5. Validates capability is enabled (unless `required`)
+  │  6. Publishes PluginRequestEvent via EventBus (if attached)
+  │  7. Dispatches to provider.invoke() inside catch_unwind (panic-safe)
+  │  8. Enriches response with ExecutionMetadata (duration, provider, request_id)
+  │  9. Propagates API version from request metadata to response
+  │  10. Publishes PluginResponseEvent via EventBus (if attached)
+  ▼
+CapabilityProvider::invoke()
+  │  (provider-specific execution — may return success, error, or not supported)
+  ▼
+PluginInvocationResponse
+  │  (serialized by Tauri back to frontend as Result<_, String>)
+  ▼
+Frontend
+```
+
+### Request/Response Models (`invocation.rs`)
+
+| Type | Fields | Purpose |
+|------|--------|---------|
+| `PluginInvocationRequest` | `plugin_id`, `capability`, `method`, `input` (Option\<Value\>), `metadata` (Option\<InvocationMetadata\>) | Canonical wire format from frontend |
+| `InvocationMetadata` | `request_id` (Uuid), `timestamp`, `timeout_ms`, `caller`, `api_version`, `context` | Tracing, timeout, version negotiation |
+| `PluginInvocationResponse` | `success`, `status`, `result` (Option\<Value\>), `error` (Option\<Error\>), `execution` (Option\<ExecutionMetadata\>) | Structured result returned to frontend |
+| `ExecutionMetadata` | `request_id`, `provider`, `capability`, `duration_ms`, `api_version` | Host-level observability metadata |
+| `PluginInvocationError` | `code`, `message`, `detail` (Option) | Machine-parseable error with human-readable message |
+| `PluginInvocationStatus` | `Success` / `Error` / `Cancelled` | High-level outcome enum |
+
+All types derive `Serialize` + `Deserialize` and use `#[serde(default)]` for
+forward compatibility. All types are `Send + Sync + Clone`.
+
+### Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `INVALID_REQUEST` | Request fields are empty or malformed |
+| `PLUGIN_NOT_FOUND` | No provider registered for the given `plugin_id` |
+| `CAPABILITY_NOT_FOUND` | Capability not registered, or owned by a different provider |
+| `CAPABILITY_DISABLED` | Capability is registered but not enabled |
+| `CAPABILITY_NOT_SUPPORTED` | Provider's default `invoke` (did not override) |
+| `PROVIDER_ERROR` | Provider returned a structured error response |
+| `PROVIDER_PANIC` | Provider panicked; caught via `catch_unwind` |
+| `PROVIDER_TIMEOUT` | Provider exceeded timeout (future async phase) |
+
+### Panic Safety
+
+Provider `invoke` calls are wrapped in `std::panic::catch_unwind`. A panicking
+provider never crashes the host process — the panic payload is extracted as a
+string and returned as a `PROVIDER_PANIC` structured error with the panic
+message in the `detail` field. A `PluginErrorEvent` with severity `Critical`
+is also published to the EventBus (if attached) with code `PROVIDER_PANIC`.
+
+### EventBus Observability
+
+When a `PluginManager` is constructed with an `EventBus` (via
+`with_event_bus`), every invocation publishes two events:
+
+1. **`PluginRequestEvent`** (kind: `plugin.request`) — published before dispatch,
+   with the merged `capability:method` string and the input payload.
+2. **`PluginResponseEvent`** (kind: `plugin.response`) — published after
+   completion, with the response status, result (on success), or error message
+   (on failure).
+
+Both events carry:
+- `plugin_id` — the requesting plugin
+- `request_id` — correlation UUID (generated by the manager if not provided)
+- `method` — `{capability}:{method}` string
+- `api_version` — the current `PluginApiVersion::CURRENT`
+- `timestamp` — event creation time
+
+The frontend event bridge (`src-tauri/src/event_bridge.rs`) forwards both
+`plugin.request` and `plugin.response` kinds to the frontend via the Tauri
+`nabu-event` channel.
+
+### Thread Safety
+
+`invoke_capability` takes `&self` (shared reference). The `PluginManager`'s
+internal `providers` HashMap is read concurrently via `Arc<dyn
+CapabilityProvider>`. Concurrent invocations are safe as long as the provider
+itself is `Send + Sync` — which the `CapabilityProvider` trait requires.
+
+### Capabilities and Enabled State
+
+Capabilities are **enabled by default** when registered through
+`register_provider` (the manager flips them on in the staged registry copy
+before committing). The `invoke_capability` method rejects invocations to
+disabled capabilities with `CAPABILITY_DISABLED`, unless the capability is
+marked `required` (built-in capabilities are always enabled via
+`register_builtin`).

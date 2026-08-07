@@ -1002,6 +1002,14 @@ impl PluginManager {
         &mut self.feature_registry
     }
 
+    /// Reference to the attached EventBus, if any.
+    ///
+    /// Returns `Some(&bus)` when an EventBus was attached via
+    /// [`with_event_bus`](Self::with_event_bus), or `None` otherwise.
+    pub fn event_bus_ref(&self) -> Option<&EventBus<PipelineEvent>> {
+        self.event_bus.as_ref()
+    }
+
     /// The current Nabu version used for compatibility checks.
     pub fn nabu_version(&self) -> &Version {
         &self.nabu_version
