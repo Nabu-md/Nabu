@@ -26,9 +26,7 @@
 //! `AgentProcess` holds only a `ProcessId` that can be used to query the
 //! supervisor for the current `ProcessSnapshot`.
 
-use std::sync::Arc;
-
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use crate::process_supervisor::{ProcessId, ProcessSnapshot, ProcessState};
@@ -58,6 +56,7 @@ use super::config::{AgentConfig, AgentMetadata};
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+#[serde(rename_all = "snake_case")]
 pub enum AgentProcessState {
     /// The agent has been registered but not yet started.
     Registered,
@@ -210,7 +209,7 @@ impl AgentProcess {
     /// Updates metadata: sets `stopped_at`. If the stop was due to a crash
     /// (not a requested stop), `crash_count` is incremented.
     pub fn mark_stopped(&mut self, crashed: bool, error: Option<String>) {
-        self.agent_state = AgentProcessState::Stopping;
+        self.agent_state = AgentProcessState::Stopped;
         self.metadata.stopped_at = Some(Utc::now());
         if crashed {
             self.metadata.crash_count += 1;
@@ -239,6 +238,8 @@ impl AgentProcess {
             process_id: self.process_id,
             config: self.config.clone(),
             metadata: self.metadata.clone(),
+            process_snapshot: None,
+            process_state: None,
         }
     }
 
@@ -503,7 +504,7 @@ mod tests {
 
         assert_eq!(back.name, snapshot.name);
         assert_eq!(back.agent_state, snapshot.agent_state);
-        assert_eq!(back.config.args, vec!["hello".to_string()]);
+        assert_eq!(back.config.process.args, vec!["hello".to_string()]);
     }
 
     #[test]

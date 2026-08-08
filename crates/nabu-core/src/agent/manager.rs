@@ -55,9 +55,10 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 use crate::event_bus::{EventBus, PipelineEvent};
-use crate::process_supervisor::{ProcessConfig, ProcessId, ProcessSnapshot, ProcessSupervisor, RestartPolicy};
+use crate::process_supervisor::{ProcessConfig, ProcessId, ProcessState, ProcessSupervisor};
 use crate::registry::lifecycle::{
     Lifecycle, LifecycleManager, LifecycleStage,
 };
@@ -296,7 +297,7 @@ impl AgentManager {
 
         // Extract the config for spawning (clone to avoid holding the lock)
         let (process_config, process_id, config_clone) = {
-            let mut proc = process_handle.lock().expect("agent process lock poisoned");
+            let proc = process_handle.lock().expect("agent process lock poisoned");
             let config: ProcessConfig = proc.config.process.clone();
             let process_id = proc.process_id;
             (config, process_id, proc.config.clone())
@@ -338,6 +339,23 @@ impl AgentManager {
             proc.mark_started(supervisor_pid);
         }
 
+        // Wait for the process to enter Running state
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if std::time::Instant::now() >= deadline {
+                break;
+            }
+            let state = self.supervisor.get_state(supervisor_pid);
+            if state.map_or(true, |s| s.is_running()) {
+                {
+                    let mut proc = process_handle.lock().expect("agent process lock poisoned");
+                    proc.mark_running();
+                }
+                break;
+            }
+            std::thread::sleep(MONITOR_POLL_INTERVAL);
+        }
+
         tracing::info!(
             subsystem = "agent_manager",
             component = "manager",
@@ -373,7 +391,7 @@ impl AgentManager {
             .get(name)
             .ok_or_else(|| AgentManagerError::AgentNotFound(name.to_string()))?;
 
-        let (process_id, config_name) = {
+        let (process_id, _config_name) = {
             let proc = process_handle.lock().expect("agent process lock poisoned");
             (proc.process_id, proc.config.name.clone())
         };
@@ -761,10 +779,11 @@ impl AgentManager {
     fn publish_agent_started(&self, name: &str, process_id: ProcessId, config: &AgentConfig) {
         if let Some(bus) = &self.event_bus {
             let pid = self.supervisor.get_pid(process_id);
+            let kind_str = config.kind.to_string();
             let event = crate::event_bus::events::AgentStartedEvent::new(
                 process_id,
                 name,
-                config.kind.to_string(),
+                &kind_str,
                 pid,
             );
             bus.publish(
@@ -803,6 +822,7 @@ impl AgentManager {
         }
     }
 
+    #[allow(dead_code)]
     fn publish_agent_crashed(&self, name: &str, process_id: ProcessId, error: String, exit_code: Option<i32>, pid: Option<u32>, restart_count: u32) {
         if let Some(bus) = &self.event_bus {
             let event = crate::event_bus::events::AgentCrashedEvent::new(
@@ -1174,7 +1194,7 @@ mod tests {
         manager.register(config).unwrap();
 
         // Start the agent
-        let pid = manager.start_agent("sleeper").unwrap();
+        let _pid = manager.start_agent("sleeper").unwrap();
         assert!(manager.has_agent("sleeper"));
 
         // Wait for the process to start running
@@ -1253,8 +1273,8 @@ mod tests {
         assert!(manager.is_shutdown());
     }
 
-    #[test]
-    fn event_bus_events_published_on_start_stop() {
+    #[tokio::test(flavor = "multi_thread")]
+    async fn event_bus_events_published_on_start_stop() {
         let bus: Arc<EventBus<PipelineEvent>> = Arc::new(EventBus::new());
         let supervisor = Arc::new(ProcessSupervisor::with_event_bus(bus.clone()));
         supervisor.initialize().unwrap();

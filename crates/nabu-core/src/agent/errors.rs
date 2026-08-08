@@ -6,13 +6,10 @@
 //! variant maps to a specific failure category with context for logging
 //! and IPC responses.
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::process_supervisor::{ProcessId, ProcessState, ProcessSupervisorError};
-use crate::registry::lifecycle::LifecycleStage;
+use crate::process_supervisor::{ProcessState, ProcessSupervisorError};use crate::registry::lifecycle::LifecycleStage;
 
 /// Errors that can occur during agent process management.
 #[derive(Debug, Clone, Error, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,8 +49,8 @@ pub enum AgentManagerError {
         /// The agent name.
         name: String,
         /// The current process state.
-        #[allow(private_interiors)]
-        state: ProcessState,
+    #[allow(private_interfaces)]
+    state: ProcessState,
     },
 
     /// A restart was requested but the agent is already running or in a
@@ -63,8 +60,8 @@ pub enum AgentManagerError {
         /// The agent name.
         name: String,
         /// The current process state.
-        #[allow(private_interiors)]
-        state: ProcessState,
+    #[allow(private_interfaces)]
+    state: ProcessState,
     },
 
     /// The agent manager is shutting down and cannot accept new operations.
@@ -119,6 +116,7 @@ pub type AgentResult<T> = Result<T, AgentManagerError>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::process_supervisor::ProcessId;
 
     #[test]
     fn error_display_formats() {

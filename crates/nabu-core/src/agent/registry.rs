@@ -349,7 +349,7 @@ mod tests {
         assert!(snapshot.is_some());
         let snapshot = snapshot.unwrap();
         assert_eq!(snapshot.name, "test-agent");
-        assert_eq!(snapshot.config.args, vec!["hello".to_string()]);
+        assert_eq!(snapshot.config.process.args, vec!["hello".to_string()]);
         assert_eq!(snapshot.agent_state, AgentProcessState::Registered);
     }
 
@@ -386,9 +386,10 @@ mod tests {
         let config1 = AgentConfig::new("agent-1", "echo");
         let config2 = AgentConfig::new("agent-2", "echo");
         let mut proc1 = AgentProcess::new(config1);
-        let proc2 = AgentProcess::new(config2);
+        let mut proc2 = AgentProcess::new(config2);
         proc1.mark_started(ProcessId::new_v4());
         proc1.mark_running();
+        proc2.mark_stopped(false, None);
 
         registry.register(proc1).unwrap();
         registry.register(proc2).unwrap();

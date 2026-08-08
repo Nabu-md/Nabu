@@ -17,14 +17,18 @@
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
+use serde::{Deserialize, Serialize};
+
 /// The lifecycle stage of a service or the application context.
 ///
 /// Stages are ordered and one-way: once a stage is reached, the only valid
 /// transition is to a later stage. This prevents re-initialization and
 /// double-shutdown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LifecycleStage {
     /// The service has been created but not initialized.
+    #[default]
     Created = 0,
     /// The service has been initialized (dependencies resolved, resources
     /// allocated) but is not yet processing requests.

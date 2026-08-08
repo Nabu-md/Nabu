@@ -226,7 +226,7 @@ fn context_core_validation() {
     assert!(report.present.contains(&"event_bus"));
     // capture_engine, pipeline, storage_manager are missing
     assert_eq!(report.required_services.len(), 4);
-    assert_eq!(report.optional_services.len(), 4);
+    assert_eq!(report.optional_services.len(), 5);
 }
 
 #[test]

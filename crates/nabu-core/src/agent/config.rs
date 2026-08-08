@@ -46,6 +46,7 @@ pub type AgentName = String;
 /// types (e.g. `ACP`, `MCP`) without breaking downstream consumers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+#[serde(rename_all = "snake_case")]
 pub enum AgentKind {
     /// A generic external process managed by the AgentManager.
     ///
@@ -100,7 +101,7 @@ impl std::fmt::Display for AgentKind {
 /// The AgentManager itself does **not** implement protocol negotiation,
 /// request routing, or method dispatch — those are the responsibility of
 /// future protocol implementations (ACP, MCP, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonRpcConfig {
     /// The JSON-RPC protocol version the agent speaks.
     ///
@@ -127,6 +128,17 @@ pub struct JsonRpcConfig {
 
 fn json_rpc_version_default() -> String {
     "2.0".to_string()
+}
+
+impl Default for JsonRpcConfig {
+    fn default() -> Self {
+        Self {
+            version: json_rpc_version_default(),
+            supports_batching: false,
+            supported_methods: Vec::new(),
+            request_timeout_ms: None,
+        }
+    }
 }
 
 /// Optional overrides for the stdio transport used with an agent.
@@ -190,10 +202,11 @@ impl AgentConfig {
     ///
     /// Uses the default [`RestartPolicy`] (which is [`RestartPolicy::OnFailure`]).
     pub fn new(name: impl Into<AgentName>, command: impl Into<String>) -> Self {
+        let name = name.into();
         Self {
-            name: name.into(),
+            name: name.clone(),
             kind: AgentKind::default(),
-            process: ProcessConfig::new(name.into(), command),
+            process: ProcessConfig::new(name, command),
             jsonrpc: None,
             transport: None,
         }
