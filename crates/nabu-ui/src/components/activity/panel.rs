@@ -113,7 +113,7 @@ fn activity_entry(item: ActivityItem) -> Element {
     let category_label = item.category.label();
     let icon_element = crate::components::ui::icons::render_icon_view(icon);
     let title = item.title.clone();
-    let subsystem = item.subsystem.clone();
+    let subsystem = item.subsystem;
     let description = item.description.clone();
 
     rsx! {
@@ -242,7 +242,7 @@ mod tests {
     #[test]
     fn format_relative_time_hours_ago() {
         let now = js_sys::Date::now();
-        let two_hours_ago = now - 2 * 3_600_000.0; // 2 hours
+        let two_hours_ago = now - (2.0 * 3_600_000.0); // 2 hours
         let result = format_relative_time(two_hours_ago);
         assert_eq!(result, "2h ago");
     }
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn format_relative_time_days_ago() {
         let now = js_sys::Date::now();
-        let three_days_ago = now - 3 * 24 * 3_600_000.0; // 3 days
+        let three_days_ago = now - (3.0 * 24.0 * 3_600_000.0); // 3 days
         let result = format_relative_time(three_days_ago);
         assert_eq!(result, "3d ago");
     }

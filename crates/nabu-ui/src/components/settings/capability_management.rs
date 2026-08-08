@@ -50,7 +50,7 @@
 //! ```
 
 use crate::components::ui::feedback::{
-    ErrorPanel, LoadingBlock, Spinner, SpinnerSize, StatusDot, StatusKind,
+    ErrorPanel, LoadingBlock, SpinnerSize, StatusDot, StatusKind,
 };
 use crate::components::ui::icons::{render_icon_view, Icon};
 use crate::components::ui::info::EmptyState;
@@ -260,7 +260,7 @@ fn CapabilityList(caps: Signal<Vec<CapabilitySummary>>) -> Element {
             // Capability rows
             div { class: "divide-y divide-gray-700",
                 for cap in list {
-                    {CapabilityRow { cap: cap.clone() }}
+                    CapabilityRow { cap: cap.clone() }
                 }
             }
         }
@@ -281,7 +281,6 @@ fn CapabilityRow(cap: CapabilitySummary) -> Element {
     let enabled = cap.enabled;
     let status = cap.status.clone();
 
-    // Signals for this row's toggle (local optimistic state)
     let toggle_enabled = use_signal(|| enabled);
     let toggle_disabled = use_signal(|| false);
     let toggle_error = use_signal(|| None::<String>);
@@ -302,34 +301,28 @@ fn CapabilityRow(cap: CapabilitySummary) -> Element {
     rsx! {
         div {
             class: "capability-row flex items-center gap-4 px-4 py-3",
-            // Capability name + required badge
             div { class: "w-[300px] flex items-center gap-2",
                 div { class: "font-medium text-gray-100", "{display_name}" }
                 if required {
                     span { class: "badge badge-info", "Required" }
                 }
             }
-            // Description
             div { class: "flex-1 text-sm text-gray-400", "{description}" }
-            // Provider
             div { class: "w-32 text-sm text-gray-500 truncate", title: "{provider}", "{provider}" }
-            // Status
             div { class: "w-24 flex items-center justify-center" }
             StatusDot { kind: status_kind, label: "{status_label}" }
-            // Enabled toggle
             div { class: "w-32 flex items-center justify-center" }
             Switch {
                 checked: toggle_enabled,
                 label: switch_label,
                 disabled: is_disabled,
                 on_change: move |new_val: bool| {
-                    toggle_error.set(None);
                     handle_toggle(
                         id.clone(),
                         new_val,
-                        toggle_enabled.clone(),
-                        toggle_disabled.clone(),
-                        toggle_error.clone(),
+                        toggle_enabled,
+                        toggle_disabled,
+                        toggle_error,
                     );
                 },
             }
@@ -347,54 +340,47 @@ fn CapabilityRow(cap: CapabilitySummary) -> Element {
 fn handle_toggle(
     cap_id: String,
     enable: bool,
-    toggle_enabled: Signal<bool>,
-    toggle_disabled: Signal<bool>,
-    toggle_error: Signal<Option<String>>,
+    mut toggle_enabled: Signal<bool>,
+    mut toggle_disabled: Signal<bool>,
+    mut toggle_error: Signal<Option<String>>,
 ) {
     let toasts = crate::components::ui::feedback::use_toast();
-    let mut action = if enable { "Enable" } else { "Disable" };
+    let action = if enable { "Enable" } else { "Disable" };
+    let success_msg = if enable { "capability has been activated." } else { "capability has been deactivated." };
+    let verb = if enable { "enabled" } else { "disabled" };
 
     toggle_disabled.set(true);
     toggle_error.set(None);
 
     spawn_local(async move {
         let cmd = if enable { "capability_enable" } else { "capability_disable" };
-        let args = to_value(&serde_json::json!({ "capability_id": cap_id.clone() })).unwrap();
+        let args = to_value(&serde_json::json!({ "capability_id": cap_id })).unwrap();
+
+        // `tauri_invoke_safe` returns `None` when the promise is rejected
+        // (i.e. the command returned `Err`).  `Some(_)` means success.
         let result = crate::ipc::tauri_invoke_safe(cmd, args).await;
 
         toggle_disabled.set(false);
 
         match result {
-            Some(Ok(())) => {
+            Some(_) => {
                 toggle_enabled.set(enable);
-                let msg = format!("{}d", &action[..1]);
-                let _ = msg;
                 toasts.success(
-                    format!("Capability {}ed", if enable { "en" } else { "dis" }),
-                    format!("The capability has been {}.", if enable { "activated" } else { "deactivated" }),
-                );
-            }
-            Some(Err(e)) => {
-                toggle_enabled.set(!enable);
-                toggle_error.set(Some(e.to_string()));
-                toasts.error(
-                    format!("{} failed", action),
-                    "Could not update capability state.".to_string(),
+                    "Capability enabled".to_string(),
+                    success_msg.to_string(),
                 );
             }
             None => {
+                // Rollback the toggle
                 toggle_enabled.set(!enable);
-                toggle_error.set(Some("IPC unavailable".to_string()));
+                toggle_error.set(Some(format!("{verb} operation failed")));
                 toasts.error(
                     format!("{} failed", action),
-                    "Could not reach the backend.".to_string(),
+                    "Could not update capability state. The backend may have rejected the request.".to_string(),
                 );
             }
         }
     });
-
-    // Suppress unused variable warning for `action`
-    let _ = &mut action;
 }
 
 // ── Load helper ──────────────────────────────────────────────────────────────
@@ -403,10 +389,10 @@ fn handle_toggle(
 /// signal. Clears `error` on success, sets it on failure. Advances `seq` on
 /// success so stale responses can be detected (future-proofing).
 fn load_capabilities(
-    caps: Signal<Vec<CapabilitySummary>>,
-    loading: Signal<bool>,
-    error: Signal<Option<String>>,
-    seq: Signal<u64>,
+    mut caps: Signal<Vec<CapabilitySummary>>,
+    mut loading: Signal<bool>,
+    mut error: Signal<Option<String>>,
+    mut seq: Signal<u64>,
 ) {
     loading.set(true);
     error.set(None);
@@ -416,7 +402,7 @@ fn load_capabilities(
         let result = crate::ipc::tauri_invoke_safe("capability_list_with_state", args).await;
 
         match result {
-            Some(Ok(val)) => {
+            Some(val) => {
                 match serde_wasm_bindgen::from_value::<Vec<CapabilitySummary>>(val) {
                     Ok(list) => {
                         caps.set(list);
@@ -427,9 +413,6 @@ fn load_capabilities(
                         error.set(Some(format!("Failed to parse capabilities: {e}")));
                     }
                 }
-            }
-            Some(Err(e)) => {
-                error.set(Some(format!("Backend error: {e:?}")));
             }
             None => {
                 error.set(Some(

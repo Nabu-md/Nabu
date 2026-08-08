@@ -285,11 +285,13 @@ impl ActivityManager {
                     }
                 }
             });
-            *sub.write_unchecked() = Some(handle);
+            let mut guard = sub.write_unchecked();
+            *guard = Some(handle);
         }
         // Clean up the subscription when the component unmounts.
         use_drop(move || {
-            if let Some(handle) = sub.write_unchecked().take() {
+            let mut guard = sub.write_unchecked();
+            if let Some(handle) = guard.take() {
                 handle.unsubscribe();
             }
         });
@@ -379,9 +381,9 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("object_id".into(), serde_json::to_value(e.object_id).ok()?)
-        .with_meta("object_type".into(), serde_json::to_value(e.object_type.to_string()).ok()?)
-        .with_meta("capture_source".into(), serde_json::to_value(&e.capture_source).ok()?),
+        .with_meta("object_id", serde_json::to_value(e.object_id).ok()?)
+        .with_meta("object_type", serde_json::to_value(format!("{:?}", e.object_type)).ok()?)
+        .with_meta("capture_source", serde_json::to_value(&e.capture_source).ok()?),
 
         // ── Item processing started ──
         PipelineEvent::ItemProcessingStarted(e) => ActivityItem::new(
@@ -394,7 +396,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("processor".into(), serde_json::to_value(&e.processor_name).ok()?),
+        .with_meta("processor", serde_json::to_value(&e.processor_name).ok()?),
 
         // ── Item processing completed ──
         PipelineEvent::ItemProcessingCompleted(e) => ActivityItem::new(
@@ -407,7 +409,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("processor".into(), serde_json::to_value(&e.processor_name).ok()?),
+        .with_meta("processor", serde_json::to_value(&e.processor_name).ok()?),
 
         // ── Item processing failed ──
         PipelineEvent::ItemProcessingFailed(e) => ActivityItem::new(
@@ -420,8 +422,8 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("processor".into(), serde_json::to_value(&e.processor_name).ok()?)
-        .with_meta("retry_count".into(), serde_json::to_value(e.retry_count).ok()?),
+        .with_meta("processor", serde_json::to_value(&e.processor_name).ok()?)
+        .with_meta("retry_count", serde_json::to_value(e.retry_count).ok()?),
 
         // ── Item stored ──
         PipelineEvent::ItemStored(e) => ActivityItem::new(
@@ -434,7 +436,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("vault_path".into(), serde_json::to_value(&e.vault_path).ok()?),
+        .with_meta("vault_path", serde_json::to_value(&e.vault_path).ok()?),
 
         // ── Index updated ──
         PipelineEvent::IndexUpdated(e) => ActivityItem::new(
@@ -447,7 +449,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("operation".into(), serde_json::to_value(e.operation.to_string()).ok()?),
+        .with_meta("operation", serde_json::Value::String(format!("{:?}", e.operation))),
 
         // ── Graph updated ──
         PipelineEvent::GraphUpdated(e) => ActivityItem::new(
@@ -460,7 +462,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("operation".into(), serde_json::to_value(e.operation.to_string()).ok()?),
+        .with_meta("operation", serde_json::Value::String(format!("{:?}", e.operation))),
 
         // ── Item cancelled ──
         PipelineEvent::ItemCancelled(e) => ActivityItem::new(
@@ -485,7 +487,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("retry_count".into(), serde_json::to_value(e.retry_count).ok()?),
+        .with_meta("retry_count", serde_json::to_value(e.retry_count).ok()?),
 
         // ── Capability state changed ──
         PipelineEvent::CapabilityStateChanged(e) => ActivityItem::new(
@@ -502,8 +504,8 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("capability_id".into(), serde_json::to_value(&e.capability_id).ok()?)
-        .with_meta("enabled".into(), serde_json::to_value(e.enabled).ok()?),
+        .with_meta("capability_id", serde_json::to_value(&e.capability_id).ok()?)
+        .with_meta("enabled", serde_json::to_value(e.enabled).ok()?),
 
         // ── Plugin events ──
         PipelineEvent::Plugin(e) => match extract_plugin_activity(ev, e, timestamp_ms) {
@@ -528,10 +530,10 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("folder_id".into(), serde_json::to_value(&e.folder_id).ok()?)
-        .with_meta("provider_id".into(), serde_json::to_value(&e.provider_id).ok()?)
-        .with_meta("current_status".into(), serde_json::to_value(e.current_status.label()).ok()?)
-        .with_meta("previous_status".into(), serde_json::to_value(e.previous_status.map(|s| s.label())).ok()?),
+        .with_meta("folder_id", serde_json::to_value(&e.folder_id).ok()?)
+        .with_meta("provider_id", serde_json::to_value(&e.provider_id).ok()?)
+        .with_meta("current_status", serde_json::to_value(e.current_status.label()).ok()?)
+        .with_meta("previous_status", serde_json::to_value(e.previous_status.map(|s| s.label())).ok()?),
 
         // ── Process events ──
         PipelineEvent::Process(e) => {
@@ -580,7 +582,7 @@ fn extract_plugin_activity(
     use nabu_core::plugin::events::PluginEvent as PE;
     let payload_ts = || timestamp_ms;
 
-    let (item, inner_ts) = match e {
+    let item = match e {
         // Plugin loaded — only surface warnings and errors.
         PE::PluginLoaded(e) => ActivityItem::new(
             format!("plugin.loaded:{}", e.plugin_id),
@@ -592,8 +594,8 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?)
-        .with_meta("plugin_name".into(), serde_json::to_value(&e.plugin_name).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?)
+        .with_meta("plugin_name", serde_json::to_value(&e.plugin_name).ok()?),
 
         PE::PluginUnloaded(e) => ActivityItem::new(
             format!("plugin.unloaded:{}", e.plugin_id),
@@ -605,7 +607,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginRegistered(e) => ActivityItem::new(
             format!("plugin.registered:{}", e.plugin_id),
@@ -617,7 +619,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginUnregistered(e) => ActivityItem::new(
             format!("plugin.unregistered:{}", e.plugin_id),
@@ -629,7 +631,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginStarted(e) => ActivityItem::new(
             format!("plugin.started:{}", e.plugin_id),
@@ -641,7 +643,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginStopped(e) => ActivityItem::new(
             format!("plugin.stopped:{}", e.plugin_id),
@@ -653,7 +655,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::CapabilityRegistered(e) => ActivityItem::new(
             format!("capability.registered:{}", e.capability_id),
@@ -665,7 +667,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("capability_id".into(), serde_json::to_value(&e.capability_id).ok()?),
+        .with_meta("capability_id", serde_json::to_value(&e.capability_id).ok()?),
 
         PE::CapabilityRemoved(e) => ActivityItem::new(
             format!("capability.removed:{}", e.capability_id),
@@ -677,7 +679,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("capability_id".into(), serde_json::to_value(&e.capability_id).ok()?),
+        .with_meta("capability_id", serde_json::to_value(&e.capability_id).ok()?),
 
         PE::PluginWarning(e) => ActivityItem::new(
             format!("plugin.warning:{}:{}", e.plugin_id, e.code.clone().unwrap_or_default()),
@@ -689,7 +691,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginError(e) => ActivityItem::new(
             format!("plugin.error:{}:{}", e.plugin_id, e.code.clone().unwrap_or_default()),
@@ -701,7 +703,7 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("plugin_id".into(), serde_json::to_value(&e.plugin_id).ok()?),
+        .with_meta("plugin_id", serde_json::to_value(&e.plugin_id).ok()?),
 
         PE::PluginRequest(e) => ActivityItem::new(
             format!("plugin.request:{}:{}", e.plugin_id, e.request_id),
@@ -713,22 +715,23 @@ fn extract_plugin_activity(
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("method".into(), serde_json::to_value(&e.method).ok()?),
+        .with_meta("method", serde_json::to_value(&e.method).ok()?),
 
         PE::PluginResponse(e) => ActivityItem::new(
             format!("plugin.response:{}:{}", e.plugin_id, e.request_id),
             format!("Capability response: {}", e.method),
-            Some(e.status.to_string()),
+             Some(format!("{:?}", e.status)),
             ActivitySeverity::Info,
             ActivityCategory::Capability,
             "plugin",
             ev.kind.as_str().to_string(),
             payload_ts(),
         )
-        .with_meta("method".into(), serde_json::to_value(&e.method).ok()?),
+        .with_meta("method", serde_json::to_value(&e.method).ok()?),
+
+        _ => return None,
     };
 
-    let _ = inner_ts;
     Some(item)
 }
 
@@ -751,8 +754,8 @@ fn extract_process_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("name".into(), serde_json::to_value(&e.name).ok()?)
-        .with_meta("pid".into(), serde_json::to_value(e.pid).ok()?),
+        .with_meta("name", serde_json::to_value(&e.name).ok()?)
+        .with_meta("pid", serde_json::to_value(e.pid).ok()?),
 
         PE::Exited(e) => ActivityItem::new(
             format!("process.exited:{}", e.process_id),
@@ -764,8 +767,8 @@ fn extract_process_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("name".into(), serde_json::to_value(&e.name).ok()?)
-        .with_meta("restart_count".into(), serde_json::to_value(e.restart_count).ok()?),
+        .with_meta("name", serde_json::to_value(&e.name).ok()?)
+        .with_meta("restart_count", serde_json::to_value(e.restart_count).ok()?),
 
         PE::Failed(e) => ActivityItem::new(
             format!("process.failed:{}", e.process_id),
@@ -777,8 +780,8 @@ fn extract_process_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("name".into(), serde_json::to_value(&e.name).ok()?)
-        .with_meta("exit_code".into(), serde_json::to_value(e.exit_code).ok()?),
+        .with_meta("name", serde_json::to_value(&e.name).ok()?)
+        .with_meta("exit_code", serde_json::to_value(e.exit_code).ok()?),
 
         PE::Restarted(e) => ActivityItem::new(
             format!("process.restarted:{}", e.process_id),
@@ -790,7 +793,7 @@ fn extract_process_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("reason".into(), serde_json::to_value(&e.reason).ok()?),
+        .with_meta("reason", serde_json::to_value(&e.reason).ok()?),
 
         PE::Stopped(e) => ActivityItem::new(
             format!("process.stopped:{}", e.process_id),
@@ -820,7 +823,9 @@ fn extract_process_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("name".into(), serde_json::to_value(&e.name).ok()?),
+        .with_meta("name", serde_json::to_value(&e.name).ok()?),
+
+        _ => return None,
     };
 
     Some(item)
@@ -845,8 +850,8 @@ fn extract_agent_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("agent_name".into(), serde_json::to_value(&e.agent_name).ok()?)
-        .with_meta("agent_kind".into(), serde_json::to_value(&e.agent_kind).ok()?),
+        .with_meta("agent_name", serde_json::to_value(&e.agent_name).ok()?)
+        .with_meta("agent_kind", serde_json::to_value(&e.agent_kind).ok()?),
 
         AE::Stopped(e) => ActivityItem::new(
             format!("agent.stopped:{}", e.process_id),
@@ -869,7 +874,7 @@ fn extract_agent_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("restart_count".into(), serde_json::to_value(e.restart_count).ok()?),
+        .with_meta("restart_count", serde_json::to_value(e.restart_count).ok()?),
 
         AE::Crashed(e) => ActivityItem::new(
             format!("agent.crashed:{}", e.process_id),
@@ -881,8 +886,10 @@ fn extract_agent_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         )
-        .with_meta("exit_code".into(), serde_json::to_value(e.exit_code).ok()?)
-        .with_meta("restart_count".into(), serde_json::to_value(e.restart_count).ok()?),
+        .with_meta("exit_code", serde_json::to_value(e.exit_code).ok()?)
+        .with_meta("restart_count", serde_json::to_value(e.restart_count).ok()?),
+
+        _ => return None,
     };
 
     Some(item)
@@ -927,6 +934,7 @@ fn extract_conversation_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         ),
+        _ => return None,
     };
 
     Some(item)
@@ -985,6 +993,7 @@ fn extract_stream_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         ),
+        _ => return None,
     };
 
     Some(item)
@@ -1039,6 +1048,7 @@ fn extract_session_activity(
             ev.kind.as_str().to_string(),
             timestamp_ms,
         ),
+        _ => return None,
     };
 
     Some(item)

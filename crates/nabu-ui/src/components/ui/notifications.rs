@@ -368,19 +368,19 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
                     Some(format!("{} v{} loaded", p.plugin_name, p.plugin_version))
                 }
                 PluginEvent::PluginUnloaded(p) => {
-                    Some(format!("{} unloaded", p.plugin_name))
+                    Some(format!("{} unloaded", p.plugin_id))
                 }
                 PluginEvent::PluginStarted(p) => {
                     Some(format!("{} started", p.plugin_name))
                 }
                 PluginEvent::PluginStopped(p) => {
-                    Some(format!("{} stopped", p.plugin_name))
+                    Some(format!("{} stopped", p.plugin_id))
                 }
                 PluginEvent::PluginRegistered(p) => {
                     Some(format!("{} v{} registered", p.plugin_name, p.plugin_version))
                 }
                 PluginEvent::PluginUnregistered(p) => {
-                    Some(format!("{} unregistered", p.plugin_name))
+                    Some(format!("{} unregistered", p.plugin_id))
                 }
                 PluginEvent::PluginWarning(p) => {
                     Some(format!("{}: {}", p.plugin_id, p.message))
@@ -396,6 +396,7 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
                 }
                 PluginEvent::PluginRequest(_) => None,
                 PluginEvent::PluginResponse(_) => None,
+                _ => None,
             }
         }
         PipelineEvent::Process(_)
@@ -427,7 +428,7 @@ fn subscribe_all_kinds(state: NotificationState) {
     // satisfy the hooks rule. For kinds with no config, the callback is
     // a no-op.
     for &kind in FrontendEventKind::ALL {
-        let config = NotificationConfig::for_kind(kind).cloned();
+        let config = NotificationConfig::for_kind(kind);
 
         use_event_listener(kind, move |ev: &FrontendEvent| {
             if let Some(config) = config {
