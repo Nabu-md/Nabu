@@ -20,14 +20,15 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use uuid::Uuid;
 
 use nabu_core::event_bus::{
-    EventBus, PipelineEvent, StreamEvent, StreamId, StreamSessionEvent, kinds,
+    EventBus, PipelineEvent, StreamEvent, StreamId, StreamSessionEvent, StreamTokenEvent,
+    kinds,
 };
 use nabu_core::streaming::{
-    StreamManager, StreamState, StreamingPipeline, StreamSessionHandle,
+    StreamManager, StreamState, StreamingPipeline,
 };
 use nabu_core::streaming::errors::StreamManagerError;
 
@@ -315,7 +316,10 @@ fn stream_lifecycle_handles_failure() {
 
     // Publishing after fail should return error
     let result = pipeline.publish_token(&handle, "more");
-    assert!(matches!(result, Err(StreamManagerError::Failed { .. })));
+    assert!(matches!(
+        result,
+        Err(StreamManagerError::StreamAlreadyTerminal { .. })
+    ));
 }
 
 #[test]
@@ -384,7 +388,7 @@ fn token_events_preserve_content_assembly() {
     let words = ["The", " ", "quick", " ", "brown", " ", "fox"];
     for word in &words {
         pipeline
-            .publish_token(&handle, word)
+             .publish_token(&handle, *word)
             .expect("publish token");
     }
 
@@ -433,7 +437,7 @@ fn all_streaming_events_are_pipeline_events() {
     assert_eq!(events.len(), 4); // 1 started + 2 tokens + 1 completed
 
     // Verify all events are PipelineEvent::Stream
-    for ev in events {
+    for ev in events.iter() {
         assert!(matches!(ev, PipelineEvent::Stream(_)));
     }
 }
@@ -482,28 +486,14 @@ fn session_events_published_through_event_bus() {
 fn multiple_concurrent_streams_are_isolated() {
     let (pipeline, bus) = make_pipeline();
 
-    // Track tokens per stream
-    let stream1_tokens = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-    let stream2_tokens = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-
-    let s1_tokens = stream1_tokens.clone();
-    let s2_tokens = stream2_tokens.clone();
-    bus.subscribe(kinds::STREAM_TOKEN, move |ev: &PipelineEvent| {
-        if let PipelineEvent::Stream(StreamEvent::Token(e)) = ev {
-            if e.stream_id == handle1_id.load(std::sync::atomic::Ordering::Acquire).into() {
-                // This approach won't work for the first message; let me restructure.
-            }
-        }
-    });
-
-    // Actually, let's use a different approach — each subscriber gets all tokens,
-    // and we filter by stream_id.
-    let (pipeline, bus) = make_pipeline();
-
-    let stream1_id: Arc<std::sync::Mutex<Option<StreamId>>> = Arc::new(std::sync::Mutex::new(None));
-    let stream2_id: Arc<std::sync::Mutex<Option<StreamId>>> = Arc::new(std::sync::Mutex::new(None));
-    let stream1_tokens: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let stream2_tokens: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stream1_id: Arc<std::sync::Mutex<Option<StreamId>>> =
+        Arc::new(std::sync::Mutex::new(None));
+    let stream2_id: Arc<std::sync::Mutex<Option<StreamId>>> =
+        Arc::new(std::sync::Mutex::new(None));
+    let stream1_tokens: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stream2_tokens: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
 
     let s1_id = stream1_id.clone();
     let s2_id = stream2_id.clone();
@@ -514,9 +504,9 @@ fn multiple_concurrent_streams_are_isolated() {
         if let PipelineEvent::Stream(StreamEvent::Token(e)) = ev {
             let s1 = s1_id.lock().expect("lock").unwrap();
             let s2 = s2_id.lock().expect("lock").unwrap();
-            if Some(e.stream_id) == *s1 {
+            if e.stream_id == s1 {
                 s1_tokens.lock().expect("lock").push(e.token.clone());
-            } else if Some(e.stream_id) == *s2 {
+            } else if e.stream_id == s2 {
                 s2_tokens.lock().expect("lock").push(e.token.clone());
             }
         }
@@ -534,7 +524,7 @@ fn multiple_concurrent_streams_are_isolated() {
     pipeline.publish_token(&handle1, "S1-T1").expect("token");
     pipeline.publish_token(&handle2, "S2-T1").expect("token");
     pipeline.publish_token(&handle1, "S1-T2").expect("token");
-    pipeline.publish_token(&handle2, "S1-T2").expect("token");
+    pipeline.publish_token(&handle2, "S2-T2").expect("token");
 
     pipeline.complete_stream(&handle1).expect("complete 1");
     pipeline.complete_stream(&handle2).expect("complete 2");
@@ -543,7 +533,7 @@ fn multiple_concurrent_streams_are_isolated() {
     let s2_tokens = stream2_tokens.lock().expect("lock").clone();
 
     assert_eq!(s1_tokens, vec!["S1-T0", "S1-T1", "S1-T2"]);
-    assert_eq!(s2_tokens, vec!["S2-T0", "S2-T1", "S1-T2"]); // S1-T2 was published to S2
+    assert_eq!(s2_tokens, vec!["S2-T0", "S2-T1", "S2-T2"]);
 }
 
 #[test]
@@ -681,7 +671,7 @@ fn stream_manager_remove_terminal_succeeds() {
 
 #[test]
 fn stream_event_serializes_and_deserializes() {
-    let ev = StreamEvent::Token(crate::event_bus::StreamTokenEvent::new(
+    let ev = StreamEvent::Token(StreamTokenEvent::new(
         Uuid::new_v4(),
         "hello",
         "hello",

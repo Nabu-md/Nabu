@@ -1099,7 +1099,7 @@ impl StreamState {
 ///
 /// Each variant carries the [`StreamId`] identifying the stream, the
 /// [`ProcessId`] of the originating agent (when applicable), and a timestamp.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum StreamEvent {
     /// A stream was started — the first event in any streaming session.

@@ -343,7 +343,7 @@ impl std::fmt::Debug for StreamManager {
 mod tests {
     use super::*;
     use crate::event_bus::{EventBus, PipelineEvent, kinds};
-    use std::sync::atomic::AtomicUsize;
+    use crate::streaming::StreamState;
 
     fn test_bus() -> Arc<EventBus<PipelineEvent>> {
         Arc::new(EventBus::new())

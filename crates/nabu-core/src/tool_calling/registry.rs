@@ -45,6 +45,7 @@
 
 use serde_json::Value;
 use std::collections::HashMap;
+#[allow(unused_imports)]
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -327,7 +328,7 @@ impl ToolRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tool_calling::models::{ToolError, ToolParam, ToolParamSchema, ToolSpec};
+    use crate::tool_calling::models::{ToolError, ToolParam, ToolParamSchema, ToolResultStatus, ToolSpec};
     use async_trait::async_trait;
     use serde_json::json;
 
@@ -538,7 +539,7 @@ mod tests {
 #[cfg(test)]
 mod tool_calling {
     use super::*;
-    use crate::tool_calling::models::{ToolCall, ToolError, ToolParam, ToolParamSchema, ToolSpec};
+    use crate::tool_calling::models::{ToolCall, ToolError, ToolParam, ToolParamSchema, ToolResultStatus, ToolSpec};
     use crate::tool_calling::{ToolRegistry, ToolResult};
     use async_trait::async_trait;
     use serde_json::json;
@@ -558,6 +559,18 @@ mod tool_calling {
                 Some(json!({ "count": self.calls.load(std::sync::atomic::Ordering::SeqCst) })),
                 None,
             ))
+        }
+    }
+
+    struct PingTool;
+
+    #[async_trait]
+    impl Tool for PingTool {
+        fn spec(&self) -> ToolSpec {
+            ToolSpec::new("nabu:ping", "Ping", "Returns pong")
+        }
+        async fn call(&self, _call: ToolCall) -> Result<ToolResult, ToolError> {
+            Ok(ToolResult::success(Some(json!("pong")), None))
         }
     }
 
@@ -607,7 +620,7 @@ mod tool_calling {
     async fn full_lifecycle_register_call_unregister() {
         let registry = ToolRegistry::new();
         let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let tool = Arc::new(CounterTool { calls: counter });
+        let tool = Arc::new(CounterTool { calls: counter.clone() });
 
         // Register
         registry.register(tool).await;

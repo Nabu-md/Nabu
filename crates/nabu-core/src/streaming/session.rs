@@ -810,6 +810,7 @@ mod tests {
     use crate::event_bus::{EventBus, PipelineEvent};
     use std::sync::Arc;
     use std::sync::atomic::AtomicUsize;
+    use std::sync::Mutex;
 
     fn test_bus() -> Arc<EventBus<PipelineEvent>> {
         Arc::new(EventBus::new())

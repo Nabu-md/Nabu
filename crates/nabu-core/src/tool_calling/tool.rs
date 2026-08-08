@@ -154,7 +154,7 @@ pub fn shared<T: Tool>(tool: Arc<T>) -> SharedTool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tool_calling::models::ToolParamSchema;
+    use crate::tool_calling::models::{ToolParam, ToolParamSchema};
     use serde_json::json;
 
     struct PingTool;

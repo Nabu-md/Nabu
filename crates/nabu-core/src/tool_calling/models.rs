@@ -162,7 +162,7 @@ impl ToolParam {
 ///   ]
 /// }
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolSpec {
     /// Unique tool identifier (e.g. `"nabu:read_note"`).
     pub id: ToolId,

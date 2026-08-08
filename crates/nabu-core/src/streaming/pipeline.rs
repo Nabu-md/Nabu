@@ -184,6 +184,7 @@ impl std::fmt::Debug for StreamingPipeline {
 mod tests {
     use super::*;
     use crate::event_bus::{EventBus, PipelineEvent, StreamEvent, kinds};
+    use crate::streaming::errors::StreamManagerError;
     use std::sync::atomic::AtomicUsize;
 
     fn test_bus() -> Arc<EventBus<PipelineEvent>> {
