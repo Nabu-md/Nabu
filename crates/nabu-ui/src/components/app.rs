@@ -260,7 +260,9 @@ pub fn ViewContent() -> Element {
         ViewMode::Streaming => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 crate::components::streaming::StreamingProvider {
-                    crate::components::streaming::StreamingContent {}
+                    crate::components::streaming::StreamingContainer {
+                        crate::components::streaming::StreamingContent {}
+                    }
                 }
             }
         },

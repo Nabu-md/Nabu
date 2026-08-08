@@ -41,13 +41,11 @@ mod content;
 mod container;
 mod cursor;
 mod indicator;
-mod scroll;
 
 pub use content::StreamingContent;
-pub use container::StreamingContainer;
+pub use container::{StreamingContainer, use_auto_scroll};
 pub use cursor::StreamingCursor;
 pub use indicator::{StreamingIndicator, StreamingIndicatorSize};
-pub use scroll::use_auto_scroll;
 
 /// A unique identifier for a streaming session, matching the backend `StreamId`.
 pub type StreamId = uuid::Uuid;
@@ -418,7 +416,8 @@ fn process_streaming_event(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::types::{parse_raw, RawFrontendEvent};
+    use crate::events::types::{parse_raw, FrontendEventKind, RawFrontendEvent};
+    use crate::events::FrontendEvent;
     use nabu_core::event_bus::kinds;
     use nabu_core::event_bus::PipelineEvent;
 
@@ -613,6 +612,251 @@ mod tests {
         assert!(StreamLifeCycle::Completed.is_terminal());
         assert!(StreamLifeCycle::Cancelled.is_terminal());
         assert!(StreamLifeCycle::Failed.is_terminal());
+    }
+
+    #[test]
+    fn stream_cancelled_payload_parses() {
+        let raw = RawFrontendEvent {
+            event_type: kinds::STREAM_CANCELLED.to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({
+                "Stream": {
+                    "Cancelled": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 5,
+                        "partial_content": "partial",
+                        "reason": "user requested",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        };
+        let ev = parse_raw(raw).unwrap();
+        assert_eq!(ev.kind, FrontendEventKind::StreamCancelled);
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Cancelled(e)) = ev.payload {
+            assert_eq!(e.tokens_delivered, 5);
+            assert_eq!(e.reason, "user requested");
+            assert_eq!(e.partial_content, "partial");
+        } else {
+            panic!("expected StreamCancelled payload");
+        }
+    }
+
+    #[test]
+    fn stream_failed_payload_parses() {
+        let raw = RawFrontendEvent {
+            event_type: kinds::STREAM_FAILED.to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({
+                "Stream": {
+                    "Failed": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 3,
+                        "partial_content": "partial",
+                        "error": "connection refused",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        };
+        let ev = parse_raw(raw).unwrap();
+        assert_eq!(ev.kind, FrontendEventKind::StreamFailed);
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Failed(e)) = ev.payload {
+            assert_eq!(e.tokens_delivered, 3);
+            assert_eq!(e.error, "connection refused");
+        } else {
+            panic!("expected StreamFailed payload");
+        }
+    }
+
+    #[test]
+    fn stream_partial_update_payload_parses() {
+        let raw = RawFrontendEvent {
+            event_type: kinds::STREAM_PARTIAL_UPDATE.to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({
+                "Stream": {
+                    "PartialUpdate": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "content": "partial content",
+                        "token_count": 3,
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        };
+        let ev = parse_raw(raw).unwrap();
+        assert_eq!(ev.kind, FrontendEventKind::StreamPartialUpdate);
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::PartialUpdate(e)) = ev.payload {
+            assert_eq!(e.token_count, 3);
+            assert_eq!(e.content, "partial content");
+        } else {
+            panic!("expected PartialUpdate payload");
+        }
+    }
+
+    #[test]
+    fn stream_cancelled_transitions_state() {
+        let ev = make_event(
+            kinds::STREAM_CANCELLED,
+            serde_json::json!({
+                "Stream": {
+                    "Cancelled": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 5,
+                        "partial_content": "partial",
+                        "reason": "user requested",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        );
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Cancelled(e)) = ev.payload {
+            assert_eq!(e.reason, "user requested");
+            assert_eq!(e.tokens_delivered, 5);
+        } else {
+            panic!("expected Cancelled event");
+        }
+    }
+
+    #[test]
+    fn stream_failed_transitions_state() {
+        let ev = make_event(
+            kinds::STREAM_FAILED,
+            serde_json::json!({
+                "Stream": {
+                    "Failed": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 3,
+                        "partial_content": "partial",
+                        "error": "timeout",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        );
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Failed(e)) = ev.payload {
+            assert_eq!(e.error, "timeout");
+            assert_eq!(e.tokens_delivered, 3);
+        } else {
+            panic!("expected Failed event");
+        }
+    }
+
+    #[test]
+    fn stream_session_cancelled_payload_parses() {
+        let raw = RawFrontendEvent {
+            event_type: kinds::SESSION_CANCELLED.to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({
+                "Session": {
+                    "SessionCancelled": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "reason": "user requested",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        };
+        let ev = parse_raw(raw).unwrap();
+        assert_eq!(ev.kind, FrontendEventKind::SessionCancelled);
+        assert!(matches!(
+            ev.payload,
+            PipelineEvent::Session(nabu_core::event_bus::StreamSessionEvent::SessionCancelled { .. })
+        ));
+    }
+
+    #[test]
+    fn stream_session_started_payload_parses() {
+        let raw = RawFrontendEvent {
+            event_type: kinds::SESSION_STARTED.to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({
+                "Session": {
+                    "SessionStarted": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        };
+        let ev = parse_raw(raw).unwrap();
+        assert_eq!(ev.kind, FrontendEventKind::SessionStarted);
+    }
+
+    #[test]
+    fn stream_lifecycle_status_kind() {
+        assert_eq!(StreamLifeCycle::Created.status_kind(), "status-dot-info");
+        assert_eq!(StreamLifeCycle::Active.status_kind(), "status-dot-info");
+        assert_eq!(StreamLifeCycle::Completed.status_kind(), "status-dot-success");
+        assert_eq!(StreamLifeCycle::Cancelled.status_kind(), "status-dot-warning");
+        assert_eq!(StreamLifeCycle::Failed.status_kind(), "status-dot-error");
+    }
+
+    #[test]
+    fn stream_session_preserves_partial_content_on_cancel() {
+        // Verify the StreamCancelledEvent carries partial_content.
+        let ev = make_event(
+            kinds::STREAM_CANCELLED,
+            serde_json::json!({
+                "Stream": {
+                    "Cancelled": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 2,
+                        "partial_content": "Hello world",
+                        "reason": "timeout",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        );
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Cancelled(e)) = ev.payload {
+            assert_eq!(e.partial_content, "Hello world");
+        } else {
+            panic!("expected Cancelled event");
+        }
+    }
+
+    #[test]
+    fn stream_session_preserves_error_on_fail() {
+        let ev = make_event(
+            kinds::STREAM_FAILED,
+            serde_json::json!({
+                "Stream": {
+                    "Failed": {
+                        "stream_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "tokens_delivered": 3,
+                        "partial_content": "partial",
+                        "error": "connection refused",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                }
+            }),
+        );
+        if let PipelineEvent::Stream(nabu_core::event_bus::StreamEvent::Failed(e)) = ev.payload {
+            assert_eq!(e.error, "connection refused");
+            assert_eq!(e.partial_content, "partial");
+        } else {
+            panic!("expected Failed event");
+        }
+    }
+
+    #[test]
+    fn stream_lifecycle_completed_label() {
+        assert_eq!(
+            StreamLifeCycle::Completed.label(),
+            "Completed"
+        );
+    }
+
+    #[test]
+    fn stream_session_new_starts_in_created() {
+        let session = StreamSession::new(stream_id());
+        assert_eq!(session.state, StreamLifeCycle::Created);
+        assert!(session.content.is_empty());
+        assert_eq!(session.token_count, 0);
+        assert!(session.error.is_none());
+        assert!(session.cancel_reason.is_none());
     }
 
     #[test]

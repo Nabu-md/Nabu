@@ -36,6 +36,7 @@ use nabu_core::processing::pipeline::build_standard_pipeline;
 use nabu_core::registry::context::ApplicationContext;
 use nabu_core::registry::{CATEGORY_CAPTURE_HANDLERS, ServiceRegistry};
 use nabu_core::storage::StorageManager;
+use nabu_core::streaming::StreamManager;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use tauri::Manager;
@@ -233,6 +234,15 @@ fn build_application_context(
 
     crate::event_bridge::register_event_bridge(&ctx, app_handle);
 
+    // ---- Streaming: one StreamManager (publishes streaming events to the
+    // EventBus, manages stream lifecycles) ----
+    // Registered before lifecycle initialize/start so it is available to any
+    // future streaming IPC commands. The EventBus is shared, so streaming
+    // events flow through the same bridge as all other platform events.
+    let stream_manager = Arc::new(StreamManager::new(event_bus.clone()));
+    ctx.register("stream_manager", stream_manager.clone());
+    tracing::info!("StreamManager registered in ApplicationContext");
+
     // ---- Lifecycle: initialize then start ----
     //
     // Initialization validates configuration and allocates resources for
@@ -398,6 +408,8 @@ pub fn run() {
             crate::commands::thread_list,
             crate::commands::thread_delete,
             crate::commands::thread_update,
+            // Streaming IPC.
+            crate::commands::stream_cancel,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------

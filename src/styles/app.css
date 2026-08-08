@@ -2991,3 +2991,171 @@ kbd {
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+/* ---- Streaming Interface ---- */
+
+/* Container that holds all streaming messages */
+.streaming-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.streaming-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Scrollable viewport with auto-follow */
+.streaming-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Single streaming message bubble */
+.stream-message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: rgb(var(--gray-900) / 0.5);
+  border: 1px solid rgb(var(--gray-800));
+}
+
+.stream-message-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.stream-message-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The token text — pre-wrap preserves whitespace from token chunks */
+.stream-message-text {
+  font-family: var(--font-family, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgb(var(--gray-200));
+  word-break: break-word;
+}
+
+/* Blinking block cursor shown while streaming is active */
+.stream-cursor {
+  display: inline-block;
+  width: 2px;
+  background-color: rgb(var(--color-primary));
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: stream-blink 1.0s step-end infinite;
+}
+
+@keyframes stream-blink {
+  from, 50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Typing indicator dot that pulses */
+.stream-typing-indicator {
+  display: inline-block;
+  width: 4px;
+  height: 0.8em;
+  background-color: rgb(var(--color-primary));
+  border-radius: 1px;
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: stream-typing-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes stream-typing-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Compact streaming indicator (spinner + label) */
+.streaming-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: rgb(var(--gray-400));
+}
+
+.streaming-indicator-sm {
+  font-size: 0.7rem;
+}
+
+.streaming-indicator-md {
+  font-size: 0.8rem;
+}
+
+.streaming-indicator-lg {
+  font-size: 0.875rem;
+}
+
+.streaming-indicator-label {
+  color: rgb(var(--gray-300));
+}
+
+.streaming-indicator-count {
+  color: rgb(var(--gray-500));
+}
+
+/* Message header: agent name + subtitle */
+.stream-message-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.stream-message-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stream-agent-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--gray-400));
+}
+
+.stream-subtitle {
+  font-size: 0.7rem;
+  color: rgb(var(--gray-500));
+}
+
+/* Error display in failed streams */
+.stream-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgb(var(--color-error) / 0.1);
+  border: 1px solid rgb(var(--color-error) / 0.3);
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  color: rgb(var(--gray-200));
+}
+
+/* Placeholder for empty active streams */
+.stream-placeholder {
+  color: rgb(var(--gray-600));
+}

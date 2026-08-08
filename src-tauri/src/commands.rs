@@ -3,6 +3,7 @@ use nabu_core::models::conversation::Thread;
 use nabu_core::models::{CustomPropertyValue, KnowledgeObject};
 use nabu_core::registry::context::ApplicationContext;
 use nabu_core::storage::StorageManager;
+use nabu_core::streaming::StreamManager;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -4168,5 +4169,36 @@ mod tests {
             origin: None,
         };
         assert_eq!(req.origin, None);
+    }
+}
+
+// ── Streaming IPC ───────────────────────────────────────────────────────────
+
+/// Cancels an active streaming session by ID.
+///
+/// Delegates to [`StreamManager::cancel_stream`], which publishes a
+/// `StreamEvent::Cancelled` and `StreamSessionEvent::SessionCancelled`
+/// through the EventBus. The frontend `StreamingProvider` picks up the
+/// terminal event and transitions the session UI to the `Cancelled` state.
+///
+/// Returns `Ok(true)` if the stream was found and cancelled, `Ok(false)` if
+/// no stream with the given ID exists.
+#[tauri::command]
+pub async fn stream_cancel(
+    ctx: State<'_, ApplicationContext>,
+    stream_id: String,
+    reason: String,
+) -> Result<bool, String> {
+    let manager: Arc<StreamManager> = ctx
+        .resolve("stream_manager")
+        .ok_or_else(|| "StreamManager is not registered in the application context".to_string())?;
+
+    let id = uuid::Uuid::parse_str(&stream_id)
+        .map_err(|e| format!("Invalid stream id: {e}"))?;
+
+    match manager.cancel_stream(&id, reason) {
+        Ok(()) => Ok(true),
+        Err(nabu_core::streaming::StreamManagerError::StreamNotFound(_)) => Ok(false),
+        Err(e) => Err(e.to_string()),
     }
 }

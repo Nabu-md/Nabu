@@ -8,49 +8,49 @@
 //!
 //! - **Auto-follow** (default): the container scrolls to the bottom on every
 //!   new token **only when** the user is already at (or very near) the bottom.
-//! - **User drift**: if the user scrolls up more than `DRIFT_THRESHOLD_PX` from
-//!   the bottom, auto-follow is suspended until the next stream starts.
+//! - **User drift**: if the user scrolls up more than
+//!   [`DRIFT_THRESHOLD_PX`] from the bottom, auto-follow is suspended until
+//!   the next stream starts.
 //! - **Stream start**: when a new stream begins, auto-follow is re-enabled
 //!   and the container scrolls to the bottom.
 //!
-//! The scroll lock uses a dedicated `Signal<bool>` so that the
-//! `use_effect` that performs the scroll does not create a render loop — the
-//! effect fires on scroll events and updates the lock, which in turn
-//! controls whether the next token commit triggers a scroll.
+//! ## Architecture
+//!
+//! ```text
+//! StreamingContainer
+//!   └── div.streaming-container  (overflow-y: auto, onscroll → lock)
+//!       └── {children}  (e.g. StreamingContent → StreamMessage[])
+//!
+//! use_effect(sessions) → reads follow lock → scrollToBottom()
+//! ```
+//!
+//! The `follow` lock is a `Signal<bool>`. The scroll handler updates it on
+//! every user scroll; the `use_effect` reads it (not as a dependency) and
+//! triggers a scroll only when sessions change. This avoids fighting the
+//! user during manual scroll.
 
 use dioxus::prelude::*;
-
-use super::StreamingContext;
+use dioxus::web::WebEventExt;
+use wasm_bindgen::JsCast;
 
 /// Distance from the bottom (in CSS pixels) within which auto-follow stays active.
 /// Moving further than this from the bottom suspends auto-scroll until the next
 /// stream starts.
 const DRIFT_THRESHOLD_PX: f64 = 40.0;
 
-/// Props for [`StreamingContainer`].
-pub struct StreamingContainerProps {
-    /// Optional CSS classes for the outer element.
-    pub class: Option<String>,
-}
-
-impl Default for StreamingContainerProps {
-    fn default() -> Self {
-        Self { class: None }
-    }
-}
-
 /// A scrollable container that auto-follows streaming content.
 ///
 /// Place this around [`StreamingContent`](super::StreamingContent) (or any
 /// streaming-rendered children) to get automatic, user-aware scrolling.
 ///
-/// The container renders a div with `overflow-y: auto` and attaches
-/// `onscroll` / `use_effect` hooks that manage the auto-follow lock.
+/// The container renders a `div` with `overflow-y: auto`. The `role="log"`
+/// and `aria-live="polite"` attributes make screen readers announce new
+/// content as it arrives, without interrupting the user.
 #[component]
 pub fn StreamingContainer(
     /// Child elements (typically `StreamingContent` or `StreamMessage`s).
     children: Element,
-    /// Optional CSS classes.
+    /// Optional CSS classes for the container.
     #[props(optional)]
     class: Option<String>,
 ) -> Element {
@@ -59,9 +59,10 @@ pub fn StreamingContainer(
 
     // Auto-follow lock: true when we should scroll to the bottom on updates.
     // Suspended when the user scrolls up past the drift threshold.
-    let follow = use_signal(|| true);
+    let mut follow = use_signal(|| true);
 
-    // Re-enable auto-follow + scroll to bottom whenever a new stream starts.
+    // Re-enable auto-follow whenever a new stream starts (i.e. whenever an
+    // active session appears that wasn't active on the previous render).
     let sessions = ctx.sessions.clone();
     {
         let mut follow = follow;
@@ -70,9 +71,22 @@ pub fn StreamingContainer(
             let has_active = current.values().any(|s| !s.state.is_terminal());
             if has_active {
                 follow.set(true);
+                scroll_to_bottom();
             }
             drop(current);
-            || {};
+        });
+    }
+
+    // Auto-scroll effect: fires whenever sessions are committed (i.e. on
+    // new tokens). Reads `follow` as a plain value (not a dependency) so
+    // it does not re-trigger on scroll events.
+    {
+        let follow = follow.clone();
+        use_effect(move || {
+            let _len = sessions.read().len();
+            if *follow.read() {
+                scroll_to_bottom();
+            }
         });
     }
 
@@ -84,15 +98,17 @@ pub fn StreamingContainer(
             "aria-live": "polite",
             "aria-relevant": "additions text",
             style: "overflow-y: auto; overflow-x: hidden;",
-            onscroll: move |ev: dioxus::prelude::MouseEvent| {
-                let scroll_el = ev.as_web_event();
-                let target = scroll_el.target();
-                if let Some(el) = target.dyn_ref::<web_sys::Element>() {
-                    if let Some(scroll_el) = el.dyn_ref::<web_sys::Element>() {
-                        let bottom = scroll_el.scroll_height() - scroll_el.client_height() - scroll_el.scroll_top();
+            onscroll: move |ev: dioxus::prelude::ScrollEvent| {
+                let web = ev.data().as_web_event();
+                if let Some(target) = web.target() {
+                    if let Some(el) = target.dyn_ref::<web_sys::Element>() {
+                        let scroll_height = el.scroll_height() as f64;
+                        let client_height = el.client_height() as f64;
+                        let scroll_top = el.scroll_top() as f64;
+                        let bottom = scroll_height - client_height - scroll_top;
                         if bottom > DRIFT_THRESHOLD_PX {
                             follow.set(false);
-                        } else if bottom < DRIFT_THRESHOLD_PX {
+                        } else {
                             follow.set(true);
                         }
                     }
@@ -101,32 +117,28 @@ pub fn StreamingContainer(
             {children}
         }
     }
+}
 
-    // Auto-scroll effect: fires whenever sessions change AND follow is true.
-    // We read `follow` inside the effect body (not as a dependency), so the
-    // scroll happens on the *next* render commit after a token arrives —
-    // not during the scroll handler itself (which would fight the user).
-    {
-        let follow = follow.clone();
-        let sessions = sessions.clone();
-        use_effect(move || {
-            if *follow.read() {
-                // The container div is the element with class "streaming-container".
-                // We scroll it to the bottom via the global document.
-                if let Some(window) = web_sys::window() {
-                    if let Some(document) = window.document() {
-                        if let Some(container) = document.query_selector(".streaming-container").ok().flatten() {
-                            if let Some(el) = container.dyn_ref::<web_sys::Element>() {
-                                let _ = el.set_scroll_top(el.scroll_height());
-                            }
-                        }
-                    }
-                }
+/// Scrolls the `.streaming-container` element to its bottom.
+///
+/// Called from `use_effect` callbacks. Uses `document.querySelector` so it
+/// works regardless of how deeply the container is nested in the tree.
+fn scroll_to_bottom() {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            if let Ok(Some(el)) = document.query_selector(".streaming-container") {
+                let _ = el.set_scroll_top(el.scroll_height());
             }
-            // Read sessions to create a render dependency — this effect
-            // re-runs whenever sessions are committed (i.e. on new tokens).
-            let _ = sessions.read().len();
-            || {}
-        });
+        }
     }
+}
+
+/// Hook for components that need to imperatively scroll the streaming
+/// container.
+///
+/// Returns a closure that scrolls to the bottom when called. Useful for
+/// components outside the container that still need to trigger a scroll
+/// (e.g. a "scroll to bottom" button in a toolbar).
+pub fn use_auto_scroll() -> impl Fn() {
+    move || scroll_to_bottom()
 }

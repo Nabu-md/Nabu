@@ -180,9 +180,13 @@ pub fn StreamMessage(
                 "{e}",
             }
         })}
-        {!has_content && is_active_stream.then_some(rsx! {
-            span { class: "stream-placeholder", "aria-hidden": "true", " " }
-        })}
+        {if !has_content && is_active_stream {
+            rsx! {
+                span { class: "stream-placeholder", "aria-hidden": "true", " " }
+            }
+        } else {
+            rsx! {}
+        }}
     }
 }
 
