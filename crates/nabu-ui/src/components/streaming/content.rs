@@ -63,12 +63,12 @@ pub fn StreamingContent(
             class: "streaming-content {extra}",
             role: "region",
             "aria-label": "Streaming responses",
-        }
-        if sorted.is_empty() {
-            div { class: "streaming-empty text-xs text-gray-500", "No active streams" }
-        } else {
-            for session in &sorted {
-                StreamMessage { session: session.clone() }
+            if sorted.is_empty() {
+                div { class: "streaming-empty text-xs text-gray-500", "No active streams" }
+            } else {
+                for session in &sorted {
+                    StreamMessage { session: session.clone() }
+                }
             }
         }
     }
@@ -131,62 +131,77 @@ pub fn StreamMessage(
         div {
             class: "stream-message group",
             key: "{stream_id}",
-        }
-        div {
-            class: "stream-message-inner",
-        }
-        span {
-            class: status_badge_class,
-            role: "status",
-            "aria-label": "{state_label}",
-        }
-        div {
-            class: "stream-message-content",
-        }
-        div {
-            class: "stream-message-text",
-            "white-space": "pre-wrap",
-            "aria-live": if is_active_stream { "polite" } else { "off" },
-            "aria-label": if is_active_stream { "Streaming response" } else { "Complete response" },
-            "{content}",
-        }
-        {is_active_stream.then_some(rsx! {
-            StreamingCursor {}
-        })}
-        {is_active_stream.then_some(rsx! {
-            StreamingIndicator {}
-        })}
-        div {
-            class: "stream-message-meta",
-        }
-        div {
-            class: "stream-message-header",
-        }
-        span {
-            class: "stream-agent-name",
-            "aria-hidden": "true",
-            "{agent_label}",
-        }
-        span {
-            class: "stream-subtitle",
-            "aria-label": "Stream status: {state_label}",
-            "{subtitle}",
-        }
-        {error.as_ref().map(|e| rsx! {
             div {
-                class: "stream-error",
-                role: "alert",
-                "aria-label": "Stream error",
-                "{e}",
+                class: "stream-message-inner",
+                span {
+                    class: status_badge_class,
+                    role: "status",
+                    "aria-label": "{state_label}",
+                }
+                div {
+                    class: "stream-message-content",
+                    div {
+                        class: "stream-message-text",
+                        "white-space": "pre-wrap",
+                        "aria-live": if is_active_stream { "polite" } else { "off" },
+                        "aria-label": if is_active_stream { "Streaming response" } else { "Complete response" },
+                        "{content}",
+                    }
+                    {is_active_stream.then_some(rsx! {
+                        StreamingCursor {}
+                    })}
+                    {is_active_stream.then_some(rsx! {
+                        StreamingIndicator {
+                            token_count: Some(token_count),
+                        }
+                    })}
+                }
             }
-        })}
-        {if !has_content && is_active_stream {
-            rsx! {
-                span { class: "stream-placeholder", "aria-hidden": "true", " " }
+            div {
+                class: "stream-message-meta",
+                div {
+                    class: "stream-message-header",
+                    span {
+                        class: "stream-agent-name",
+                        "aria-hidden": "true",
+                        "{agent_label}",
+                    }
+                    span {
+                        class: "stream-subtitle",
+                        "aria-label": "Stream status: {state_label}",
+                        "{subtitle}",
+                    }
+                }
             }
-        } else {
-            rsx! {}
-        }}
+            {error.as_ref().map(|e| rsx! {
+                div {
+                    class: "stream-error",
+                    role: "alert",
+                    "aria-label": "Stream error",
+                    "{e}",
+                }
+            })}
+            {is_active_stream.then_some(rsx! {
+                button {
+                    class: "stream-cancel-btn",
+                    "aria-label": "Cancel stream",
+                    onclick: move |_| {
+                        let id = stream_id;
+                        wasm_bindgen_futures::spawn_local(async move {
+                            super::cancel_stream(id, "user requested").await;
+                        });
+                    },
+                    "Stop",
+                }
+            })}
+            {if !has_content && is_active_stream {
+                rsx! {
+                    span { class: "stream-placeholder", "aria-hidden": "true", " " }
+                }
+            } else {
+                rsx! {}
+            }}
+        }
     }
 }
 

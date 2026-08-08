@@ -31,6 +31,7 @@
 
 use dioxus::prelude::*;
 use dioxus::web::WebEventExt;
+use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 
 /// Distance from the bottom (in CSS pixels) within which auto-follow stays active.
@@ -61,27 +62,41 @@ pub fn StreamingContainer(
     // Suspended when the user scrolls up past the drift threshold.
     let mut follow = use_signal(|| true);
 
-    // Re-enable auto-follow whenever a new stream starts (i.e. whenever an
-    // active session appears that wasn't active on the previous render).
+    // Track the set of active stream IDs so we only re-enable auto-follow when
+    // a *new* stream starts (not on every render). In Dioxus 0.6, use_effect
+    // fires on every commit; without this guard the follow flag would be
+    // reset on every token update, defeating the drift threshold.
+    let active_ids = use_signal(HashMap::<super::StreamId, ()>::new);
+
     let sessions = ctx.sessions.clone();
     {
         let mut follow = follow;
+        let mut active_ids = active_ids;
         use_effect(move || {
             let current = sessions.read();
-            let has_active = current.values().any(|s| !s.state.is_terminal());
-            if has_active {
+            let new_active: HashMap<_, ()> = current
+                .values()
+                .filter(|s| !s.state.is_terminal())
+                .map(|s| (s.stream_id, ()))
+                .collect();
+
+            // Detect if a new active stream appeared since last render.
+            let new_stream_started = new_active.keys().any(|id| !active_ids.read().contains_key(id));
+            if new_stream_started {
                 follow.set(true);
                 scroll_to_bottom();
             }
+
+            *active_ids.write_unchecked() = new_active;
             drop(current);
         });
     }
 
     // Auto-scroll effect: fires whenever sessions are committed (i.e. on
     // new tokens). Reads `follow` as a plain value (not a dependency) so
-    // it does not re-trigger on scroll events.
+    // it does not re-trigger on scroll events, and does not reset `follow`.
     {
-        let follow = follow.clone();
+        let follow = follow;
         use_effect(move || {
             let _len = sessions.read().len();
             if *follow.read() {

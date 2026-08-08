@@ -3159,3 +3159,24 @@ kbd {
 .stream-placeholder {
   color: rgb(var(--gray-600));
 }
+
+/* Cancel button shown on active streams */
+.stream-cancel-btn {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgb(var(--gray-400));
+  background: rgb(var(--gray-800) / 0.5);
+  border: 1px solid rgb(var(--gray-700));
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stream-cancel-btn:hover {
+  color: rgb(var(--gray-200));
+  background: rgb(var(--gray-700) / 0.5);
+  border-color: rgb(var(--gray-600));
+}
