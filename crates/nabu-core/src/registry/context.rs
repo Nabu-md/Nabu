@@ -59,6 +59,7 @@ use crate::registry::ServiceRegistry;
 
 use crate::diagnostics::PerformanceMonitor;
 use crate::jobs;
+use crate::conversations::ConversationStore;
 
 // ---------------------------------------------------------------------------
 // Forward type aliases — prevents circular crate dependencies.
@@ -400,6 +401,11 @@ impl ApplicationContext {
         self.resolve("storage_manager")
     }
 
+    /// Returns the conversation store if registered.
+    pub fn conversation_store(&self) -> Option<Arc<ConversationStore>> {
+        self.resolve("conversation_store")
+    }
+
     /// Returns the universal history manager if registered.
     pub fn history_manager(&self) -> Option<Arc<std::sync::RwLock<crate::history::HistoryManager>>> {
         self.resolve("history_manager")
@@ -451,6 +457,7 @@ impl ApplicationContext {
     /// - `worker_pool` (WorkerPool)
     /// - `pipeline_executor` (PipelineExecutor)
     /// - `storage_manager` (StorageManager)
+    /// - `conversation_store` (ConversationStore)
     /// - `vault_graph` (VaultGraph, behind RwLock)
     /// - `indexer` (Indexer, behind Mutex)
     ///
@@ -549,6 +556,11 @@ impl ApplicationContext {
         // StorageManager
         if let Some(storage) = self.storage_manager() {
             record_service("storage_manager", storage.lifecycle_stage());
+        }
+
+        // ConversationStore
+        if let Some(conv) = self.conversation_store() {
+            record_service("conversation_store", conv.lifecycle_stage());
         }
 
         // VaultGraph (behind RwLock)
@@ -660,7 +672,7 @@ impl ApplicationContext {
     pub fn validate_core_services(&self) -> ValidationReport {
         self.validate_services(
             &["event_bus", "capture_engine", "pipeline", "storage_manager"],
-            &["job_queue", "worker_pool", "vault_graph", "indexer"],
+            &["job_queue", "worker_pool", "vault_graph", "indexer", "conversation_store"],
         )
     }
 
@@ -734,6 +746,14 @@ impl ApplicationContext {
             if let Err(e) = storage.initialize() {
                 tracing::error!(error = %e, "Failed to initialize StorageManager");
                 errors.push(format!("StorageManager: {}", e));
+            }
+        }
+
+        // --- ConversationStore (loads persisted threads before dependent services) ---
+        if let Some(conv) = self.conversation_store() {
+            if let Err(e) = conv.initialize() {
+                tracing::error!(error = %e, "Failed to initialize ConversationStore");
+                errors.push(format!("ConversationStore: {}", e));
             }
         }
 
@@ -839,6 +859,17 @@ impl ApplicationContext {
             if let Err(e) = storage.start() {
                 tracing::error!(error = %e, "Failed to start StorageManager");
                 errors.push(format!("StorageManager: {}", e));
+            }
+        }
+
+        // --- ConversationStore (restores persisted threads, begins accepting saves) ---
+        if errors.is_empty() {
+            if let Some(conv) = self.conversation_store() {
+                tracing::info!("Starting ConversationStore");
+                if let Err(e) = conv.start() {
+                    tracing::error!(error = %e, "Failed to start ConversationStore");
+                    errors.push(format!("ConversationStore: {}", e));
+                }
             }
         }
 
@@ -986,6 +1017,14 @@ impl ApplicationContext {
             tracing::info!("StorageManager shutting down");
             if let Err(e) = storage.shutdown() {
                 tracing::error!(error = %e, "Failed to shut down StorageManager");
+            }
+        }
+
+        // --- ConversationStore (flush manifest, release threads) ---
+        if let Some(conv) = self.conversation_store() {
+            tracing::info!("ConversationStore shutting down");
+            if let Err(e) = conv.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down ConversationStore");
             }
         }
 

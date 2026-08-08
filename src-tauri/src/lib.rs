@@ -25,6 +25,7 @@ pub mod settings;
 // ---------------------------------------------------------------------------
 
 use nabu_core::capture::CaptureEngine;
+use nabu_core::conversations::ConversationStore;
 use nabu_core::event_bus::kinds;
 use nabu_core::event_bus::{EventBus, PipelineEvent};
 use nabu_core::graph::VaultGraph;
@@ -113,6 +114,16 @@ fn build_application_context(
         (*event_bus).clone(),
     ));
     ctx.register("storage_manager", storage.clone());
+
+    // ---- 2.5. One ConversationStore (conversation thread persistence) ----
+    // The store publishes ThreadSaved/ThreadUpdated/ThreadDeleted events on
+    // the EventBus, which the event bridge forwards to the frontend so UI
+    // components can react to conversation changes.
+    let conversation_store = Arc::new(ConversationStore::with_event_bus(
+        vault_path.clone(),
+        (*event_bus).clone(),
+    ));
+    ctx.register("conversation_store", conversation_store.clone());
 
     // ---- 3. One ProcessingPipeline (standard pipeline, 14 processors) ----
     let pipeline = Arc::new(build_standard_pipeline(Some((*event_bus).clone())));
@@ -380,6 +391,12 @@ pub fn run() {
             crate::commands::plugin_call,
             // Diagnostic IPC — editor diagnostic bridge.
             crate::commands::diagnostic_requested,
+            // Conversation thread persistence IPC.
+            crate::commands::thread_save,
+            crate::commands::thread_load,
+            crate::commands::thread_list,
+            crate::commands::thread_delete,
+            crate::commands::thread_update,
         ])
         .setup(|app| {
             // ------------------------------------------------------------------

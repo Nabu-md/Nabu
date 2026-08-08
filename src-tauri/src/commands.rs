@@ -1,3 +1,5 @@
+use nabu_core::conversations::ConversationStore;
+use nabu_core::models::conversation::Thread;
 use nabu_core::models::{CustomPropertyValue, KnowledgeObject};
 use nabu_core::registry::context::ApplicationContext;
 use nabu_core::storage::StorageManager;
@@ -3890,6 +3892,92 @@ pub fn plugin_call(
     }
 
     Ok(response)
+}
+
+// ── Conversation Thread IPC Commands ────────────────────────────────
+//
+// These commands expose the ConversationStore through the Tauri IPC layer.
+// They resolve the single canonical ConversationStore from the
+// ApplicationContext (registered at startup) — no command constructs its
+// own store instance.
+
+/// Resolves the single canonical ConversationStore from the ApplicationContext.
+fn get_conversation_store(ctx: &ApplicationContext) -> Result<Arc<ConversationStore>, String> {
+    ctx.conversation_store()
+        .ok_or_else(|| "ConversationStore is not registered in the application context".to_string())
+}
+
+/// Saves a thread to persistent storage.
+///
+/// The thread is serialized atomically to `.nabu/conversations/<uuid>.json`.
+/// If a thread with the same ID already exists, it is replaced.
+#[tauri::command]
+pub fn thread_save(
+    thread: Thread,
+    ctx: State<'_, ApplicationContext>,
+) -> Result<(), String> {
+    let store = get_conversation_store(&ctx)?;
+    store
+        .save(&thread)
+        .map_err(|e| e.to_string())
+}
+
+/// Loads a single thread by ID from persistent storage.
+#[tauri::command]
+pub fn thread_load(
+    id: String,
+    ctx: State<'_, ApplicationContext>,
+) -> Result<Option<Thread>, String> {
+    let store = get_conversation_store(&ctx)?;
+    let uuid = uuid::Uuid::parse_str(&id)
+        .map_err(|e| format!("Invalid thread ID: {}", e))?;
+    match store.load(uuid) {
+        Ok(thread) => Ok(Some(thread)),
+        Err(e) => match &e {
+            nabu_core::conversations::PersistenceError::ThreadNotFound { .. } => Ok(None),
+            _ => Err(e.to_string()),
+        },
+    }
+}
+
+/// Loads all persisted threads from disk.
+#[tauri::command]
+pub fn thread_list(ctx: State<'_, ApplicationContext>) -> Result<Vec<Thread>, String> {
+    let store = get_conversation_store(&ctx)?;
+    // list() returns threads from the in-memory cache, which is populated
+    // during initialize(). If the cache is empty (e.g. store not yet
+    // initialized), fall back to loading from disk.
+    let threads = store.list();
+    if threads.is_empty() {
+        store.load_all().map_err(|e| e.to_string())
+    } else {
+        Ok(threads)
+    }
+}
+
+/// Deletes a thread from persistent storage.
+#[tauri::command]
+pub fn thread_delete(
+    id: String,
+    ctx: State<'_, ApplicationContext>,
+) -> Result<(), String> {
+    let store = get_conversation_store(&ctx)?;
+    let uuid = uuid::Uuid::parse_str(&id)
+        .map_err(|e| format!("Invalid thread ID: {}", e))?;
+    store.delete(uuid).map_err(|e| e.to_string())
+}
+
+/// Updates an existing thread in place.
+///
+/// The thread's `updated_at` timestamp is set to the current time before
+/// saving. Returns an error if the thread does not exist in storage.
+#[tauri::command]
+pub fn thread_update(
+    mut thread: Thread,
+    ctx: State<'_, ApplicationContext>,
+) -> Result<(), String> {
+    let store = get_conversation_store(&ctx)?;
+    store.update(&mut thread).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

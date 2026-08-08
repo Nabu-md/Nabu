@@ -74,6 +74,11 @@ const ALL_EVENT_KINDS: &[&str] = &[
     kinds::DIAGNOSTIC_BATCH_PUBLISHED,
     kinds::DIAGNOSTIC_BATCH_CLEARED,
     kinds::DIAGNOSTIC_BATCH_REMOVED,
+    // --- Conversation persistence event kinds ---
+    // Forwarded so frontend UI components can react to conversation changes.
+    kinds::THREAD_SAVED,
+    kinds::THREAD_UPDATED,
+    kinds::THREAD_DELETED,
 ];
 
 /// A single structured payload broadcast on the `nabu-event` channel.

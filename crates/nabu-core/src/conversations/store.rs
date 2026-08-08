@@ -1,4 +1,5 @@
 use crate::conversations::{PersistenceError, PersistenceResult};
+use crate::event_bus::{ConversationEvent, EventBus, PipelineEvent};
 use crate::models::conversation::Thread;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use chrono::{DateTime, Utc};
@@ -87,6 +88,10 @@ pub struct ConversationStore {
     conversations_dir: PathBuf,
     /// The path to the manifest file.
     manifest_path: PathBuf,
+    /// Optional event bus for publishing conversation persistence events.
+    event_bus: Option<EventBus<PipelineEvent>>,
+    /// Serializes manifest writes to prevent concurrent temp-file races.
+    manifest_lock: RwLock<()>,
 }
 
 impl ConversationStore {
@@ -96,6 +101,19 @@ impl ConversationStore {
     /// `initialize()` (or use the `Lifecycle` trait via
     /// `ApplicationContext`) to load persisted threads from disk.
     pub fn new(vault_path: impl Into<PathBuf>) -> Self {
+        Self::with_vault_path(vault_path, None)
+    }
+
+    /// Creates a new `ConversationStore` with the given vault path and an
+    /// optional event bus for publishing conversation persistence events.
+    pub fn with_event_bus(
+        vault_path: impl Into<PathBuf>,
+        event_bus: EventBus<PipelineEvent>,
+    ) -> Self {
+        Self::with_vault_path(vault_path, Some(event_bus))
+    }
+
+    fn with_vault_path(vault_path: impl Into<PathBuf>, event_bus: Option<EventBus<PipelineEvent>>) -> Self {
         let vault_path = vault_path.into();
         let conversations_dir =
             vault_path.join(".nabu").join(CONVERSATIONS_DIR_NAME);
@@ -107,7 +125,14 @@ impl ConversationStore {
             lifecycle: LifecycleManager::new(),
             conversations_dir,
             manifest_path,
+            event_bus,
+            manifest_lock: RwLock::new(()),
         }
+    }
+
+    /// Returns a reference to the event bus, if one is configured.
+    pub fn event_bus(&self) -> Option<&EventBus<PipelineEvent>> {
+        self.event_bus.as_ref()
     }
 
     // -----------------------------------------------------------------------
@@ -144,17 +169,24 @@ impl ConversationStore {
     // -----------------------------------------------------------------------
 
     /// Ensures the conversations directory exists on disk.
+    ///
+    /// Uses `create_dir_all` unconditionally — it is idempotent and will not
+    /// error if the directory already exists, which makes it safe for
+    /// concurrent callers.
     fn ensure_dirs(&self) -> Result<(), PersistenceError> {
-        if !self.conversations_dir.exists() {
-            std::fs::create_dir_all(&self.conversations_dir)?;
-        }
+        std::fs::create_dir_all(&self.conversations_dir)?;
         Ok(())
     }
 
     /// Returns the absolute path for a thread's persistence file.
-    fn thread_file_path(&self, id: Uuid) -> PathBuf {
+    pub fn thread_file_path(&self, id: Uuid) -> PathBuf {
         let filename = format!("{}.{}", id, THREAD_FILE_EXT);
         self.conversations_dir.join(filename)
+    }
+
+    /// Returns the path to the manifest file.
+    pub fn manifest_path(&self) -> &Path {
+        &self.manifest_path
     }
 
     // -----------------------------------------------------------------------
@@ -171,6 +203,17 @@ impl ConversationStore {
                 thread_id: thread.id,
                 reason: e.to_string(),
             })
+    }
+
+    // -----------------------------------------------------------------------
+    // Event publishing
+    // -----------------------------------------------------------------------
+
+    /// Publishes a conversation event on the EventBus, if one is configured.
+    fn publish_event(&self, event: ConversationEvent) {
+        if let Some(bus) = &self.event_bus {
+            bus.publish(event.kind(), &PipelineEvent::Conversation(event));
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -209,6 +252,11 @@ impl ConversationStore {
 
         // Refresh the manifest.
         self.write_manifest()?;
+
+        self.publish_event(ConversationEvent::ThreadSaved {
+            thread_id: thread.id,
+            timestamp: Utc::now(),
+        });
 
         tracing::debug!(
             thread_id = %thread.id,
@@ -349,6 +397,11 @@ impl ConversationStore {
         // Refresh the manifest.
         self.write_manifest()?;
 
+        self.publish_event(ConversationEvent::ThreadDeleted {
+            thread_id: id,
+            timestamp: Utc::now(),
+        });
+
         Ok(())
     }
 
@@ -394,7 +447,13 @@ impl ConversationStore {
     ///
     /// The manifest is written atomically (temp + rename) and is used for
     /// thread discovery and ordering during startup recovery.
+    ///
+    /// Uses a dedicated lock to serialize manifest writes — without this,
+    /// concurrent save/delete calls could race on the shared `manifest.tmp`
+    /// file, causing "No such file or directory" errors.
     fn write_manifest(&self) -> Result<(), PersistenceError> {
+        let _guard = self.manifest_lock.write().expect("manifest lock poisoned");
+
         let store = self.store.read().expect("store lock poisoned");
 
         let entries: Vec<ManifestEntry> = store
@@ -479,7 +538,14 @@ impl ConversationStore {
             });
         }
         thread.updated_at = Some(Utc::now());
-        self.save(thread)
+        self.save(thread)?;
+
+        self.publish_event(ConversationEvent::ThreadUpdated {
+            thread_id: thread.id,
+            timestamp: Utc::now(),
+        });
+
+        Ok(())
     }
 }
 

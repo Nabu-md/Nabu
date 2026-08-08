@@ -40,6 +40,8 @@ pub mod jobs;
 pub mod models;
 pub mod native;
 pub mod pipeline_migration;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod agent;
 pub mod plugin;
 pub mod processing;
 #[cfg(not(target_arch = "wasm32"))]
@@ -82,6 +84,9 @@ pub use plugin::*;
 #[allow(ambiguous_glob_reexports)]
 pub use processing::*;
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(ambiguous_glob_reexports)]
+pub use agent::*;
 #[allow(ambiguous_glob_reexports)]
 pub use process_supervisor::*;
 #[allow(ambiguous_glob_reexports)]

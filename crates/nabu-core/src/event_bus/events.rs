@@ -46,6 +46,7 @@ pub enum PipelineEvent {
     /// [`publish_diagnostic_event`](crate::diagnostic::events::publish_diagnostic_event),
     /// which wraps it in this variant.
     Diagnostic(DiagnosticEvent),
+    
     /// A synchronization status-change event flowing through the EventBus.
     ///
     /// Every synchronization provider (Syncthing, iCloud, Git, WebDAV, etc.)
@@ -59,6 +60,20 @@ pub enum PipelineEvent {
     /// Published by the [`ProcessSupervisor`](crate::process_supervisor::ProcessSupervisor)
     /// when a managed subprocess starts, exits, fails, restarts, or stops.
     Process(ProcessEvent),
+    /// An agent management event flowing through the EventBus.
+    ///
+    /// Published by the [`AgentManager`](crate::agent::manager::AgentManager)
+    /// when an agent is started, stopped, restarted, or crashes. The
+    /// `ProcessSupervisor` publishes [`ProcessEvent`]s for the underlying OS
+    /// process; the `AgentManager` publishes `AgentEvent`s for the
+    /// higher-level management lifecycle.
+    Agent(AgentEvent),
+    /// A conversation persistence event flowing through the EventBus.
+    ///
+    /// Published by the [`ConversationStore`](crate::conversations::ConversationStore)
+    /// when a thread is saved, updated, or deleted. The event bridge forwards these
+    /// to the frontend so UI components can react to conversation changes.
+    Conversation(ConversationEvent),
 }
 
 /// Event kind string constants for EventBus subscriptions
@@ -124,6 +139,20 @@ pub mod kinds {
     /// A managed process's health status has changed.
     pub const PROCESS_HEALTH_CHANGED: &str = "process.health.changed";
 
+    // --- Agent management event kinds ---
+    // Published by the AgentManager through the EventBus when agents are
+    // started, stopped, restarted, or crashed. These complement the
+    // process-level events above with higher-level management lifecycle events.
+
+    /// An agent has been started.
+    pub const AGENT_STARTED: &str = "agent.started";
+    /// An agent has been stopped.
+    pub const AGENT_STOPPED: &str = "agent.stopped";
+    /// An agent has been restarted.
+    pub const AGENT_RESTARTED: &str = "agent.restarted";
+    /// An agent has crashed (unexpected process exit).
+    pub const AGENT_CRASHED: &str = "agent.crashed";
+
     // --- Diagnostic event kinds ---
     // Published by diagnostic producers (spell checkers, AI assistants,
     // plugins, LSP adapters, OCR engines, metadata validators, etc.)
@@ -144,6 +173,18 @@ pub mod kinds {
 
     /// A synchronization folder's status has changed.
     pub const SYNC_STATUS_CHANGED: &str = "sync.status.changed";
+
+    // --- Conversation persistence event kinds ---
+    // Published by the ConversationStore when threads are saved, updated, or
+    // deleted. The EventBus bridge forwards these to the frontend so UI
+    // components can react to conversation changes.
+
+    /// A thread was saved to persistent storage.
+    pub const THREAD_SAVED: &str = "thread.saved";
+    /// A thread was updated in persistent storage.
+    pub const THREAD_UPDATED: &str = "thread.updated";
+    /// A thread was deleted from persistent storage.
+    pub const THREAD_DELETED: &str = "thread.deleted";
 }
 
 impl PipelineEvent {
@@ -162,8 +203,10 @@ impl PipelineEvent {
             PipelineEvent::CapabilityStateChanged(_) => kinds::CAPABILITY_STATE_CHANGED,
             PipelineEvent::Plugin(e) => e.kind(),
             PipelineEvent::Process(e) => e.kind(),
+            PipelineEvent::Agent(e) => e.kind(),
             PipelineEvent::Diagnostic(e) => e.kind(),
             PipelineEvent::Sync(e) => e.kind(),
+            PipelineEvent::Conversation(e) => e.kind(),
         }
     }
 
@@ -188,8 +231,10 @@ impl PipelineEvent {
             PipelineEvent::CapabilityStateChanged(e) => Some(e.timestamp),
             PipelineEvent::Plugin(e) => Some(e.timestamp()),
             PipelineEvent::Process(e) => Some(e.timestamp()),
+            PipelineEvent::Agent(e) => Some(e.timestamp()),
             PipelineEvent::Diagnostic(e) => Some(e.timestamp()),
             PipelineEvent::Sync(e) => Some(e.timestamp()),
+            PipelineEvent::Conversation(e) => Some(e.timestamp()),
         }
     }
 }
@@ -703,6 +748,246 @@ impl From<crate::process_supervisor::health::ProcessHealthStatus> for ProcessHea
             crate::process_supervisor::health::ProcessHealthStatus::Unhealthy => Self::Unhealthy,
             crate::process_supervisor::health::ProcessHealthStatus::Stopped => Self::Stopped,
             crate::process_supervisor::health::ProcessHealthStatus::Unknown => Self::Unknown,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Conversation persistence events
+// ---------------------------------------------------------------------------
+
+/// All conversation persistence events published through the EventBus.
+///
+/// Published by the [`ConversationStore`](crate::conversations::ConversationStore)
+/// when threads are saved, updated, or deleted. The EventBus bridge forwards
+/// these to the frontend over the `nabu-event` channel so UI components can
+/// react to conversation changes.
+///
+/// Each variant carries the affected thread's ID and a timestamp.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum ConversationEvent {
+    /// A thread was saved (newly created or replaced).
+    ThreadSaved {
+        /// The ID of the thread that was saved.
+        thread_id: Uuid,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+    /// A thread was updated (existing thread modified in place).
+    ThreadUpdated {
+        /// The ID of the thread that was updated.
+        thread_id: Uuid,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+    /// A thread was deleted.
+    ThreadDeleted {
+        /// The ID of the thread that was deleted.
+        thread_id: Uuid,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+}
+
+impl ConversationEvent {
+    /// Returns the event kind string used for EventBus subscription.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::ThreadSaved { .. } => kinds::THREAD_SAVED,
+            Self::ThreadUpdated { .. } => kinds::THREAD_UPDATED,
+            Self::ThreadDeleted { .. } => kinds::THREAD_DELETED,
+        }
+    }
+
+    /// Returns the timestamp when this event was produced.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        match self {
+            Self::ThreadSaved { timestamp, .. }
+            | Self::ThreadUpdated { timestamp, .. }
+            | Self::ThreadDeleted { timestamp, .. } => *timestamp,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Agent management events
+// ---------------------------------------------------------------------------
+
+/// All agent lifecycle events published through the EventBus.
+///
+/// Published by the [`AgentManager`](crate::agent::manager::AgentManager)
+/// when an agent is started, stopped, restarted, or crashes. The
+/// `ProcessSupervisor` publishes [`ProcessEvent`]s for the underlying OS
+/// process; the `AgentManager` publishes `AgentEvent`s for the
+/// higher-level management lifecycle.
+///
+/// Each variant wraps a dedicated event struct that derives
+/// [`Serialize`] and [`Deserialize`] and carries a `timestamp` field
+/// for uniform access via [`PipelineEvent::timestamp`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum AgentEvent {
+    /// An agent has been started.
+    ///
+    /// Carries the process ID, agent name, and the agent kind.
+    Started(AgentStartedEvent),
+    /// An agent has been stopped.
+    ///
+    /// Carries the process ID, agent name, and the reason for the stop.
+    Stopped(AgentStoppedEvent),
+    /// An agent has been restarted.
+    ///
+    /// Carries the process ID, agent name, restart count, and the cause.
+    Restarted(AgentRestartedEvent),
+    /// An agent has crashed (unexpected process exit).
+    ///
+    /// Carries the process ID, agent name, exit code (when available), and
+    /// the error message.
+    Crashed(AgentCrashedEvent),
+}
+
+impl AgentEvent {
+    /// Returns the event kind string used for EventBus subscription.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Started(_) => kinds::AGENT_STARTED,
+            Self::Stopped(_) => kinds::AGENT_STOPPED,
+            Self::Restarted(_) => kinds::AGENT_RESTARTED,
+            Self::Crashed(_) => kinds::AGENT_CRASHED,
+        }
+    }
+
+    /// Returns the timestamp when this event was produced.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        match self {
+            Self::Started(e) => e.timestamp,
+            Self::Stopped(e) => e.timestamp,
+            Self::Restarted(e) => e.timestamp,
+            Self::Crashed(e) => e.timestamp,
+        }
+    }
+}
+
+/// Published when an agent has been started.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AgentStartedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name of the agent.
+    pub agent_name: String,
+    /// The kind of agent (e.g. "jsonrpc_stdio").
+    pub agent_kind: String,
+    /// The PID of the agent process, if available.
+    pub pid: Option<u32>,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl AgentStartedEvent {
+    pub fn new(process_id: ProcessId, agent_name: &str, agent_kind: &str, pid: Option<u32>) -> Self {
+        Self {
+            process_id,
+            agent_name: agent_name.to_string(),
+            agent_kind: agent_kind.to_string(),
+            pid,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when an agent has been stopped.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AgentStoppedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name of the agent.
+    pub agent_name: String,
+    /// The reason for the stop (e.g. "manager shutdown", "user requested stop").
+    pub reason: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl AgentStoppedEvent {
+    pub fn new(process_id: ProcessId, agent_name: &str, reason: &str) -> Self {
+        Self {
+            process_id,
+            agent_name: agent_name.to_string(),
+            reason: reason.to_string(),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when an agent has been restarted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AgentRestartedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name of the agent.
+    pub agent_name: String,
+    /// How many times this agent has been restarted.
+    pub restart_count: u32,
+    /// The cause that triggered the restart.
+    pub reason: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl AgentRestartedEvent {
+    pub fn new(
+        process_id: ProcessId,
+        agent_name: &str,
+        restart_count: u32,
+        reason: &str,
+    ) -> Self {
+        Self {
+            process_id,
+            agent_name: agent_name.to_string(),
+            restart_count,
+            reason: reason.to_string(),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when an agent has crashed (unexpected process exit).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AgentCrashedEvent {
+    /// The unique identifier assigned to this managed process.
+    pub process_id: ProcessId,
+    /// The human-readable name of the agent.
+    pub agent_name: String,
+    /// The exit code of the process, if available.
+    pub exit_code: Option<i32>,
+    /// The error message describing the crash.
+    pub error: String,
+    /// The PID of the agent process, if available.
+    pub pid: Option<u32>,
+    /// How many times this agent has been restarted.
+    pub restart_count: u32,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl AgentCrashedEvent {
+    pub fn new(
+        process_id: ProcessId,
+        agent_name: &str,
+        exit_code: Option<i32>,
+        error: &str,
+        pid: Option<u32>,
+        restart_count: u32,
+    ) -> Self {
+        Self {
+            process_id,
+            agent_name: agent_name.to_string(),
+            exit_code,
+            error: error.to_string(),
+            pid,
+            restart_count,
+            timestamp: Utc::now(),
         }
     }
 }

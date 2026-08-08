@@ -19,6 +19,7 @@
 //! ├── JobQueue             durable background job queue
 //! ├── WorkerPool           executes queued jobs
 //! ├── StorageManager       persists knowledge objects
+//! ├── ConversationStore    persists conversation threads
 //! ├── ContentProvider      resolves file content
 //! ├── Indexer              full-text search (Tantivy)
 //! ├── VaultGraph           semantic relationship graph
@@ -86,6 +87,7 @@
 use std::sync::Arc;
 
 use crate::capture::CaptureEngine;
+use crate::conversations::ConversationStore;
 use crate::diagnostics::PerformanceMonitor;
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::jobs::WorkerPool;
@@ -124,6 +126,8 @@ pub struct Application {
     _worker_pool: Option<Arc<WorkerPool>>,
     /// Keeps the pipeline executor alive for the lifetime of the Application.
     _pipeline_executor: Option<Arc<PipelineExecutor>>,
+    /// Keeps the conversation store alive for the lifetime of the Application.
+    _conversation_store: Option<Arc<ConversationStore>>,
 }
 
 impl Application {
@@ -188,6 +192,14 @@ impl Application {
             }
         }
 
+        // ConversationStore: loads persisted threads from disk during
+        // initialization so recovery happens before dependent services start.
+        if let Some(conv) = self.context.conversation_store() {
+            if let Err(e) = conv.initialize() {
+                tracing::error!(error = %e, "Failed to initialize ConversationStore");
+            }
+        }
+
         tracing::info!(
             stage = ?self.lifecycle.stage(),
             services = self.context.service_count(),
@@ -227,6 +239,14 @@ impl Application {
                 tracing::error!(error = %e, "Failed to start storage manager");
             }
         }
+
+        // Start ConversationStore after StorageManager is ready.
+        if let Some(conv) = self.context.conversation_store() {
+            if let Err(e) = conv.start() {
+                tracing::error!(error = %e, "Failed to start conversation store");
+            }
+        }
+
         if let Some(engine) = self.context.capture_engine() {
             if let Err(e) = engine.start() {
                 tracing::error!(error = %e, "Failed to start capture engine");
@@ -305,6 +325,13 @@ impl Application {
             }
         }
 
+        // ConversationStore: flush manifest and release threads during shutdown.
+        if let Some(conv) = self.context.conversation_store() {
+            if let Err(e) = conv.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down conversation store");
+            }
+        }
+
         let result = self.lifecycle.transition_to(LifecycleStage::Shutdown);
         match &result {
             Ok(()) => {
@@ -360,6 +387,8 @@ pub struct ApplicationBuilder {
     worker_pool: Option<Arc<WorkerPool>>,
     /// Pipeline executor (optional — bridges WorkerPool to ProcessingPipeline).
     pipeline_executor: Option<Arc<PipelineExecutor>>,
+    /// Conversation store (optional — persists conversation threads).
+    conversation_store: Option<Arc<ConversationStore>>,
 }
 
 impl ApplicationBuilder {
@@ -374,6 +403,7 @@ impl ApplicationBuilder {
             capture_engine: None,
             worker_pool: None,
             pipeline_executor: None,
+            conversation_store: None,
         }
     }
 
@@ -427,6 +457,19 @@ impl ApplicationBuilder {
     /// [`Application::shutdown`].
     pub fn with_pipeline_executor(mut self, executor: Arc<PipelineExecutor>) -> Self {
         self.pipeline_executor = Some(executor);
+        self
+    }
+
+    /// Set the conversation store.
+    ///
+    /// If not set, no conversation store is registered and the Application
+    /// will not manage its lifecycle. When set, the store is registered
+    /// under the `"conversation_store"` key and its lifecycle (`initialize`,
+    /// `start`, `shutdown`) is invoked automatically during the
+    /// [`Application::initialize`], [`Application::start`], and
+    /// [`Application::shutdown`] phases.
+    pub fn with_conversation_store(mut self, store: Arc<ConversationStore>) -> Self {
+        self.conversation_store = Some(store);
         self
     }
 
@@ -498,6 +541,12 @@ impl ApplicationBuilder {
             reg.register("pipeline_executor", executor.clone());
         }
 
+        // ---- 7. Build and register the ConversationStore (if provided) ----
+        if let Some(store) = &self.conversation_store {
+            let mut reg = registry.write().expect("registry lock not poisoned");
+            reg.register("conversation_store", store.clone());
+        }
+
         // ---- 6. Create the ApplicationContext ----
         let plugin_manager = crate::plugin::PluginManager::for_application();
         let context = ApplicationContext::new(
@@ -516,6 +565,7 @@ impl ApplicationBuilder {
             _performance_monitor: Some(perf_monitor),
             _worker_pool: self.worker_pool,
             _pipeline_executor: self.pipeline_executor,
+            _conversation_store: self.conversation_store,
         }
     }
 }
