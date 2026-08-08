@@ -21,12 +21,12 @@ use std::sync::Mutex as StdMutex;
 use nabu_core::capture::CaptureEngine;
 use nabu_core::graph::VaultGraph;
 use nabu_core::indexer::Indexer;
-use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, Queue, WorkerPool};
+use nabu_core::jobs::{DurableJobQueue, ExecutorRegistry, WorkerPool};
 use nabu_core::pipeline_migration::PipelineExecutor;
 use nabu_core::processing::ProcessingPipeline;
 use nabu_core::registry::context::{ApplicationContext, ApplicationContextBuilder};
 use nabu_core::registry::health::{
-    HealthStatus, LifecycleStageInfo, ServiceEntry, ServiceHealth,
+    HealthStatus, LifecycleStageInfo, ServiceHealth,
 };
 use nabu_core::registry::lifecycle::{LifecycleStage};
 use nabu_core::storage::StorageManager;
@@ -38,7 +38,7 @@ use tempfile::tempdir;
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/// Builds an `ApplicationContext` with all six lifecycle-managed services
+/// Builds an `ApplicationContext` with all lifecycle-managed services
 /// registered. The caller can then call `initialize()`, `start()`, and
 /// `shutdown()` on the context to drive lifecycle transitions and verify
 /// that `health_check()` accurately reflects each stage.
@@ -181,7 +181,7 @@ async fn health_check_returns_valid_report() {
     assert_eq!(health.lifecycle_stage, LifecycleStageInfo::Created);
     assert!(!health.services.is_empty());
 
-    // Verify all six lifecycle-managed services are reported
+    // Verify all lifecycle-managed services are reported
     let service_names: Vec<&str> = health.services.iter().map(|s| s.name.as_str()).collect();
     assert!(service_names.contains(&"capture_engine"));
     assert!(service_names.contains(&"worker_pool"));
@@ -189,6 +189,7 @@ async fn health_check_returns_valid_report() {
     assert!(service_names.contains(&"storage_manager"));
     assert!(service_names.contains(&"vault_graph"));
     assert!(service_names.contains(&"indexer"));
+    assert!(service_names.contains(&"plugin_manager"));
 
     // Verify capability count is present (built-in capabilities registered)
     assert!(health.capability_count > 0);
@@ -480,4 +481,95 @@ async fn health_check_service_entries_have_valid_data() {
         assert!(entry.healthy, "service '{}' should be healthy when running", entry.name);
         assert_eq!(entry.stage, LifecycleStageInfo::Running);
     }
+}
+
+// ---------------------------------------------------------------------------
+// 11. Serialization forward-compatibility
+// ---------------------------------------------------------------------------
+
+#[tokio::test(flavor = "multi_thread")]
+async fn service_health_deserializes_with_missing_future_fields() {
+    // Simulate a future version of the health schema that adds new fields.
+    // All fields use #[serde(default)], so old clients should still parse
+    // a JSON blob that contains unknown fields.
+    let json_with_future = r#"{
+        "overall_status": "healthy",
+        "lifecycle_stage": "running",
+        "initialized": true,
+        "running": true,
+        "startup_success": true,
+        "registered_services": 7,
+        "service_names": ["capture_engine", "worker_pool", "pipeline_executor", "storage_manager", "vault_graph", "plugin_manager", "event_bus"],
+        "services": [
+            {"name": "capture_engine", "stage": "running", "healthy": true},
+            {"name": "plugin_manager", "stage": "running", "healthy": true}
+        ],
+        "running_service_count": 7,
+        "stopped_service_count": 0,
+        "failed_service_count": 0,
+        "capability_count": 12,
+        "error": null,
+        "uptime_seconds": 3600,
+        "version": "0.10.0",
+        "memory_usage_mb": 128
+    }"#;
+
+    let health: ServiceHealth = serde_json::from_str(json_with_future).unwrap();
+    assert_eq!(health.overall_status, HealthStatus::Healthy);
+    assert_eq!(health.lifecycle_stage, LifecycleStageInfo::Running);
+    assert!(health.initialized);
+    assert!(health.running);
+    assert_eq!(health.registered_services, 7);
+    assert_eq!(health.running_service_count, 7);
+    assert_eq!(health.stopped_service_count, 0);
+    assert_eq!(health.failed_service_count, 0);
+    assert_eq!(health.capability_count, 12);
+    assert!(health.error.is_none());
+    assert_eq!(health.services.len(), 2);
+    assert_eq!(health.services[0].name, "capture_engine");
+    assert_eq!(health.services[1].name, "plugin_manager");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn service_health_deserializes_minimal_json() {
+    // An empty JSON object should deserialize to the Default ServiceHealth
+    // because all fields use #[serde(default)].
+    let json = r#"{}"#;
+    let health: ServiceHealth = serde_json::from_str(json).unwrap();
+    assert_eq!(health.overall_status, HealthStatus::default());
+    assert_eq!(health.lifecycle_stage, LifecycleStageInfo::default());
+    assert!(!health.initialized);
+    assert!(!health.running);
+    assert_eq!(health.registered_services, 0);
+    assert!(health.services.is_empty());
+    assert_eq!(health.running_service_count, 0);
+    assert_eq!(health.stopped_service_count, 0);
+    assert_eq!(health.failed_service_count, 0);
+    assert_eq!(health.capability_count, 0);
+    assert!(health.error.is_none());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn service_health_error_field_round_trips() {
+    let health = ServiceHealth {
+        overall_status: HealthStatus::Unhealthy,
+        lifecycle_stage: LifecycleStageInfo::Created,
+        initialized: false,
+        running: false,
+        startup_success: false,
+        registered_services: 0,
+        service_names: vec!["event_bus".to_string()],
+        services: vec![],
+        running_service_count: 0,
+        stopped_service_count: 0,
+        failed_service_count: 1,
+        capability_count: 0,
+        error: Some("Failed to initialize StorageManager: disk full".to_string()),
+    };
+
+    let json = serde_json::to_string(&health).unwrap();
+    let deserialized: ServiceHealth = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.error, health.error);
+    assert_eq!(deserialized.overall_status, HealthStatus::Unhealthy);
+    assert_eq!(deserialized.failed_service_count, 1);
 }

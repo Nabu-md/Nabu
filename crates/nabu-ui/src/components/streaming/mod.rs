@@ -260,6 +260,7 @@ fn process_streaming_event(
                     map.remove(stream_id);
                     tracing::debug!(stream_id = %stream_id, "stream session cleaned up and removed");
                 }
+                _ => {}
             }
             Some(())
         }
@@ -284,6 +285,7 @@ fn process_streaming_event(
                     }
                     s.last_event = Some(timestamp);
                     tracing::debug!(stream_id = %e.stream_id, "stream started");
+                    Some(())
                 }
 
                 // A token was received — append to the accumulated content.
@@ -370,6 +372,7 @@ fn process_streaming_event(
                     }
                     Some(())
                 }
+                _ => None,
             }
         }
 

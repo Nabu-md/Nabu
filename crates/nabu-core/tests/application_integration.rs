@@ -380,11 +380,12 @@ fn application_context_plugin_manager_has_nabu_version() {
 #[test]
 fn context_lifecycle_service_keys_empty_by_default() {
     let app = Application::builder().build();
-    // event_bus and performance_monitor are registered via register_lifecycle
-    // in the builder, so they should appear in the lifecycle service list.
+    // No services registered via register_lifecycle in the default builder.
+    // event_bus and performance_monitor use plain register() since they
+    // don't implement Lifecycle.
     let keys = app.context().lifecycle_service_keys();
-    assert!(keys.contains(&"event_bus".to_string()) == false); // event_bus uses register, not register_lifecycle
-    assert!(keys.contains(&"performance_monitor".to_string()));
+    assert!(keys.is_empty());
+    assert_eq!(app.context().lifecycle_service_count(), 0);
 }
 
 #[test]
@@ -417,7 +418,7 @@ fn context_shutdown_calls_lifecycle_services() {
     app.context()
         .register_lifecycle("tracking_svc", svc.clone());
 
-    assert_eq!(app.context().lifecycle_service_count(), 2); // perf_monitor + tracking_svc
+    assert_eq!(app.context().lifecycle_service_count(), 1);
 
     assert!(app.shutdown().is_ok());
     assert!(app.is_shutdown());

@@ -475,7 +475,8 @@ impl ApplicationContext {
     /// - `conversation_store` (ConversationStore)
     /// - `vault_graph` (VaultGraph, behind RwLock)
     /// - `indexer` (Indexer, behind Mutex)
-    /// - `plugin_manager` (PluginManager, behind RwLock)
+    /// - `plugin_manager` (PluginManager, behind RwLock — owned directly
+    ///   by the context, transitions through its own `LifecycleManager`)
     ///
     /// Services without lifecycle management (e.g. `event_bus`, `pipeline`,
     /// `performance_monitor`, `diagnostic_platform`) are included in

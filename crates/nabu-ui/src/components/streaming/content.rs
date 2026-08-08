@@ -5,11 +5,9 @@
 //! This is the primary UI surface for streaming — it can be embedded in any
 //! view (chat area, inline note generation, etc.).
 
-use std::collections::HashMap;
-
 use dioxus::prelude::*;
 
-use super::{StreamId, StreamLifeCycle, StreamSession, StreamingContext, use_streaming};
+use super::{StreamLifeCycle, StreamSession, StreamingContext, use_streaming};
 
 /// Renders active streaming sessions as live chat-style message bubbles.
 ///
@@ -24,8 +22,20 @@ pub fn StreamingContent(
 ) -> Element {
     let ctx = use_streaming();
     let sessions = ctx.sessions.clone();
-
     let extra = class.unwrap_or_default();
+
+    // Collect sessions, sort (active first, most recent first), and render.
+    // We sort into a Vec here (outside rsx!) to avoid re-sorting on every
+    // render key comparison.
+    let sorted: Vec<StreamSession> = {
+        let mut list: Vec<_> = sessions.read().values().cloned().collect();
+        list.sort_by_key(|s| {
+            let terminal = s.state.is_terminal() as u8;
+            let seq = s.token_count;
+            (terminal, std::cmp::Reverse(seq))
+        });
+        list
+    };
 
     rsx! {
         div {
@@ -33,26 +43,14 @@ pub fn StreamingContent(
             role: "region",
             "aria-label": "Streaming responses",
         }
-        {render_sessions(sessions.read().clone())}
+        if sorted.is_empty() {
+            div { class: "streaming-empty text-xs text-gray-500", "No active streams" }
+        } else {
+            for session in &sorted {
+                StreamMessage { session: session.clone() }
+            }
+        }
     }
-}
-
-/// Collects active sessions, sorts them (most recent first, active first),
-/// and renders each as a message bubble.
-fn render_sessions(sessions: HashMap<StreamId, StreamSession>) -> Vec<Element> {
-    let mut list: Vec<_> = sessions.into_values().collect();
-    // Active (non-terminal) sessions first, then terminal — most recent first.
-    list.sort_by_key(|s| {
-        let terminal = s.state.is_terminal() as u8;
-        let seq = s.token_count;
-        (terminal, std::cmp::Reverse(seq))
-    });
-
-    list.into_iter()
-        .map(|session| rsx! {
-            StreamMessage { session: session }
-        })
-        .collect()
 }
 
 /// A single streaming session rendered as a chat-style message bubble.
