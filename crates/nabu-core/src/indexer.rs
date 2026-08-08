@@ -2,6 +2,7 @@ use crate::event_bus::kinds::INDEX_UPDATED;
 use crate::event_bus::{EventBus, IndexOperation, IndexUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
@@ -360,6 +361,25 @@ impl Lifecycle for Indexer {
 
     fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
         Indexer::shutdown(self)
+    }
+}
+
+impl MetricsAggregator for Indexer {
+    fn metrics(&self) -> ServiceMetrics {
+        let token_count = self.token_count() as i64;
+
+        ServiceMetrics {
+            service: "indexer".to_string(),
+            timers: Vec::new(),
+            counters: vec![CounterMetric {
+                key: "indexer.documents_indexed".to_string(),
+                value: token_count as u64,
+            }],
+            gauges: vec![GaugeMetric {
+                key: "indexer.token_count".to_string(),
+                value: token_count,
+            }],
+        }
     }
 }
 

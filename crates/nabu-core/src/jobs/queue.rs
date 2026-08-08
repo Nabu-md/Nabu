@@ -6,6 +6,7 @@ use crate::jobs::priority::PriorityItem;
 use crate::jobs::retry::RetryPolicy;
 use crate::jobs::scheduler::{ScheduleSpec, Scheduler};
 use crate::jobs::worker_channel::{QueueHandle, WorkerChannel};
+use crate::registry::metrics::{CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics};
 use chrono::Utc;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -436,6 +437,55 @@ impl Queue for DurableJobQueue {
         self.store.store(&job)?;
 
         Ok(())
+    }
+}
+
+impl MetricsAggregator for DurableJobQueue {
+    fn metrics(&self) -> ServiceMetrics {
+        let total = self.count().unwrap_or(0) as i64;
+        let queued = self
+            .count_by_status(JobStatus::Queued)
+            .unwrap_or(0) as i64;
+        let running = self
+            .count_by_status(JobStatus::Running)
+            .unwrap_or(0) as i64;
+        let completed = self
+            .count_by_status(JobStatus::Completed)
+            .unwrap_or(0) as i64;
+        let failed = self
+            .count_by_status(JobStatus::Failed)
+            .unwrap_or(0) as i64;
+
+        ServiceMetrics {
+            service: "job_queue".to_string(),
+            timers: Vec::new(),
+            counters: vec![
+                CounterMetric {
+                    key: "job_queue.total".to_string(),
+                    value: total as u64,
+                },
+                CounterMetric {
+                    key: "job_queue.queued".to_string(),
+                    value: queued as u64,
+                },
+                CounterMetric {
+                    key: "job_queue.running".to_string(),
+                    value: running as u64,
+                },
+                CounterMetric {
+                    key: "job_queue.completed".to_string(),
+                    value: completed as u64,
+                },
+                CounterMetric {
+                    key: "job_queue.failed".to_string(),
+                    value: failed as u64,
+                },
+            ],
+            gauges: vec![GaugeMetric {
+                key: "job_queue.size".to_string(),
+                value: total,
+            }],
+        }
     }
 }
 

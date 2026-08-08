@@ -135,8 +135,10 @@ pub fn reload_metrics(mut ctx: MetricsContext) {
             }
         }
         loading.set(false);
-        let count = refresh.read();
-        refresh.set(*count + 1);
+        let current = refresh.read();
+        let next = *current + 1;
+        drop(current);
+        refresh.set(next);
     });
 }
 

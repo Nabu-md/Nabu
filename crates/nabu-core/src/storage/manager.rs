@@ -2,6 +2,7 @@ use crate::event_bus::kinds::ITEM_STORED;
 use crate::event_bus::{EventBus, ItemStoredEvent, PipelineEvent};
 use crate::models::{CustomPropertyValue, KnowledgeObject, ObjectContent, ObjectMetadata, ObjectType, ProcessingState};
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -616,6 +617,25 @@ impl Lifecycle for StorageManager {
 
     fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
         StorageManager::shutdown(self)
+    }
+}
+
+impl MetricsAggregator for StorageManager {
+    fn metrics(&self) -> ServiceMetrics {
+        let obj_count = self.count() as i64;
+
+        ServiceMetrics {
+            service: "storage_manager".to_string(),
+            timers: Vec::new(),
+            counters: vec![CounterMetric {
+                key: "storage.objects_stored".to_string(),
+                value: obj_count as u64,
+            }],
+            gauges: vec![GaugeMetric {
+                key: "storage.objects_cached".to_string(),
+                value: obj_count,
+            }],
+        }
     }
 }
 

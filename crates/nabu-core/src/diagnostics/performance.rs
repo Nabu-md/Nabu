@@ -42,6 +42,9 @@
 use crate::diagnostics::metrics::{
     Counter, Gauge, PerformanceSnapshot, Timer, TimerStats,
 };
+use crate::registry::metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics, TimerMetric,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
@@ -580,6 +583,57 @@ impl PerformanceMonitor {
         };
 
         PerformanceSnapshot {
+            timers,
+            counters,
+            gauges,
+        }
+    }
+}
+
+impl MetricsAggregator for PerformanceMonitor {
+    fn metrics(&self) -> ServiceMetrics {
+        let snapshot = self.snapshot();
+
+        let timers = snapshot
+            .timers
+            .into_iter()
+            .map(|t| {
+                let stats = t.stats;
+                TimerMetric {
+                    key: t.key,
+                    count: stats.count,
+                    window_count: stats.window_count,
+                    min_ms: stats.min_ms,
+                    max_ms: stats.max_ms,
+                    avg_ms: stats.avg_ms,
+                    p50_ms: stats.p50_ms,
+                    p90_ms: stats.p90_ms,
+                    p99_ms: stats.p99_ms,
+                    sum_ms: stats.sum_ms,
+                }
+            })
+            .collect();
+
+        let counters = snapshot
+            .counters
+            .into_iter()
+            .map(|c| CounterMetric {
+                key: c.key,
+                value: c.value,
+            })
+            .collect();
+
+        let gauges = snapshot
+            .gauges
+            .into_iter()
+            .map(|g| GaugeMetric {
+                key: g.key,
+                value: g.value,
+            })
+            .collect();
+
+        ServiceMetrics {
+            service: "performance_monitor".to_string(),
             timers,
             counters,
             gauges,

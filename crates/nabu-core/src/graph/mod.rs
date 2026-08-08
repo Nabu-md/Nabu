@@ -27,6 +27,7 @@ use crate::event_bus::kinds::GRAPH_UPDATED;
 use crate::event_bus::{EventBus, GraphOperation, GraphUpdatedEvent, PipelineEvent};
 use crate::models::KnowledgeObject;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::RwLock;
@@ -651,6 +652,42 @@ impl Lifecycle for VaultGraph {
 
     fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
         VaultGraph::shutdown(self)
+    }
+}
+
+impl MetricsAggregator for VaultGraph {
+    fn metrics(&self) -> ServiceMetrics {
+        let node_count = self.node_count() as i64;
+        let edge_count = self.edge_count() as i64;
+
+        ServiceMetrics {
+            service: "vault_graph".to_string(),
+            timers: Vec::new(),
+            counters: vec![
+                CounterMetric {
+                    key: "graph.nodes_added".to_string(),
+                    value: node_count as u64,
+                },
+                CounterMetric {
+                    key: "graph.edges_added".to_string(),
+                    value: edge_count as u64,
+                },
+            ],
+            gauges: vec![
+                GaugeMetric {
+                    key: "graph.node_count".to_string(),
+                    value: node_count,
+                },
+                GaugeMetric {
+                    key: "graph.edge_count".to_string(),
+                    value: edge_count,
+                },
+                GaugeMetric {
+                    key: "graph.generation".to_string(),
+                    value: self.generation() as i64,
+                },
+            ],
+        }
     }
 }
 

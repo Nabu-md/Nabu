@@ -52,6 +52,9 @@ use uuid::Uuid;
 
 use crate::event_bus::{EventBus, PipelineEvent};
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics,
+};
 
 use super::config::ProcessConfig;
 use super::errors::ProcessResult;
@@ -782,6 +785,49 @@ impl std::fmt::Debug for ProcessSupervisor {
             .field("lifecycle_stage", &self.lifecycle.stage())
             .field("shutdown_flag", &self.ctx.is_shutting_down())
             .finish()
+    }
+}
+
+impl MetricsAggregator for ProcessSupervisor {
+    fn metrics(&self) -> ServiceMetrics {
+        let summary = self.summary();
+
+        ServiceMetrics {
+            service: "process_supervisor".to_string(),
+            timers: Vec::new(),
+            counters: vec![
+                CounterMetric {
+                    key: "supervisor.total_processes".to_string(),
+                    value: summary.total_processes as u64,
+                },
+                CounterMetric {
+                    key: "supervisor.running_processes".to_string(),
+                    value: summary.running_processes as u64,
+                },
+                CounterMetric {
+                    key: "supervisor.terminal_processes".to_string(),
+                    value: summary.terminal_processes as u64,
+                },
+            ],
+            gauges: vec![
+                GaugeMetric {
+                    key: "supervisor.total_processes".to_string(),
+                    value: summary.total_processes as i64,
+                },
+                GaugeMetric {
+                    key: "supervisor.running_processes".to_string(),
+                    value: summary.running_processes as i64,
+                },
+                GaugeMetric {
+                    key: "supervisor.terminal_processes".to_string(),
+                    value: summary.terminal_processes as i64,
+                },
+                GaugeMetric {
+                    key: "supervisor.is_shutting_down".to_string(),
+                    value: if summary.is_shutdown { 1 } else { 0 },
+                },
+            ],
+        }
     }
 }
 

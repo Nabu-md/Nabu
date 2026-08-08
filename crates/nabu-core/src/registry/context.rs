@@ -55,9 +55,7 @@ use crate::plugin::Version;
 
 use crate::registry::health::{HealthStatus, ServiceEntry, ServiceHealth};
 use crate::registry::lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
-use crate::registry::metrics::{
-    CounterMetric, GaugeMetric, MetricsAggregator, RuntimeMetrics, ServiceMetrics, TimerMetric,
-};
+use crate::registry::metrics::{MetricsAggregator, RuntimeMetrics, ServiceMetrics};
 use crate::registry::ServiceRegistry;
 
 use crate::diagnostics::PerformanceMonitor;
@@ -680,29 +678,25 @@ impl ApplicationContext {
     /// [`PerformanceMonitor`], returning a unified [`RuntimeMetrics`] snapshot.
     ///
     /// This is the canonical metrics API for the Capability Platform. It
-    /// aggregates metrics in two passes:
+    /// discovers every service registered as a [`MetricsAggregator`] in the
+    /// [`ServiceRegistry`] and queries each one for a metric snapshot.
     ///
-    /// 1. **PerformanceMonitor** — if registered, its `snapshot()` is decomposed
-    ///   into timers, counters, and gauges and placed in the top-level vectors.
-    ///
-    /// 2. **Registered services** — every service that implements
-    ///   [`MetricsAggregator`] is queried via `metrics()`. Each service's
-    ///   snapshot is placed both in the service's own [`ServiceMetrics`] entry
-    ///   (under `services`) and merged into the top-level vectors.
+    /// The [`PerformanceMonitor`] is also registered as a [`MetricsAggregator`]
+    /// so it is discovered through the same mechanism — its internal timers,
+    /// counters, and gauges are included in the response.
     ///
     /// # Thread Safety
     ///
-    /// The registry read lock is released immediately after collecting service
-    /// keys. Each service is then queried independently — a lock failure or
-    /// panic in one service does not affect others. All lock operations use
-    /// graceful error handling (no panics propagate).
+    /// The registry read lock is released immediately after collecting the
+    /// list of aggregators. Each aggregator is then queried independently —
+    /// a lock failure or panic in one aggregator does not affect others.
+    /// All lock operations use graceful error handling (no panics propagate).
     ///
     /// # Graceful Degradation
     ///
-    /// Unavailable or partially-initialized services are skipped with a
-    /// recorded error message rather than causing the entire collection to
-    /// fail. The returned `RuntimeMetrics` always includes whatever metrics
-    /// could be collected.
+    /// Services that are unavailable or partially-initialized may return
+    /// empty metric vectors rather than failing. The returned `RuntimeMetrics`
+    /// always includes whatever metrics could be collected.
     ///
     /// [`PerformanceMonitor`]: crate::diagnostics::PerformanceMonitor
     pub fn metrics(&self) -> RuntimeMetrics {
@@ -710,55 +704,18 @@ impl ApplicationContext {
 
         let mut result = RuntimeMetrics::new();
 
-        // ── 1. Collect from PerformanceMonitor if registered ─
-        if let Some(monitor) = self.resolve::<crate::diagnostics::PerformanceMonitor>(
-            "performance_monitor",
-        ) {
-            let snapshot = monitor.snapshot();
-            result.service_count += 1;
-            for t in snapshot.timers {
-                let stats = t.stats;
-                result.timers.push(TimerMetric {
-                    key: t.key,
-                    count: stats.count,
-                    window_count: stats.window_count,
-                    min_ms: stats.min_ms,
-                    max_ms: stats.max_ms,
-                    avg_ms: stats.avg_ms,
-                    p50_ms: stats.p50_ms,
-                    p90_ms: stats.p90_ms,
-                    p99_ms: stats.p99_ms,
-                    sum_ms: stats.sum_ms,
-                });
-            }
-            for c in snapshot.counters {
-                result.counters.push(CounterMetric {
-                    key: c.key,
-                    value: c.value,
-                });
-            }
-            for g in snapshot.gauges {
-                result.gauges.push(GaugeMetric {
-                    key: g.key,
-                    value: g.value,
-                });
-            }
-        }
-
-        // ── 2. Collect from registered services implementing MetricsAggregator ─
-        //
-        // We iterate over all services registered as MetricsAggregator trait
-        // objects. Services that don't implement the trait are silently skipped.
-        // The lock is acquired once to get the list, then released before
-        // querying each aggregator to avoid holding the registry lock during
-        // potentially slow metric collection.
+        // Collect the list of metrics aggregators (releasing the registry lock
+        // before querying each one so a slow aggregator cannot block
+        // other registry readers).
         let aggregators = {
             let registry = match self.registry.read() {
                 Ok(guard) => guard,
                 Err(_) => {
                     tracing::error!("Registry lock poisoned during metrics collection");
                     result.error_count += 1;
-                    result.errors.push("registry: lock poisoned".to_string());
+                    result
+                        .errors
+                        .push("registry: lock poisoned".to_string());
                     return result;
                 }
             };
@@ -767,10 +724,7 @@ impl ApplicationContext {
 
         for (key, agg) in &aggregators {
             result.service_count += 1;
-            // The metrics() method on each aggregator is expected to be
-            // inexpensive and thread-safe (using atomics or RwLock internally).
-            // We call it outside the registry lock so a slow aggregator
-            // cannot block other registry readers.
+
             let svc_entry = agg.metrics();
             let mut entry = svc_entry;
 

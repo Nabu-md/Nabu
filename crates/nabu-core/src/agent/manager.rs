@@ -62,6 +62,9 @@ use crate::process_supervisor::{ProcessConfig, ProcessId, ProcessState, ProcessS
 use crate::registry::lifecycle::{
     Lifecycle, LifecycleManager, LifecycleStage,
 };
+use crate::registry::metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics,
+};
 
 use super::config::AgentConfig;
 use super::errors::{AgentManagerError, AgentResult};
@@ -1002,8 +1005,46 @@ impl std::fmt::Debug for AgentManager {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
+impl MetricsAggregator for AgentManager {
+    fn metrics(&self) -> ServiceMetrics {
+        let summary = self.summary();
+
+        ServiceMetrics {
+            service: "agent_manager".to_string(),
+            timers: Vec::new(),
+            counters: vec![
+                CounterMetric {
+                    key: "agent_manager.total_agents".to_string(),
+                    value: summary.total_agents as u64,
+                },
+                CounterMetric {
+                    key: "agent_manager.running_agents".to_string(),
+                    value: summary.running_agents as u64,
+                },
+                CounterMetric {
+                    key: "agent_manager.stopped_agents".to_string(),
+                    value: summary.stopped_agents as u64,
+                },
+            ],
+            gauges: vec![
+                GaugeMetric {
+                    key: "agent_manager.total_agents".to_string(),
+                    value: summary.total_agents as i64,
+                },
+                GaugeMetric {
+                    key: "agent_manager.running_agents".to_string(),
+                    value: summary.running_agents as i64,
+                },
+                GaugeMetric {
+                    key: "agent_manager.stopped_agents".to_string(),
+                    value: summary.stopped_agents as i64,
+                },
+            ],
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------// Tests
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
