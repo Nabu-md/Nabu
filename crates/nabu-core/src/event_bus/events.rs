@@ -74,6 +74,21 @@ pub enum PipelineEvent {
     /// when a thread is saved, updated, or deleted. The event bridge forwards these
     /// to the frontend so UI components can react to conversation changes.
     Conversation(ConversationEvent),
+    /// A streaming event flowing through the EventBus.
+    ///
+    /// Published by the [`StreamingPipeline`](crate::streaming::StreamingPipeline)
+    /// when tokens are produced, a stream starts, completes, is cancelled, or fails.
+    /// Every streamed token passes through the EventBus as the single transport,
+    /// enabling frontend subscribers to reconstruct responses incrementally.
+    Stream(StreamEvent),
+    /// A streaming session lifecycle event flowing through the EventBus.
+    ///
+    /// Published by the [`StreamingSession`](crate::streaming::StreamingSession)
+    /// and [`StreamingPipeline`](crate::streaming::StreamingPipeline) to signal
+    /// session-level state transitions (created, started, cancelled, cleaned up).
+    /// These events are distinct from per-token [`StreamEvent`] variants and
+    /// allow subscribers to track session lifecycle independently.
+    Session(StreamSessionEvent),
 }
 
 /// Event kind string constants for EventBus subscriptions
@@ -185,6 +200,35 @@ pub mod kinds {
     pub const THREAD_UPDATED: &str = "thread.updated";
     /// A thread was deleted from persistent storage.
     pub const THREAD_DELETED: &str = "thread.deleted";
+
+    // --- Streaming event kinds ---
+    // Published by the streaming pipeline and session manager through the
+    // EventBus. These events carry incremental token output from agent
+    // processes to frontend subscribers.
+
+    /// A stream was started (session created and publishing beginning).
+    pub const STREAM_STARTED: &str = "stream.started";
+    /// A token was received and published to the stream.
+    pub const STREAM_TOKEN: &str = "stream.token";
+    /// A partial content update was published (aggregated tokens so far).
+    pub const STREAM_PARTIAL_UPDATE: &str = "stream.partial_update";
+    /// A stream was completed normally (all tokens delivered).
+    pub const STREAM_COMPLETED: &str = "stream.completed";
+    /// A stream was cancelled before completion.
+    pub const STREAM_CANCELLED: &str = "stream.cancelled";
+    /// A stream failed due to an error.
+    pub const STREAM_FAILED: &str = "stream.failed";
+
+    // --- Streaming session lifecycle event kinds ---
+
+    /// A streaming session was created.
+    pub const SESSION_CREATED: &str = "session.created";
+    /// A streaming session was started.
+    pub const SESSION_STARTED: &str = "session.started";
+    /// A streaming session was cancelled.
+    pub const SESSION_CANCELLED: &str = "session.cancelled";
+    /// A streaming session was cleaned up and removed.
+    pub const SESSION_CLEANED_UP: &str = "session.cleaned_up";
 }
 
 impl PipelineEvent {
@@ -207,6 +251,8 @@ impl PipelineEvent {
             PipelineEvent::Diagnostic(e) => e.kind(),
             PipelineEvent::Sync(e) => e.kind(),
             PipelineEvent::Conversation(e) => e.kind(),
+            PipelineEvent::Stream(e) => e.kind(),
+            PipelineEvent::Session(e) => e.kind(),
         }
     }
 
@@ -235,6 +281,8 @@ impl PipelineEvent {
             PipelineEvent::Diagnostic(e) => Some(e.timestamp()),
             PipelineEvent::Sync(e) => Some(e.timestamp()),
             PipelineEvent::Conversation(e) => Some(e.timestamp()),
+            PipelineEvent::Stream(e) => Some(e.timestamp()),
+            PipelineEvent::Session(e) => Some(e.timestamp()),
         }
     }
 }
@@ -988,6 +1036,439 @@ impl AgentCrashedEvent {
             pid,
             restart_count,
             timestamp: Utc::now(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Streaming events
+// ---------------------------------------------------------------------------
+
+/// A unique identifier for a streaming session.
+///
+/// This is a `Uuid` allocated when a streaming session is created. It is
+/// stable for the lifetime of the stream and used to correlate all streaming
+/// events for a particular response.
+pub type StreamId = Uuid;
+
+/// The lifecycle state of a streaming session.
+///
+/// This mirrors the stream lifecycle documented in the streaming module:
+/// `Active` → `Streaming` → `Completed` / `Cancelled` / `Failed`.
+/// It is duplicated here to avoid circular dependencies between the `event_bus`
+/// and `streaming` modules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamState {
+    /// The session has been created but not yet published any tokens.
+    Active,
+    /// Tokens are being published to the stream.
+    Streaming,
+    /// The stream completed normally (all tokens delivered).
+    Completed,
+    /// The stream was cancelled before completion.
+    Cancelled,
+    /// The stream failed due to an error.
+    Failed,
+}
+
+impl Default for StreamState {
+    fn default() -> Self {
+        Self::Active
+    }
+}
+
+impl StreamState {
+    /// Returns `true` if the stream is in an active (non-terminal) state.
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::Active | Self::Streaming)
+    }
+
+    /// Returns `true` if the stream is in a terminal state.
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, Self::Completed | Self::Cancelled | Self::Failed)
+    }
+}
+
+/// All streaming events published through the EventBus.
+///
+/// Published by the [`StreamingPipeline`](crate::streaming::StreamingPipeline)
+/// when tokens are produced, a stream starts, completes, is cancelled, or fails.
+/// The `PipelineEvent::Stream` variant wraps a `StreamEvent` for EventBus
+/// transport.
+///
+/// Each variant carries the [`StreamId`] identifying the stream, the
+/// [`ProcessId`] of the originating agent (when applicable), and a timestamp.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum StreamEvent {
+    /// A stream was started — the first event in any streaming session.
+    ///
+    /// Carries the stream ID, conversation/thread ID (when applicable), the
+    /// originating agent's process ID, and optional metadata.
+    Started(StreamStartedEvent),
+    /// A token was received from the agent process.
+    ///
+    /// Each token is published individually as it arrives, preserving
+    /// ordering and enabling sub-10ms latency from agent process to
+    /// frontend subscriber.
+    Token(StreamTokenEvent),
+    /// A partial content update — the accumulated content so far.
+    ///
+    /// This is a convenience event for subscribers that want to rebuild
+    /// the full partial message without manually concatenating tokens.
+    PartialUpdate(StreamPartialUpdateEvent),
+    /// A stream was completed normally (all tokens delivered).
+    ///
+    /// This is the terminal event for a successfully completed stream.
+    Completed(StreamCompletedEvent),
+    /// A stream was cancelled before completion.
+    ///
+    /// Published when cancellation is requested via
+    /// [`StreamSessionHandle::cancel`](crate::streaming::StreamSessionHandle).
+    Cancelled(StreamCancelledEvent),
+    /// A stream failed due to an error.
+    ///
+    /// Carries an error message describing the failure. This is the terminal
+    /// event for a failed stream.
+    Failed(StreamFailedEvent),
+}
+
+impl StreamEvent {
+    /// Returns the event kind string used for EventBus subscription.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Started(_) => kinds::STREAM_STARTED,
+            Self::Token(_) => kinds::STREAM_TOKEN,
+            Self::PartialUpdate(_) => kinds::STREAM_PARTIAL_UPDATE,
+            Self::Completed(_) => kinds::STREAM_COMPLETED,
+            Self::Cancelled(_) => kinds::STREAM_CANCELLED,
+            Self::Failed(_) => kinds::STREAM_FAILED,
+        }
+    }
+
+    /// Returns the timestamp when this event was produced.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        match self {
+            Self::Started(e) => e.timestamp,
+            Self::Token(e) => e.timestamp,
+            Self::PartialUpdate(e) => e.timestamp,
+            Self::Completed(e) => e.timestamp,
+            Self::Cancelled(e) => e.timestamp,
+            Self::Failed(e) => e.timestamp,
+        }
+    }
+
+    /// Returns the stream ID for this event.
+    pub fn stream_id(&self) -> StreamId {
+        match self {
+            Self::Started(e) => e.stream_id,
+            Self::Token(e) => e.stream_id,
+            Self::PartialUpdate(e) => e.stream_id,
+            Self::Completed(e) => e.stream_id,
+            Self::Cancelled(e) => e.stream_id,
+            Self::Failed(e) => e.stream_id,
+        }
+    }
+}
+
+/// Published when a stream was started.
+///
+/// This is the first event in any streaming session, establishing the
+/// stream identity and context before any tokens are delivered.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamStartedEvent {
+    /// The unique identifier for this streaming session.
+    pub stream_id: StreamId,
+    /// The conversation/thread ID this stream is associated with, if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<Uuid>,
+    /// The agent process that originated this stream, if applicable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_id: Option<crate::event_bus::ProcessId>,
+    /// The agent name, if the stream is associated with a named agent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_name: Option<String>,
+    /// Open-ended metadata for future extension (model name, endpoint, etc.).
+    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    pub metadata: std::collections::HashMap<String, serde_json::Value>,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamStartedEvent {
+    /// Create a new `StreamStartedEvent` with the current timestamp.
+    pub fn new(
+        stream_id: StreamId,
+        thread_id: Option<Uuid>,
+        agent_id: Option<crate::event_bus::ProcessId>,
+        agent_name: Option<String>,
+    ) -> Self {
+        Self {
+            stream_id,
+            thread_id,
+            agent_id,
+            agent_name,
+            metadata: std::collections::HashMap::new(),
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Builder: add a metadata key-value pair.
+    pub fn with_metadata(mut self, key: impl Into<String>, value: serde_json::Value) -> Self {
+        self.metadata.insert(key.into(), value);
+        self
+    }
+}
+
+/// Published when a single token is received from the agent process.
+///
+/// Each token is published individually as it arrives through the EventBus,
+/// preserving strict ordering and enabling sub-10ms latency from agent
+/// process to frontend subscriber.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamTokenEvent {
+    /// The streaming session this token belongs to.
+    pub stream_id: StreamId,
+    /// The incremental token text chunk.
+    pub token: String,
+    /// The cumulative text accumulated so far in this stream.
+    ///
+    /// Pre-computed at publication time so subscribers that want the full
+    /// partial content can read it directly without concatenating tokens.
+    pub partial_content: String,
+    /// The sequence number of this token within the stream (0-based).
+    ///
+    /// Enables subscribers to detect missing or duplicate tokens.
+    pub sequence: u64,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamTokenEvent {
+    /// Create a new `StreamTokenEvent` with the current timestamp.
+    pub fn new(
+        stream_id: StreamId,
+        token: impl Into<String>,
+        partial_content: impl Into<String>,
+        sequence: u64,
+    ) -> Self {
+        Self {
+            stream_id,
+            token: token.into(),
+            partial_content: partial_content.into(),
+            sequence,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a partial content update is available.
+///
+/// This event is published alongside tokens to provide subscribers with
+/// the full accumulated content at a given point in time. It is useful
+/// for subscribers that do not want to manually reconstruct the message
+/// from individual token events.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamPartialUpdateEvent {
+    /// The streaming session this update belongs to.
+    pub stream_id: StreamId,
+    /// The full accumulated text so far in this stream.
+    pub content: String,
+    /// The number of tokens published so far.
+    pub token_count: u64,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamPartialUpdateEvent {
+    /// Create a new `StreamPartialUpdateEvent` with the current timestamp.
+    pub fn new(stream_id: StreamId, content: impl Into<String>, token_count: u64) -> Self {
+        Self {
+            stream_id,
+            content: content.into(),
+            token_count,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a stream was completed normally.
+///
+/// This is the terminal event for a successfully completed stream — all
+/// tokens have been delivered and the stream is now in the `Completed` state.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamCompletedEvent {
+    /// The streaming session that completed.
+    pub stream_id: StreamId,
+    /// The complete accumulated content of the stream.
+    pub full_content: String,
+    /// The total number of tokens delivered in this stream.
+    pub total_tokens: u64,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamCompletedEvent {
+    /// Create a new `StreamCompletedEvent` with the current timestamp.
+    pub fn new(
+        stream_id: StreamId,
+        full_content: impl Into<String>,
+        total_tokens: u64,
+    ) -> Self {
+        Self {
+            stream_id,
+            full_content: full_content.into(),
+            total_tokens,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a stream was cancelled before completion.
+///
+/// Cancellation is triggered by calling
+/// [`StreamSessionHandle::cancel`](crate::streaming::StreamSessionHandle).
+/// After this event, no further token events will be published for the stream.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamCancelledEvent {
+    /// The streaming session that was cancelled.
+    pub stream_id: StreamId,
+    /// The number of tokens delivered before cancellation.
+    pub tokens_delivered: u64,
+    /// The partial content delivered before cancellation.
+    pub partial_content: String,
+    /// The reason for the cancellation (e.g. "user requested", "timeout").
+    pub reason: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamCancelledEvent {
+    /// Create a new `StreamCancelledEvent` with the current timestamp.
+    pub fn new(
+        stream_id: StreamId,
+        tokens_delivered: u64,
+        partial_content: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            stream_id,
+            tokens_delivered,
+            partial_content: partial_content.into(),
+            reason: reason.into(),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// Published when a stream failed due to an error.
+///
+/// This is the terminal event for a failed stream. After this event,
+/// no further token events will be published for the stream.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamFailedEvent {
+    /// The streaming session that failed.
+    pub stream_id: StreamId,
+    /// The number of tokens delivered before the failure.
+    pub tokens_delivered: u64,
+    /// The partial content delivered before the failure.
+    pub partial_content: String,
+    /// A human-readable error message describing the failure.
+    pub error: String,
+    /// When the event was produced.
+    pub timestamp: DateTime<Utc>,
+}
+
+impl StreamFailedEvent {
+    /// Create a new `StreamFailedEvent` with the current timestamp.
+    pub fn new(
+        stream_id: StreamId,
+        tokens_delivered: u64,
+        partial_content: impl Into<String>,
+        error: impl Into<String>,
+    ) -> Self {
+        Self {
+            stream_id,
+            tokens_delivered,
+            partial_content: partial_content.into(),
+            error: error.into(),
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/// All streaming session lifecycle events published through the EventBus.
+///
+/// These events track the lifecycle of a [`StreamingSession`](crate::streaming::StreamingSession)
+/// at the session level — distinct from the per-token [`StreamEvent`] variants.
+/// Subscribers can listen for session-level events to manage resource cleanup,
+/// UI state, and logging without parsing individual token events.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum StreamSessionEvent {
+    /// A streaming session was created (but not yet started).
+    SessionCreated {
+        /// The unique identifier for the streaming session.
+        stream_id: StreamId,
+        /// The conversation/thread ID this session is associated with, if any.
+        thread_id: Option<Uuid>,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+    /// A streaming session was started (tokens are being published).
+    SessionStarted {
+        /// The unique identifier for the streaming session.
+        stream_id: StreamId,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+    /// A streaming session was cancelled.
+    SessionCancelled {
+        /// The unique identifier for the streaming session.
+        stream_id: StreamId,
+        /// The reason for the cancellation.
+        reason: String,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+    /// A streaming session was cleaned up and removed from the manager.
+    SessionCleanedUp {
+        /// The unique identifier for the streaming session.
+        stream_id: StreamId,
+        /// When the event was produced.
+        timestamp: DateTime<Utc>,
+    },
+}
+
+impl StreamSessionEvent {
+    /// Returns the event kind string used for EventBus subscription.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::SessionCreated { .. } => kinds::SESSION_CREATED,
+            Self::SessionStarted { .. } => kinds::SESSION_STARTED,
+            Self::SessionCancelled { .. } => kinds::SESSION_CANCELLED,
+            Self::SessionCleanedUp { .. } => kinds::SESSION_CLEANED_UP,
+        }
+    }
+
+    /// Returns the timestamp when this event was produced.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        match self {
+            Self::SessionCreated { timestamp, .. }
+            | Self::SessionStarted { timestamp, .. }
+            | Self::SessionCancelled { timestamp, .. }
+            | Self::SessionCleanedUp { timestamp, .. } => *timestamp,
+        }
+    }
+
+    /// Returns the stream ID for this session event.
+    pub fn stream_id(&self) -> StreamId {
+        match self {
+            Self::SessionCreated { stream_id, .. }
+            | Self::SessionStarted { stream_id, .. }
+            | Self::SessionCancelled { stream_id, .. }
+            | Self::SessionCleanedUp { stream_id, .. } => *stream_id,
         }
     }
 }

@@ -44,12 +44,14 @@ pub mod pipeline_migration;
 pub mod agent;
 pub mod plugin;
 pub mod processing;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod process_supervisor;
-pub mod registry;
-pub mod rpc;
-pub mod storage;
-pub mod sync;
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod process_supervisor;
+    pub mod registry;
+    pub mod rpc;
+    pub mod storage;
+    pub mod streaming;
+    pub mod sync;
+    pub mod tool_calling;
 
 // Re-export key types for convenient access
 // Ambiguous glob re-exports are intentional — all public API types should
@@ -96,4 +98,8 @@ pub use rpc::*;
 #[allow(ambiguous_glob_reexports)]
 pub use storage::*;
 #[allow(ambiguous_glob_reexports)]
+pub use streaming::*;
+#[allow(ambiguous_glob_reexports)]
 pub use sync::*;
+    #[allow(ambiguous_glob_reexports)]
+    pub use tool_calling::*;
