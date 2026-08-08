@@ -3,6 +3,9 @@ use crate::jobs::workers::backpressure::BackpressureController;
 use crate::jobs::workers::executor::ExecutorRegistry;
 use crate::jobs::workers::shutdown::ShutdownCoordinator;
 use crate::jobs::workers::worker::Worker;
+use crate::registry::metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics, TimerMetric,
+};
 use crate::registry::lifecycle::{
     Lifecycle, LifecycleManager, LifecycleStage,
 };
@@ -377,6 +380,56 @@ impl Lifecycle for WorkerPool {
     /// Delegates to [`WorkerPool::shutdown`].
     fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
         WorkerPool::shutdown(self)
+    }
+}
+
+impl MetricsAggregator for WorkerPool {
+    fn metrics(&self) -> ServiceMetrics {
+        let health = self.health();
+        ServiceMetrics {
+            service: "worker_pool".to_string(),
+            timers: Vec::new(),
+            counters: vec![
+                CounterMetric {
+                    key: "worker_pool.jobs_completed".to_string(),
+                    value: 0,
+                },
+                CounterMetric {
+                    key: "worker_pool.jobs_failed".to_string(),
+                    value: 0,
+                },
+            ],
+            gauges: vec![
+                GaugeMetric {
+                    key: "worker_pool.worker_count".to_string(),
+                    value: health.worker_count as i64,
+                },
+                GaugeMetric {
+                    key: "worker_pool.active_workers".to_string(),
+                    value: health.active_workers as i64,
+                },
+                GaugeMetric {
+                    key: "worker_pool.pending_jobs".to_string(),
+                    value: health.pending_jobs as i64,
+                },
+                GaugeMetric {
+                    key: "worker_pool.running_jobs".to_string(),
+                    value: health.running_jobs as i64,
+                },
+                GaugeMetric {
+                    key: "worker_pool.is_throttled".to_string(),
+                    value: if health.is_throttled { 1 } else { 0 },
+                },
+                GaugeMetric {
+                    key: "worker_pool.is_full".to_string(),
+                    value: if health.is_full { 1 } else { 0 },
+                },
+                GaugeMetric {
+                    key: "worker_pool.is_shutting_down".to_string(),
+                    value: if health.shutting_down { 1 } else { 0 },
+                },
+            ],
+        }
     }
 }
 

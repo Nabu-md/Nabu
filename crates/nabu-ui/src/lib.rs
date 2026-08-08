@@ -12,6 +12,7 @@ pub mod components;
 pub mod events;
 pub mod history;
 pub mod ipc;
+pub mod metrics;
 pub mod models;
 
 /// Dioxus launch entry point — called by wasm-bindgen on WASM module init.

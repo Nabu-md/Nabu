@@ -30,18 +30,20 @@ use wasm_bindgen_futures::spawn_local;
 pub fn App() -> Element {
     rsx! {
         crate::events::EventServiceProvider {
-            ThemeProvider { initial_theme: "dark".to_string() }
-            ToastProvider {
-                TaskProvider {
-                    NotificationManager {}
-                    HistoryProvider {
-                        SaveStatusProvider {
-                            WorkspaceProvider {
-                                NavProvider {
-                                    CommandPalette {}
-                                    QuickSwitcher {}
-                                    ShortcutReference {}
-                                    crate::components::app::AppRouter {}
+            crate::metrics::MetricsProvider {
+                ThemeProvider { initial_theme: "dark".to_string() }
+                ToastProvider {
+                    TaskProvider {
+                        NotificationManager {}
+                        HistoryProvider {
+                            SaveStatusProvider {
+                                WorkspaceProvider {
+                                    NavProvider {
+                                        CommandPalette {}
+                                        QuickSwitcher {}
+                                        ShortcutReference {}
+                                        crate::components::app::AppRouter {}
+                                    }
                                 }
                             }
                         }

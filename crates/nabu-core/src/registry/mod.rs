@@ -26,10 +26,15 @@ pub mod application;
 pub mod context;
 pub mod health;
 pub mod lifecycle;
+pub mod metrics;
 
 pub use application::Application;
 pub use health::{HealthStatus, LifecycleStageInfo, ServiceEntry, ServiceHealth};
 pub use lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
+pub use metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, MetricsError, RuntimeMetrics,
+    ServiceMetrics, TimerMetric,
+};
 
 use std::any::Any;
 use std::collections::HashMap;
@@ -58,6 +63,11 @@ pub struct ServiceRegistry {
     lifecycle_services: Vec<String>,
     /// Back-reference to lifecycle services for calling trait methods.
     lifecycle_refs: HashMap<String, Arc<dyn Lifecycle + Send + Sync>>,
+    /// Metrics aggregators — services that implement [`MetricsAggregator`].
+    ///
+    /// Stored separately from singletons so they can be resolved as trait
+    /// objects without `downcast` (which requires `Any`, not a custom trait).
+    metrics_aggregators: HashMap<String, Arc<dyn MetricsAggregator>>,
 }
 
 impl ServiceRegistry {
@@ -69,6 +79,7 @@ impl ServiceRegistry {
             categories: HashMap::new(),
             lifecycle_services: Vec::new(),
             lifecycle_refs: HashMap::new(),
+            metrics_aggregators: HashMap::new(),
         }
     }
 
@@ -108,6 +119,46 @@ impl ServiceRegistry {
         }
         self.lifecycle_refs
             .insert(key, service);
+    }
+
+    /// Registers a service as a [`MetricsAggregator`] under the given key.
+    ///
+    /// The service is stored both as a general singleton (for resolution via
+    /// [`resolve`](Self::resolve)) and in a metrics-aggregators map so that
+    /// [`ApplicationContext::metrics`] can discover and query it.
+    ///
+    /// Services should typically also be registered via [`register`](Self::register)
+    /// or [`register_lifecycle`](Self::register_lifecycle) so they are available
+    /// for typed resolution.
+    ///
+    /// If a metrics aggregator with the same key already exists, it is replaced.
+    pub fn register_metrics_aggregator<T: MetricsAggregator + Send + Sync + 'static>(
+        &mut self,
+        key: &str,
+        service: Arc<T>,
+    ) {
+        self.metrics_aggregators
+            .insert(key.to_string(), service);
+    }
+
+    // -----------------------------------------------------------------------
+    // Metrics discovery
+    // -----------------------------------------------------------------------
+
+    /// Returns all registered metrics aggregators with their keys.
+    ///
+    /// Used by [`ApplicationContext::metrics`] to collect runtime metrics
+    /// from every service that implements [`MetricsAggregator`].
+    pub fn metrics_aggregators(&self) -> Vec<(String, Arc<dyn MetricsAggregator>)> {
+        self.metrics_aggregators
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    }
+
+    /// Returns the number of registered metrics aggregators.
+    pub fn metrics_aggregator_count(&self) -> usize {
+        self.metrics_aggregators.len()
     }
 
     /// Registers a transient factory for the given key.
@@ -213,6 +264,7 @@ impl ServiceRegistry {
         // Remove from lifecycle tracking
         self.lifecycle_services.retain(|k| k != key);
         self.lifecycle_refs.remove(key);
+        self.metrics_aggregators.remove(key);
 
         removed_singleton || removed_factory
     }

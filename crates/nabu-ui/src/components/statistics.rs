@@ -5,15 +5,20 @@
 //! created/modified notes, vault growth (30-day histogram), and storage
 //! usage. Data is computed on demand by the backend `statistics_get`
 //! command — no persistent index to maintain.
+//!
+//! Runtime metrics (timers, counters, gauges) are consumed from the
+//! centralized [`crate::metrics::MetricsContext`] — see that module for the
+//! end-to-end metrics pipeline (backend → IPC → frontend store → UI).
 
 use crate::components::contexts::{open_tab, use_nav, use_workspace};
 use crate::components::ui::feedback::{ErrorPanel, Skeleton};
 use crate::components::ui::icons::{render_icon_view, Icon};
+use crate::metrics::MetricsContext;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-// ── Types (mirror backend `VaultStatistics`) ───────────────────────
+// ── Types (mirror backend `VaultStatistics`) ──────────────────────────
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct TagStat {
@@ -56,45 +61,7 @@ struct VaultStatistics {
     active_days_last_30: usize,
 }
 
-// ── Performance & Worker Pool Snapshot Types ───────────────────────────
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct TimerStatsSnapshot {
-    count: u64,
-    window_count: u64,
-    min_ms: f64,
-    max_ms: f64,
-    avg_ms: f64,
-    p50_ms: f64,
-    p90_ms: f64,
-    p99_ms: f64,
-    sum_ms: f64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct TimerSnapshot {
-    key: String,
-    stats: TimerStatsSnapshot,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct CounterSnapshot {
-    key: String,
-    value: u64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct GaugeSnapshot {
-    key: String,
-    value: i64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct PerformanceSnapshot {
-    timers: Vec<TimerSnapshot>,
-    counters: Vec<CounterSnapshot>,
-    gauges: Vec<GaugeSnapshot>,
-}
+// ── Worker Pool Snapshot Type ────────────────────────────────────────
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct PoolHealthSnapshot {
@@ -155,28 +122,6 @@ fn reload_stats(
     });
 }
 
-/// Loads performance metrics from the backend.
-fn reload_metrics(
-    metrics: Signal<PerformanceSnapshot>,
-    loaded: Signal<bool>,
-    error: Signal<Option<String>>,
-) {
-    let mut metrics = metrics;
-    let mut loaded = loaded;
-    let mut error = error;
-    loaded.set(false);
-    error.set(None);
-    spawn_local(async move {
-        let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
-        let result = crate::ipc::tauri_invoke("metrics_get", empty).await;
-        match serde_wasm_bindgen::from_value::<PerformanceSnapshot>(result) {
-            Ok(m) => metrics.set(m),
-            Err(e) => error.set(Some(e.to_string())),
-        }
-        loaded.set(true);
-    });
-}
-
 /// Loads worker pool health from the backend.
 fn reload_pool_health(
     pool: Signal<PoolHealthSnapshot>,
@@ -204,15 +149,16 @@ pub fn StatisticsView() -> Element {
     let _nav: crate::components::navigation::state::NavContext = use_nav();
     let workspace = use_workspace();
 
+    // Vault statistics (owned by this view — computed on demand).
     let stats = use_signal(VaultStatistics::default);
     let loaded = use_signal(|| false);
     let load_error = use_signal(|| None::<String>);
     let mut tag_filter = use_signal(String::new);
 
-    let metrics = use_signal(PerformanceSnapshot::default);
-    let metrics_loaded = use_signal(|| false);
-    let metrics_error = use_signal(|| None::<String>);
+    // Runtime metrics — consumed from the centralized MetricsContext.
+    let metrics_ctx: MetricsContext = use_context::<MetricsContext>();
 
+    // Worker pool health (owned by this view).
     let pool = use_signal(PoolHealthSnapshot::default);
     let pool_loaded = use_signal(|| false);
     let pool_error = use_signal(|| None::<String>);
@@ -222,13 +168,19 @@ pub fn StatisticsView() -> Element {
     if !*loaded_once.read() {
         loaded_once.set(true);
         reload_stats(stats, loaded, load_error);
-        reload_metrics(metrics, metrics_loaded, metrics_error);
         reload_pool_health(pool, pool_loaded, pool_error);
     }
 
     let open_note = move |path: String| {
         let ws = workspace;
         open_tab(ws, &path);
+    };
+
+    // Manual refresh for stats and pool; metrics are refreshed centrally.
+    let refresh_all = move |_: MouseEvent| {
+        reload_stats(stats, loaded, load_error);
+        reload_pool_health(pool, pool_loaded, pool_error);
+        crate::metrics::reload_metrics(metrics_ctx);
     };
 
     rsx! {
@@ -243,12 +195,12 @@ pub fn StatisticsView() -> Element {
         }
         button {
             class: "px-3 py-1.5 text-sm bg-gray-800 rounded hover:bg-gray-700 border border-gray-700",
-            onclick: move |_: MouseEvent| reload_stats(stats, loaded, load_error),
+            onclick: refresh_all,
             {render_icon_view(Icon::RefreshCw)}
             " Refresh"
         }
 
-        // Error / loading state
+        // Error / loading state for vault statistics
         {if let Some(err) = load_error.read().clone() {
             rsx! {
                 ErrorPanel {
@@ -482,18 +434,22 @@ pub fn StatisticsView() -> Element {
                     }
                 }}
 
-                // Performance Metrics
+                // Performance Metrics — sourced from the centralized MetricsContext
                 div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
                 h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Performance Metrics" }
-                {if !*metrics_loaded.read() {
+                {if metrics_ctx.loading.read().to_owned() {
                     rsx! {
                         div { class: "space-y-1" }
                         for _ in 0..6 {
                             Skeleton { width: "100%", height: "24px" }
                         }
                     }
+                } else if let Some(err) = metrics_ctx.error.read().as_ref() {
+                    rsx! {
+                        div { class: "text-sm text-yellow-400", "Metrics unavailable ({err})" }
+                    }
                 } else {
-                    let m = metrics.read().clone();
+                    let m = metrics_ctx.metrics.read().clone();
                     rsx! {
                         // Timers
                         {if !m.timers.is_empty() {
@@ -580,8 +536,7 @@ pub fn StatisticsView() -> Element {
                             }
                         } else { rsx!{} }}
                     }
-                }
-                }
+                }}
             }
         }}
     }
