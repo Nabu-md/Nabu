@@ -436,7 +436,7 @@ fn builder_registers_agent_manager_and_supervisor() {
 
     let event_bus = Arc::new(EventBus::<PipelineEvent>::new());
     let supervisor = Arc::new(ProcessSupervisor::with_event_bus(event_bus.clone()));
-    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus));
+    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus.clone()));
 
     let app = Application::builder()
         .with_event_bus(event_bus)
@@ -457,7 +457,7 @@ fn shutdown_shuts_down_agent_manager_and_supervisor() {
 
     let event_bus = Arc::new(EventBus::<PipelineEvent>::new());
     let supervisor = Arc::new(ProcessSupervisor::with_event_bus(event_bus.clone()));
-    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus));
+    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus.clone()));
 
     // Initialize and start both
     supervisor.initialize().unwrap();

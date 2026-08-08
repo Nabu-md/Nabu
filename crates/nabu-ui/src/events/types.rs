@@ -84,6 +84,27 @@ pub enum FrontendEventKind {
     PluginWarning,
     /// A plugin emitted an error.
     PluginError,
+    // ── Streaming event kinds ──
+    /// A stream was started.
+    StreamStarted,
+    /// A token was received and published to the stream.
+    StreamToken,
+    /// A partial content update was published (aggregated tokens so far).
+    StreamPartialUpdate,
+    /// A stream was completed normally (all tokens delivered).
+    StreamCompleted,
+    /// A stream was cancelled before completion.
+    StreamCancelled,
+    /// A stream failed due to an error.
+    StreamFailed,
+    /// A streaming session was created.
+    SessionCreated,
+    /// A streaming session was started.
+    SessionStarted,
+    /// A streaming session was cancelled.
+    SessionCancelled,
+    /// A streaming session was cleaned up and removed from the manager.
+    SessionCleanedUp,
 }
 
 impl FrontendEventKind {
@@ -113,6 +134,17 @@ impl FrontendEventKind {
             FrontendEventKind::CapabilityRemoved => kinds::CAPABILITY_REMOVED,
             FrontendEventKind::PluginWarning => kinds::PLUGIN_WARNING,
             FrontendEventKind::PluginError => kinds::PLUGIN_ERROR,
+            // Streaming / session lifecycle
+            FrontendEventKind::StreamStarted => kinds::STREAM_STARTED,
+            FrontendEventKind::StreamToken => kinds::STREAM_TOKEN,
+            FrontendEventKind::StreamPartialUpdate => kinds::STREAM_PARTIAL_UPDATE,
+            FrontendEventKind::StreamCompleted => kinds::STREAM_COMPLETED,
+            FrontendEventKind::StreamCancelled => kinds::STREAM_CANCELLED,
+            FrontendEventKind::StreamFailed => kinds::STREAM_FAILED,
+            FrontendEventKind::SessionCreated => kinds::SESSION_CREATED,
+            FrontendEventKind::SessionStarted => kinds::SESSION_STARTED,
+            FrontendEventKind::SessionCancelled => kinds::SESSION_CANCELLED,
+            FrontendEventKind::SessionCleanedUp => kinds::SESSION_CLEANED_UP,
         }
     }
 
@@ -144,6 +176,17 @@ impl FrontendEventKind {
             kinds::CAPABILITY_REMOVED => FrontendEventKind::CapabilityRemoved,
             kinds::PLUGIN_WARNING => FrontendEventKind::PluginWarning,
             kinds::PLUGIN_ERROR => FrontendEventKind::PluginError,
+            // Streaming / session lifecycle
+            kinds::STREAM_STARTED => FrontendEventKind::StreamStarted,
+            kinds::STREAM_TOKEN => FrontendEventKind::StreamToken,
+            kinds::STREAM_PARTIAL_UPDATE => FrontendEventKind::StreamPartialUpdate,
+            kinds::STREAM_COMPLETED => FrontendEventKind::StreamCompleted,
+            kinds::STREAM_CANCELLED => FrontendEventKind::StreamCancelled,
+            kinds::STREAM_FAILED => FrontendEventKind::StreamFailed,
+            kinds::SESSION_CREATED => FrontendEventKind::SessionCreated,
+            kinds::SESSION_STARTED => FrontendEventKind::SessionStarted,
+            kinds::SESSION_CANCELLED => FrontendEventKind::SessionCancelled,
+            kinds::SESSION_CLEANED_UP => FrontendEventKind::SessionCleanedUp,
             _ => return None,
         })
     }
@@ -174,6 +217,17 @@ impl FrontendEventKind {
         FrontendEventKind::CapabilityRemoved,
         FrontendEventKind::PluginWarning,
         FrontendEventKind::PluginError,
+        // Streaming / session lifecycle
+        FrontendEventKind::StreamStarted,
+        FrontendEventKind::StreamToken,
+        FrontendEventKind::StreamPartialUpdate,
+        FrontendEventKind::StreamCompleted,
+        FrontendEventKind::StreamCancelled,
+        FrontendEventKind::StreamFailed,
+        FrontendEventKind::SessionCreated,
+        FrontendEventKind::SessionStarted,
+        FrontendEventKind::SessionCancelled,
+        FrontendEventKind::SessionCleanedUp,
     ];
 }
 

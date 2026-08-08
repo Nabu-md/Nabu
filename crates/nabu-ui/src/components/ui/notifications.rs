@@ -186,11 +186,59 @@ impl NotificationConfig {
                 dedup_key: None,
             }),
             // Events that are too frequent/noisy to toast individually:
-            // progress updates, processing-started, and index/graph updates.
+            // progress updates, streaming tokens, and index/graph updates.
             FrontendEventKind::ItemProcessingProgress
             | FrontendEventKind::ItemProcessingStarted
             | FrontendEventKind::IndexUpdated
-            | FrontendEventKind::GraphUpdated => None,
+            | FrontendEventKind::GraphUpdated
+            // Per-token streaming events are too frequent to toast individually.
+            | FrontendEventKind::StreamToken
+            | FrontendEventKind::StreamPartialUpdate => None,
+            // Stream lifecycle events — surface to the user.
+            FrontendEventKind::StreamStarted => Some(Self {
+                title: "Stream started",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::StreamCompleted => Some(Self {
+                title: "Stream completed",
+                severity: ToastKind::Success,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::StreamCancelled => Some(Self {
+                title: "Stream cancelled",
+                severity: ToastKind::Warning,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::StreamFailed => Some(Self {
+                title: "Stream failed",
+                severity: ToastKind::Error,
+                persistent: false,
+                dedup_key: None,
+            }),
+            // Session lifecycle events.
+            FrontendEventKind::SessionCreated => Some(Self {
+                title: "Session created",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::SessionStarted => Some(Self {
+                title: "Session started",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::SessionCancelled => Some(Self {
+                title: "Session cancelled",
+                severity: ToastKind::Warning,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::SessionCleanedUp => None,
         }
     }
 }
@@ -202,7 +250,7 @@ impl NotificationConfig {
 /// The queue tracks active "replaceable" toasts by dedup key. When a new
 /// event arrives with the same key, the previous toast (if still visible) is
 /// dismissed before the new one is shown. Entries auto-expire after
-/// [`DEDUP_EXPIRY_MS`] so that genuinely distinct events with the same key
+/// [`DEDUP_TIMEOUT_MS`] so that genuinely distinct events with the same key
 /// are not permanently suppressed.
 struct NotificationQueue {
     /// Active dedup entries: key → expiry timestamp (ms since epoch).
@@ -211,6 +259,22 @@ struct NotificationQueue {
 
 /// How long a dedup entry lives before it expires (ms).
 const DEDUP_TIMEOUT_MS: f64 = 5_000.0;
+
+/// Returns the current time in milliseconds since the Unix epoch.
+///
+/// On wasm32 this uses `js_sys::Date::now()`. On native test targets it
+/// returns `0.0` so the queue's expiry logic can be exercised with
+/// time-injected test helpers (`is_locked_at`, `lock_at`, `prune_at`).
+fn now_ms() -> f64 {
+    #[cfg(target_arch = "wasm32")]
+    {
+        js_sys::Date::now()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        0.0
+    }
+}
 
 impl NotificationQueue {
     fn new() -> Self {
@@ -223,7 +287,12 @@ impl NotificationQueue {
     /// that key was shown within the last `DEDUP_TIMEOUT_MS` milliseconds).
     /// If the entry has expired, remove it and return `false`.
     fn is_locked(&mut self, key: &str) -> bool {
-        let now = js_sys::Date::now();
+        self.is_locked_at(key, now_ms())
+    }
+
+    /// Check whether a dedup key is locked at the given time.  This is the
+    /// testable core of `is_locked` — tests inject controlled timestamps.
+    fn is_locked_at(&mut self, key: &str, now: f64) -> bool {
         if let Some(&expires_at) = self.entries.get(key) {
             if now >= expires_at {
                 self.entries.remove(key);
@@ -238,7 +307,11 @@ impl NotificationQueue {
 
     /// Register a dedup key for the standard expiry window.
     fn lock(&mut self, key: String) {
-        let now = js_sys::Date::now();
+        self.lock_at(key, now_ms());
+    }
+
+    /// Lock a key at the given timestamp (for testing).
+    fn lock_at(&mut self, key: String, now: f64) {
         self.entries.insert(key, now + DEDUP_TIMEOUT_MS);
     }
 
@@ -249,7 +322,11 @@ impl NotificationQueue {
 
     /// Drop all expired entries (garbage collection).
     fn prune(&mut self) {
-        let now = js_sys::Date::now();
+        self.prune_at(now_ms());
+    }
+
+    /// Prune entries that have expired at the given time (for testing).
+    fn prune_at(&mut self, now: f64) {
         self.entries.retain(|_, expires_at| *expires_at > now);
     }
 }
@@ -532,12 +609,8 @@ fn handle_event(
     state.active_toasts.write_unchecked().push(record);
 
     // Push to the ToastContext.
-    if let Some(ref msg) = message {
-        state.toast_ctx.push(config.severity, title, msg);
-    } else {
-        // No message — still push a title-only toast.
-        state.toast_ctx.push(config.severity, title, String::new());
-    }
+    let msg = message.unwrap_or_default();
+    state.toast_ctx.push(config.severity, title, msg);
 
     // Schedule auto-cleanup: when the toast auto-dismisses (5 s), remove it
     // from the active_toasts list.
@@ -596,7 +669,12 @@ mod tests {
                     FrontendEventKind::ItemProcessingProgress
                     | FrontendEventKind::ItemProcessingStarted
                     | FrontendEventKind::IndexUpdated
-                    | FrontendEventKind::GraphUpdated => {}
+                    | FrontendEventKind::GraphUpdated
+                    // Per-token streaming events are not toasted individually.
+                    | FrontendEventKind::StreamToken
+                    | FrontendEventKind::StreamPartialUpdate
+                    // Session cleanup is an internal lifecycle event.
+                    | FrontendEventKind::SessionCleanedUp => {}
                     _ => panic!("unexpected None config for kind: {kind:?}"),
                 }
             }
@@ -894,34 +972,59 @@ mod tests {
     #[test]
     fn queue_is_unlocked_initially() {
         let mut q = NotificationQueue::new();
-        assert!(!q.is_locked("test-key"));
+        assert!(!q.is_locked_at("test-key", 0.0));
     }
 
     #[test]
     fn queue_locks_and_unlocks() {
         let mut q = NotificationQueue::new();
-        q.lock("test-key".to_string());
-        assert!(q.is_locked("test-key"));
+        q.lock_at("test-key".to_string(), 1_000.0);
+        assert!(q.is_locked_at("test-key", 1_000.0));
         q.unlock("test-key");
-        assert!(!q.is_locked("test-key"));
+        assert!(!q.is_locked_at("test-key", 1_000.0));
     }
 
     #[test]
     fn queue_multiple_keys_independent() {
         let mut q = NotificationQueue::new();
-        q.lock("key-a".to_string());
-        q.lock("key-b".to_string());
-        assert!(q.is_locked("key-a"));
-        assert!(q.is_locked("key-b"));
+        q.lock_at("key-a".to_string(), 1_000.0);
+        q.lock_at("key-b".to_string(), 1_000.0);
+        assert!(q.is_locked_at("key-a", 1_000.0));
+        assert!(q.is_locked_at("key-b", 1_000.0));
         q.unlock("key-a");
-        assert!(!q.is_locked("key-a"));
-        assert!(q.is_locked("key-b"));
+        assert!(!q.is_locked_at("key-a", 1_000.0));
+        assert!(q.is_locked_at("key-b", 1_000.0));
+    }
+
+    #[test]
+    fn queue_expired_entry_is_removed() {
+        let mut q = NotificationQueue::new();
+        q.lock_at("test-key".to_string(), 1_000.0);
+        // Entry locked at t=1000, expires at t=1000 + DEDUP_TIMEOUT_MS = 6000.
+        // At t=6000 (expiry boundary), it should be expired.
+        assert!(!q.is_locked_at("test-key", 6_000.0));
+        // At t=5999, still locked.
+        q.lock_at("test-key".to_string(), 1_000.0);
+        assert!(q.is_locked_at("test-key", 5_999.0));
     }
 
     #[test]
     fn queue_prune_is_safe_on_empty() {
         let mut q = NotificationQueue::new();
-        q.prune();
+        q.prune_at(0.0);
+        assert!(q.entries.is_empty());
+    }
+
+    #[test]
+    fn queue_prune_removes_expired_entries() {
+        let mut q = NotificationQueue::new();
+        q.lock_at("key-a".to_string(), 1_000.0); // expires at 6000
+        q.lock_at("key-b".to_string(), 1_000.0); // expires at 6000
+        // At t=3000, both still locked.
+        assert!(q.is_locked_at("key-a", 3_000.0));
+        assert!(q.is_locked_at("key-b", 3_000.0));
+        // At t=6000, prune should remove both.
+        q.prune_at(6_000.0);
         assert!(q.entries.is_empty());
     }
 

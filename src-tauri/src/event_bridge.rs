@@ -83,6 +83,23 @@ const ALL_EVENT_KINDS: &[&str] = &[
     kinds::THREAD_SAVED,
     kinds::THREAD_UPDATED,
     kinds::THREAD_DELETED,
+    // --- Streaming event kinds ---
+    // Published by the StreamingPipeline / StreamingSession through the EventBus.
+    // Forwarded so frontend UI components can render incremental token output
+    // and react to stream lifecycle transitions.
+    // Per-token events (stream.token, stream.partial_update):
+    kinds::STREAM_TOKEN,
+    kinds::STREAM_PARTIAL_UPDATE,
+    // Stream lifecycle events:
+    kinds::STREAM_STARTED,
+    kinds::STREAM_COMPLETED,
+    kinds::STREAM_CANCELLED,
+    kinds::STREAM_FAILED,
+    // Session lifecycle events:
+    kinds::SESSION_CREATED,
+    kinds::SESSION_STARTED,
+    kinds::SESSION_CANCELLED,
+    kinds::SESSION_CLEANED_UP,
 ];
 
 /// A single structured payload broadcast on the `nabu-event` channel.

@@ -53,6 +53,8 @@ pub enum ViewMode {
     Statistics,
     /// Activity timeline panel.
     Activity,
+    /// Live streaming responses from agent processes.
+    Streaming,
 }
 
 impl Default for ViewMode {
@@ -82,6 +84,7 @@ pub fn parse_view_mode(mode: &str) -> ViewMode {
         "comparison" => ViewMode::Comparison,
         "statistics" => ViewMode::Statistics,
         "activity" => ViewMode::Activity,
+        "streaming" => ViewMode::Streaming,
         _ => ViewMode::Editor,
     }
 }
@@ -108,6 +111,7 @@ pub fn view_mode_key(mode: ViewMode) -> &'static str {
         ViewMode::Comparison => "comparison",
         ViewMode::Statistics => "statistics",
         ViewMode::Activity => "activity",
+        ViewMode::Streaming => "streaming",
     }
 }
 
@@ -133,6 +137,7 @@ pub fn view_mode_label(mode: ViewMode) -> &'static str {
         ViewMode::Comparison => "Comparison",
         ViewMode::Statistics => "Statistics",
         ViewMode::Activity => "Activity",
+        ViewMode::Streaming => "Streaming",
     }
 }
 
@@ -158,6 +163,7 @@ pub fn view_mode_icon(mode: ViewMode) -> Icon {
         ViewMode::Comparison => Icon::Comparison,
         ViewMode::Statistics => Icon::TrendingUp,
         ViewMode::Activity => Icon::Activity,
+        ViewMode::Streaming => Icon::Sparkles,
     }
 }
 

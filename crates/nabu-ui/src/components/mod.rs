@@ -20,6 +20,7 @@
 //! - [`inbox`] — knowledge inbox with split-pane review, metadata editing, DnD
 //! - [`dictation_pill`] — floating dictation / scratchpad / file-drop pill
 //! - [`statistics`] — vault statistics dashboard (tags, writing streak, storage)
+//! - [`streaming`] — real-time streaming session state and live token rendering
 //! - [`template_editor`] — template CRUD manager with search and category grouping
 //! - [`template_picker`] — searchable template picker
 //! - [`settings`] — 15-tab settings panel with IPC persistence
@@ -41,6 +42,7 @@ pub mod property_editor;
 pub mod recovery;
 pub mod settings;
 pub mod statistics;
+pub mod streaming;
 pub mod template_editor;
 pub mod template_picker;
 pub mod ui;

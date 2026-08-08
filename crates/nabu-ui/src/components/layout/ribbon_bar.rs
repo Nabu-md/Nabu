@@ -96,6 +96,13 @@ pub fn RibbonBar() -> Element {
             },
             {render_icon_view(Icon::Activity)}
         }
+        IconButton {
+            title: "Streaming",
+            on_click: move |_| {
+                nav.view_mode.set(ViewMode::Streaming);
+            },
+            {render_icon_view(Icon::Sparkles)}
+        }
         div { class: "flex-grow" }
         IconButton {
             title: "Settings",

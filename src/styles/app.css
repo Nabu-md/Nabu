@@ -2921,3 +2921,73 @@ kbd {
     animation: none !important;
   }
 }
+
+/* ---- Activity Panel ---- */
+.activity-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgb(31 41 59);
+}
+.activity-header .text-lg {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.activity-header .text-xs {
+  font-size: 0.75rem;
+}
+.activity-timeline {
+  flex: 1;
+  overflow-y: auto;
+}
+.activity-timeline-inner {
+  display: flex;
+  flex-direction: column;
+}
+.activity-entry {
+  position: relative;
+}
+.activity-entry::before {
+  content: "";
+  position: absolute;
+  left: 1.25rem;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgb(31 41 59);
+}
+.activity-entry-icon {
+  position: relative;
+  z-index: 1;
+}
+.activity-entry-info {
+  border-left: 2px solid rgb(96 165 250);
+}
+.activity-entry-warning {
+  border-left: 2px solid rgb(250 204 21);
+}
+.activity-entry-error {
+  border-left: 2px solid rgb(248 113 113);
+}
+.activity-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.activity-entry-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

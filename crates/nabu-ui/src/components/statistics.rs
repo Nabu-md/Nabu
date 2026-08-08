@@ -56,6 +56,58 @@ struct VaultStatistics {
     active_days_last_30: usize,
 }
 
+// ── Performance & Worker Pool Snapshot Types ───────────────────────────
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct TimerStatsSnapshot {
+    count: u64,
+    window_count: u64,
+    min_ms: f64,
+    max_ms: f64,
+    avg_ms: f64,
+    p50_ms: f64,
+    p90_ms: f64,
+    p99_ms: f64,
+    sum_ms: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct TimerSnapshot {
+    key: String,
+    stats: TimerStatsSnapshot,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct CounterSnapshot {
+    key: String,
+    value: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct GaugeSnapshot {
+    key: String,
+    value: i64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct PerformanceSnapshot {
+    timers: Vec<TimerSnapshot>,
+    counters: Vec<CounterSnapshot>,
+    gauges: Vec<GaugeSnapshot>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct PoolHealthSnapshot {
+    worker_count: usize,
+    shutting_down: bool,
+    pending_jobs: usize,
+    running_jobs: usize,
+    active_workers: usize,
+    is_throttled: bool,
+    is_full: bool,
+    lifecycle_stage: String,
+}
+
 /// Human-readable byte size.
 fn format_bytes(bytes: u64) -> String {
     if bytes < 1024 {
@@ -103,6 +155,50 @@ fn reload_stats(
     });
 }
 
+/// Loads performance metrics from the backend.
+fn reload_metrics(
+    metrics: Signal<PerformanceSnapshot>,
+    loaded: Signal<bool>,
+    error: Signal<Option<String>>,
+) {
+    let mut metrics = metrics;
+    let mut loaded = loaded;
+    let mut error = error;
+    loaded.set(false);
+    error.set(None);
+    spawn_local(async move {
+        let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+        let result = crate::ipc::tauri_invoke("metrics_get", empty).await;
+        match serde_wasm_bindgen::from_value::<PerformanceSnapshot>(result) {
+            Ok(m) => metrics.set(m),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loaded.set(true);
+    });
+}
+
+/// Loads worker pool health from the backend.
+fn reload_pool_health(
+    pool: Signal<PoolHealthSnapshot>,
+    loaded: Signal<bool>,
+    error: Signal<Option<String>>,
+) {
+    let mut pool = pool;
+    let mut loaded = loaded;
+    let mut error = error;
+    loaded.set(false);
+    error.set(None);
+    spawn_local(async move {
+        let empty = serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap();
+        let result = crate::ipc::tauri_invoke("pool_health", empty).await;
+        match serde_wasm_bindgen::from_value::<PoolHealthSnapshot>(result) {
+            Ok(p) => pool.set(p),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loaded.set(true);
+    });
+}
+
 #[component]
 pub fn StatisticsView() -> Element {
     let _nav: crate::components::navigation::state::NavContext = use_nav();
@@ -113,11 +209,21 @@ pub fn StatisticsView() -> Element {
     let load_error = use_signal(|| None::<String>);
     let mut tag_filter = use_signal(String::new);
 
+    let metrics = use_signal(PerformanceSnapshot::default);
+    let metrics_loaded = use_signal(|| false);
+    let metrics_error = use_signal(|| None::<String>);
+
+    let pool = use_signal(PoolHealthSnapshot::default);
+    let pool_loaded = use_signal(|| false);
+    let pool_error = use_signal(|| None::<String>);
+
     // Initial load — mirrors LePtOS `load_stats.run(())` on mount.
     let mut loaded_once = use_signal(|| false);
     if !*loaded_once.read() {
         loaded_once.set(true);
         reload_stats(stats, loaded, load_error);
+        reload_metrics(metrics, metrics_loaded, metrics_error);
+        reload_pool_health(pool, pool_loaded, pool_error);
     }
 
     let open_note = move |path: String| {
@@ -335,6 +441,140 @@ pub fn StatisticsView() -> Element {
                             }
                         }
                     }
+                }
+
+                // Worker Pool Health
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Worker Pool Health" }
+                {if !*pool_loaded.read() {
+                    rsx! {
+                        div { class: "space-y-1" }
+                        for _ in 0..4 {
+                            Skeleton { width: "100%", height: "24px" }
+                        }
+                    }
+                } else {
+                    let p = pool.read().clone();
+                    rsx! {
+                        div { class: "grid grid-cols-2 md:grid-cols-4 gap-3" }
+                        div { class: "flex flex-col" }
+                        div { class: "text-xl font-bold text-blue-400", "{p.worker_count}" }
+                        div { class: "text-xs text-gray-500", "Workers" }
+
+                        div { class: "flex flex-col" }
+                        div { class: "text-xl font-bold text-green-400", "{p.active_workers}" }
+                        div { class: "text-xs text-gray-500", "Active" }
+
+                        div { class: "flex flex-col" }
+                        div { class: "text-xl font-bold text-yellow-400", "{p.pending_jobs}" }
+                        div { class: "text-xs text-gray-500", "Pending" }
+
+                        div { class: "flex flex-col" }
+                        div { class: "text-xl font-bold text-purple-400", "{p.running_jobs}" }
+                        div { class: "text-xs text-gray-500", "Running" }
+
+                        div { class: "mt-3 text-xs text-gray-500", "Lifecycle: {p.lifecycle_stage}" }
+                        {if p.is_throttled {
+                            rsx! { span { class: "text-xs text-orange-400", "Throttled" } }
+                        } else {
+                            rsx! { span { class: "text-xs text-gray-500", "Normal capacity" } }
+                        }}
+                    }
+                }}
+
+                // Performance Metrics
+                div { class: "bg-gray-900 border border-gray-800 rounded-lg p-4" }
+                h3 { class: "text-sm font-semibold text-gray-300 mb-3", "Performance Metrics" }
+                {if !*metrics_loaded.read() {
+                    rsx! {
+                        div { class: "space-y-1" }
+                        for _ in 0..6 {
+                            Skeleton { width: "100%", height: "24px" }
+                        }
+                    }
+                } else {
+                    let m = metrics.read().clone();
+                    rsx! {
+                        // Timers
+                        {if !m.timers.is_empty() {
+                            rsx! {
+                                div { class: "mb-3" }
+                                h4 { class: "text-xs font-semibold text-gray-500 uppercase mb-2", "Timers" }
+                                table { class: "w-full text-xs" }
+                                thead {
+                                    tr {
+                                        th { class: "text-left text-gray-600 pb-1", "Operation" }
+                                        th { class: "text-right text-gray-600 pb-1", "Count" }
+                                        th { class: "text-right text-gray-600 pb-1", "Avg (ms)" }
+                                        th { class: "text-right text-gray-600 pb-1", "p50" }
+                                        th { class: "text-right text-gray-600 pb-1", "p90" }
+                                        th { class: "text-right text-gray-600 pb-1", "Max" }
+                                    }
+                                }
+                                tbody {
+                                    for t in &m.timers {
+                                        {
+                                            let key = t.key.clone();
+                                            let s = t.stats.clone();
+                                            rsx! {
+                                                tr {
+                                                    td { class: "text-gray-400 py-1", "{key}" }
+                                                    td { class: "text-right text-gray-500", "{s.count}" }
+                                                    td { class: "text-right text-gray-500", "{:.1}", s.avg_ms }
+                                                    td { class: "text-right text-gray-500", "{:.1}", s.p50_ms }
+                                                    td { class: "text-right text-gray-500", "{:.1}", s.p90_ms }
+                                                    td { class: "text-right text-gray-500", "{:.1}", s.max_ms }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }}
+                        // Counters
+                        {if !m.counters.is_empty() {
+                            rsx! {
+                                div { class: "mt-3" }
+                                h4 { class: "text-xs font-semibold text-gray-500 uppercase mb-2", "Counters" }
+                                table { class: "w-full text-xs" }
+                                tbody {
+                                    for c in &m.counters {
+                                        {
+                                            let key = c.key.clone();
+                                            let val = c.value;
+                                            rsx! {
+                                                tr {
+                                                    td { class: "text-gray-400 py-1", "{key}" }
+                                                    td { class: "text-right text-gray-500", "{val}" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }}
+                        // Gauges
+                        {if !m.gauges.is_empty() {
+                            rsx! {
+                                div { class: "mt-3" }
+                                h4 { class: "text-xs font-semibold text-gray-500 uppercase mb-2", "Gauges" }
+                                table { class: "w-full text-xs" }
+                                tbody {
+                                    for g in &m.gauges {
+                                        {
+                                            let key = g.key.clone();
+                                            let val = g.value;
+                                            rsx! {
+                                                tr {
+                                                    td { class: "text-gray-400 py-1", "{key}" }
+                                                    td { class: "text-right text-gray-500", "{val}" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                    }}
                 }
             }
         }}

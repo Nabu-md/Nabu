@@ -3606,6 +3606,53 @@ pub fn health_check(
     Ok(health)
 }
 
+/// Returns a serializable snapshot of all performance metrics collected by
+/// the `PerformanceMonitor`.
+///
+/// The snapshot includes timer stats (min, max, avg, p50, p90, p99), counter
+/// values, and gauge values for every tracked metric key. All metrics are
+/// local-only and never leave the machine.
+#[tauri::command]
+pub fn metrics_get(
+    ctx: State<'_, ApplicationContext>,
+) -> Result<nabu_core::diagnostics::PerformanceSnapshot, String> {
+    tracing::debug!("Metrics snapshot IPC requested");
+    let monitor = ctx
+        .performance_monitor()
+        .ok_or_else(|| "PerformanceMonitor not available".to_string())?;
+    let snapshot = monitor.snapshot();
+    tracing::debug!(
+        timer_count = snapshot.timers.len(),
+        counter_count = snapshot.counters.len(),
+        gauge_count = snapshot.gauges.len(),
+        "Metrics snapshot IPC completed"
+    );
+    Ok(snapshot)
+}
+
+/// Returns a snapshot of the WorkerPool's health metrics.
+///
+/// Includes worker count, pending/running job counts, active worker count,
+/// throttling and full status, and lifecycle stage.
+#[tauri::command]
+pub fn pool_health(
+    ctx: State<'_, ApplicationContext>,
+) -> Result<nabu_core::jobs::workers::PoolHealth, String> {
+    tracing::debug!("Pool health IPC requested");
+    let pool = ctx
+        .worker_pool()
+        .ok_or_else(|| "WorkerPool not registered".to_string())?;
+    let health = pool.health();
+    tracing::debug!(
+        worker_count = health.worker_count,
+        active_workers = health.active_workers,
+        pending_jobs = health.pending_jobs,
+        running_jobs = health.running_jobs,
+        "Pool health IPC completed"
+    );
+    Ok(health)
+}
+
 /// Internal helper that computes GraphData without going through Tauri state
 /// (used by `statistics_get` which already holds the vault path).
 fn graph_data_inner(vault_path: &Path) -> GraphData {
