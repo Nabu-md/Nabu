@@ -4,15 +4,15 @@
 //! completing the end-to-end pipeline:
 //!
 //! ```text
-//! Runtime Services → Metrics Aggregator → `metrics_get` IPC → Frontend IPC Client
-//!   → Metrics Store (Signal<PerformanceSnapshot>) → UI
+//! Runtime Services → Metrics Aggregator → `metrics` IPC → Frontend IPC Client
+//!   → Metrics Store (Signal<RuntimeMetrics>) → UI
 //! ```
 //!
 //! ## Architecture
 //!
 //! * **Single source of truth** — one `MetricsContext` provided at the app
 //!   root; all consumers (Statistics view, future dashboards) read from it.
-//! * **IPC client** — `reload_metrics()` invokes the backend `metrics_get`
+//! * **IPC client** — `reload_metrics()` invokes the backend `metrics`
 //!   Tauri command via the existing `crate::ipc` abstraction, deserializes the
 //!   response using `serde-wasm-bindgen`, and updates the context signals.
 //! * **Event-driven refresh** — subscribes to relevant platform events
@@ -25,7 +25,7 @@
 //!
 //! ## Future Compatibility
 //!
-//! The `PerformanceSnapshot` type is re-exported from `nabu-core` (not
+//! The `RuntimeMetrics` type is re-exported from `nabu-core` (not
 //! duplicated), so any new metric types added on the backend are immediately
 //! available on the frontend after a single recompile. The
 //! `MetricsProvider` is designed to be a drop-in foundation for future
@@ -40,9 +40,9 @@ use wasm_bindgen_futures::spawn_local;
 // Re-export the canonical backend types so the frontend has a single, typed
 // view of the metrics schema. Do NOT duplicate the struct definitions here —
 // `nabu-core` is the source of truth and uses `#[derive(Serialize, Deserialize)]`.
-pub use nabu_core::diagnostics::{
-    CounterSnapshot, GaugeSnapshot, PerformanceSnapshot, PerformanceMonitor, Timer,
-    TimerSnapshot, TimerStats,
+pub use nabu_core::registry::{
+    CounterMetric, GaugeMetric, MetricsAggregator, MetricsError, RuntimeMetrics,
+    ServiceMetrics, TimerMetric,
 };
 
 /// Shared metrics context — carries the current snapshot and load state.
@@ -53,7 +53,7 @@ pub use nabu_core::diagnostics::{
 #[derive(Clone, Copy)]
 pub struct MetricsContext {
     /// The latest metrics snapshot received from the backend.
-    pub metrics: Signal<PerformanceSnapshot>,
+    pub metrics: Signal<RuntimeMetrics>,
     /// Whether a metrics fetch is in progress.
     pub loading: Signal<bool>,
     /// `Some(error)` when the last fetch failed to deserialize or the IPC
@@ -80,7 +80,7 @@ pub fn use_metrics() -> MetricsContext {
 #[component]
 pub fn MetricsProvider(children: Element) -> Element {
     provide_context(MetricsContext {
-        metrics: use_signal(PerformanceSnapshot::default),
+        metrics: use_signal(RuntimeMetrics::default),
         loading: use_signal(|| false),
         error: use_signal(|| None),
         refresh_count: use_signal(|| 0u32),
@@ -88,7 +88,7 @@ pub fn MetricsProvider(children: Element) -> Element {
 
     // One-time initial load.
     let ctx = use_metrics();
-    let mut initialized = use_signal(|| false);
+    let initialized = use_signal(|| false);
     if !*initialized.read() {
         *initialized.write_unchecked() = true;
         reload_metrics(ctx);
@@ -98,15 +98,15 @@ pub fn MetricsProvider(children: Element) -> Element {
     rsx! { {children} }
 }
 
-/// Invokes the backend `metrics_get` IPC command, deserializes the response,
+/// Invokes the backend `metrics` IPC command, deserializes the response,
 /// and updates the [`MetricsContext`] signals.
 ///
 /// Uses `tauri_invoke_safe` so a missing or rejected command sets the error
 /// signal rather than crashing the renderer. The response is deserialized via
 /// `serde_wasm_bindgen::from_value` — the same path used by every other IPC
-/// consumer in this crate — so `PerformanceSnapshot` fields (timers, counters,
-/// gauges) must round-trip through `serde_json::Value` exactly as the backend
-/// serializes them.
+/// consumer in this crate — so `RuntimeMetrics` fields (timers, counters,
+/// gauges, services) must round-trip through `serde_json::Value` exactly as
+/// the backend serializes them.
 pub fn reload_metrics(mut ctx: MetricsContext) {
     ctx.loading.set(true);
     ctx.error.set(None);
@@ -117,9 +117,9 @@ pub fn reload_metrics(mut ctx: MetricsContext) {
     spawn_local(async move {
         let empty =
             serde_wasm_bindgen::to_value(&serde_json::json!({})).unwrap_or(JsValue::UNDEFINED);
-        let result = crate::ipc::tauri_invoke_safe("metrics_get", empty).await;
+        let result = crate::ipc::tauri_invoke_safe("metrics", empty).await;
         match result {
-            Some(val) => match serde_wasm_bindgen::from_value::<PerformanceSnapshot>(val) {
+            Some(val) => match serde_wasm_bindgen::from_value::<RuntimeMetrics>(val) {
                 Ok(snap) => {
                     metrics.set(snap);
                     error.set(None);
@@ -130,7 +130,7 @@ pub fn reload_metrics(mut ctx: MetricsContext) {
             },
             None => {
                 error.set(Some(
-                    "metrics_get IPC command unavailable — backend may not be running".to_string(),
+                    "metrics IPC command unavailable — backend may not be running".to_string(),
                 ));
             }
         }
@@ -236,81 +236,73 @@ mod tests {
     }
 
     #[test]
-    fn performance_snapshot_has_three_axes() {
-        let snap = PerformanceSnapshot::default();
-        assert!(snap.timers.is_empty());
-        assert!(snap.counters.is_empty());
-        assert!(snap.gauges.is_empty());
+    fn runtime_metrics_has_three_axes() {
+        let m = RuntimeMetrics::default();
+        assert!(m.timers.is_empty());
+        assert!(m.counters.is_empty());
+        assert!(m.gauges.is_empty());
     }
 
     #[test]
-    fn timer_stats_default_is_zeroed() {
-        let stats = TimerStats::default();
-        assert_eq!(stats.count, 0);
-        assert_eq!(stats.window_count, 0);
-        assert_eq!(stats.avg_ms, 0.0);
-        assert_eq!(stats.p90_ms, 0.0);
-    }
-
-    #[test]
-    fn snapshot_serialization_round_trips() {
-        let original = PerformanceSnapshot {
-            timers: vec![TimerSnapshot {
+    fn runtime_metrics_serialization_round_trips() {
+        let original = RuntimeMetrics {
+            timers: vec![TimerMetric {
                 key: "capture.ingest".to_string(),
-                stats: TimerStats {
-                    count: 10,
-                    window_count: 10,
-                    min_ms: 1.0,
-                    max_ms: 50.0,
-                    avg_ms: 15.0,
-                    p50_ms: 12.0,
-                    p90_ms: 30.0,
-                    p99_ms: 45.0,
-                    sum_ms: 150.0,
-                },
+                count: 10,
+                window_count: 10,
+                min_ms: 1.0,
+                max_ms: 50.0,
+                avg_ms: 15.0,
+                p50_ms: 12.0,
+                p90_ms: 30.0,
+                p99_ms: 45.0,
+                sum_ms: 150.0,
             }],
-            counters: vec![CounterSnapshot {
+            counters: vec![CounterMetric {
                 key: "capture.count".to_string(),
                 value: 42,
             }],
-            gauges: vec![GaugeSnapshot {
+            gauges: vec![GaugeMetric {
                 key: "queue.depth".to_string(),
                 value: 7,
             }],
+            services: vec![ServiceMetrics {
+                service: "capture_engine".to_string(),
+                timers: Vec::new(),
+                counters: vec![CounterMetric {
+                    key: "capture.ingest".to_string(),
+                    value: 10,
+                }],
+                gauges: vec![GaugeMetric {
+                    key: "capture.handler_count".to_string(),
+                    value: 8,
+                }],
+            }],
+            service_count: 1,
+            error_count: 0,
+            errors: Vec::new(),
         };
 
-        let json = serde_json::to_string(&original).expect("serialize snapshot");
-        let restored: PerformanceSnapshot =
-            serde_json::from_str(&json).expect("deserialize snapshot");
+        let json = serde_json::to_string(&original).expect("serialize metrics");
+        let restored: RuntimeMetrics =
+            serde_json::from_str(&json).expect("deserialize metrics");
         assert_eq!(restored, original);
     }
 
     #[test]
-    fn timer_snapshots_are_sorted_by_key() {
-        let monitor = PerformanceMonitor::new();
-        monitor.record("zeta", 1.0);
-        monitor.record("alpha", 2.0);
-        monitor.record("mid", 3.0);
-
-        let snap = monitor.snapshot();
-        let keys: Vec<&str> = snap.timers.iter().map(|t| t.key.as_str()).collect();
-        assert_eq!(keys, vec!["alpha", "mid", "zeta"]);
-    }
-
-    #[test]
-    fn counters_and_gauges_are_sorted_by_key() {
-        let monitor = PerformanceMonitor::new();
-        monitor.increment("zebra", 1);
-        monitor.increment("apple", 2);
-        monitor.set_gauge("mango", 5);
-        monitor.set_gauge("banana", 10);
-
-        let snap = monitor.snapshot();
-        let counter_keys: Vec<&str> =
-            snap.counters.iter().map(|c| c.key.as_str()).collect();
-        let gauge_keys: Vec<&str> = snap.gauges.iter().map(|g| g.key.as_str()).collect();
-
-        assert_eq!(counter_keys, vec!["apple", "zebra"]);
-        assert_eq!(gauge_keys, vec!["banana", "mango"]);
+    fn runtime_metrics_ignores_unknown_future_fields() {
+        let json = r#"{
+            "timers": [],
+            "counters": [],
+            "gauges": [],
+            "services": [],
+            "service_count": 1,
+            "error_count": 0,
+            "errors": [],
+            "uptime_ms": 12345,
+            "version": "0.1.0"
+        }"#;
+        let restored: RuntimeMetrics = serde_json::from_str(json).unwrap();
+        assert_eq!(restored.service_count, 1);
     }
 }

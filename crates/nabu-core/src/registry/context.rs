@@ -55,7 +55,7 @@ use crate::plugin::Version;
 
 use crate::registry::health::{HealthStatus, ServiceEntry, ServiceHealth};
 use crate::registry::lifecycle::{Lifecycle, LifecycleError, LifecycleManager, LifecycleStage};
-use crate::registry::metrics::{MetricsAggregator, RuntimeMetrics, ServiceMetrics};
+use crate::registry::metrics::{MetricsAggregator, RuntimeMetrics};
 use crate::registry::ServiceRegistry;
 
 use crate::diagnostics::PerformanceMonitor;

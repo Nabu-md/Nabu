@@ -136,7 +136,7 @@ impl Default for Timer {
 }
 
 /// Statistics from a Timer's sliding window.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimerStats {
     pub count: u64,
     pub window_count: u64,
@@ -150,28 +150,28 @@ pub struct TimerStats {
 }
 
 /// Serializable snapshot of a single timer metric.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TimerSnapshot {
     pub key: String,
     pub stats: TimerStats,
 }
 
 /// Serializable snapshot of a single counter metric.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CounterSnapshot {
     pub key: String,
     pub value: u64,
 }
 
 /// Serializable snapshot of a single gauge metric.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GaugeSnapshot {
     pub key: String,
     pub value: i64,
 }
 
 /// Serializable snapshot of all metrics from a PerformanceMonitor.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct PerformanceSnapshot {
     pub timers: Vec<TimerSnapshot>,
     pub counters: Vec<CounterSnapshot>,

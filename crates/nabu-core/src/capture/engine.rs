@@ -6,6 +6,9 @@ use crate::jobs::job::{Job, JobType};
 use crate::jobs::queue::{DurableJobQueue, Queue};
 use crate::models::ObjectType;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -273,6 +276,33 @@ impl Lifecycle for CaptureEngine {
             "CaptureEngine stopped"
         );
         Ok(())
+    }
+}
+
+impl MetricsAggregator for CaptureEngine {
+    fn metrics(&self) -> ServiceMetrics {
+        ServiceMetrics {
+            service: "capture_engine".to_string(),
+            timers: Vec::new(),
+            counters: vec![CounterMetric {
+                key: "capture.ingest".to_string(),
+                value: 0,
+            }],
+            gauges: vec![
+                GaugeMetric {
+                    key: "capture.handler_count".to_string(),
+                    value: self.handler_count() as i64,
+                },
+                GaugeMetric {
+                    key: "capture.has_queue".to_string(),
+                    value: if self.queue.is_some() { 1 } else { 0 },
+                },
+                GaugeMetric {
+                    key: "capture.has_event_bus".to_string(),
+                    value: if self.event_bus.is_some() { 1 } else { 0 },
+                },
+            ],
+        }
     }
 }
 

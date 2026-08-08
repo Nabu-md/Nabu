@@ -3607,28 +3607,59 @@ pub fn health_check(
     Ok(health)
 }
 
-/// Returns a serializable snapshot of all performance metrics collected by
-/// the `PerformanceMonitor`.
+/// Returns a unified runtime metrics snapshot for the Capability Platform.
 ///
-/// The snapshot includes timer stats (min, max, avg, p50, p90, p99), counter
-/// values, and gauge values for every tracked metric key. All metrics are
-/// local-only and never leave the machine.
+/// This is the canonical metrics IPC endpoint. It collects metrics from:
+///
+/// - The [`PerformanceMonitor`] (timing and count instrumentation for all
+///   subsystems: capture, queue, worker, processing, storage, indexer, graph,
+///   event bus, pipeline migration)
+/// - Every registered service that implements [`MetricsAggregator`]:
+///   `PerformanceMonitor`, `WorkerPool`, `DurableJobQueue`, `StorageManager`,
+///   `ConversationStore`, `CaptureEngine`, `Indexer`, `VaultGraph`
+///
+/// The response contains three metric categories:
+///
+/// - **Timers** — operation durations with min/max/avg/p50/p90/p99 statistics
+/// - **Counters** — monotonically increasing counts (documents processed,
+///   events published, IPC requests, completed operations)
+/// - **Gauges** — point-in-time values (active workers, queued tasks,
+///   connected services, running processes)
+///
+/// # Performance
+///
+/// Metrics collection is lightweight — no blocking I/O, no expensive
+/// computation. Designed for frequent polling by future monitoring tools.
+///
+/// # Error Handling
+///
+/// Unavailable or partially-initialized services are skipped gracefully.
+/// The response always includes whatever metrics could be collected, with
+/// any errors recorded in the `errors` field.
+///
+/// # Future Compatibility
+///
+/// The [`RuntimeMetrics`] struct uses `#[serde(default)]` on all fields,
+/// so future phases can add new metric types without breaking deserialization.
+///
+/// [`PerformanceMonitor`]: nabu_core::diagnostics::PerformanceMonitor
+/// [`MetricsAggregator`]: nabu_core::registry::MetricsAggregator
+/// [`RuntimeMetrics`]: nabu_core::registry::RuntimeMetrics
 #[tauri::command]
-pub fn metrics_get(
+pub fn metrics(
     ctx: State<'_, ApplicationContext>,
-) -> Result<nabu_core::diagnostics::PerformanceSnapshot, String> {
-    tracing::debug!("Metrics snapshot IPC requested");
-    let monitor = ctx
-        .performance_monitor()
-        .ok_or_else(|| "PerformanceMonitor not available".to_string())?;
-    let snapshot = monitor.snapshot();
+) -> Result<nabu_core::registry::RuntimeMetrics, String> {
+    tracing::debug!("Metrics IPC requested");
+    let metrics = ctx.metrics();
     tracing::debug!(
-        timer_count = snapshot.timers.len(),
-        counter_count = snapshot.counters.len(),
-        gauge_count = snapshot.gauges.len(),
-        "Metrics snapshot IPC completed"
+        timers = metrics.timers.len(),
+        counters = metrics.counters.len(),
+        gauges = metrics.gauges.len(),
+        services = metrics.service_count,
+        errors = metrics.error_count,
+        "Metrics IPC completed"
     );
-    Ok(snapshot)
+    Ok(metrics)
 }
 
 /// Returns a snapshot of the WorkerPool's health metrics.

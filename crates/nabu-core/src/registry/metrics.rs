@@ -41,17 +41,19 @@
 //! [`ServiceRegistry`]: crate::registry::ServiceRegistry
 
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex as StdMutex;
+use std::sync::RwLock as StdRwLock;
 
-// ---------------------------------------------------------------------------
-// Metric types
-// ---------------------------------------------------------------------------
+// // ---------------------------------------------------------------------------
+// // Metric types
+// // ---------------------------------------------------------------------------
 
 /// A single timer metric snapshot with statistics.
 ///
 /// Timer metrics measure the duration of operations (e.g. indexing duration,
 /// synchronization duration, startup time). Statistics are computed from a
 /// sliding-window sample buffer.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TimerMetric {
     /// The metric key (e.g. `"capture.ingest"`, `"indexer.index"`).
     pub key: String,
@@ -79,7 +81,7 @@ pub struct TimerMetric {
 ///
 /// Counter metrics are monotonically increasing counts (e.g. documents
 /// processed, events published, IPC requests).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CounterMetric {
     /// The metric key (e.g. `"events.published"`, `"ipc.requests"`).
     pub key: String,
@@ -91,7 +93,7 @@ pub struct CounterMetric {
 ///
 /// Gauge metrics represent point-in-time values that can go up or down
 /// (e.g. active workers, queued tasks, connected services).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GaugeMetric {
     /// The metric key (e.g. `"workers.active"`, `"queue.depth"`).
     pub key: String,
@@ -103,7 +105,7 @@ pub struct GaugeMetric {
 ///
 /// Each service that implements [`MetricsAggregator`] can contribute
 /// its own timers, counters, and gauges to the unified runtime metrics.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ServiceMetrics {
     /// The service key (e.g. `"capture_engine"`, `"storage_manager"`).
     pub service: String,
@@ -130,7 +132,7 @@ pub struct ServiceMetrics {
 /// breaking existing deserialization on the frontend.
 ///
 /// [`PerformanceMonitor`]: crate::diagnostics::PerformanceMonitor
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct RuntimeMetrics {
     /// Aggregated timers from the PerformanceMonitor and service-specific
     /// metrics aggregators.
@@ -210,6 +212,9 @@ impl RuntimeMetrics {
 /// Future metrics types (histograms, summaries) can be added to
 /// [`ServiceMetrics`] without requiring changes to existing implementors
 /// — the new fields will simply remain empty.
+///
+/// [`ApplicationContext`]: crate::registry::context::ApplicationContext
+
 pub trait MetricsAggregator: Send + Sync {
     /// Returns a snapshot of this service's runtime metrics.
     ///
@@ -219,6 +224,43 @@ pub trait MetricsAggregator: Send + Sync {
     /// - Handle lock poisoning gracefully — return an empty snapshot
     ///   rather than panicking.
     fn metrics(&self) -> ServiceMetrics;
+}
+
+/// Blanket implementation for `std::sync::Mutex<T>` where `T: MetricsAggregator`.
+///
+/// This allows services wrapped in `Arc<Mutex<T>>` (e.g. `Indexer`) to be
+/// registered as metrics aggregators without explicit wrapper impls at each
+/// call site. Lock poisoning is handled gracefully — a poisoned lock returns
+/// an empty metric snapshot.
+impl<T: MetricsAggregator + ?Sized> MetricsAggregator for StdMutex<T> {
+    fn metrics(&self) -> ServiceMetrics {
+        match self.lock() {
+            Ok(inner) => inner.metrics(),
+            Err(poisoned) => {
+                tracing::warn!("Metrics collection from Mutex<T> skipped: lock poisoned");
+                let _ = poisoned;
+                ServiceMetrics::default()
+            }
+        }
+    }
+}
+
+/// Blanket implementation for `std::sync::RwLock<T>` where `T: MetricsAggregator`.
+///
+/// This allows services wrapped in `Arc<RwLock<T>>` (e.g. `VaultGraph`) to be
+/// registered as metrics aggregators. Lock poisoning is handled gracefully —
+/// a poisoned lock returns an empty metric snapshot.
+impl<T: MetricsAggregator + ?Sized> MetricsAggregator for StdRwLock<T> {
+    fn metrics(&self) -> ServiceMetrics {
+        match self.read() {
+            Ok(inner) => inner.metrics(),
+            Err(poisoned) => {
+                tracing::warn!("Metrics collection from RwLock<T> skipped: lock poisoned");
+                let _ = poisoned;
+                ServiceMetrics::default()
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

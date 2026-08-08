@@ -2,6 +2,7 @@ use crate::conversations::{PersistenceError, PersistenceResult};
 use crate::event_bus::{ConversationEvent, EventBus, PipelineEvent};
 use crate::models::conversation::Thread;
 use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
+use crate::registry::metrics::{CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -627,6 +628,25 @@ impl Lifecycle for ConversationStore {
         );
 
         Ok(())
+    }
+}
+
+impl MetricsAggregator for ConversationStore {
+    fn metrics(&self) -> ServiceMetrics {
+        let thread_count = self.list().len() as i64;
+
+        ServiceMetrics {
+            service: "conversation_store".to_string(),
+            timers: Vec::new(),
+            counters: vec![CounterMetric {
+                key: "conversation.threads".to_string(),
+                value: thread_count as u64,
+            }],
+            gauges: vec![GaugeMetric {
+                key: "conversation.thread_count".to_string(),
+                value: thread_count,
+            }],
+        }
     }
 }
 

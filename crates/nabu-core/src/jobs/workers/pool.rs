@@ -4,7 +4,7 @@ use crate::jobs::workers::executor::ExecutorRegistry;
 use crate::jobs::workers::shutdown::ShutdownCoordinator;
 use crate::jobs::workers::worker::Worker;
 use crate::registry::metrics::{
-    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics, TimerMetric,
+    CounterMetric, GaugeMetric, MetricsAggregator, ServiceMetrics,
 };
 use crate::registry::lifecycle::{
     Lifecycle, LifecycleManager, LifecycleStage,

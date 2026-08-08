@@ -95,6 +95,15 @@ fn build_application_context(
         reg.register("event_bus", event_bus.clone());
     }
 
+    // ---- 1.5. One PerformanceMonitor (local-only metrics aggregation) ----
+    // The monitor is the single aggregation point for all subsystem timing
+    // and count data. It is registered both as a regular singleton (for typed
+    // resolution via `performance_monitor()`) and as a MetricsAggregator so
+    // the unified `metrics` IPC can discover it through the registry.
+    let perf_monitor = Arc::new(nabu_core::diagnostics::PerformanceMonitor::new());
+    ctx.register("performance_monitor", perf_monitor.clone());
+    ctx.register_metrics_aggregator("performance_monitor", perf_monitor.clone());
+
     // ---- 1.5. One DiagnosticPlatform (unified diagnostic retrieval) ----
     // The platform aggregates diagnostic providers and is the canonical entry
     // point for the `diagnostic_requested` IPC command. It is registered before
@@ -115,6 +124,7 @@ fn build_application_context(
         (*event_bus).clone(),
     ));
     ctx.register("storage_manager", storage.clone());
+    ctx.register_metrics_aggregator("storage_manager", storage.clone());
 
     // ---- 2.5. One ConversationStore (conversation thread persistence) ----
     // The store publishes ThreadSaved/ThreadUpdated/ThreadDeleted events on
@@ -125,6 +135,7 @@ fn build_application_context(
         (*event_bus).clone(),
     ));
     ctx.register("conversation_store", conversation_store.clone());
+    ctx.register_metrics_aggregator("conversation_store", conversation_store.clone());
 
     // ---- 3. One ProcessingPipeline (standard pipeline, 14 processors) ----
     let pipeline = Arc::new(build_standard_pipeline(Some((*event_bus).clone())));
@@ -148,6 +159,7 @@ fn build_application_context(
         )
     }));
     ctx.register("job_queue", queue.clone());
+    ctx.register_metrics_aggregator("job_queue", queue.clone());
 
     // ---- 5. One PipelineExecutor (Worker → Pipeline → Storage) ----
     // Registered under every processor name the CaptureEngine can enqueue.
@@ -175,6 +187,7 @@ fn build_application_context(
     // ---- 6. One WorkerPool ----
     let worker_pool = Arc::new(WorkerPool::new(4, queue.clone(), executors));
     ctx.register("worker_pool", worker_pool.clone());
+    ctx.register_metrics_aggregator("worker_pool", worker_pool.clone());
 
     // ---- 7. One CaptureEngine (canonical handlers + queue) ----
     let capture_engine = Arc::new(nabu_core::capture::build_default_capture_engine(
@@ -182,6 +195,7 @@ fn build_application_context(
         Some(queue.clone()),
     ));
     ctx.register("capture_engine", capture_engine.clone());
+    ctx.register_metrics_aggregator("capture_engine", capture_engine.clone());
 
     // Register capture handlers in the "capture_handlers" category.
     {
@@ -194,6 +208,7 @@ fn build_application_context(
     // ---- 8. One Indexer (canonical search engine) ----
     let indexer = Arc::new(Mutex::new(Indexer::with_event_bus((*event_bus).clone())));
     ctx.register("indexer", indexer.clone());
+    ctx.register_metrics_aggregator("indexer", indexer.clone());
 
     // ---- 9. One VaultGraph (canonical graph engine, persisted) ----
     let vault_graph = Arc::new(RwLock::new(
@@ -201,6 +216,7 @@ fn build_application_context(
             .unwrap_or_else(|e| panic!("Failed to initialize VaultGraph: {}", e)),
     ));
     ctx.register("vault_graph", vault_graph.clone());
+    ctx.register_metrics_aggregator("vault_graph", vault_graph.clone());
 
     // ---- 10. One HistoryManager (universal undo/redo) ----
     let history_manager = Arc::new(RwLock::new(
@@ -398,6 +414,8 @@ pub fn run() {
             crate::commands::capability_list_with_state,
             // Phase 1.5.1 — Health reporting diagnostics.
             crate::commands::health_check,
+            // Phase P7.2.2 — Metrics IPC.
+            crate::commands::metrics,
             // Phase 6.3.1 — Plugin-to-Host IPC invocation bridge.
             crate::commands::plugin_call,
             // Diagnostic IPC — editor diagnostic bridge.
