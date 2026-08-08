@@ -49,6 +49,8 @@ pub enum Icon {
     // Objects & tools
     Brush, Mic, Camera, Music, Play, Package, Target, Command, Monitor,
     Smartphone, Tablet, Laptop, User, MapPin, HardDrive,
+    // Additional tool icons
+    Cog, Database,
     // Charts & stats
     ChartBar, ChartColumn, ChartLine, ChartPie, TrendingUp, TrendingDown,
     Flame,
@@ -192,7 +194,9 @@ impl Icon {
         Icon::Laptop => "laptop",
         Icon::User => "user",
         Icon::MapPin => "map-pin",
-        Icon::HardDrive => "hard-drive",
+         Icon::HardDrive => "hard-drive",
+         Icon::Cog => "cog",
+         Icon::Database => "database",
         Icon::ChartBar => "chart-bar",
         Icon::ChartColumn => "chart-column",
         Icon::ChartLine => "chart-line",
@@ -2588,6 +2592,50 @@ pub fn icon_component(icon: Icon) -> Element {
                     path { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }
                     line { x1: "6", x2: "6.01", y1: "16", y2: "16" }
                     line { x1: "10", x2: "10.01", y1: "16", y2: "16" }
+                }
+            }
+        }
+        Icon::Cog => {
+            rsx! {
+                svg {
+                    xmlns: "http://www.w3.org/2000/svg",
+                    width: "24",
+                    height: "24",
+                    view_box: "0 0 24 24",
+                    fill: "none",
+                    stroke: "currentColor",
+                    stroke_width: "2",
+                    stroke_linecap: "round",
+                    stroke_linejoin: "round",
+                    class: "lucide",
+                    path { d: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" }
+                    path { d: "M12 2v2" }
+                    path { d: "M12 20v2" }
+                    path { d: "4.93 4.93.64 6.64" }
+                    path { d: "18.36 17.36 19.07 19.07" }
+                    path { d: "1 12h2" }
+                    path { d: "21 12h2" }
+                    path { d: "4.93 19.07 6.64 17.36" }
+                    path { d: "18.36 6.64 19.07 4.93" }
+                }
+            }
+        }
+        Icon::Database => {
+            rsx! {
+                svg {
+                    xmlns: "http://www.w3.org/2000/svg",
+                    width: "24",
+                    height: "24",
+                    view_box: "0 0 24 24",
+                    fill: "none",
+                    stroke: "currentColor",
+                    stroke_width: "2",
+                    stroke_linecap: "round",
+                    stroke_linejoin: "round",
+                    class: "lucide",
+                    ellipse { cx: "12", cy: "5", rx: "9", ry: "3" }
+                    path { d: "M2 12c0 1.66 4 3 8 3s8-1.34 8-3" }
+                    path { d: "M2 5v14c0 1.66 4 3 8 3s8-1.34 8-3V5" }
                 }
             }
         }

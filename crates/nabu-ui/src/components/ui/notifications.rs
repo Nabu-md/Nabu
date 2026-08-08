@@ -44,7 +44,7 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 
 use crate::events::{use_event_listener, FrontendEvent, FrontendEventKind};
-use crate::ui::feedback::{set_timeout, ToastContext, ToastKind, use_toast};
+use crate::components::ui::feedback::{set_timeout, ToastContext, ToastKind, use_toast};
 use nabu_core::event_bus::PipelineEvent;
 
 // ─── Notification metadata ───────────────────────────────────────────
@@ -59,6 +59,7 @@ use nabu_core::event_bus::PipelineEvent;
 ///   stacking (e.g. repeated "syncing" status updates)
 ///
 /// Adding a new mapped event kind only requires extending [`NotificationConfig::for_kind`].
+#[derive(Clone, Copy)]
 struct NotificationConfig {
     title: &'static str,
     severity: ToastKind,
@@ -72,6 +73,7 @@ impl NotificationConfig {
     /// too noisy on their own).
     fn for_kind(kind: FrontendEventKind) -> Option<Self> {
         match kind {
+            // ── Pipeline events ──
             FrontendEventKind::ItemStored => Some(Self {
                 title: "Note saved",
                 severity: ToastKind::Success,
@@ -108,17 +110,80 @@ impl NotificationConfig {
                 persistent: false,
                 dedup_key: None,
             }),
+            // ── Capability events ──
             FrontendEventKind::CapabilityStateChanged => Some(Self {
                 title: "Capability updated",
                 severity: ToastKind::Info,
                 persistent: false,
                 dedup_key: None,
             }),
+            FrontendEventKind::CapabilityRegistered => Some(Self {
+                title: "Capability registered",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::CapabilityRemoved => Some(Self {
+                title: "Capability removed",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            // ── Sync events ──
             FrontendEventKind::SyncStatusChanged => Some(Self {
                 title: "Sync status changed",
                 severity: ToastKind::Info,
                 persistent: false,
                 dedup_key: Some("sync.status"),
+            }),
+            // ── Plugin lifecycle events ──
+            FrontendEventKind::PluginLoaded => Some(Self {
+                title: "Plugin loaded",
+                severity: ToastKind::Success,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginUnloaded => Some(Self {
+                title: "Plugin unloaded",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginStarted => Some(Self {
+                title: "Plugin started",
+                severity: ToastKind::Success,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginStopped => Some(Self {
+                title: "Plugin stopped",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginRegistered => Some(Self {
+                title: "Plugin registered",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginUnregistered => Some(Self {
+                title: "Plugin unregistered",
+                severity: ToastKind::Info,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginWarning => Some(Self {
+                title: "Plugin warning",
+                severity: ToastKind::Warning,
+                persistent: false,
+                dedup_key: None,
+            }),
+            FrontendEventKind::PluginError => Some(Self {
+                title: "Plugin error",
+                severity: ToastKind::Error,
+                persistent: false,
+                dedup_key: None,
             }),
             // Events that are too frequent/noisy to toast individually:
             // progress updates, processing-started, and index/graph updates.
@@ -269,6 +334,9 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
                 nabu_core::sync::SyncStatus::Conflict => {
                     Some(format!("{}: conflicts detected", e.provider_id))
                 }
+                _ => {
+                    Some(format!("{}: sync status changed", e.provider_id))
+                }
             }
         }
         PipelineEvent::ItemProcessingProgress(_) => None,
@@ -293,8 +361,44 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
             };
             Some(format!("Graph updated: {}", op))
         }
-        PipelineEvent::Plugin(_)
-        | PipelineEvent::Process(_)
+        PipelineEvent::Plugin(e) => {
+            use nabu_core::plugin::events::PluginEvent;
+            match e {
+                PluginEvent::PluginLoaded(p) => {
+                    Some(format!("{} v{} loaded", p.plugin_name, p.plugin_version))
+                }
+                PluginEvent::PluginUnloaded(p) => {
+                    Some(format!("{} unloaded", p.plugin_name))
+                }
+                PluginEvent::PluginStarted(p) => {
+                    Some(format!("{} started", p.plugin_name))
+                }
+                PluginEvent::PluginStopped(p) => {
+                    Some(format!("{} stopped", p.plugin_name))
+                }
+                PluginEvent::PluginRegistered(p) => {
+                    Some(format!("{} v{} registered", p.plugin_name, p.plugin_version))
+                }
+                PluginEvent::PluginUnregistered(p) => {
+                    Some(format!("{} unregistered", p.plugin_name))
+                }
+                PluginEvent::PluginWarning(p) => {
+                    Some(format!("{}: {}", p.plugin_id, p.message))
+                }
+                PluginEvent::PluginError(p) => {
+                    Some(format!("{}: {}", p.plugin_id, p.error))
+                }
+                PluginEvent::CapabilityRegistered(c) => {
+                    Some(format!("Capability {} registered", c.capability_id))
+                }
+                PluginEvent::CapabilityRemoved(_) => {
+                    Some("Capability removed".to_string())
+                }
+                PluginEvent::PluginRequest(_) => None,
+                PluginEvent::PluginResponse(_) => None,
+            }
+        }
+        PipelineEvent::Process(_)
         | PipelineEvent::Agent(_)
         | PipelineEvent::Diagnostic(_)
         | PipelineEvent::Conversation(_)
@@ -302,7 +406,6 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
         | PipelineEvent::Session(_) => {
             // These event kinds are not in the FrontendEventKind set yet,
             // so they won't reach this function in the current phase.
-            // Return a generic message if they ever do.
             Some(payload.kind().to_string())
         }
     }
@@ -312,6 +415,7 @@ fn event_message(payload: &PipelineEvent) -> Option<String> {
 
 /// Context passed into every event listener closure, capturing the shared
 /// signals and toast context needed for dispatch.
+#[derive(Clone, Copy)]
 struct NotificationState {
     toast_ctx: ToastContext,
     queue: Signal<NotificationQueue>,
@@ -323,12 +427,11 @@ fn subscribe_all_kinds(state: NotificationState) {
     // satisfy the hooks rule. For kinds with no config, the callback is
     // a no-op.
     for &kind in FrontendEventKind::ALL {
-        let config = NotificationConfig::for_kind(kind);
-        let state = &state;
+        let config = NotificationConfig::for_kind(kind).cloned();
 
         use_event_listener(kind, move |ev: &FrontendEvent| {
             if let Some(config) = config {
-                handle_event(ev, state, config);
+                handle_event(ev, &state, config);
             }
         });
     }
@@ -459,7 +562,7 @@ fn handle_event(
 #[component]
 pub fn NotificationHost(children: Element) -> Element {
     rsx! {
-        crate::ui::feedback::ToastProvider {
+        crate::components::ui::feedback::ToastProvider {
             NotificationManager {}
             {children}
         }

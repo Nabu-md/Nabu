@@ -291,7 +291,7 @@ pub fn SettingsPanel() -> Element {
         "Appearance", "Editor", "Markdown", "Search", "Graph",
         "Files & Vaults", "Import & Export", "OCR", "Accessibility",
         "Performance", "Privacy", "Keyboard Shortcuts", "Advanced",
-        "Experimental", "About",
+        "Experimental", "Capabilities", "About",
     ];
 
     rsx! {
@@ -342,6 +342,7 @@ pub fn SettingsPanel() -> Element {
                 "Keyboard Shortcuts" => rsx! { { keyboard_shortcuts_settings(settings) } },
                 "Advanced"           => rsx! { { advanced_settings(settings) } },
                 "Experimental"       => rsx! { { experimental_settings(settings) } },
+                "Capabilities"       => rsx! { crate::components::settings::capability_management::CapabilityManagementPage {} },
                 "About"              => rsx! { { about_settings() } },
                 _                    => rsx! {},
             }

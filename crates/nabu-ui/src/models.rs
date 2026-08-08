@@ -276,12 +276,8 @@ pub mod properties {
 /// EventBus — the UI reconciles the initial snapshot received from
 /// `capability_list` with live state-change events.
 pub mod capability {
-    use nabu_core::plugin::capability::Capability;
-    use serde::{Deserialize, Serialize};
-
-    /// Re-export of the backend `Capability` type so callers can reference it
-    /// through the UI models module without depending on `nabu-core` directly.
     pub use nabu_core::plugin::capability::Capability;
+    use serde::{Deserialize, Serialize};
 
     /// Per-capability UI status, derived from the EventBus state-change events.
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
