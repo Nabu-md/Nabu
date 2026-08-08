@@ -30,8 +30,8 @@ use nabu_core::registry::health::{
 };
 use nabu_core::registry::lifecycle::{LifecycleStage};
 use nabu_core::storage::StorageManager;
+use nabu_core::plugin::capability::CapabilityRegistry;
 use nabu_core::registry::ServiceRegistry;
-
 use tempfile::tempdir;
 
 // ---------------------------------------------------------------------------
@@ -43,8 +43,15 @@ use tempfile::tempdir;
 /// `shutdown()` on the context to drive lifecycle transitions and verify
 /// that `health_check()` accurately reflects each stage.
 fn build_test_context(vault_path: std::path::PathBuf) -> ApplicationContext {
+    let registry = ServiceRegistry::new();
+    let capability_registry = {
+        let mut cr = CapabilityRegistry::new();
+        cr.register_builtin();
+        cr
+    };
     let ctx = ApplicationContextBuilder::new()
-        .with_registry(Arc::new(std::sync::RwLock::new(ServiceRegistry::new())))
+        .with_registry(Arc::new(std::sync::RwLock::new(registry)))
+        .with_capability_registry(capability_registry)
         .build();
 
     // CaptureEngine
@@ -81,8 +88,8 @@ fn build_test_context(vault_path: std::path::PathBuf) -> ApplicationContext {
 // 1. Healthy startup
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_after_healthy_startup() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_after_healthy_startup() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -126,8 +133,8 @@ fn health_check_after_healthy_startup() {
 // 2. Lifecycle state reporting (health reflects each transition)
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_reflects_lifecycle_transitions() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_reflects_lifecycle_transitions() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -163,8 +170,8 @@ fn health_check_reflects_lifecycle_transitions() {
 // 3. Successful health queries (valid, populated ServiceHealth)
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_returns_valid_report() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_returns_valid_report() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -194,8 +201,8 @@ fn health_check_returns_valid_report() {
 // 4. Expected service counts
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_service_count_matches_registry() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_service_count_matches_registry() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -206,8 +213,8 @@ fn health_check_service_count_matches_registry() {
     assert_eq!(health.registered_services, health.service_names.len());
 }
 
-#[test]
-fn health_check_service_count_grows_with_registration() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_service_count_grows_with_registration() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -222,8 +229,8 @@ fn health_check_service_count_grows_with_registration() {
     assert!(health.service_names.contains(&"extra_service".to_string()));
 }
 
-#[test]
-fn health_check_reports_all_registered_service_names() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_reports_all_registered_service_names() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -248,8 +255,8 @@ fn health_check_reports_all_registered_service_names() {
 // 5. Consistency between lifecycle manager and reported health
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_service_stages_match_actual() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_service_stages_match_actual() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -297,8 +304,8 @@ fn health_check_service_stages_match_actual() {
     }
 }
 
-#[test]
-fn health_check_running_service_count_matches() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_running_service_count_matches() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -324,8 +331,8 @@ fn health_check_running_service_count_matches() {
     assert_eq!(health.stopped_service_count, 6);
 }
 
-#[test]
-fn health_check_failed_service_count_is_zero_when_healthy() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_failed_service_count_is_zero_when_healthy() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -342,8 +349,8 @@ fn health_check_failed_service_count_is_zero_when_healthy() {
 // 6. Shutdown reporting
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_after_shutdown_reports_stopped() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_after_shutdown_reports_stopped() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -369,8 +376,8 @@ fn health_check_after_shutdown_reports_stopped() {
 // 7. Serialization round-trip
 // ---------------------------------------------------------------------------
 
-#[test]
-fn service_health_serializes_for_ipc() {
+#[tokio::test(flavor = "multi_thread")]
+async fn service_health_serializes_for_ipc() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
     assert!(ctx.initialize().is_ok());
@@ -394,8 +401,8 @@ fn service_health_serializes_for_ipc() {
 // 8. Minimal context (no lifecycle-managed services)
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_with_minimal_context() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_with_minimal_context() {
     let ctx = ApplicationContext::builder().build();
 
     let health = ctx.health_check();
@@ -414,8 +421,8 @@ fn health_check_with_minimal_context() {
 // 9. Error resilience (no panic on partial state)
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_does_not_panic_on_empty_registry() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_does_not_panic_on_empty_registry() {
     let registry = Arc::new(std::sync::RwLock::new(ServiceRegistry::new()));
     let ctx = ApplicationContext::builder()
         .with_registry(registry)
@@ -427,8 +434,8 @@ fn health_check_does_not_panic_on_empty_registry() {
     assert_eq!(health.lifecycle_stage, LifecycleStageInfo::Created);
 }
 
-#[test]
-fn health_check_consistency_before_and_after_init() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_consistency_before_and_after_init() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
 
@@ -454,8 +461,8 @@ fn health_check_consistency_before_and_after_init() {
 // 10. Per-service entry validation
 // ---------------------------------------------------------------------------
 
-#[test]
-fn health_check_service_entries_have_valid_data() {
+#[tokio::test(flavor = "multi_thread")]
+async fn health_check_service_entries_have_valid_data() {
     let dir = tempdir().unwrap();
     let ctx = build_test_context(dir.path().to_path_buf());
     assert!(ctx.initialize().is_ok());

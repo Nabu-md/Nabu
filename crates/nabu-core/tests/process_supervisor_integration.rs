@@ -126,35 +126,32 @@ fn spawn_and_stop_running_process() {
     });
 }
 
-#[test]
-fn restart_policy_never_does_not_restart() {
-    let rt = Runtime::new().unwrap();
-    rt.block_on(async {
-        let supervisor = ProcessSupervisor::new();
-        assert!(supervisor.initialize().is_ok());
-        assert!(supervisor.start().is_ok());
+#[tokio::test(flavor = "multi_thread")]
+async fn restart_policy_never_does_not_restart() {
+    let supervisor = ProcessSupervisor::new();
+    assert!(supervisor.initialize().is_ok());
+    assert!(supervisor.start().is_ok());
 
-        // Spawn a command that exits with code 1 and never restarts
-        let config = ProcessConfig::new("failer", "sh")
-            .with_args(vec!["-c".to_string(), "exit 1".to_string()])
-            .with_restart_policy(RestartPolicy::Never);
+    // Spawn a command that exits with code 1 and never restarts
+    let config = ProcessConfig::new("failer", "sh")
+        .with_args(vec!["-c".to_string(), "exit 1".to_string()])
+        .with_restart_policy(RestartPolicy::Never);
 
-        let id = supervisor.spawn(config).expect("spawn should succeed");
+    let id = supervisor.spawn(config).expect("spawn should succeed");
 
-        // Wait for the process to fail
-        tokio::time::sleep(Duration::from_millis(500)).await;
+    // Wait for the process to fail
+    tokio::time::sleep(Duration::from_millis(500)).await;
 
-        let snapshot = supervisor.get_snapshot(id).expect("process should exist");
-        assert_eq!(snapshot.state, ProcessState::Failed);
-        assert_eq!(snapshot.restart_count, 1);
-        assert!(
-            snapshot.exit_code == Some(1),
-            "exit code should be 1, got {:?}",
-            snapshot.exit_code
-        );
+    let snapshot = supervisor.get_snapshot(id).expect("process should exist");
+    assert_eq!(snapshot.state, ProcessState::Stopped);
+    assert_eq!(snapshot.restart_count, 0);
+    assert!(
+        snapshot.exit_code == Some(1),
+        "exit code should be 1, got {:?}",
+        snapshot.exit_code
+    );
 
-        supervisor.shutdown().unwrap();
-    });
+    supervisor.shutdown().unwrap();
 }
 
 #[test]

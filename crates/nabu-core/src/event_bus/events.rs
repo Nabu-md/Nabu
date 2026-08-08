@@ -991,3 +991,72 @@ impl AgentCrashedEvent {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::event_bus::events::AgentEvent;
+    use uuid::Uuid;
+
+    fn test_process_id() -> ProcessId {
+        Uuid::nil()
+    }
+
+    #[test]
+    fn agent_started_kind_is_started() {
+        let ev = AgentEvent::Started(AgentStartedEvent::new(
+            test_process_id(),
+            "mcp-filesystem",
+            "jsonrpc_stdio",
+            Some(1234),
+        ));
+        assert_eq!(ev.kind(), "agent.started");
+    }
+
+    #[test]
+    fn agent_stopped_kind_is_stopped() {
+        let ev = AgentEvent::Stopped(AgentStoppedEvent::new(
+            test_process_id(),
+            "mcp-filesystem",
+            "user requested stop",
+        ));
+        assert_eq!(ev.kind(), "agent.stopped");
+    }
+
+    #[test]
+    fn agent_restarted_kind_is_restarted() {
+        let ev = AgentEvent::Restarted(AgentRestartedEvent::new(
+            test_process_id(),
+            "mcp-filesystem",
+            1,
+            "crash",
+        ));
+        assert_eq!(ev.kind(), "agent.restarted");
+    }
+
+    #[test]
+    fn agent_crashed_kind_is_crashed() {
+        let ev = AgentEvent::Crashed(AgentCrashedEvent::new(
+            test_process_id(),
+            "mcp-filesystem",
+            Some(1),
+            "panic",
+            Some(1234),
+            0,
+        ));
+        assert_eq!(ev.kind(), "agent.crashed");
+    }
+
+    #[test]
+    fn agent_event_timestamp_is_valid() {
+        let created = Utc::now();
+        let ev = AgentEvent::Started(AgentStartedEvent::new(
+            test_process_id(),
+            "mcp-filesystem",
+            "jsonrpc_stdio",
+            None,
+        ));
+        let ts = ev.timestamp();
+        assert!(ts >= created, "timestamp should be >= time of creation");
+    }
+}

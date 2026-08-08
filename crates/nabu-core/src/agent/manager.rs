@@ -90,8 +90,9 @@ const MONITOR_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_mil
 ///
 /// ```no_run
 /// use nabu_core::agent::{AgentConfig, AgentManager};
-/// use nabu_core::process_supervisor::RestartPolicy;
+/// use nabu_core::process_supervisor::{ProcessSupervisor, RestartPolicy};
 /// use nabu_core::event_bus::{EventBus, PipelineEvent};
+/// use nabu_core::registry::lifecycle::Lifecycle;
 /// use std::sync::Arc;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,7 +101,7 @@ const MONITOR_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_mil
 /// supervisor.initialize()?;
 /// supervisor.start()?;
 ///
-/// let manager = AgentManager::new(supervisor, event_bus);
+/// let manager = AgentManager::new(Arc::new(supervisor), event_bus);
 /// manager.initialize()?;
 /// manager.start()?;
 ///
@@ -346,7 +347,7 @@ impl AgentManager {
                 break;
             }
             let state = self.supervisor.get_state(supervisor_pid);
-            if state.map_or(true, |s| s.is_running()) {
+            if state.is_none_or(|s| s.is_running()) {
                 {
                     let mut proc = process_handle.lock().expect("agent process lock poisoned");
                     proc.mark_running();
@@ -466,7 +467,7 @@ impl AgentManager {
             // Wait briefly for the process to terminate
             let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
             while std::time::Instant::now() < deadline {
-                if self.supervisor.get_state(pid).map_or(true, |s| s.is_terminal()) {
+                if self.supervisor.get_state(pid).is_none_or(|s| s.is_terminal()) {
                     break;
                 }
                 std::thread::sleep(MONITOR_POLL_INTERVAL);
@@ -551,7 +552,7 @@ impl AgentManager {
                     break;
                 }
                 let state = self.supervisor.get_state(pid);
-                if state.map_or(true, |s| s.is_terminal()) {
+                if state.is_none_or(|s| s.is_terminal()) {
                     break;
                 }
                 tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
@@ -586,7 +587,7 @@ impl AgentManager {
                 break;
             }
             let state = self.supervisor.get_state(supervisor_pid);
-            if state.map_or(true, |s| s.is_running()) {
+            if state.is_none_or(|s| s.is_running()) {
                 {
                     let mut proc = process_handle.lock().expect("agent process lock poisoned");
                     proc.mark_running();

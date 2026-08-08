@@ -74,6 +74,7 @@ pub enum AgentKind {
     ToolServer,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for AgentKind {
     fn default() -> Self {
         Self::Custom

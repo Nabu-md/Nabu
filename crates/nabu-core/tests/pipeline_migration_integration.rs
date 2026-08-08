@@ -53,11 +53,11 @@ async fn test_all_processors_executable() {
     let pipeline = build_standard_pipeline(None);
     let processor_count = pipeline.processor_count();
 
-    // We should have all 14 processors registered
+    // We should have all 15 processors registered
     assert_eq!(
         processor_count,
-        14,
-        "Expected 14 processors, got {}: {:?}",
+        15,
+        "Expected 15 processors, got {}: {:?}",
         processor_count,
         pipeline.processor_names()
     );

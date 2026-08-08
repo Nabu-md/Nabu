@@ -74,6 +74,7 @@ pub enum AgentProcessState {
     Stopped,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for AgentProcessState {
     fn default() -> Self {
         Self::Registered
