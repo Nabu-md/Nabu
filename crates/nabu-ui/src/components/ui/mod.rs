@@ -6,6 +6,8 @@ pub mod icons;
 pub mod button;
 pub mod card;
 pub mod dialog;
+pub mod notifications;
+pub use notifications::{NotificationManager, NotificationHost};
 pub mod feedback;
 pub mod info;
 pub mod input;

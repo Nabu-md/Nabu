@@ -63,6 +63,27 @@ pub enum FrontendEventKind {
     CapabilityStateChanged,
     /// A synchronization folder's status has changed.
     SyncStatusChanged,
+    // --- Plugin lifecycle events ---
+    /// A plugin was loaded.
+    PluginLoaded,
+    /// A plugin was unloaded.
+    PluginUnloaded,
+    /// A plugin was registered.
+    PluginRegistered,
+    /// A plugin was unregistered.
+    PluginUnregistered,
+    /// A plugin was started.
+    PluginStarted,
+    /// A plugin was stopped.
+    PluginStopped,
+    /// A capability was registered by a plugin.
+    CapabilityRegistered,
+    /// A capability was removed.
+    CapabilityRemoved,
+    /// A plugin emitted a warning.
+    PluginWarning,
+    /// A plugin emitted an error.
+    PluginError,
 }
 
 impl FrontendEventKind {
@@ -81,6 +102,17 @@ impl FrontendEventKind {
             FrontendEventKind::ItemRetried => kinds::ITEM_RETRIED,
             FrontendEventKind::CapabilityStateChanged => kinds::CAPABILITY_STATE_CHANGED,
             FrontendEventKind::SyncStatusChanged => kinds::SYNC_STATUS_CHANGED,
+            // Plugin lifecycle
+            FrontendEventKind::PluginLoaded => kinds::PLUGIN_LOADED,
+            FrontendEventKind::PluginUnloaded => kinds::PLUGIN_UNLOADED,
+            FrontendEventKind::PluginRegistered => kinds::PLUGIN_REGISTERED,
+            FrontendEventKind::PluginUnregistered => kinds::PLUGIN_UNREGISTERED,
+            FrontendEventKind::PluginStarted => kinds::PLUGIN_STARTED,
+            FrontendEventKind::PluginStopped => kinds::PLUGIN_STOPPED,
+            FrontendEventKind::CapabilityRegistered => kinds::CAPABILITY_REGISTERED,
+            FrontendEventKind::CapabilityRemoved => kinds::CAPABILITY_REMOVED,
+            FrontendEventKind::PluginWarning => kinds::PLUGIN_WARNING,
+            FrontendEventKind::PluginError => kinds::PLUGIN_ERROR,
         }
     }
 
@@ -101,6 +133,17 @@ impl FrontendEventKind {
             kinds::ITEM_RETRIED => FrontendEventKind::ItemRetried,
             kinds::CAPABILITY_STATE_CHANGED => FrontendEventKind::CapabilityStateChanged,
             kinds::SYNC_STATUS_CHANGED => FrontendEventKind::SyncStatusChanged,
+            // Plugin lifecycle
+            kinds::PLUGIN_LOADED => FrontendEventKind::PluginLoaded,
+            kinds::PLUGIN_UNLOADED => FrontendEventKind::PluginUnloaded,
+            kinds::PLUGIN_REGISTERED => FrontendEventKind::PluginRegistered,
+            kinds::PLUGIN_UNREGISTERED => FrontendEventKind::PluginUnregistered,
+            kinds::PLUGIN_STARTED => FrontendEventKind::PluginStarted,
+            kinds::PLUGIN_STOPPED => FrontendEventKind::PluginStopped,
+            kinds::CAPABILITY_REGISTERED => FrontendEventKind::CapabilityRegistered,
+            kinds::CAPABILITY_REMOVED => FrontendEventKind::CapabilityRemoved,
+            kinds::PLUGIN_WARNING => FrontendEventKind::PluginWarning,
+            kinds::PLUGIN_ERROR => FrontendEventKind::PluginError,
             _ => return None,
         })
     }
@@ -120,6 +163,17 @@ impl FrontendEventKind {
         FrontendEventKind::ItemRetried,
         FrontendEventKind::CapabilityStateChanged,
         FrontendEventKind::SyncStatusChanged,
+        // Plugin lifecycle
+        FrontendEventKind::PluginLoaded,
+        FrontendEventKind::PluginUnloaded,
+        FrontendEventKind::PluginRegistered,
+        FrontendEventKind::PluginUnregistered,
+        FrontendEventKind::PluginStarted,
+        FrontendEventKind::PluginStopped,
+        FrontendEventKind::CapabilityRegistered,
+        FrontendEventKind::CapabilityRemoved,
+        FrontendEventKind::PluginWarning,
+        FrontendEventKind::PluginError,
     ];
 }
 

@@ -19,6 +19,7 @@ use crate::components::navigation::{
 };
 use crate::components::ui::feedback::{TaskProvider, ToastProvider};
 use crate::components::ui::icons::{render_icon, Icon};
+use crate::components::ui::notifications::NotificationManager;
 use dioxus::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -32,6 +33,7 @@ pub fn App() -> Element {
             ThemeProvider { initial_theme: "dark".to_string() }
             ToastProvider {
                 TaskProvider {
+                    NotificationManager {}
                     HistoryProvider {
                         SaveStatusProvider {
                             WorkspaceProvider {
@@ -246,6 +248,11 @@ pub fn ViewContent() -> Element {
         ViewMode::Statistics => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
                 crate::components::statistics::StatisticsView {}
+            }
+        },
+        ViewMode::Activity => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                crate::components::activity::ActivityPanel {}
             }
         },
     }

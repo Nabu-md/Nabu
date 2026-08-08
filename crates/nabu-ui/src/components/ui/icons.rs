@@ -56,10 +56,12 @@ pub enum Icon {
     KanbanBoard, VisionOcr, CodeBlock, Callout,
     // Misc
     Sparkles, Zap, Wand, Globe, GalleryVerticalEnd, CircleHelp, Bookmark,
-    CloudUpload, Upload, Download, Scissors, ExternalLink, Sun, Moon,
-    Ellipsis, CircleEllipsis, Eye, EyeOff,
-    // Keyboard
-    Keyboard,
+     CloudUpload, Upload, Download, Scissors, ExternalLink, Sun, Moon,
+     Ellipsis, CircleEllipsis, Eye, EyeOff,
+     // Activity / timeline
+     Activity,
+     // Keyboard
+     Keyboard,
     // Additional re-exported icons
     GitCompare, Slash,
 }
@@ -219,8 +221,9 @@ impl Icon {
         Icon::Ellipsis => "ellipsis",
         Icon::CircleEllipsis => "circle-ellipsis",
         Icon::Eye => "eye",
-        Icon::EyeOff => "eye-off",
-        Icon::Keyboard => "keyboard",
+         Icon::EyeOff => "eye-off",
+         Icon::Activity => "activity",
+         Icon::Keyboard => "keyboard",
         Icon::GitCompare => "git-compare",
         Icon::Slash => "slash",
         }
@@ -3172,6 +3175,27 @@ pub fn icon_component(icon: Icon) -> Element {
                     circle { cx: "6", cy: "6", r: "3" }
                     path { d: "M13 6h3a2 2 0 0 1 2 2v7" }
                     path { d: "M11 18H8a2 2 0 0 1-2-2V9" }
+                }
+            }
+        }
+        Icon::Activity => {
+            rsx! {
+                svg {
+                    xmlns: "http://www.w3.org/2000/svg",
+                    width: "24",
+                    height: "24",
+                    view_box: "0 0 24 24",
+                    fill: "none",
+                    stroke: "currentColor",
+                    stroke_width: "2",
+                    stroke_linecap: "round",
+                    stroke_linejoin: "round",
+                    class: "lucide",
+                    path { d: "M2 12a10 10 0 0 1 19.42-2.34" }
+                    path { d: "M2 12a10 10 0 0 0 19.42 2.34" }
+                    path { d: "M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6" }
+                    path { d: "M8 8l4-4 4 4" }
+                    path { d: "M8 16l4 4 4-4" }
                 }
             }
         }

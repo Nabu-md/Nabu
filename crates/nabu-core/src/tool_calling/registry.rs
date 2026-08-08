@@ -741,16 +741,28 @@ mod tool_calling {
 
     #[tokio::test]
     async fn register_replaces_existing_tool() {
+        struct PingToolV2;
+
+        #[async_trait]
+        impl Tool for PingToolV2 {
+            fn spec(&self) -> ToolSpec {
+                ToolSpec::new("nabu:ping", "PingV2", "Returns pong v2")
+            }
+            async fn call(&self, _call: ToolCall) -> Result<ToolResult, ToolError> {
+                Ok(ToolResult::success(Some(json!("pong v2")), None))
+            }
+        }
+
         let registry = ToolRegistry::new();
         registry.register(Arc::new(PingTool)).await;
 
-        let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let replacement = Arc::new(CounterTool { calls: counter });
+        let replacement = Arc::new(PingToolV2);
         registry.register(replacement).await;
 
         assert_eq!(registry.tool_count().await, 1);
-        assert!(!registry.has_tool("nabu:ping").await);
-        assert!(registry.has_tool("nabu:counter").await);
+        let result = registry.call(ToolCall::without_args("nabu:ping")).await;
+        assert!(result.is_success());
+        assert_eq!(result.result, Some(json!("pong v2")));
     }
 
     #[tokio::test]

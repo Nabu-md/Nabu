@@ -10,6 +10,21 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::settings::{AppSettings, SettingsStore};
 
+// ── Capability Management Types ─────────────────────────────────────
+
+/// Backend-side DTO that pairs a `Capability` with its runtime state.
+///
+/// Returned by the `capability_list_with_state` IPC command so the frontend
+/// can render enable/disable toggles with the correct initial state without
+/// issuing separate per-capability probes.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CapabilitySummaryWithState {
+    #[serde(flatten)]
+    pub capability: nabu_core::plugin::capability::Capability,
+    pub enabled: bool,
+    pub provider: String,
+}
+
 // ── Security Utilities ──────────────────────────────────────
 
 /// Validates that a file path is within the vault directory.
@@ -3502,8 +3517,8 @@ pub fn capability_disable(
 /// verbatim.
 ///
 /// Runtime enabled/disabled state is **not** part of this snapshot; it is
-/// communicated reactively to the frontend via `CapabilityStateChanged`
-/// events on the `nabu-event` channel.
+/// communicated reactively to the frontend via `CapabilityStateChanged` events
+/// on the `nabu-event` channel.
 #[tauri::command]
 pub fn capability_list(
     ctx: State<'_, ApplicationContext>,
@@ -3521,6 +3536,46 @@ pub fn capability_list(
     let count = caps.len();
     tracing::info!(count, "Capabilities returned");
     Ok(caps)
+}
+
+/// Returns every registered capability enriched with its runtime enabled state
+/// and provider name.
+///
+/// This is the canonical IPC API for the Capability Management UI. It queries
+/// the [`nabu_core::plugin::capability::CapabilityRegistry`] directly and
+/// projects each `Capability` definition into a `CapabilitySummaryWithState`
+/// that carries the fields the bare `Capability` type does not expose:
+///
+/// - `enabled` — whether the capability is currently enabled.
+/// - `provider` — which plugin or the host application provides this capability.
+///
+/// This command is intentionally separate from [`capability_list`] (which
+/// returns the bare definition snapshot) so that forward-compatible extensions
+/// to the summary payload do not perturb the canonical list endpoint.
+#[tauri::command]
+pub fn capability_list_with_state(
+    ctx: State<'_, ApplicationContext>,
+) -> Result<Vec<crate::commands::CapabilitySummaryWithState>, String> {
+    let registry = ctx.capability_registry();
+    let ids = registry.list();
+    let enabled = registry.list_enabled();
+    let enabled_set: std::collections::HashSet<&String> = enabled.iter().collect();
+
+    let summaries: Vec<crate::commands::CapabilitySummaryWithState> = ids
+        .iter()
+        .filter_map(|id| {
+            let cap = registry.get(id)?;
+            let provider = registry.provider(id).map(|s| s.to_string()).unwrap_or_default();
+            Some(crate::commands::CapabilitySummaryWithState {
+                capability: cap.clone(),
+                enabled: enabled_set.contains(id),
+                provider,
+            })
+        })
+        .collect();
+
+    tracing::info!(count = summaries.len(), "Capability summaries with state returned");
+    Ok(summaries)
 }
 
 /// Returns a structured [`ServiceHealth`] report describing the current

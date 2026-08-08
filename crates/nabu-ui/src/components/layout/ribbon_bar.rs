@@ -89,6 +89,13 @@ pub fn RibbonBar() -> Element {
             on_click: open_canvas,
             {render_icon_view(Icon::Palette)}
         }
+        IconButton {
+            title: "Activity",
+            on_click: move |_| {
+                nav.view_mode.set(ViewMode::Activity);
+            },
+            {render_icon_view(Icon::Activity)}
+        }
         div { class: "flex-grow" }
         IconButton {
             title: "Settings",

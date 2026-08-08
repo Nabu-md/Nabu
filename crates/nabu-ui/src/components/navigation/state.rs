@@ -51,6 +51,8 @@ pub enum ViewMode {
     Comparison,
     /// Vault-wide metrics and insights.
     Statistics,
+    /// Activity timeline panel.
+    Activity,
 }
 
 impl Default for ViewMode {
@@ -79,6 +81,7 @@ pub fn parse_view_mode(mode: &str) -> ViewMode {
         "reader" => ViewMode::Reader,
         "comparison" => ViewMode::Comparison,
         "statistics" => ViewMode::Statistics,
+        "activity" => ViewMode::Activity,
         _ => ViewMode::Editor,
     }
 }
@@ -104,6 +107,7 @@ pub fn view_mode_key(mode: ViewMode) -> &'static str {
         ViewMode::Reader => "reader",
         ViewMode::Comparison => "comparison",
         ViewMode::Statistics => "statistics",
+        ViewMode::Activity => "activity",
     }
 }
 
@@ -128,6 +132,7 @@ pub fn view_mode_label(mode: ViewMode) -> &'static str {
         ViewMode::Reader => "Reader",
         ViewMode::Comparison => "Comparison",
         ViewMode::Statistics => "Statistics",
+        ViewMode::Activity => "Activity",
     }
 }
 
@@ -152,6 +157,7 @@ pub fn view_mode_icon(mode: ViewMode) -> Icon {
         ViewMode::Reader => Icon::BookText,
         ViewMode::Comparison => Icon::Comparison,
         ViewMode::Statistics => Icon::TrendingUp,
+        ViewMode::Activity => Icon::Activity,
     }
 }
 

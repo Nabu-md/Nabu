@@ -58,6 +58,10 @@ const ALL_EVENT_KINDS: &[&str] = &[
     // plugin platform UI (plugin list, warnings, request/response, etc.)
     kinds::PLUGIN_LOADED,
     kinds::PLUGIN_UNLOADED,
+    kinds::PLUGIN_REGISTERED,
+    kinds::PLUGIN_UNREGISTERED,
+    kinds::PLUGIN_STARTED,
+    kinds::PLUGIN_STOPPED,
     kinds::CAPABILITY_REGISTERED,
     kinds::CAPABILITY_REMOVED,
     kinds::PLUGIN_WARNING,

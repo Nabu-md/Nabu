@@ -27,6 +27,7 @@
 //!   version history browser, and snapshot recovery manager
 
 pub mod app;
+pub mod activity;
 pub mod contexts;
 pub mod dictation_pill;
 pub mod editor;

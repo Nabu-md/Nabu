@@ -262,3 +262,147 @@ pub mod properties {
         }
     }
 }
+
+/// # Capability Platform — UI-side data model
+///
+/// The UI layer projects the backend [`Capability`] (defined in
+/// `nabu-core::plugin::capability`) into a richer `CapabilitySummary` that
+/// carries the runtime state the backend does **not** include in the
+/// `capability_list` snapshot: the *enabled* flag and the *provider* name.
+///
+/// The `Capability` struct is the single source of truth for capability
+/// *definitions* (namespace, name, description, required). The enabled state
+/// is communicated reactively through `CapabilityStateChanged` events on the
+/// EventBus — the UI reconciles the initial snapshot received from
+/// `capability_list` with live state-change events.
+pub mod capability {
+    use nabu_core::plugin::capability::Capability;
+    use serde::{Deserialize, Serialize};
+
+    /// Re-export of the backend `Capability` type so callers can reference it
+    /// through the UI models module without depending on `nabu-core` directly.
+    pub use nabu_core::plugin::capability::Capability;
+
+    /// Per-capability UI status, derived from the EventBus state-change events.
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+    pub enum CapabilityStatus {
+        /// The initial state before any data has been loaded.
+        #[default]
+        Unknown,
+        /// The capability is currently enabled.
+        Enabled,
+        /// The capability is currently disabled.
+        Disabled,
+        /// An enable or disable operation is in flight.
+        ///
+        /// Carries the direction of the pending transition (`true` = enabling,
+        /// `false` = disabling) so the UI can render the correct disabled
+        /// toggle while the request is in progress.
+        Pending(bool),
+        /// The last enable/disable operation failed.  The inner string is the
+        /// error message received from the backend.
+        Error(String),
+    }
+
+    impl CapabilityStatus {
+        /// Human-readable label for the status badge.
+        pub fn label(&self) -> &'static str {
+            match self {
+                CapabilityStatus::Unknown => "Unknown",
+                CapabilityStatus::Enabled => "Enabled",
+                CapabilityStatus::Disabled => "Disabled",
+                CapabilityStatus::Pending(true) => "Enabling…",
+                CapabilityStatus::Pending(false) => "Disabling…",
+                CapabilityStatus::Error(_) => "Error",
+            }
+        }
+
+        /// Whether the capability is currently considered enabled.
+        ///
+        /// `Pending` transitions are resolved optimistically — `Pending(true)`
+        /// reports `true` so the toggle shows the target state immediately.
+        pub fn is_enabled(&self) -> bool {
+            match self {
+                CapabilityStatus::Enabled | CapabilityStatus::Pending(true) => true,
+                CapabilityStatus::Disabled | CapabilityStatus::Pending(false) => false,
+                CapabilityStatus::Unknown => false,
+                CapabilityStatus::Error(msg) => !msg.is_empty(),
+            }
+        }
+    }
+
+    /// The UI-layer view of a single capability.
+    ///
+    /// Wraps the backend [`Capability`] definition and enriches it with the
+    /// runtime fields the backend does not include in the `capability_list`
+    /// snapshot:
+    ///
+    /// - `enabled` — the current enabled/disabled state, synchronised from
+    ///   the backend `CapabilityRegistry` via `CapabilityStateChanged` events.
+    /// - `provider` — which plugin or the host application provides this
+    ///   capability (e.g. `"nabu"` for built-ins).
+    /// - `status` — a finer-grained status badge (enabled / disabled /
+    ///   loading / error).
+    ///
+    /// The struct is deserialisable directly from the `capability_list` IPC
+    /// response because `#[serde(default)]` makes the runtime fields optional
+    /// — if the backend later includes `provider` and `enabled` in its
+    /// serialized form, the fields are picked up automatically; otherwise they
+    /// default and are reconciled via events.
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    pub struct CapabilitySummary {
+        /// The backend capability definition (namespace, name, description,
+        /// required flag).
+        #[serde(flatten)]
+        pub capability: Capability,
+        /// Whether the capability is currently enabled.
+        ///
+        /// Defaults to `false` when the backend does not include this field
+        /// in the `capability_list` response. The UI reconciles the real
+        /// state from `CapabilityStateChanged` events and initial enable-state
+        /// probes after listing.
+        #[serde(default)]
+        pub enabled: bool,
+        /// The provider name (e.g. `"nabu"` for built-in capabilities, or a
+        /// plugin ID for plugin-provided capabilities).
+        #[serde(default)]
+        pub provider: String,
+        /// Fine-grained runtime status for the status indicator badge.
+        #[serde(default)]
+        #[serde(skip)]
+        pub status: CapabilityStatus,
+    }
+
+    impl CapabilitySummary {
+        /// Full identifier string: `{namespace}:{name}`.
+        pub fn id(&self) -> String {
+            self.capability.id()
+        }
+
+        /// Convenience constructor for tests and manual construction.
+        pub fn from_capability(cap: Capability, provider: &str, enabled: bool) -> Self {
+            let status = if enabled {
+                CapabilityStatus::Enabled
+            } else {
+                CapabilityStatus::Disabled
+            };
+            Self {
+                capability: cap,
+                enabled,
+                provider: provider.to_string(),
+                status,
+            }
+        }
+    }
+
+    impl From<Capability> for CapabilitySummary {
+        fn from(cap: Capability) -> Self {
+            CapabilitySummary {
+                capability: cap,
+                enabled: false,
+                provider: String::new(),
+                status: CapabilityStatus::Unknown,
+            }
+        }
+    }
+}

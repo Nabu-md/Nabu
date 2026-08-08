@@ -385,6 +385,7 @@ pub fn run() {
             crate::commands::capability_enable,
             crate::commands::capability_disable,
             crate::commands::capability_list,
+            crate::commands::capability_list_with_state,
             // Phase 1.5.1 — Health reporting diagnostics.
             crate::commands::health_check,
             // Phase 6.3.1 — Plugin-to-Host IPC invocation bridge.
