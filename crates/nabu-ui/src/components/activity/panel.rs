@@ -162,7 +162,7 @@ fn activity_entry(item: ActivityItem) -> Element {
 /// Formats a millisecond timestamp as a relative duration (e.g. "2m ago",
 /// "now", "1h ago"). Falls back to "just now" for errors.
 fn format_relative_time(timestamp_ms: f64) -> String {
-    let now = js_sys::Date::now();
+    let now = super::now_ms();
     let elapsed_ms = (now - timestamp_ms).max(0.0) as u64;
 
     if elapsed_ms < 1000 {
@@ -226,22 +226,22 @@ mod tests {
 
     #[test]
     fn format_relative_time_just_now() {
-        let now = js_sys::Date::now();
+        let now = super::super::now_ms();
         let result = format_relative_time(now);
         assert_eq!(result, "just now");
     }
 
     #[test]
     fn format_relative_time_minutes_ago() {
-        let now = js_sys::Date::now();
-        let two_minutes_ago = now - 120_000.0; // 2 minutes
+        let now = super::super::now_ms();
+        let two_minutes_ago = now - (2.0 * 60_000.0); // 2 minutes
         let result = format_relative_time(two_minutes_ago);
         assert_eq!(result, "2m ago");
     }
 
     #[test]
     fn format_relative_time_hours_ago() {
-        let now = js_sys::Date::now();
+        let now = super::super::now_ms();
         let two_hours_ago = now - (2.0 * 3_600_000.0); // 2 hours
         let result = format_relative_time(two_hours_ago);
         assert_eq!(result, "2h ago");
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn format_relative_time_days_ago() {
-        let now = js_sys::Date::now();
+        let now = super::super::now_ms();
         let three_days_ago = now - (3.0 * 24.0 * 3_600_000.0); // 3 days
         let result = format_relative_time(three_days_ago);
         assert_eq!(result, "3d ago");

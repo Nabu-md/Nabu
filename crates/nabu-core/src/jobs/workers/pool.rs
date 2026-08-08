@@ -6,6 +6,7 @@ use crate::jobs::workers::worker::Worker;
 use crate::registry::lifecycle::{
     Lifecycle, LifecycleManager, LifecycleStage,
 };
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::sync::Mutex as StdMutex;
 use std::time::Duration;
@@ -380,7 +381,7 @@ impl Lifecycle for WorkerPool {
 }
 
 /// Snapshot of pool health metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolHealth {
     pub worker_count: usize,
     pub shutting_down: bool,

@@ -394,7 +394,17 @@ impl ProcessSupervisor {
     /// 3. Waits (synchronously) for all monitoring tasks to finish,
     ///    up to [`SHUTDOWN_DRAIN_TIMEOUT`].
     /// 4. Aborts any monitoring tasks that don't finish in time.
+    ///
+    /// Double-shutdown is a safe no-op — if the supervisor is already shut
+    /// down (via the lifecycle flag or the shutdown context), this method
+    /// returns immediately without error.
     pub fn shutdown(&self) -> ProcessResult<()> {
+        // Idempotency guard: if we're already shutting down or fully
+        // shut down, return immediately.
+        if self.lifecycle.is_shutdown() {
+            return Ok(());
+        }
+
         tracing::info!(
             subsystem = "supervisor",
             component = "supervisor",

@@ -351,6 +351,21 @@ impl ApplicationContext {
         registry.register(key, service);
     }
 
+    /// Registers a lifecycle-managed service.
+    ///
+    /// The service is stored as a singleton (resolvable via [`resolve`](Self::resolve))
+    /// and also tracked for automatic lifecycle management — its
+    /// [`Lifecycle::shutdown`](crate::registry::lifecycle::Lifecycle::shutdown)
+    /// method will be called during [`shutdown`](Self::shutdown).
+    pub fn register_lifecycle<T: Lifecycle + Send + Sync + 'static>(
+        &self,
+        key: &str,
+        service: Arc<T>,
+    ) {
+        let mut registry = self.registry.write().expect("registry lock not poisoned");
+        registry.register_lifecycle(key, service);
+    }
+
     /// Registers a service in a category.
     pub fn register_in_category(&self, category: &str, key: &str) {
         let mut registry = self.registry.write().expect("registry lock not poisoned");
@@ -460,16 +475,25 @@ impl ApplicationContext {
     /// - `conversation_store` (ConversationStore)
     /// - `vault_graph` (VaultGraph, behind RwLock)
     /// - `indexer` (Indexer, behind Mutex)
+    /// - `plugin_manager` (PluginManager, behind RwLock)
     ///
-    /// Services without lifecycle management (e.g. `event_bus`, `pipeline`)
-    /// are included in `service_names` and `registered_services` but do not
-    /// appear in the per-service `services` list.
+    /// Services without lifecycle management (e.g. `event_bus`, `pipeline`,
+    /// `performance_monitor`, `diagnostic_platform`) are included in
+    /// `service_names` and `registered_services` but do not appear in the
+    /// per-service `services` list.
     ///
     /// # Thread safety
     ///
     /// All lock acquisitions are released before acquiring the next,
     /// avoiding nested lock ordering issues. Lock errors are recorded in the
     /// `error` field rather than causing a panic.
+    ///
+    /// # Future services
+    ///
+    /// To include a new lifecycle-managed service in health reports, add a
+    /// typed accessor to `ApplicationContext` and a `record_service` call here.
+    /// The `ServiceHealth` struct uses `#[serde(default)]` on all fields, so
+    /// new fields can be added to the struct without breaking deserialization.
     pub fn health_check(&self) -> ServiceHealth {
         tracing::info!("Health check requested");
 
@@ -585,6 +609,12 @@ impl ApplicationContext {
             }
         }
 
+        // PluginManager (behind RwLock — always constructed, may be Created)
+        {
+            let pm = self.plugin_manager.read().expect("plugin manager lock poisoned");
+            record_service("plugin_manager", pm.lifecycle_stage());
+        }
+
         // Derive failed_count from collected services + lock errors.
         let failed_count = services.iter().filter(|s| !s.healthy).count() + lock_error_count;
 
@@ -680,6 +710,19 @@ impl ApplicationContext {
     pub fn service_count(&self) -> usize {
         let registry = self.registry.read().expect("registry lock not poisoned");
         registry.singleton_count() + registry.factory_count()
+    }
+
+    /// Returns the keys of all registered lifecycle-managed services, in
+    /// registration order.
+    pub fn lifecycle_service_keys(&self) -> Vec<String> {
+        let registry = self.registry.read().expect("registry lock not poisoned");
+        registry.lifecycle_service_keys()
+    }
+
+    /// Returns the number of registered lifecycle-managed services.
+    pub fn lifecycle_service_count(&self) -> usize {
+        let registry = self.registry.read().expect("registry lock not poisoned");
+        registry.lifecycle_service_count()
     }
 
     /// Returns the number of registered categories.
@@ -966,14 +1009,47 @@ impl ApplicationContext {
 
     /// Transitions the context to the `Shutdown` stage.
     ///
-    /// Shuts down all lifecycle-managed services in reverse dependency order:
+    /// Shuts down all lifecycle-managed services. Services registered via
+    /// [`register_lifecycle`](ServiceRegistry::register_lifecycle) are shut
+    /// down automatically in reverse registration order (consumers before
+    /// providers) via
+    /// [`shutdown_all_lifecycle_services`](ServiceRegistry::shutdown_all_lifecycle_services).
     ///
-    /// VaultGraph → Indexer → CaptureEngine → PipelineExecutor → WorkerPool → StorageManager
+    /// Services registered via plain [`register`](ServiceRegistry::register)
+    /// (e.g. `StorageManager`, `VaultGraph`, `Indexer` registered by external
+    /// code) are shut down individually via typed accessors as a fallback.
+    ///
+    /// The `PluginManager` (owned directly by the context, not in the
+    /// registry) is always shut down last.
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
-        // Shut down in reverse dependency order so that consumers stop
-        // before their providers.
-        // VaultGraph → Indexer → CaptureEngine → PipelineExecutor → WorkerPool → StorageManager
+        // --- 1. Shut down all lifecycle-managed services (generic mechanism) ---
+        let registry = self.registry.write().expect("registry lock not poisoned");
+        let shutdown_errors = registry.shutdown_all_lifecycle_services();
+        if !shutdown_errors.is_empty() {
+            for err in &shutdown_errors {
+                tracing::error!(error = %err, "Lifecycle service shutdown failed");
+            }
+        }
+        drop(registry);
 
+        // --- 2. Fallback: shut down services registered via plain register() ---
+        // These are services that may have been registered by external code
+        // (e.g. tests, consuming applications) without using register_lifecycle.
+        // The Lifecycle trait guards against double-shutdown, so services
+        // already handled by step 1 will be no-ops here.
+        //
+        // Reverse dependency order: consumers before providers.
+        // ConversationStore → VaultGraph → Indexer → CaptureEngine → PipelineExecutor → WorkerPool → StorageManager
+
+        // --- ConversationStore ---
+        if let Some(conv) = self.conversation_store() {
+            tracing::info!("ConversationStore shutting down");
+            if let Err(e) = conv.shutdown() {
+                tracing::error!(error = %e, "Failed to shut down ConversationStore");
+            }
+        }
+
+        // --- VaultGraph ---
         if let Some(graph) = self.vault_graph() {
             if let Ok(g) = graph.write() {
                 tracing::info!("VaultGraph shutting down");
@@ -983,6 +1059,7 @@ impl ApplicationContext {
             }
         }
 
+        // --- Indexer ---
         if let Some(indexer) = self.indexer() {
             if let Ok(idx) = indexer.lock() {
                 tracing::info!("Indexer shutting down");
@@ -992,6 +1069,7 @@ impl ApplicationContext {
             }
         }
 
+        // --- CaptureEngine ---
         if let Some(engine) = self.capture_engine() {
             tracing::info!("CaptureEngine shutting down");
             if let Err(e) = engine.shutdown() {
@@ -999,6 +1077,7 @@ impl ApplicationContext {
             }
         }
 
+        // --- PipelineExecutor ---
         if let Some(executor) = self.pipeline_executor() {
             tracing::info!("PipelineExecutor shutting down");
             if let Err(e) = executor.shutdown() {
@@ -1006,6 +1085,7 @@ impl ApplicationContext {
             }
         }
 
+        // --- WorkerPool ---
         if let Some(pool) = self.worker_pool() {
             tracing::info!("WorkerPool shutting down");
             if let Err(e) = pool.shutdown() {
@@ -1013,6 +1093,7 @@ impl ApplicationContext {
             }
         }
 
+        // --- StorageManager ---
         if let Some(storage) = self.storage_manager() {
             tracing::info!("StorageManager shutting down");
             if let Err(e) = storage.shutdown() {
@@ -1020,15 +1101,7 @@ impl ApplicationContext {
             }
         }
 
-        // --- ConversationStore (flush manifest, release threads) ---
-        if let Some(conv) = self.conversation_store() {
-            tracing::info!("ConversationStore shutting down");
-            if let Err(e) = conv.shutdown() {
-                tracing::error!(error = %e, "Failed to shut down ConversationStore");
-            }
-        }
-
-        // --- PluginManager (foundation shutdown — no plugins loaded) ---
+        // --- 3. PluginManager (foundation shutdown — no plugins loaded) ---
         let pm = self
             .plugin_manager
             .read()

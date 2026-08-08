@@ -86,6 +86,11 @@
 
 use std::sync::Arc;
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::agent::AgentManager;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::process_supervisor::ProcessSupervisor;
+
 use crate::capture::CaptureEngine;
 use crate::conversations::ConversationStore;
 use crate::diagnostics::PerformanceMonitor;
@@ -128,6 +133,12 @@ pub struct Application {
     _pipeline_executor: Option<Arc<PipelineExecutor>>,
     /// Keeps the conversation store alive for the lifetime of the Application.
     _conversation_store: Option<Arc<ConversationStore>>,
+    /// Keeps the process supervisor alive for the lifetime of the Application.
+    #[cfg(not(target_arch = "wasm32"))]
+    _process_supervisor: Option<Arc<ProcessSupervisor>>,
+    /// Keeps the agent manager alive for the lifetime of the Application.
+    #[cfg(not(target_arch = "wasm32"))]
+    _agent_manager: Option<Arc<AgentManager>>,
 }
 
 impl Application {
@@ -287,48 +298,55 @@ impl Application {
     ///
     /// This phase stops background workers, drains queues, releases resources,
     /// and transitions to `Shutdown`.
+    ///
+    /// Shutdown is performed in two phases:
+    /// 1. All lifecycle-managed services (registered via
+    ///    `register_lifecycle`) are shut down in reverse registration order
+    ///    via `ServiceRegistry::shutdown_all_lifecycle_services`.
+    /// 2. Services registered via plain `register()` (e.g. `StorageManager`,
+    ///    `VaultGraph`, `Indexer` registered by external code) are shut down
+    ///    individually via typed accessors.
+    ///
+    /// Both phases call the `Lifecycle::shutdown()` method on each service;
+    /// because all implementations guard against double-shutdown via their
+    /// internal `LifecycleManager`, services handled in phase 1 will be
+    /// no-ops in phase 2.
     pub fn shutdown(&self) -> Result<(), LifecycleError> {
-        // Shut down lifecycle-managed services first (before context shutdown).
-        // Reverse dependency order: storage consumers → storage owner.
-        if let Some(graph) = self.context.vault_graph() {
-            if let Ok(g) = graph.write() {
-                if let Err(e) = g.shutdown() {
-                    tracing::error!(error = %e, "Failed to shut down VaultGraph");
-                }
+        // --- 1. Shut down all lifecycle-managed services (generic mechanism) ---
+        let registry = self.context.registry.write().expect("registry lock not poisoned");
+        let shutdown_errors = registry.shutdown_all_lifecycle_services();
+        if !shutdown_errors.is_empty() {
+            for err in &shutdown_errors {
+                tracing::error!(error = %err, "Lifecycle service shutdown failed");
             }
         }
-        if let Some(indexer) = self.context.indexer() {
-            if let Ok(idx) = indexer.lock() {
-                if let Err(e) = idx.shutdown() {
-                    tracing::error!(error = %e, "Failed to shut down Indexer");
-                }
-            }
-        }
-        if let Some(pool) = self.context.worker_pool() {
-            if let Err(e) = pool.shutdown() {
-                tracing::error!(error = %e, "Failed to shut down worker pool");
-            }
-        }
-        if let Some(executor) = self.context.pipeline_executor() {
-            if let Err(e) = executor.shutdown() {
-                tracing::error!(error = %e, "Failed to shut down pipeline executor");
-            }
-        }
-        if let Some(engine) = self.context.capture_engine() {
-            if let Err(e) = engine.shutdown() {
-                tracing::error!(error = %e, "Failed to shut down capture engine");
-            }
-        }
+        drop(registry);
+
+        // --- 2. Fallback: services registered via plain register() ---
+        // These are typically registered by external code (e.g. StorageManager,
+        // VaultGraph, Indexer) and are not in the lifecycle_services list.
         if let Some(storage) = self.context.storage_manager() {
+            tracing::info!("StorageManager shutting down");
             if let Err(e) = storage.shutdown() {
                 tracing::error!(error = %e, "Failed to shut down storage manager");
             }
         }
 
-        // ConversationStore: flush manifest and release threads during shutdown.
-        if let Some(conv) = self.context.conversation_store() {
-            if let Err(e) = conv.shutdown() {
-                tracing::error!(error = %e, "Failed to shut down conversation store");
+        if let Some(graph) = self.context.vault_graph() {
+            if let Ok(g) = graph.write() {
+                tracing::info!("VaultGraph shutting down");
+                if let Err(e) = g.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down VaultGraph");
+                }
+            }
+        }
+
+        if let Some(indexer) = self.context.indexer() {
+            if let Ok(idx) = indexer.lock() {
+                tracing::info!("Indexer shutting down");
+                if let Err(e) = idx.shutdown() {
+                    tracing::error!(error = %e, "Failed to shut down Indexer");
+                }
             }
         }
 
@@ -389,6 +407,12 @@ pub struct ApplicationBuilder {
     pipeline_executor: Option<Arc<PipelineExecutor>>,
     /// Conversation store (optional — persists conversation threads).
     conversation_store: Option<Arc<ConversationStore>>,
+    /// Process supervisor (optional — manages external agent subprocesses).
+    #[cfg(not(target_arch = "wasm32"))]
+    process_supervisor: Option<Arc<ProcessSupervisor>>,
+    /// Agent manager (optional — high-level coordinator for registered agents).
+    #[cfg(not(target_arch = "wasm32"))]
+    agent_manager: Option<Arc<AgentManager>>,
 }
 
 impl ApplicationBuilder {
@@ -404,6 +428,10 @@ impl ApplicationBuilder {
             worker_pool: None,
             pipeline_executor: None,
             conversation_store: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            process_supervisor: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            agent_manager: None,
         }
     }
 
@@ -473,6 +501,38 @@ impl ApplicationBuilder {
         self
     }
 
+    /// Set the process supervisor.
+    ///
+    /// The process supervisor manages external agent subprocesses (MCP servers,
+    /// ACP servers, plugin hosts, etc.). When set, the supervisor is registered
+    /// under the `"process_supervisor"` key and its lifecycle (`initialize`,
+    /// `start`, `shutdown`) is invoked automatically during the corresponding
+    /// [`Application::initialize`], [`Application::start`], and
+    /// [`Application::shutdown`] phases.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_process_supervisor(mut self, supervisor: Arc<ProcessSupervisor>) -> Self {
+        self.process_supervisor = Some(supervisor);
+        self
+    }
+
+    /// Set the agent manager.
+    ///
+    /// The agent manager is a higher-level coordinator for registered agents,
+    /// wrapping the [`ProcessSupervisor`]. When set, the manager is registered
+    /// under the `"agent_manager"` key and its lifecycle (`initialize`,
+    /// `start`, `shutdown`) is invoked automatically during the corresponding
+    /// [`Application::initialize`], [`Application::start`], and
+    /// [`Application::shutdown`] phases.
+    ///
+    /// The `AgentManager::shutdown()` delegates to `ProcessSupervisor::shutdown()`,
+    /// so you typically do not need to register both — registering the agent
+    /// manager is sufficient.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_agent_manager(mut self, manager: Arc<AgentManager>) -> Self {
+        self.agent_manager = Some(manager);
+        self
+    }
+
     /// Set the service registry explicitly.
     ///
     /// Useful when you need to pre-populate the registry before building.
@@ -526,28 +586,42 @@ impl ApplicationBuilder {
         // ---- 4. Build and register the CaptureEngine ----
         if let Some(engine) = &self.capture_engine {
             let mut reg = registry.write().expect("registry lock not poisoned");
-            reg.register("capture_engine", engine.clone());
+            reg.register_lifecycle("capture_engine", engine.clone());
         }
 
         // ---- 5. Build and register the WorkerPool (if provided) ----
         if let Some(pool) = &self.worker_pool {
             let mut reg = registry.write().expect("registry lock not poisoned");
-            reg.register("worker_pool", pool.clone());
+            reg.register_lifecycle("worker_pool", pool.clone());
         }
 
         // ---- 6. Build and register the PipelineExecutor (if provided) ----
         if let Some(executor) = &self.pipeline_executor {
             let mut reg = registry.write().expect("registry lock not poisoned");
-            reg.register("pipeline_executor", executor.clone());
+            reg.register_lifecycle("pipeline_executor", executor.clone());
         }
 
         // ---- 7. Build and register the ConversationStore (if provided) ----
         if let Some(store) = &self.conversation_store {
             let mut reg = registry.write().expect("registry lock not poisoned");
-            reg.register("conversation_store", store.clone());
+            reg.register_lifecycle("conversation_store", store.clone());
         }
 
-        // ---- 6. Create the ApplicationContext ----
+        // ---- 8. Build and register the ProcessSupervisor (if provided) ----
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(supervisor) = &self.process_supervisor {
+            let mut reg = registry.write().expect("registry lock not poisoned");
+            reg.register_lifecycle("process_supervisor", supervisor.clone());
+        }
+
+        // ---- 9. Build and register the AgentManager (if provided) ----
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(manager) = &self.agent_manager {
+            let mut reg = registry.write().expect("registry lock not poisoned");
+            reg.register_lifecycle("agent_manager", manager.clone());
+        }
+
+        // ---- 10. Create the ApplicationContext ----
         let plugin_manager = crate::plugin::PluginManager::for_application();
         let context = ApplicationContext::new(
             registry.clone(),
@@ -556,7 +630,7 @@ impl ApplicationBuilder {
             plugin_manager,
         );
 
-        // ---- 7. Create the Application ----
+        // ---- 11. Create the Application ----
         Application {
             context,
             lifecycle: LifecycleManager::new(),
@@ -566,6 +640,10 @@ impl ApplicationBuilder {
             _worker_pool: self.worker_pool,
             _pipeline_executor: self.pipeline_executor,
             _conversation_store: self.conversation_store,
+            #[cfg(not(target_arch = "wasm32"))]
+            _process_supervisor: self.process_supervisor,
+            #[cfg(not(target_arch = "wasm32"))]
+            _agent_manager: self.agent_manager,
         }
     }
 }

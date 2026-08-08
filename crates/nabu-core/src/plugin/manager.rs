@@ -87,7 +87,7 @@ use crate::plugin::manifest::{CompatibilityCheck, PluginManifest};
 use crate::plugin::permissions::PermissionEvaluator;
 use crate::plugin::provider::{CapabilityProvider, ProviderError};
 use crate::plugin::version::Version;
-use crate::registry::lifecycle::Lifecycle;
+use crate::registry::lifecycle::{Lifecycle, LifecycleManager, LifecycleStage};
 use uuid::Uuid;
 
 /// The central PluginManager responsible for the plugin lifecycle.
@@ -132,6 +132,13 @@ pub struct PluginManager {
     /// emitted and all registration is silent — this keeps existing
     /// constructions untouched.
     event_bus: Option<EventBus<PipelineEvent>>,
+    /// Lifecycle manager — tracks this service's own lifecycle stage
+    /// (Created → Initialized → Running → Shutdown).
+    ///
+    /// This enables health reporting to include the PluginManager as a
+    /// lifecycle-managed service without requiring the manager to store
+    /// a separate stage flag.
+    lifecycle: LifecycleManager,
 }
 
 impl std::fmt::Debug for PluginManager {
@@ -143,6 +150,7 @@ impl std::fmt::Debug for PluginManager {
             .field("provider_count", &self.providers.len())
             .field("nabu_version", &self.nabu_version)
             .field("event_bus_attached", &self.event_bus.is_some())
+            .field("lifecycle_stage", &self.lifecycle.stage())
             .finish()
     }
 }
@@ -178,6 +186,7 @@ impl PluginManager {
             nabu_version,
             providers: HashMap::new(),
             event_bus: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -196,6 +205,7 @@ impl PluginManager {
             nabu_version,
             providers: HashMap::new(),
             event_bus: None,
+            lifecycle: LifecycleManager::new(),
         }
     }
 
@@ -962,6 +972,35 @@ impl PluginManager {
     }
 
     // -----------------------------------------------------------------------
+    // Lifecycle accessors
+    // -----------------------------------------------------------------------
+
+    /// Returns the current lifecycle stage of the PluginManager.
+    ///
+    /// This delegates to the internal [`LifecycleManager`] (the single source
+    /// of truth for this service's stage). The returned stage reflects the
+    /// phase that `initialize()` / `start()` / `shutdown()` have driven the
+    /// manager through.
+    pub fn lifecycle_stage(&self) -> LifecycleStage {
+        self.lifecycle.stage()
+    }
+
+    /// Returns `true` if the manager has been initialized.
+    pub fn is_initialized(&self) -> bool {
+        self.lifecycle.is_at_least(LifecycleStage::Initialized)
+    }
+
+    /// Returns `true` if the manager is running.
+    pub fn is_running(&self) -> bool {
+        self.lifecycle.is_running()
+    }
+
+    /// Returns `true` if the manager has been shut down.
+    pub fn is_shutdown(&self) -> bool {
+        self.lifecycle.is_shutdown()
+    }
+
+    // -----------------------------------------------------------------------
     // Provider Access
     // -----------------------------------------------------------------------
 
@@ -1293,7 +1332,13 @@ impl Lifecycle for PluginManager {
     ///
     /// Validates that internal registries are populated. No plugin discovery
     /// or loading occurs at this stage — that belongs to a future phase.
+    ///
+    /// Lifecycle transition: `Created → Initialized`.
     fn initialize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.lifecycle.is_shutdown() {
+            return Err("PluginManager has been shut down".into());
+        }
+
         tracing::info!(
             subsystem = "plugin",
             component = "manager",
@@ -1303,6 +1348,11 @@ impl Lifecycle for PluginManager {
             nabu_version = %self.nabu_version,
             "PluginManager initialized"
         );
+
+        self.lifecycle
+            .transition_to(LifecycleStage::Initialized)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
         Ok(())
     }
 
@@ -1313,7 +1363,20 @@ impl Lifecycle for PluginManager {
     /// initialized through their `initialize` hook so they integrate
     /// naturally with the application lifecycle. No plugins are loaded or
     /// executed — plugin execution will be implemented in a future phase.
+    ///
+    /// Lifecycle transition: `Initialized → Running` (or
+    /// `Created → Initialized → Running` if not previously initialized).
     fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.lifecycle.is_shutdown() {
+            return Err("PluginManager has been shut down and cannot be started".into());
+        }
+
+        if self.lifecycle.stage() == LifecycleStage::Created {
+            self.lifecycle
+                .transition_to(LifecycleStage::Initialized)
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+        }
+
         let init_failures = self.initialize_providers();
         if !init_failures.is_empty() {
             tracing::warn!(
@@ -1325,6 +1388,11 @@ impl Lifecycle for PluginManager {
                 "Some providers failed to initialize"
             );
         }
+
+        self.lifecycle
+            .transition_to(LifecycleStage::Running)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
         tracing::info!(
             subsystem = "plugin",
             component = "manager",
@@ -1341,6 +1409,8 @@ impl Lifecycle for PluginManager {
     /// providers release resources as part of the application lifecycle.
     /// Since no plugin code is loaded at the foundation stage, this is
     /// otherwise a lightweight cleanup pass.
+    ///
+    /// Lifecycle transition: → `Shutdown` (from any stage).
     fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
         let shutdown_failures = self.shutdown_providers();
         if !shutdown_failures.is_empty() {
@@ -1352,6 +1422,11 @@ impl Lifecycle for PluginManager {
                 "Some providers failed to shut down"
             );
         }
+
+        self.lifecycle
+            .transition_to(LifecycleStage::Shutdown)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
         tracing::info!(
             subsystem = "plugin",
             component = "manager",

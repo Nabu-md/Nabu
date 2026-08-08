@@ -48,6 +48,16 @@ pub struct ServiceRegistry {
     factories: HashMap<String, Box<dyn Fn() -> Arc<dyn Any + Send + Sync> + Send + Sync>>,
     /// Category index — maps category names to lists of service keys.
     categories: HashMap<String, Vec<String>>,
+    /// Lifecycle-managed services — stored as `Arc<dyn Lifecycle + Send + Sync>`.
+    ///
+    /// These are services that implement the [`Lifecycle`] trait and should
+    /// have their `initialize()`, `start()`, and `shutdown()` methods called
+    /// during the corresponding application lifecycle phases.
+    /// Keys are stored in registration order so shutdown can iterate in
+    /// reverse (consumers before providers).
+    lifecycle_services: Vec<String>,
+    /// Back-reference to lifecycle services for calling trait methods.
+    lifecycle_refs: HashMap<String, Arc<dyn Lifecycle + Send + Sync>>,
 }
 
 impl ServiceRegistry {
@@ -57,6 +67,8 @@ impl ServiceRegistry {
             singletons: HashMap::new(),
             factories: HashMap::new(),
             categories: HashMap::new(),
+            lifecycle_services: Vec::new(),
+            lifecycle_refs: HashMap::new(),
         }
     }
 
@@ -69,6 +81,33 @@ impl ServiceRegistry {
     pub fn register<T: Send + Sync + 'static>(&mut self, key: &str, service: Arc<T>) {
         self.singletons.insert(key.to_string(), service);
         self.factories.remove(key);
+    }
+
+    /// Registers a singleton service that implements [`Lifecycle`].
+    ///
+    /// The service is stored both as a general singleton (for resolution via
+    /// [`resolve`](Self::resolve)) and in a lifecycle-specific map so that
+    /// its `initialize()`, `start()`, and `shutdown()` methods are called
+    /// automatically during the corresponding application lifecycle phases.
+    ///
+    /// Services should be registered in dependency order (providers first,
+    /// consumers later) so that shutdown — which iterates in reverse order —
+    /// shuts down consumers before their providers.
+    ///
+    /// If a service with the same key already exists, it is replaced.
+    pub fn register_lifecycle<T: Lifecycle + Send + Sync + 'static>(
+        &mut self,
+        key: &str,
+        service: Arc<T>,
+    ) {
+        let key = key.to_string();
+        self.singletons.insert(key.clone(), service.clone());
+        self.factories.remove(&key);
+        if !self.lifecycle_services.contains(&key) {
+            self.lifecycle_services.push(key.clone());
+        }
+        self.lifecycle_refs
+            .insert(key, service);
     }
 
     /// Registers a transient factory for the given key.
@@ -171,6 +210,10 @@ impl ServiceRegistry {
             services.retain(|k| k != key);
         }
 
+        // Remove from lifecycle tracking
+        self.lifecycle_services.retain(|k| k != key);
+        self.lifecycle_refs.remove(key);
+
         removed_singleton || removed_factory
     }
 
@@ -195,6 +238,67 @@ impl ServiceRegistry {
             .iter()
             .filter_map(|key| self.resolve::<T>(key))
             .collect()
+    }
+
+    // -----------------------------------------------------------------------
+    // Lifecycle-managed service registry
+    // -----------------------------------------------------------------------
+
+    /// Returns the keys of all registered lifecycle-managed services, in
+    /// registration order (providers first, consumers later).
+    pub fn lifecycle_service_keys(&self) -> Vec<String> {
+        self.lifecycle_services.clone()
+    }
+
+    /// Returns the number of registered lifecycle-managed services.
+    pub fn lifecycle_service_count(&self) -> usize {
+        self.lifecycle_services.len()
+    }
+
+    /// Returns `true` if a service is registered as lifecycle-managed under
+    /// the given key.
+    pub fn has_lifecycle_service(&self, key: &str) -> bool {
+        self.lifecycle_services.iter().any(|k| k == key)
+    }
+
+    /// Shuts down all lifecycle-managed services in **reverse registration
+    /// order** (consumers before providers).
+    ///
+    /// Each service's `shutdown()` method is called; errors are logged and
+    /// collected in the returned vector. A failure in one service does not
+    /// prevent subsequent services from being shut down.
+    ///
+    /// This is safe to call even if some services are not in the `Running`
+    /// stage — the [`Lifecycle`] trait's default `shutdown()` is
+    /// idempotent.
+    pub fn shutdown_all_lifecycle_services(&self) -> Vec<String> {
+        let mut errors: Vec<String> = Vec::new();
+
+        for key in self.lifecycle_services.iter().rev() {
+            if let Some(svc) = self.lifecycle_refs.get(key) {
+                tracing::info!(
+                    service = %key,
+                    "Shutting down lifecycle-managed service"
+                );
+                if let Err(e) = svc.shutdown() {
+                    let msg = format!("{}: {}", key, e);
+                    tracing::error!(error = %msg, "Lifecycle shutdown failed for service");
+                    errors.push(msg);
+                }
+            }
+        }
+
+        if !errors.is_empty() {
+            tracing::warn!(
+                count = errors.len(),
+                "{} lifecycle service(s) failed to shut down cleanly",
+                errors.len()
+            );
+        } else {
+            tracing::info!("All lifecycle services shut down cleanly");
+        }
+
+        errors
     }
 }
 
@@ -237,6 +341,39 @@ mod tests {
 
     #[derive(Debug, Clone)]
     struct OtherService;
+
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// A mock Lifecycle service that tracks shutdown calls.
+    #[derive(Debug, Clone)]
+    struct MockLifecycleService {
+        name: &'static str,
+        shutdown_count: Arc<AtomicUsize>,
+    }
+
+    impl MockLifecycleService {
+        fn new(name: &'static str) -> Self {
+            Self {
+                name,
+                shutdown_count: Arc::new(AtomicUsize::new(0)),
+            }
+        }
+
+        fn shutdown_count(&self) -> usize {
+            self.shutdown_count.load(Ordering::SeqCst)
+        }
+    }
+
+    impl Lifecycle for MockLifecycleService {
+        fn name(&self) -> &'static str {
+            self.name
+        }
+
+        fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+            self.shutdown_count.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+    }
 
     #[test]
     fn register_and_resolve_singleton() {
@@ -373,5 +510,129 @@ mod tests {
         );
 
         assert_eq!(registry.get_category("procs").len(), 3);
+    }
+
+    #[test]
+    fn register_lifecycle_tracks_service() {
+        let mut registry = ServiceRegistry::new();
+        let svc = Arc::new(MockLifecycleService::new("svc_a"));
+        registry.register_lifecycle("svc_a", svc);
+
+        assert!(registry.has("svc_a"));
+        assert!(registry.has_lifecycle_service("svc_a"));
+        assert_eq!(registry.lifecycle_service_count(), 1);
+        assert_eq!(registry.lifecycle_service_keys(), vec!["svc_a".to_string()]);
+
+        let resolved: Option<Arc<MockLifecycleService>> = registry.resolve("svc_a");
+        assert!(resolved.is_some());
+    }
+
+    #[test]
+    fn register_lifecycle_replaces_existing() {
+        let mut registry = ServiceRegistry::new();
+        registry.register_lifecycle("svc_a", Arc::new(MockLifecycleService::new("svc_a")));
+        registry.register_lifecycle("svc_a", Arc::new(MockLifecycleService::new("svc_a_v2")));
+
+        assert_eq!(registry.lifecycle_service_count(), 1);
+        assert_eq!(registry.lifecycle_service_keys(), vec!["svc_a".to_string()]);
+    }
+
+    #[test]
+    fn unregister_removes_lifecycle_service() {
+        let mut registry = ServiceRegistry::new();
+        registry.register_lifecycle("svc_a", Arc::new(MockLifecycleService::new("svc_a")));
+        registry.register_lifecycle("svc_b", Arc::new(MockLifecycleService::new("svc_b")));
+
+        assert_eq!(registry.lifecycle_service_count(), 2);
+        assert!(registry.unregister("svc_a"));
+        assert_eq!(registry.lifecycle_service_count(), 1);
+        assert!(!registry.has_lifecycle_service("svc_a"));
+        assert!(registry.has_lifecycle_service("svc_b"));
+        assert!(!registry.has("svc_a"));
+    }
+
+    #[test]
+    fn shutdown_all_lifecycle_services_calls_shutdown() {
+        let mut registry = ServiceRegistry::new();
+        let svc_a = Arc::new(MockLifecycleService::new("svc_a"));
+        let svc_b = Arc::new(MockLifecycleService::new("svc_b"));
+        let svc_c = Arc::new(MockLifecycleService::new("svc_c"));
+
+        registry.register_lifecycle("svc_a", svc_a.clone());
+        registry.register_lifecycle("svc_b", svc_b.clone());
+        registry.register_lifecycle("svc_c", svc_c.clone());
+
+        let errors = registry.shutdown_all_lifecycle_services();
+
+        assert!(errors.is_empty());
+        assert_eq!(svc_a.shutdown_count(), 1);
+        assert_eq!(svc_b.shutdown_count(), 1);
+        assert_eq!(svc_c.shutdown_count(), 1);
+    }
+
+    #[test]
+    fn shutdown_all_lifecycle_services_reverse_order() {
+        let mut registry = ServiceRegistry::new();
+
+        // Track the order of shutdown calls
+        let shutdown_order = Arc::new(std::sync::Mutex::new(Vec::new()));
+
+        struct OrderedService {
+            name: String,
+            order: Arc<std::sync::Mutex<Vec<String>>>,
+        }
+
+        impl Lifecycle for OrderedService {
+            fn name(&self) -> &'static str {
+                "ordered"
+            }
+            fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+                self.order.lock().unwrap().push(self.name.clone());
+                Ok(())
+            }
+        }
+
+        let svc_a = Arc::new(OrderedService {
+            name: "a".to_string(),
+            order: shutdown_order.clone(),
+        });
+        let svc_b = Arc::new(OrderedService {
+            name: "b".to_string(),
+            order: shutdown_order.clone(),
+        });
+        let svc_c = Arc::new(OrderedService {
+            name: "c".to_string(),
+            order: shutdown_order.clone(),
+        });
+
+        registry.register_lifecycle("svc_a", svc_a);
+        registry.register_lifecycle("svc_b", svc_b);
+        registry.register_lifecycle("svc_c", svc_c);
+
+        let errors = registry.shutdown_all_lifecycle_services();
+        assert!(errors.is_empty());
+
+        let order = shutdown_order.lock().unwrap();
+        assert_eq!(*order, vec!["c".to_string(), "b".to_string(), "a".to_string()]);
+    }
+
+    #[test]
+    fn shutdown_all_lifecycle_services_empty_registry() {
+        let registry = ServiceRegistry::new();
+        let errors = registry.shutdown_all_lifecycle_services();
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn lifecycle_service_keys_preserve_order() {
+        let mut registry = ServiceRegistry::new();
+        registry.register_lifecycle("first", Arc::new(MockLifecycleService::new("first")));
+        registry.register_lifecycle("second", Arc::new(MockLifecycleService::new("second")));
+        registry.register_lifecycle("third", Arc::new(MockLifecycleService::new("third")));
+
+        assert_eq!(
+            registry.lifecycle_service_keys(),
+            vec!["first".to_string(), "second".to_string(), "third".to_string()]
+        );
     }
 }

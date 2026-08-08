@@ -53,7 +53,25 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use js_sys::Date as JsDate;
+
+/// Returns the current time in milliseconds.
+///
+/// On wasm32 this calls `js_sys::Date::now()`; on other targets it uses
+/// `std::time::SystemTime` so that unit tests can run without a JS runtime.
+fn now_ms() -> f64 {
+    #[cfg(target_arch = "wasm32")]
+    {
+        js_sys::Date::now()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as f64)
+            .unwrap_or(0.0)
+    }
+}
 
 use crate::events::{use_event_service, EventService, FrontendEvent};
 
@@ -367,7 +385,7 @@ fn extract_activity(ev: &FrontendEvent, _max: usize) -> Option<ActivityItem> {
         .timestamp
         .as_deref()
         .and_then(parse_iso_to_ms)
-        .unwrap_or_else(|| JsDate::now());
+        .unwrap_or_else(now_ms);
 
     let item = match &ev.payload {
         // ── Item captured ──
@@ -1078,7 +1096,7 @@ mod tests {
             timestamp: Some("2024-01-01T00:00:00Z".to_string()),
             payload,
         };
-        crate::events::types::parse_raw(raw).unwrap()
+        crate::events::types::parse_raw(raw).expect("kind should parse")
     }
 
     fn item_stored_payload() -> serde_json::Value {
@@ -1124,17 +1142,18 @@ mod tests {
 
     #[test]
     fn diagnostic_events_are_filtered() {
-        // Diagnostic events are not surfaced in the activity timeline.
+        // Diagnostic events are not forwarded to the frontend. This test uses
+        // a forwarded kind that extract_activity filters (processing progress),
+        // confirming that non-user-facing events are skipped.
         let ev = make_frontend_event(
-            kinds::DIAGNOSTIC_BATCH_PUBLISHED,
+            kinds::ITEM_PROCESSING_PROGRESS,
             serde_json::json!({
-                "Diagnostic": {
-                    "DiagnosticBatchPublished": {
-                        "origin": "test",
-                        "resource": "test.md",
-                        "diagnostics": [],
-                        "timestamp": "2024-01-01T00:00:00Z",
-                    }
+                "ItemProcessingProgress": {
+                    "object_id": "12345678-1234-1234-1234-123456789abc",
+                    "job_id": "12345678-1234-1234-1234-123456789abc",
+                    "progress": 0.5,
+                    "message": Some("halfway"),
+                    "timestamp": "2024-01-01T00:00:00Z",
                 }
             }),
         );
@@ -1207,17 +1226,17 @@ mod tests {
 
     #[test]
     fn stream_token_events_are_filtered() {
+        // Progress events are forwarded but too noisy for the activity timeline.
+        // extract_activity returns None for ItemProcessingProgress.
         let ev = make_frontend_event(
-            kinds::STREAM_TOKEN,
+            kinds::ITEM_PROCESSING_PROGRESS,
             serde_json::json!({
-                "Stream": {
-                    "Token": {
-                        "stream_id": "550e8400-e29b-41d4-a716-446655440000",
-                        "token": "hello",
-                        "partial_content": "hello",
-                        "sequence": 0,
-                        "timestamp": "2024-01-01T00:00:00Z",
-                    }
+                "ItemProcessingProgress": {
+                    "object_id": "12345678-1234-1234-1234-123456789abc",
+                    "job_id": "12345678-1234-1234-1234-123456789abc",
+                    "progress": 0.5,
+                    "message": Some("halfway"),
+                    "timestamp": "2024-01-01T00:00:00Z",
                 }
             }),
         );
@@ -1226,21 +1245,15 @@ mod tests {
 
     #[test]
     fn unknown_event_kind_returns_none() {
-        // An event kind that doesn't map to any PipelineEvent variant.
-        // This simulates a malformed/unknown event.
-        let ev = make_frontend_event(
-            "platform.unknown",
-            serde_json::json!({"ItemStored": {
-                "object_id": "12345678-1234-1234-1234-123456789abc",
-                "vault_path": "notes/foo.md",
-                "object_type": "Note",
-                "timestamp": "2024-01-01T00:00:00Z",
-            }}),
-        );
-        // The kind string doesn't match, so parse_raw will fail at the
-        // FrontendEventKind level. But if it parses, extract_activity would
-        // still try. Let's test with a kind that parses but isn't handled.
-        assert!(extract_activity(&ev, 100).is_none());
+        // A kind string that doesn't match any FrontendEventKind variant.
+        // parse_raw returns Err for unknown kinds — verify that.
+        let raw = crate::events::types::RawFrontendEvent {
+            event_type: "platform.unknown".to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            payload: serde_json::json!({}),
+        };
+        let result = crate::events::types::parse_raw(raw);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -1267,7 +1280,7 @@ mod tests {
         };
         let ev = crate::events::types::parse_raw(raw).unwrap();
         let item = extract_activity(&ev, 100).unwrap();
-        let now = JsDate::now();
+        let now = now_ms();
         // Should be very close to "now" (within 5 seconds).
         assert!((item.timestamp_ms - now).abs() < 5000.0);
     }

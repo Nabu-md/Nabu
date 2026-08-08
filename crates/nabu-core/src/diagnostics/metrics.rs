@@ -12,6 +12,7 @@
 //!
 //! All metrics are thread-safe. All metrics are local-only.
 
+use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
@@ -135,7 +136,7 @@ impl Default for Timer {
 }
 
 /// Statistics from a Timer's sliding window.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TimerStats {
     pub count: u64,
     pub window_count: u64,
@@ -146,6 +147,35 @@ pub struct TimerStats {
     pub p90_ms: f64,
     pub p99_ms: f64,
     pub sum_ms: f64,
+}
+
+/// Serializable snapshot of a single timer metric.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimerSnapshot {
+    pub key: String,
+    pub stats: TimerStats,
+}
+
+/// Serializable snapshot of a single counter metric.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CounterSnapshot {
+    pub key: String,
+    pub value: u64,
+}
+
+/// Serializable snapshot of a single gauge metric.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GaugeSnapshot {
+    pub key: String,
+    pub value: i64,
+}
+
+/// Serializable snapshot of all metrics from a PerformanceMonitor.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PerformanceSnapshot {
+    pub timers: Vec<TimerSnapshot>,
+    pub counters: Vec<CounterSnapshot>,
+    pub gauges: Vec<GaugeSnapshot>,
 }
 
 impl Default for TimerStats {

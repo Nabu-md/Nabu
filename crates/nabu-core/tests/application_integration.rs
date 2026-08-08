@@ -372,3 +372,130 @@ fn application_context_plugin_manager_has_nabu_version() {
         .unwrap_or(nabu_core::plugin::Version::new(0, 1, 0));
     assert_eq!(pm.nabu_version(), &expected);
 }
+
+// ---------------------------------------------------------------------------
+// Lifecycle service registration tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn context_lifecycle_service_keys_empty_by_default() {
+    let app = Application::builder().build();
+    // event_bus and performance_monitor are registered via register_lifecycle
+    // in the builder, so they should appear in the lifecycle service list.
+    let keys = app.context().lifecycle_service_keys();
+    assert!(keys.contains(&"event_bus".to_string()) == false); // event_bus uses register, not register_lifecycle
+    assert!(keys.contains(&"performance_monitor".to_string()));
+}
+
+#[test]
+fn context_shutdown_calls_lifecycle_services() {
+    use nabu_core::registry::lifecycle::Lifecycle;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    struct TrackingService {
+        name: &'static str,
+        count: Arc<AtomicUsize>,
+    }
+
+    impl Lifecycle for TrackingService {
+        fn name(&self) -> &'static str {
+            self.name
+        }
+        fn shutdown(&self) -> Result<(), Box<dyn std::error::Error>> {
+            self.count.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+    }
+
+    let app = Application::builder().build();
+
+    let svc = Arc::new(TrackingService {
+        name: "tracking_svc",
+        count: Arc::new(AtomicUsize::new(0)),
+    });
+
+    app.context()
+        .register_lifecycle("tracking_svc", svc.clone());
+
+    assert_eq!(app.context().lifecycle_service_count(), 2); // perf_monitor + tracking_svc
+
+    assert!(app.shutdown().is_ok());
+    assert!(app.is_shutdown());
+    assert_eq!(svc.count.load(Ordering::SeqCst), 1);
+}
+
+// ---------------------------------------------------------------------------
+// AgentManager and ProcessSupervisor lifecycle tests
+// ---------------------------------------------------------------------------
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn builder_registers_agent_manager_and_supervisor() {
+    use nabu_core::agent::AgentManager;
+    use nabu_core::process_supervisor::ProcessSupervisor;
+
+    let event_bus = Arc::new(EventBus::<PipelineEvent>::new());
+    let supervisor = Arc::new(ProcessSupervisor::with_event_bus(event_bus.clone()));
+    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus));
+
+    let app = Application::builder()
+        .with_event_bus(event_bus)
+        .with_process_supervisor(supervisor.clone())
+        .with_agent_manager(manager.clone())
+        .build();
+
+    let keys = app.context().lifecycle_service_keys();
+    assert!(keys.contains(&"process_supervisor".to_string()));
+    assert!(keys.contains(&"agent_manager".to_string()));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn shutdown_shuts_down_agent_manager_and_supervisor() {
+    use nabu_core::agent::AgentManager;
+    use nabu_core::process_supervisor::ProcessSupervisor;
+
+    let event_bus = Arc::new(EventBus::<PipelineEvent>::new());
+    let supervisor = Arc::new(ProcessSupervisor::with_event_bus(event_bus.clone()));
+    let manager = Arc::new(AgentManager::new(supervisor.clone(), event_bus));
+
+    // Initialize and start both
+    supervisor.initialize().unwrap();
+    supervisor.start().unwrap();
+    manager.initialize().unwrap();
+    manager.start().unwrap();
+
+    let app = Application::builder()
+        .with_event_bus(Arc::new(EventBus::<PipelineEvent>::new()))
+        .with_process_supervisor(supervisor.clone())
+        .with_agent_manager(manager.clone())
+        .build();
+
+    // Before shutdown: both should be running
+    assert!(supervisor.is_running());
+    assert!(manager.is_running());
+
+    assert!(app.shutdown().is_ok());
+    assert!(app.is_shutdown());
+
+    // After shutdown: both should be shut down (idempotent — AgentManager
+    // calls supervisor.shutdown() internally, then the registry calls it
+    // again as a no-op)
+    assert!(supervisor.is_shutdown());
+    assert!(manager.is_shutdown());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn shutdown_idempotent_for_process_supervisor() {
+    use nabu_core::process_supervisor::ProcessSupervisor;
+
+    let supervisor = Arc::new(ProcessSupervisor::new());
+    supervisor.initialize().unwrap();
+    supervisor.start().unwrap();
+    supervisor.shutdown().unwrap();
+
+    // Double shutdown should be a safe no-op
+    assert!(supervisor.shutdown().is_ok());
+    assert!(supervisor.is_shutdown());
+}

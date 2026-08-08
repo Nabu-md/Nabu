@@ -252,7 +252,16 @@ pub fn ViewContent() -> Element {
         },
         ViewMode::Activity => rsx! {
             div { class: "max-w-7xl mx-auto h-full",
-                crate::components::activity::ActivityPanel {}
+                crate::components::activity::ActivityProvider {
+                    crate::components::activity::ActivityPanel {}
+                }
+            }
+        },
+        ViewMode::Streaming => rsx! {
+            div { class: "max-w-7xl mx-auto h-full",
+                crate::components::streaming::StreamingProvider {
+                    crate::components::streaming::StreamingContent {}
+                }
             }
         },
     }

@@ -39,7 +39,9 @@
 //! println!("{}", report);
 //! ```
 
-use crate::diagnostics::metrics::{Counter, Gauge, Timer, TimerStats};
+use crate::diagnostics::metrics::{
+    Counter, Gauge, PerformanceSnapshot, Timer, TimerStats,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
@@ -527,6 +529,61 @@ impl PerformanceMonitor {
         keys.sort();
         keys.dedup();
         keys
+    }
+
+    /// Capture a serializable snapshot of all current metrics.
+    ///
+    /// Returns a [`PerformanceSnapshot`] containing timer stats, counter
+    /// values, and gauge values. Timers are sorted alphabetically by key
+    /// for deterministic output.
+    pub fn snapshot(&self) -> PerformanceSnapshot {
+        let timers = if let Ok(timers) = self.timers.read() {
+            let mut entries: Vec<_> = timers
+                .iter()
+                .map(|(k, t)| (k.clone(), t.stats()))
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            entries
+                .into_iter()
+                .map(|(k, s)| crate::diagnostics::metrics::TimerSnapshot { key: k, stats: s })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let counters = if let Ok(counters) = self.counters.read() {
+            let mut entries: Vec<_> = counters
+                .iter()
+                .map(|(k, c)| (k.clone(), c.value()))
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            entries
+                .into_iter()
+                .map(|(k, v)| crate::diagnostics::metrics::CounterSnapshot { key: k, value: v })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let gauges = if let Ok(gauges) = self.gauges.read() {
+            let mut entries: Vec<_> = gauges
+                .iter()
+                .map(|(k, g)| (k.clone(), g.value()))
+                .collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            entries
+                .into_iter()
+                .map(|(k, v)| crate::diagnostics::metrics::GaugeSnapshot { key: k, value: v })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        PerformanceSnapshot {
+            timers,
+            counters,
+            gauges,
+        }
     }
 }
 
