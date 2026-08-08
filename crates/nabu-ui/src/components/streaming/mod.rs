@@ -38,8 +38,16 @@ use dioxus::prelude::*;
 use crate::events::{use_event_service, EventService, FrontendEvent};
 
 mod content;
+mod container;
+mod cursor;
+mod indicator;
+mod scroll;
 
 pub use content::StreamingContent;
+pub use container::StreamingContainer;
+pub use cursor::StreamingCursor;
+pub use indicator::{StreamingIndicator, StreamingIndicatorSize};
+pub use scroll::use_auto_scroll;
 
 /// A unique identifier for a streaming session, matching the backend `StreamId`.
 pub type StreamId = uuid::Uuid;
@@ -163,6 +171,32 @@ pub fn use_streaming() -> StreamingContext {
     use_context::<StreamingContext>()
 }
 
+/// Requests that the backend cancel a streaming session by ID.
+///
+/// Invokes the `stream_cancel` Tauri command, which delegates to
+/// `StreamManager::cancel_stream`. The resulting `StreamEvent::Cancelled` is
+/// published through the EventBus and picked up by the active `StreamingProvider`,
+/// transitioning the session to the `Cancelled` lifecycle state in the UI.
+///
+/// Errors are logged and silently swallowed — the UI will reflect the cancellation
+/// once the EventBus publishes the terminal event, but a failed IPC call simply
+/// leaves the stream in its current state rather than crashing the renderer.
+pub async fn cancel_stream(stream_id: StreamId, reason: impl Into<String>) {
+    let args = serde_wasm_bindgen::to_value(&serde_json::json!({
+        "stream_id": stream_id.to_string(),
+        "reason": reason.into(),
+    }))
+    .unwrap();
+    let result = crate::ipc::tauri_invoke_safe("stream_cancel", args).await;
+    if let Some(result) = result {
+        if let Ok(false) = serde_wasm_bindgen::from_value::<bool>(result) {
+            tracing::warn!(stream_id = %stream_id, "stream_cancel returned false");
+        }
+    } else {
+        tracing::warn!(stream_id = %stream_id, "stream_cancel IPC failed or unavailable");
+    }
+}
+
 /// Provider component that owns the streaming event subscription lifetime.
 ///
 /// Wraps the application tree (or a subtree). The `EventService` context must
@@ -183,12 +217,10 @@ pub fn StreamingProvider(children: Element) -> Element {
     if sub.peek().is_none() {
         let sessions_handle = sessions;
         let handle = service.subscribe_all(move |ev: &FrontendEvent| {
-            if let Some(session) = process_streaming_event(ev, sessions_handle) {
-                // Ensure the session exists in the map (process_streaming_event
-                // inserts new sessions for `Started` / `SessionCreated` events).
-                // For events that target an unknown stream id, we skip silently.
-                drop(session);
-            }
+            // process_streaming_event directly mutates the sessions Signal
+            // and returns Some(()) for streaming events (handled) or
+            // None for non-streaming events (ignored).
+            let _ = process_streaming_event(ev, sessions_handle);
         });
         let mut guard = sub.write_unchecked();
         *guard = Some(handle);

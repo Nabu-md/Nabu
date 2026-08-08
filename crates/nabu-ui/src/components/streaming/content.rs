@@ -4,29 +4,50 @@
 //! incremental token display, lifecycle badges, and error/cancel messaging.
 //! This is the primary UI surface for streaming — it can be embedded in any
 //! view (chat area, inline note generation, etc.).
+//!
+//! ## Architecture
+//!
+//! ```text
+//! StreamingProvider (EventBus listener)
+//!     ↓  writes to Signal<HashMap<StreamId, StreamSession>>
+//! StreamingContent (reads Signal, re-renders on every commit)
+//!     ↓  clones a sorted Vec<StreamSession> per render
+//! StreamMessage (per-session bubble)
+//!     ↓  binds content string + cursor/indicator
+//! Incremental UI (DOM text node updated by Dioxus diffing)
+//! ```
+//!
+//! ## Key design decisions
+//!
+//! - The `Signal<HashMap<...>>` is read once per render to produce a sorted
+//!   `Vec<StreamSession>`. Sorting into a `Vec` (outside `rsx!`) avoids
+//!   re-sorting during key comparisons on every token.
+//! - `StreamMessage` keys on `stream_id` so Dioxus reuses the DOM node across
+//!   token updates — only the text content changes, not the element identity.
+//!   This is what gives us incremental rendering without flickering.
+//! - The typing cursor (`StreamingCursor`) is a child element that only renders
+//!   while the stream is active, so it disappears cleanly on terminal states.
 
 use dioxus::prelude::*;
 
-use super::{StreamLifeCycle, StreamSession, StreamingContext, use_streaming};
+use super::{StreamLifeCycle, StreamSession, StreamingContext, StreamingCursor, StreamingIndicator};
 
-/// Renders active streaming sessions as live chat-style message bubbles.
+/// Renders all streaming sessions as live message bubbles.
 ///
-/// Subscribes to the shared `StreamingContext` and re-renders whenever a session
-/// updates. Active (non-terminal) sessions float to the top. Terminal sessions
-/// remain visible for history and can be cleared via [`StreamingContext::clear`].
+/// Subscribes to the shared [`StreamingContext`] and re-renders whenever a
+/// session updates. Active (non-terminal) sessions float to the top; terminal
+/// sessions remain visible for history and can be cleared via
+/// [`StreamingContext::clear`].
 #[component]
 pub fn StreamingContent(
     /// Optional CSS classes for the container.
     #[props(optional)]
     class: Option<String>,
 ) -> Element {
-    let ctx = use_streaming();
+    let ctx = super::use_streaming();
     let sessions = ctx.sessions.clone();
     let extra = class.unwrap_or_default();
 
-    // Collect sessions, sort (active first, most recent first), and render.
-    // We sort into a Vec here (outside rsx!) to avoid re-sorting on every
-    // render key comparison.
     let sorted: Vec<StreamSession> = {
         let mut list: Vec<_> = sessions.read().values().cloned().collect();
         list.sort_by_key(|s| {
@@ -54,8 +75,12 @@ pub fn StreamingContent(
 }
 
 /// A single streaming session rendered as a chat-style message bubble.
+///
+/// The `key` on the outer element ensures Dioxus reuses the DOM node across
+/// token updates — only the text changes, not the element identity. This is
+/// the mechanism that gives us incremental rendering without flickering.
 #[component]
-fn StreamMessage(
+pub fn StreamMessage(
     /// The session to render.
     session: StreamSession,
 ) -> Element {
@@ -71,14 +96,11 @@ fn StreamMessage(
         ..
     } = session;
 
-    // Pre-compute display strings before rsx! (Dioxus 0.6 doesn't support
-    // inline conditionals inside string literals).
     let agent_label = agent_name.as_deref().unwrap_or("agent");
     let state_class = state.status_kind();
     let state_label = state.label();
     let status_badge_class = format!("status-dot {state_class}");
 
-    // Build the subtitle line depending on lifecycle state.
     let subtitle = match state {
         StreamLifeCycle::Active => {
             if token_count > 0 {
@@ -102,9 +124,8 @@ fn StreamMessage(
         }
     };
 
-    // The content area: for active streams, show accumulated content with a
-    // typing indicator; for terminal streams, show the full content.
-    let is_active = !state.is_terminal();
+    let is_active_stream = !state.is_terminal();
+    let has_content = !content.is_empty();
 
     rsx! {
         div {
@@ -124,24 +145,44 @@ fn StreamMessage(
         }
         div {
             class: "stream-message-text",
-            // Use a pre-formatted block so whitespace in token chunks is preserved.
             "white-space": "pre-wrap",
+            "aria-live": if is_active_stream { "polite" } else { "off" },
+            "aria-label": if is_active_stream { "Streaming response" } else { "Complete response" },
             "{content}",
         }
-        {is_active.then_some(rsx! {
-            span { class: "stream-typing-indicator", "▊" }
+        {is_active_stream.then_some(rsx! {
+            StreamingCursor {}
+        })}
+        {is_active_stream.then_some(rsx! {
+            StreamingIndicator {}
         })}
         div {
             class: "stream-message-meta",
         }
+        div {
+            class: "stream-message-header",
+        }
         span {
             class: "stream-agent-name",
+            "aria-hidden": "true",
             "{agent_label}",
         }
         span {
             class: "stream-subtitle",
+            "aria-label": "Stream status: {state_label}",
             "{subtitle}",
         }
+        {error.as_ref().map(|e| rsx! {
+            div {
+                class: "stream-error",
+                role: "alert",
+                "aria-label": "Stream error",
+                "{e}",
+            }
+        })}
+        {!has_content && is_active_stream.then_some(rsx! {
+            span { class: "stream-placeholder", "aria-hidden": "true", " " }
+        })}
     }
 }
 
@@ -154,6 +195,15 @@ impl StreamingContext {
     /// active view. Active sessions are preserved.
     pub fn prune_terminal(self) {
         self.sessions.write_unchecked().retain(|_, s| !s.state.is_terminal());
+    }
+
+    /// Clears all terminal sessions, preserving active ones.
+    ///
+    /// This is the user-facing "dismiss completed streams" operation.
+    pub fn clear_terminal(self) {
+        self.sessions
+            .write_unchecked()
+            .retain(|_, s| !s.state.is_terminal());
     }
 
     /// Clears all sessions — both active and terminal.

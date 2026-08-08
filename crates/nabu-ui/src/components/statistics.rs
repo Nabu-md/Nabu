@@ -516,21 +516,25 @@ pub fn StatisticsView() -> Element {
                                         {
                                             let key = t.key.clone();
                                             let s = t.stats.clone();
+                                            let avg = format!("{:.1}", s.avg_ms);
+                                            let p50 = format!("{:.1}", s.p50_ms);
+                                            let p90 = format!("{:.1}", s.p90_ms);
+                                            let max = format!("{:.1}", s.max_ms);
                                             rsx! {
                                                 tr {
                                                     td { class: "text-gray-400 py-1", "{key}" }
                                                     td { class: "text-right text-gray-500", "{s.count}" }
-                                                    td { class: "text-right text-gray-500", "{:.1}", s.avg_ms }
-                                                    td { class: "text-right text-gray-500", "{:.1}", s.p50_ms }
-                                                    td { class: "text-right text-gray-500", "{:.1}", s.p90_ms }
-                                                    td { class: "text-right text-gray-500", "{:.1}", s.max_ms }
+                                                    td { class: "text-right text-gray-500", "{avg}" }
+                                                    td { class: "text-right text-gray-500", "{p50}" }
+                                                    td { class: "text-right text-gray-500", "{p90}" }
+                                                    td { class: "text-right text-gray-500", "{max}" }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }}
+                        } else { rsx!{} }}
                         // Counters
                         {if !m.counters.is_empty() {
                             rsx! {
@@ -552,7 +556,7 @@ pub fn StatisticsView() -> Element {
                                     }
                                 }
                             }
-                        }}
+                        } else { rsx!{} }}
                         // Gauges
                         {if !m.gauges.is_empty() {
                             rsx! {
@@ -574,7 +578,9 @@ pub fn StatisticsView() -> Element {
                                     }
                                 }
                             }
-                    }}
+                        } else { rsx!{} }}
+                    }
+                }
                 }
             }
         }}
