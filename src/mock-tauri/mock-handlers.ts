@@ -152,6 +152,9 @@ let mockSettings: Settings = {
   all_notes_show_images: null,
   all_notes_show_unsupported: null,
   multi_workspace_enabled: null,
+  dictation_enabled: null,
+  dictation_position: null,
+  dictation_opacity: null,
 }
 
 const DEFAULT_MOCK_VAULT_PATH = '/Users/mock/demo-vault-v2'
@@ -660,6 +663,9 @@ export const mockHandlers = {
       all_notes_show_images: s.all_notes_show_images ?? null,
       all_notes_show_unsupported: s.all_notes_show_unsupported ?? null,
       multi_workspace_enabled: s.multi_workspace_enabled ?? null,
+      dictation_enabled: s.dictation_enabled ?? null,
+      dictation_position: s.dictation_position ?? null,
+      dictation_opacity: s.dictation_opacity ?? null,
     }
     return null
   },
@@ -750,6 +756,44 @@ export const mockHandlers = {
   }, null, 2),
   copy_text_to_clipboard: () => null,
   read_text_from_clipboard: () => '',
+  get_recent_clipboard_entries: () => [],
+  restore_clipboard_entry: () => 'restored',
+  start_dictation: () => 'dictation-mock',
+  stop_dictation: () => null,
+  capture_file_drop: (args: { vault_path?: string; paths?: string[] }) => {
+    const vault = args.vault_path ?? '/Users/luca/Laputa'
+    return (args.paths ?? []).map((path) => {
+      const filename = path.split('/').pop() ?? 'file'
+      return `${vault}/attachments/${Date.now()}-${filename}`
+    })
+  },
+  list_mini_apps: () => ([
+    {
+      id: 'hello-world',
+      name: 'Hello World',
+      icon: null,
+      entrypoint_url: 'index.html',
+      width: 640,
+      height: 480,
+      resizable: true,
+      allow_vault_access: false,
+    },
+  ]),
+  get_mini_app_config: () => ({
+    id: 'hello-world',
+    name: 'Hello World',
+    icon: null,
+    entrypoint_url: 'index.html',
+    width: 640,
+    height: 480,
+    resizable: true,
+    allow_vault_access: false,
+  }),
+  open_mini_app_window: () => 'miniapp-hello-world',
+  save_mini_app_config: () => null,
+  delete_mini_app: () => null,
+  start_deep_research: () => null,
+  abort_deep_research: () => false,
   sync_mcp_bridge_vault: (args: { vaultPath?: string | null }) => args.vaultPath ? 'started' : 'stopped',
   repair_vault: (): string => {
     mockVaultAiGuidanceStatus = {

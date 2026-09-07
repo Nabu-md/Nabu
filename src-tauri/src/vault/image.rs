@@ -17,6 +17,15 @@ fn sanitize_filename(name: &str) -> String {
 /// Image file extensions considered valid for drag-drop import.
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"];
 
+/// Whether a file path points at a supported image file (by extension).
+pub fn is_image_path(path: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| IMAGE_EXTENSIONS.contains(&extension.to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
 /// Prepare the attachments directory and generate a unique target path.
 pub(super) fn prepare_attachment_path(
     vault_path: &str,

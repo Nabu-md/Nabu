@@ -22,6 +22,23 @@ fn macos_webview_shortcut_prevention_includes_ai_panel_shortcut() {
     assert_eq!(MACOS_WEBVIEW_RESERVED_COMMAND_SHIFT_KEYS, ["L"]);
 }
 
+#[test]
+fn research_cli_parses_agent_ids() {
+    use crate::ai_agents::AiAgentId;
+
+    assert_eq!(super::parse_research_agent_id("claude_code"), Some(AiAgentId::ClaudeCode));
+    assert_eq!(super::parse_research_agent_id("claude"), Some(AiAgentId::ClaudeCode));
+    assert_eq!(super::parse_research_agent_id("pi"), Some(AiAgentId::Pi));
+    assert_eq!(super::parse_research_agent_id("codex"), Some(AiAgentId::Codex));
+    assert_eq!(super::parse_research_agent_id("copilot"), Some(AiAgentId::Copilot));
+    assert_eq!(super::parse_research_agent_id("opencode"), Some(AiAgentId::Opencode));
+    assert_eq!(super::parse_research_agent_id("antigravity"), Some(AiAgentId::Antigravity));
+    assert_eq!(super::parse_research_agent_id("gemini"), Some(AiAgentId::Antigravity));
+    assert_eq!(super::parse_research_agent_id("kiro"), Some(AiAgentId::Kiro));
+    assert_eq!(super::parse_research_agent_id("hermes"), Some(AiAgentId::Hermes));
+    assert_eq!(super::parse_research_agent_id("unknown-agent"), None);
+}
+
 #[cfg(desktop)]
 #[test]
 fn mcp_runtime_resource_dir_is_optional_in_dev() {

@@ -149,6 +149,9 @@ export interface Settings {
   all_notes_show_images?: boolean | null
   all_notes_show_unsupported?: boolean | null
   multi_workspace_enabled?: boolean | null
+  dictation_enabled?: boolean | null
+  dictation_position?: 'bottom-right' | 'bottom-left' | null
+  dictation_opacity?: number | null
 }
 
 export interface AiWorkspaceConversationSetting {

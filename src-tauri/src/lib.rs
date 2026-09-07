@@ -13,6 +13,9 @@ pub mod claude_cli;
 mod claude_invocation;
 mod cli_agent_runtime;
 pub mod codex_cli;
+pub mod deep_research;
+pub mod dictation;
+pub mod mini_apps;
 mod commands;
 pub mod copilot_cli;
 mod copilot_discovery;
@@ -323,6 +326,8 @@ macro_rules! app_invoke_handler {
             commands::stream_claude_chat,
             commands::stream_ai_agent,
             commands::abort_ai_agent_stream,
+            commands::start_deep_research,
+            commands::abort_deep_research,
             commands::stream_ai_model,
             commands::save_ai_model_provider_api_key,
             commands::delete_ai_model_provider_api_key,
@@ -373,6 +378,11 @@ macro_rules! app_invoke_handler {
             commands::get_opencode_mcp_config_snippet,
             commands::copy_text_to_clipboard,
             commands::read_text_from_clipboard,
+            commands::get_recent_clipboard_entries,
+            commands::restore_clipboard_entry,
+            commands::start_dictation,
+            commands::stop_dictation,
+            commands::capture_file_drop,
             commands::sync_mcp_bridge_vault,
             commands::get_process_memory_snapshot,
             commands::repair_vault,
@@ -385,6 +395,12 @@ macro_rules! app_invoke_handler {
             commands::list_views,
             commands::save_view_cmd,
             commands::delete_view_cmd,
+            mini_apps::list_mini_apps,
+            mini_apps::get_mini_app_config,
+            mini_apps::open_mini_app_window,
+            mini_apps::save_mini_app_config,
+            mini_apps::delete_mini_app,
+            mini_apps::open_mini_app_devtools,
             vault_watcher::start_vault_watcher,
             vault_watcher::stop_vault_watcher
         ]
@@ -415,7 +431,9 @@ pub fn run() {
 
     let builder = tauri::Builder::default()
         .register_uri_scheme_protocol("tolaria-html-block", html_block_protocol::handle_request)
-        .manage(commands::StartupTimingState::default());
+        .register_uri_scheme_protocol("tolaria-mini-app", mini_apps::handle_request)
+        .manage(commands::StartupTimingState::default())
+        .manage(mini_apps::MiniAppRoots::default());
 
     #[cfg(desktop)]
     let builder = with_desktop_entry_plugins(builder);
@@ -437,6 +455,100 @@ pub fn run() {
             #[cfg(desktop)]
             handle_run_event(app_handle, &event);
         });
+}
+
+/// CLI entry point for deep research (step 3.3.4 of the Phase 3 plan).
+/// Invoked as `tolaria research "<query>" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]`.
+/// Runs the same orchestrator as the Tauri IPC command and prints stream
+/// events to stdout. Returns an error code when the research fails.
+pub fn run_research_cli() -> Result<(), String> {
+    use deep_research::{DeepResearchEvent, DeepResearchRequest};
+
+    let mut args = std::env::args().skip(1);
+    if args.next().as_deref() != Some("research") {
+        return Err("Usage: tolaria research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]".into());
+    }
+
+    let mut query = None;
+    let mut depth = None;
+    let mut vault_path = None;
+    let mut model = None;
+    let mut agent = None;
+    let mut rest = args;
+    while let Some(arg) = rest.next() {
+        match arg.as_str() {
+            "--depth" => depth = rest.next().and_then(|value| value.parse::<u32>().ok()),
+            "--vault" => vault_path = rest.next(),
+            "--model" => model = rest.next(),
+            "--agent" => {
+                let value = rest.next().ok_or_else(|| "--agent requires a value".to_string())?;
+                agent = Some(
+                    parse_research_agent_id(&value)
+                        .ok_or_else(|| format!("Unknown agent '{value}'. Supported: claude_code, codex, copilot, opencode, pi, antigravity, kiro, hermes"))?,
+                );
+            }
+            "--help" | "-h" => {
+                println!(
+                    "Usage: tolaria research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]\n\nRuns a multi-step AI deep research session against any installed CLI agent\n(claude_code, codex, copilot, opencode, pi, antigravity, kiro, hermes; default claude_code).\n  --depth N   max research iterations (1-5, default 3)\n  --vault     vault directory for agent file access (default: current directory)\n  --model     model for the agent (agent-specific, e.g. sonnet for Claude)\n  --agent     CLI agent that runs the research loop (default: claude_code)"
+                );
+                return Ok(());
+            }
+            _ => query = Some(arg),
+        }
+    }
+
+    let query = query.ok_or_else(|| "A research query is required".to_string())?;
+    let vault_path = vault_path.unwrap_or_else(|| ".".to_string());
+    let request = DeepResearchRequest {
+        query,
+        vault_path,
+        vault_paths: Vec::new(),
+        depth,
+        model,
+        agent,
+        permission_mode: None,
+        event_name: None,
+    };
+
+    deep_research::run_deep_research(request, |event| match event {
+        DeepResearchEvent::IterationStart { iteration, goal } => {
+            println!("\n── Iteration {iteration} ──");
+            println!("{goal}\n");
+        }
+        DeepResearchEvent::ToolStart { tool_name, .. } => {
+            println!("  • {tool_name}");
+        }
+        DeepResearchEvent::ToolDone { .. } => {}
+        DeepResearchEvent::SourceAdded { title, url, .. } => {
+            println!("    source: {title} ({url})");
+        }
+        DeepResearchEvent::InterimSummary { iteration, text } => {
+            println!("\n[interim summary after iteration {iteration}]\n{text}\n");
+        }
+        DeepResearchEvent::Result { report } => {
+            println!("\n══════════ RESEARCH REPORT ══════════\n{report}\n");
+        }
+        DeepResearchEvent::Error { message } => {
+            eprintln!("error: {message}");
+        }
+        DeepResearchEvent::Done => {}
+    })
+    .map(|_| ())
+}
+
+fn parse_research_agent_id(value: &str) -> Option<ai_agents::AiAgentId> {
+    use ai_agents::AiAgentId;
+    match value {
+        "claude_code" | "claude" => Some(AiAgentId::ClaudeCode),
+        "codex" => Some(AiAgentId::Codex),
+        "copilot" => Some(AiAgentId::Copilot),
+        "opencode" => Some(AiAgentId::Opencode),
+        "pi" => Some(AiAgentId::Pi),
+        "antigravity" | "gemini" => Some(AiAgentId::Antigravity),
+        "kiro" => Some(AiAgentId::Kiro),
+        "hermes" => Some(AiAgentId::Hermes),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

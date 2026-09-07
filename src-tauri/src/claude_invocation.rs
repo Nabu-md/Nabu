@@ -4,6 +4,10 @@ use crate::cli_agent_runtime::AgentStreamRequest;
 
 const CLAUDE_SAFE_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS";
 const CLAUDE_POWER_USER_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
+// Deep research is built around web scraping, so Bash (curl/wget) is always
+// available regardless of the caller's permission mode.
+const CLAUDE_RESEARCH_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
+const CLAUDE_RESEARCH_PREAPPROVED_TOOLS: &str = "Bash(curl:*),Bash(wget:*)";
 const CLAUDE_CHAT_DISALLOWED_TOOLS_COMPAT: &str =
     "Bash,Glob,Grep,Read,Edit,Write,NotebookEdit,WebFetch,WebSearch,TodoWrite,Task,MultiEdit,LS";
 const CLAUDE_SAFE_DISALLOWED_TOOLS_COMPAT: &str =
@@ -31,6 +35,35 @@ pub(crate) fn chat(req: &ChatStreamRequest) -> ClaudeInvocation {
 
 pub(crate) fn agent(req: &AgentStreamRequest) -> Result<ClaudeInvocation, String> {
     agent_with_windows_limit(req, cfg!(windows))
+}
+
+/// Invocation for deep research runs: same agent shape as `agent`, but with a
+/// tool policy that always includes Bash and pre-approves curl/wget so the
+/// research loop can scrape the web without permission prompts.
+pub(crate) fn research_agent(req: &AgentStreamRequest) -> Result<ClaudeInvocation, String> {
+    let args = research_agent_args(req)?;
+    let fallback_args = vec![research_agent_args_without_session_persistence(req)?];
+    if should_pipe_prompt_for_windows(cfg!(windows), &args, &fallback_args) {
+        return Ok(ClaudeInvocation {
+            args: agent_args_with_tool_policy(
+                req,
+                AgentToolPolicy::research(),
+                PromptSource::Stdin,
+            )?,
+            fallback_args: vec![agent_args_with_tool_policy(
+                req,
+                AgentToolPolicy::research_without_session_persistence(),
+                PromptSource::Stdin,
+            )?],
+            stdin_text: Some(stdin_prompt(&req.message, req.system_prompt.as_deref())),
+        });
+    }
+
+    Ok(ClaudeInvocation {
+        args,
+        fallback_args,
+        stdin_text: None,
+    })
 }
 
 fn chat_with_windows_limit(
@@ -157,6 +190,24 @@ fn agent_args_without_session_persistence(req: &AgentStreamRequest) -> Result<Ve
     )
 }
 
+fn research_agent_args(req: &AgentStreamRequest) -> Result<Vec<String>, String> {
+    agent_args_with_tool_policy(
+        req,
+        AgentToolPolicy::research(),
+        PromptSource::Argument,
+    )
+}
+
+fn research_agent_args_without_session_persistence(
+    req: &AgentStreamRequest,
+) -> Result<Vec<String>, String> {
+    agent_args_with_tool_policy(
+        req,
+        AgentToolPolicy::research_without_session_persistence(),
+        PromptSource::Argument,
+    )
+}
+
 fn agent_args_compat(req: &AgentStreamRequest) -> Result<Vec<String>, String> {
     agent_args_with_tool_policy(
         req,
@@ -279,6 +330,26 @@ impl AgentToolPolicy {
         Self {
             include_session_persistence_flag: false,
             ..Self::strict(permission_mode)
+        }
+    }
+
+    /// Tool policy for deep research runs: always grants Bash and pre-approves
+    /// read-only web scraping commands (curl/wget) so the multi-iteration loop
+    /// can fetch pages without interactive permission prompts.
+    fn research() -> Self {
+        Self {
+            tool_flag: "--tools",
+            tool_value: CLAUDE_RESEARCH_AGENT_TOOLS,
+            include_session_persistence_flag: true,
+            preapproved_tools: Some(CLAUDE_RESEARCH_PREAPPROVED_TOOLS),
+            disallowed_tools: None,
+        }
+    }
+
+    fn research_without_session_persistence() -> Self {
+        Self {
+            include_session_persistence_flag: false,
+            ..Self::research()
         }
     }
 
@@ -592,6 +663,38 @@ mod tests {
         .unwrap();
 
         assert_eq!(arg_value_after(&args, "--allowedTools"), Some("Bash"));
+    }
+
+    #[test]
+    fn research_agent_args_always_include_bash_and_preapprove_curl() {
+        for permission_mode in [AiAgentPermissionMode::Safe, AiAgentPermissionMode::PowerUser] {
+            let args = research_agent_args(&agent_request(
+                "Research climate change",
+                None,
+                permission_mode,
+            ))
+            .unwrap();
+
+            assert_args_contain!(args, ["Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash"]);
+            assert_eq!(
+                arg_value_after(&args, "--allowedTools"),
+                Some("Bash(curl:*),Bash(wget:*)")
+            );
+            assert_args_lack!(args, ["--dangerously-skip-permissions"]);
+        }
+    }
+
+    #[test]
+    fn research_invocation_keeps_short_windows_prompt_on_args() {
+        let req = agent_request(
+            "Research the topic",
+            Some("Read the active vault first."),
+            AiAgentPermissionMode::Safe,
+        );
+        let invocation = research_agent(&req).unwrap();
+
+        assert_args_contain!(invocation.args, ["-p", "Research the topic"]);
+        assert!(invocation.stdin_text.is_none());
     }
 
     #[test]

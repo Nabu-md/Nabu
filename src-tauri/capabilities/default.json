@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "ai-workspace",
-    "note-*"
+    "note-*",
+    "miniapp-*"
   ],
   "platforms": ["linux", "macOS", "windows"],
   "permissions": [

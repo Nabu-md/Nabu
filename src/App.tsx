@@ -15,6 +15,9 @@ import { StatusBar } from './components/StatusBar'
 import { AppAiWorkspaceSurface } from './components/AppAiWorkspaceSurface'
 import { AiWorkspaceFloatingButton } from './components/AiWorkspaceFloatingButton'
 import { AiWorkspaceWindowApp } from './components/AiWorkspaceWindowApp'
+import { MiniAppWindowApp } from './components/MiniAppWindowApp'
+import { MiniAppsLauncher } from './components/MiniAppsLauncher'
+import { DictationPill } from './components/DictationPill'
 import { SettingsPanel } from './components/SettingsPanel'
 import { CloneVaultModal } from './components/CloneVaultModal'
 import { FeedbackDialog } from './components/FeedbackDialog'
@@ -85,6 +88,7 @@ import { refreshPulledVaultState } from './utils/pulledVaultRefresh'
 import { refreshNoteWindowVaultChanges } from './utils/noteWindowVaultRefresh'
 import { viewMatchesSelection } from './utils/viewIdentity'
 import { isAiWorkspaceWindow, isNoteWindow, getNoteWindowParams, type NoteWindowParams } from './utils/windowMode'
+import { isMiniAppWindow } from './utils/miniAppWindow'
 import { GitSetupDialog } from './components/GitRequiredModal'
 import { RenameDetectedBanner } from './components/RenameDetectedBanner'
 import { openNoteListPropertiesPicker } from './components/note-list/noteListPropertiesEvents'
@@ -164,7 +168,9 @@ const DEFAULT_SELECTION: SidebarSelection = INBOX_SELECTION
 function App() {
   const noteWindowParams = useMemo(() => isNoteWindow() ? getNoteWindowParams() : null, [])
   const aiWorkspaceWindow = useMemo(() => isAiWorkspaceWindow(), [])
+  const miniAppWindow = useMemo(() => isMiniAppWindow(), [])
 
+  if (miniAppWindow) return <MiniAppWindowApp />
   if (aiWorkspaceWindow) return <AiWorkspaceWindowApp />
 
   return <MainApp noteWindowParams={noteWindowParams} />
@@ -1861,6 +1867,21 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
             onOpen={handleToggleAiWorkspace}
           />
         ) : null}
+        {!noteWindowParams && (
+          <>
+            <MiniAppsLauncher
+              vaultPath={resolvedPath}
+              activeNote={{ path: activeTabEntry?.path, title: activeTabEntry?.title }}
+              onToast={setToastMessage}
+            />
+            <DictationPill
+              vaultPath={resolvedPath}
+              enabled={settings.dictation_enabled ?? true}
+              position={settings.dictation_position ?? 'bottom-right'}
+              opacity={settings.dictation_opacity ?? 0.85}
+            />
+          </>
+        )}
         <GitSetupDialog open={gitFeaturesEnabled && shouldShowGitSetupDialog} onInitGit={handleInitGitRepo} onDismiss={dismissGitSetupDialog} onNeverForVault={neverForVaultGitSetupDialog} />
         <DeleteProgressNotice count={deleteActions.pendingDeleteCount} />
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />

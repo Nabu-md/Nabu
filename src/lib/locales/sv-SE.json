@@ -1061,5 +1061,7 @@
   "locale.ukUA": "Ukrainska",
   "locale.svSE": "Svenska",
   "locale.skSK": "Slovakiska",
-  "telemetryConsent.saveError": "Tolaria kunde inte spara det här valet. Kontrollera att ditt konto kan skriva sina appinställningar och försök sedan igen."
+  "telemetryConsent.saveError": "Tolaria kunde inte spara det här valet. Kontrollera att ditt konto kan skriva sina appinställningar och försök sedan igen.",
+  "ai.workspace.deepResearch": "Djupresearch",
+  "ai.workspace.deepResearchBack": "Tillbaka till chatten"
 }

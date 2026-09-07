@@ -20,6 +20,7 @@ import { NEW_AI_CHAT_EVENT } from '../utils/aiPromptBridge'
 import type { GenerateAiConversationTitleRequest } from '../utils/aiConversationTitle'
 import { cloneAiWorkspaceSessionUntilMessage } from '../lib/aiWorkspaceSessionStore'
 import { AiPanelView } from './AiPanel'
+import { DeepResearchPanel } from './DeepResearchPanel'
 import { GuidanceWarning, WorkspaceHeader } from './AiWorkspaceChrome'
 import { WorkspaceResizeHandles } from './AiWorkspaceResizeHandles'
 import { AiTargetModelPicker } from './AiAgentModelPicker'
@@ -702,10 +703,14 @@ function resolveAiWorkspaceProps(props: AiWorkspaceProps): ResolvedAiWorkspacePr
 
 function SideAiWorkspaceLayout({
   model,
+  onToggleResearch,
+  researchMode,
   sizing,
   workspace,
 }: {
   model: AiWorkspaceModel
+  onToggleResearch: () => void
+  researchMode: boolean
   sizing: AiWorkspaceSizing
   workspace: ResolvedAiWorkspaceProps
 }) {
@@ -735,14 +740,24 @@ function SideAiWorkspaceLayout({
           onReorder={model.reorderConversation}
           onSelect={model.setActiveId}
           onToggleExpanded={() => setExpanded((current) => !current)}
+          onToggleResearch={onToggleResearch}
+          researchMode={researchMode}
           separated={headerSeparated}
           statuses={model.statuses}
         />
-        <ConversationSessions
-          model={model}
-          workspace={workspace}
-          onMessageHistoryScrollStateChange={setHeaderSeparated}
-        />
+        {researchMode ? (
+          <DeepResearchPanel
+            vaultPath={workspace.vaultPath}
+            vaultPaths={workspace.vaultPaths}
+            model={model.activeConversation?.modelId ?? undefined}
+          />
+        ) : (
+          <ConversationSessions
+            model={model}
+            workspace={workspace}
+            onMessageHistoryScrollStateChange={setHeaderSeparated}
+          />
+        )}
       </div>
     </aside>
   )
@@ -973,10 +988,28 @@ function useAiWorkspaceModel(workspace: ResolvedAiWorkspaceProps): AiWorkspaceMo
   }
 }
 
-function AiWorkspaceLayout({ model, workspace }: { model: AiWorkspaceModel; workspace: ResolvedAiWorkspaceProps }) {
+function AiWorkspaceLayout({
+  model,
+  onToggleResearch,
+  researchMode,
+  workspace,
+}: {
+  model: AiWorkspaceModel
+  onToggleResearch: () => void
+  researchMode: boolean
+  workspace: ResolvedAiWorkspaceProps
+}) {
   const sizing = useAiWorkspaceSizing(workspace.mode)
   if (workspace.mode === 'side') {
-    return <SideAiWorkspaceLayout model={model} sizing={sizing} workspace={workspace} />
+    return (
+      <SideAiWorkspaceLayout
+        model={model}
+        onToggleResearch={onToggleResearch}
+        researchMode={researchMode}
+        sizing={sizing}
+        workspace={workspace}
+      />
+    )
   }
 
   return (
@@ -1001,15 +1034,25 @@ function AiWorkspaceLayout({ model, workspace }: { model: AiWorkspaceModel; work
         onRestore={model.restoreConversation}
         onSelect={model.setActiveId}
         onToggleCollapsed={model.toggleSidebarCollapsed}
+        onToggleResearch={onToggleResearch}
+        researchMode={researchMode}
         setShowArchived={model.setShowArchived}
         showArchived={model.showArchived}
         sidebarWidth={sizing.sidebarWidth}
         statuses={model.statuses}
       />
       {!model.sidebarCollapsed && <ResizeHandle onResize={sizing.onSidebarResize} />}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <ConversationSessions model={model} workspace={workspace} />
-      </div>
+      {researchMode ? (
+        <DeepResearchPanel
+          vaultPath={workspace.vaultPath}
+          vaultPaths={workspace.vaultPaths}
+          model={model.activeConversation?.modelId ?? undefined}
+        />
+      ) : (
+        <div className="flex min-w-0 flex-1 flex-col">
+          <ConversationSessions model={model} workspace={workspace} />
+        </div>
+      )}
     </section>
   )
 }
@@ -1080,6 +1123,8 @@ export function AiWorkspace(props: AiWorkspaceProps) {
   const workspace = resolveAiWorkspaceProps(props)
   const model = useAiWorkspaceModel(workspace)
   const { onActiveConversationChange } = workspace
+  const [researchMode, setResearchMode] = useState(false)
+  const toggleResearch = useCallback(() => setResearchMode((current) => !current), [])
 
   useEffect(() => {
     if (!workspace.open || !model.activeId) return
@@ -1095,5 +1140,12 @@ export function AiWorkspace(props: AiWorkspaceProps) {
 
   if (!workspace.open || !model.activeConversation) return null
 
-  return <AiWorkspaceLayout model={model} workspace={workspace} />
+  return (
+    <AiWorkspaceLayout
+      model={model}
+      onToggleResearch={toggleResearch}
+      researchMode={researchMode}
+      workspace={workspace}
+    />
+  )
 }

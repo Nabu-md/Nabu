@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowsInLineHorizontal, ArrowsOutLineHorizontal, Plus, SidebarSimple, X } from '@phosphor-icons/react'
+import { ArrowsInLineHorizontal, ArrowsOutLineHorizontal, MagnifyingGlass, Plus, SidebarSimple, X } from '@phosphor-icons/react'
 import { DndContext, PointerSensor, closestCenter, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -299,6 +299,8 @@ export function SideWorkspaceHeader(options: {
   onReorder: (activeId: string, overId: string) => void
   onSelect: (id: string) => void
   onToggleExpanded: () => void
+  onToggleResearch?: () => void
+  researchMode?: boolean
   separated: boolean
   statuses: Record<string, AgentStatus>
 }) {
@@ -314,6 +316,8 @@ export function SideWorkspaceHeader(options: {
     onReorder,
     onSelect,
     onToggleExpanded,
+    onToggleResearch,
+    researchMode,
     separated,
     statuses,
   } = options
@@ -335,6 +339,19 @@ export function SideWorkspaceHeader(options: {
         onSelect={onSelect}
         statuses={statuses}
       />
+      {onToggleResearch && (
+        <Button
+          type="button"
+          variant={researchMode ? 'default' : 'ghost'}
+          size="icon-sm"
+          aria-label={translate(locale, researchMode ? 'ai.workspace.deepResearchBack' : 'ai.workspace.deepResearch')}
+          title={translate(locale, researchMode ? 'ai.workspace.deepResearchBack' : 'ai.workspace.deepResearch')}
+          data-testid="ai-workspace-deep-research-toggle"
+          onClick={onToggleResearch}
+        >
+          <MagnifyingGlass size={17} />
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"

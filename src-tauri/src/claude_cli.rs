@@ -314,6 +314,26 @@ where
     )
 }
 
+/// Spawn `claude -p` for a deep research iteration. Same as `run_agent_stream`
+/// but always grants Bash and pre-approves curl/wget for web scraping.
+pub fn run_research_stream<F>(req: AgentStreamRequest, mut emit: F) -> Result<String, String>
+where
+    F: FnMut(ClaudeStreamEvent),
+{
+    let bin = find_claude_binary()?;
+    let invocation = crate::claude_invocation::research_agent(&req)?;
+    run_claude_subprocess(
+        ClaudeSubprocessRequest {
+            bin: &bin,
+            args: &invocation.args,
+            fallback_args: &invocation.fallback_args,
+            stdin_text: invocation.stdin_text.as_deref(),
+            cwd: Some(&req.vault_path),
+        },
+        &mut emit,
+    )
+}
+
 /// Mutable state accumulated across the JSON stream for a single subprocess.
 struct StreamState {
     session_id: String,

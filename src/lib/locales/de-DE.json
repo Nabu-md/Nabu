@@ -1061,5 +1061,7 @@
   "locale.ukUA": "Ukrainisch",
   "locale.svSE": "Schwedisch",
   "locale.skSK": "Slowakisch",
-  "telemetryConsent.saveError": "Tolaria konnte diese Auswahl nicht speichern. Überprüfe, ob dein Konto seine App-Einstellungen schreiben kann, und versuche es dann erneut."
+  "telemetryConsent.saveError": "Tolaria konnte diese Auswahl nicht speichern. Überprüfe, ob dein Konto seine App-Einstellungen schreiben kann, und versuche es dann erneut.",
+  "ai.workspace.deepResearch": "Tiefenrecherche",
+  "ai.workspace.deepResearchBack": "Zurück zum Chat"
 }

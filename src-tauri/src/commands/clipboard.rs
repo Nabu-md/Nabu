@@ -162,28 +162,41 @@ fn read_native_clipboard(command: Command) -> Result<String, String> {
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn copy_text_to_clipboard(text: String) -> Result<(), String> {
-    tokio::task::spawn_blocking(move || write_native_clipboard(clipboard_command(), &text))
+    let cached = text.clone();
+    let result = tokio::task::spawn_blocking(move || copy_text_to_clipboard_impl(&text))
         .await
-        .map_err(|e| format!("Native clipboard task failed: {e}"))?
+        .map_err(|e| format!("Native clipboard task failed: {e}"))?;
+    if result.is_ok() {
+        crate::dictation::cache_clipboard_text(&cached);
+    }
+    result
+}
+
+#[cfg(desktop)]
+pub fn copy_text_to_clipboard_impl(text: &str) -> Result<(), String> {
+    write_native_clipboard(clipboard_command(), text)
+}
+
+#[cfg(mobile)]
+pub fn copy_text_to_clipboard_impl(_text: &str) -> Result<(), String> {
+    Err("Clipboard is not available on mobile".into())
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn read_text_from_clipboard() -> Result<String, String> {
-    tokio::task::spawn_blocking(move || read_native_clipboard(clipboard_read_command()))
+    tokio::task::spawn_blocking(move || read_text_from_clipboard_impl())
         .await
         .map_err(|e| format!("Native clipboard task failed: {e}"))?
 }
 
-#[cfg(mobile)]
-#[tauri::command]
-pub async fn copy_text_to_clipboard(_text: String) -> Result<(), String> {
-    Err("Clipboard is not available on mobile".into())
+#[cfg(desktop)]
+pub fn read_text_from_clipboard_impl() -> Result<String, String> {
+    read_native_clipboard(clipboard_read_command())
 }
 
 #[cfg(mobile)]
-#[tauri::command]
-pub async fn read_text_from_clipboard() -> Result<String, String> {
+pub fn read_text_from_clipboard_impl() -> Result<String, String> {
     Err("Clipboard is not available on mobile".into())
 }
 

@@ -123,6 +123,9 @@ pub struct Settings {
     pub all_notes_show_images: Option<bool>,
     pub all_notes_show_unsupported: Option<bool>,
     pub multi_workspace_enabled: Option<bool>,
+    pub dictation_enabled: Option<bool>,
+    pub dictation_position: Option<String>,
+    pub dictation_opacity: Option<f64>,
 }
 
 fn normalize_optional_string(value: Option<String>) -> Option<String> {
@@ -254,6 +257,9 @@ fn normalize_settings(settings: Settings) -> Settings {
         all_notes_show_images: settings.all_notes_show_images,
         all_notes_show_unsupported: settings.all_notes_show_unsupported,
         multi_workspace_enabled: settings.multi_workspace_enabled,
+        dictation_enabled: settings.dictation_enabled,
+        dictation_position: normalize_optional_string(settings.dictation_position),
+        dictation_opacity: settings.dictation_opacity.filter(|opacity| opacity.is_finite() && (0.0..=1.0).contains(opacity)),
     }
 }
 

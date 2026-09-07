@@ -361,9 +361,13 @@ pub fn copy_image_to_vault(
     vault_path: PathBuf,
     source_path: PathBuf,
 ) -> Result<String, String> {
-    with_image_asset_scope(&app_handle, vault_path.as_path(), |requested_root| {
+    let result = with_image_asset_scope(&app_handle, vault_path.as_path(), |requested_root| {
         vault::copy_image_to_vault(requested_root, source_path.to_string_lossy().as_ref())
-    })
+    });
+    if result.is_ok() {
+        crate::dictation::cache_clipboard_image(source_path.to_string_lossy().as_ref());
+    }
+    result
 }
 
 #[tauri::command]

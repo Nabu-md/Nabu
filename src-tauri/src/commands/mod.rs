@@ -1,6 +1,7 @@
 mod ai;
 mod app_icon;
 mod clipboard;
+mod dictation;
 mod delete;
 mod folders;
 mod git;
@@ -20,6 +21,7 @@ pub use ai::*;
 pub use app_icon::*;
 pub use clipboard::*;
 pub use delete::*;
+pub use dictation::*;
 pub use folders::*;
 pub use git::*;
 pub use git_connect::*;

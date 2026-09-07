@@ -1061,5 +1061,7 @@
   "locale.ukUA": "Ukrainien",
   "locale.svSE": "Suédois",
   "locale.skSK": "Slovaque",
-  "telemetryConsent.saveError": "Tolaria n'a pas pu enregistrer ce choix. Vérifiez que votre compte peut écrire ses paramètres d'application, puis réessayez."
+  "telemetryConsent.saveError": "Tolaria n'a pas pu enregistrer ce choix. Vérifiez que votre compte peut écrire ses paramètres d'application, puis réessayez.",
+  "ai.workspace.deepResearch": "Recherche approfondie",
+  "ai.workspace.deepResearchBack": "Retour au chat"
 }

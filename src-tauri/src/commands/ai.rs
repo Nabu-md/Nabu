@@ -228,6 +228,53 @@ pub fn abort_ai_agent_stream(event_name: String) -> Result<bool, String> {
 }
 
 #[cfg(desktop)]
+fn normalize_deep_research_request(
+    mut request: crate::deep_research::DeepResearchRequest,
+) -> crate::deep_research::DeepResearchRequest {
+    request.vault_path = expand_tilde(&request.vault_path).into_owned();
+    request.vault_paths = request
+        .vault_paths
+        .into_iter()
+        .map(|path| expand_tilde(&path).into_owned())
+        .collect();
+    request
+}
+
+#[cfg(desktop)]
+fn run_normalized_deep_research(
+    request: crate::deep_research::DeepResearchRequest,
+    emitter: StreamEmitter<crate::deep_research::DeepResearchEvent>,
+) -> Result<String, String> {
+    crate::deep_research::run_deep_research(normalize_deep_research_request(request), emitter)
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn start_deep_research(
+    app_handle: tauri::AppHandle,
+    request: crate::deep_research::DeepResearchRequest,
+) -> Result<String, String> {
+    let event_name = stream_event_name("deep-research-stream", request.event_name.as_deref());
+    run_desktop_stream(
+        app_handle,
+        DesktopStreamScope::cancellable(event_name),
+        request,
+        run_normalized_deep_research,
+    )
+    .await
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn abort_deep_research(event_name: String) -> Result<bool, String> {
+    if !is_scoped_stream_event_name("deep-research-stream", &event_name) {
+        return Err("Invalid deep research stream id".into());
+    }
+
+    crate::ai_agent_processes::abort_stream(&event_name)
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn stream_ai_model(
     app_handle: tauri::AppHandle,

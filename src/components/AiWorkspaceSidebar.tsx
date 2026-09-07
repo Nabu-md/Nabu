@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Archive, ArrowSquareIn, Check, CircleNotch, Plus, SidebarSimple } from '@phosphor-icons/react'
+import { Archive, ArrowSquareIn, Check, CircleNotch, MagnifyingGlass, Plus, SidebarSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,8 @@ interface ConversationSidebarProps {
   onRestore: (id: string) => void
   onSelect: (id: string) => void
   onToggleCollapsed: () => void
+  onToggleResearch?: () => void
+  researchMode?: boolean
   setShowArchived: (show: boolean) => void
   showArchived: boolean
   sidebarWidth: number
@@ -47,11 +49,15 @@ function SidebarHeader({
   locale,
   onNewChat,
   onToggleCollapsed,
+  onToggleResearch,
+  researchMode,
 }: {
   collapsed: boolean
   locale: AppLocale
   onNewChat: () => void
   onToggleCollapsed: () => void
+  onToggleResearch?: () => void
+  researchMode?: boolean
 }) {
   const { dragRegionRef } = useDragRegion<HTMLDivElement>()
   const collapseLabel = translate(locale, collapsed ? 'ai.workspace.expandSidebar' : 'ai.workspace.collapseSidebar')
@@ -82,20 +88,34 @@ function SidebarHeader({
           </span>
         )}
       </div>
-      {!collapsed && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          aria-label={translate(locale, 'ai.workspace.newChat')}
-          title={translate(locale, 'ai.workspace.newChat')}
-          data-testid="ai-workspace-sidebar-new-chat"
-          data-no-drag
-          onClick={onNewChat}
-        >
-          <Plus size={16} />
-        </Button>
-      )}
+      <div className="flex min-w-0 items-center gap-1" data-no-drag>
+        {!collapsed && onToggleResearch && (
+          <Button
+            type="button"
+            variant={researchMode ? 'default' : 'ghost'}
+            size="icon-xs"
+            aria-label={translate(locale, 'ai.workspace.deepResearch')}
+            title={translate(locale, 'ai.workspace.deepResearch')}
+            data-testid="ai-workspace-deep-research-toggle"
+            onClick={onToggleResearch}
+          >
+            <MagnifyingGlass size={16} />
+          </Button>
+        )}
+        {!collapsed && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={translate(locale, 'ai.workspace.newChat')}
+            title={translate(locale, 'ai.workspace.newChat')}
+            data-testid="ai-workspace-sidebar-new-chat"
+            onClick={onNewChat}
+          >
+            <Plus size={16} />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -149,9 +169,32 @@ function ConversationTitleEditor({
   )
 }
 
-function CollapsedConversationSidebar({ locale, onNewChat }: { locale: AppLocale; onNewChat: () => void }) {
+function CollapsedConversationSidebar({
+  locale,
+  onNewChat,
+  onToggleResearch,
+  researchMode,
+}: {
+  locale: AppLocale
+  onNewChat: () => void
+  onToggleResearch?: () => void
+  researchMode?: boolean
+}) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2 p-2">
+      {onToggleResearch && (
+        <Button
+          type="button"
+          variant={researchMode ? 'default' : 'ghost'}
+          size="icon-xs"
+          aria-label={translate(locale, 'ai.workspace.deepResearch')}
+          title={translate(locale, 'ai.workspace.deepResearch')}
+          data-testid="ai-workspace-deep-research-toggle"
+          onClick={onToggleResearch}
+        >
+          <MagnifyingGlass size={16} />
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"
@@ -406,6 +449,8 @@ export function ConversationSidebar(options: ConversationSidebarProps) {
     onRestore,
     onSelect,
     onToggleCollapsed,
+    onToggleResearch,
+    researchMode,
     setShowArchived,
     showArchived,
     sidebarWidth,
@@ -421,9 +466,16 @@ export function ConversationSidebar(options: ConversationSidebarProps) {
         locale={locale}
         onNewChat={onNewChat}
         onToggleCollapsed={onToggleCollapsed}
+        onToggleResearch={onToggleResearch}
+        researchMode={researchMode}
       />
       {collapsed ? (
-        <CollapsedConversationSidebar locale={locale} onNewChat={onNewChat} />
+        <CollapsedConversationSidebar
+          locale={locale}
+          onNewChat={onNewChat}
+          onToggleResearch={onToggleResearch}
+          researchMode={researchMode}
+        />
       ) : (
         <ExpandedConversationSidebar
           activeId={activeId}

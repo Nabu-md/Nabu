@@ -1061,5 +1061,7 @@
   "locale.ukUA": "Украінская",
   "locale.svSE": "Шведская",
   "locale.skSK": "Славацкая",
-  "telemetryConsent.saveError": "Tolaria не змагла захаваць гэты выбар. Праверце, ці можа ваш уліковы запіс запісаць налады праграмы, а потым паўтарыце спробу."
+  "telemetryConsent.saveError": "Tolaria не змагла захаваць гэты выбар. Праверце, ці можа ваш уліковы запіс запісаць налады праграмы, а потым паўтарыце спробу.",
+  "ai.workspace.deepResearch": "Глыбокае даследаванне",
+  "ai.workspace.deepResearchBack": "Назад да чата"
 }

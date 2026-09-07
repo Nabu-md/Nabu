@@ -1061,5 +1061,7 @@
   "editor.sheet.formula.description.vlookup": "Šukaie značennie pa viertykali.",
   "editor.sheet.formula.description.xlookup": "Šukaie značennie ŭ dyiapazonie.",
   "editor.sheet.formula.description.year": "Vylučaie hod z daty.",
-  "telemetryConsent.saveError": "Tolaria nie zmahła zachavać hety vybar. Praviercie, ci vaš ulikaŭy zapis moža zapisvać nałady prahramy, zatym pasprabujcie jašče raz."
+  "telemetryConsent.saveError": "Tolaria nie zmahła zachavać hety vybar. Praviercie, ci vaš ulikaŭy zapis moža zapisvać nałady prahramy, zatym pasprabujcie jašče raz.",
+  "ai.workspace.deepResearch": "Hłybokaje dasledavannie",
+  "ai.workspace.deepResearchBack": "Nazad da čata"
 }

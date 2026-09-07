@@ -462,6 +462,8 @@
   "ai.message.toolUse": "Tool use",
   "ai.workspace.title": "Agents",
   "ai.workspace.newChat": "New chat",
+  "ai.workspace.deepResearch": "Deep Research",
+  "ai.workspace.deepResearchBack": "Back to chat",
   "ai.workspace.collapseSidebar": "Collapse AI chat list",
   "ai.workspace.expandSidebar": "Expand AI chat list",
   "ai.workspace.close": "Close AI workspace",
