@@ -18,7 +18,7 @@ import { AppAiWorkspaceSurface } from './components/AppAiWorkspaceSurface'
 import { AiWorkspaceFloatingButton } from './components/AiWorkspaceFloatingButton'
 import { AiWorkspaceWindowApp } from './components/AiWorkspaceWindowApp'
 import { MiniAppWindowApp } from './components/MiniAppWindowApp'
-import { DictationWindowApp } from './DictationWindowApp'
+import { DictationPill } from './components/DictationPill'
 import { SettingsPanel } from './components/SettingsPanel'
 import { CloneVaultModal } from './components/CloneVaultModal'
 import { FeedbackDialog } from './components/FeedbackDialog'
@@ -88,7 +88,7 @@ import { openNoteInNewWindow } from './utils/openNoteWindow'
 import { refreshPulledVaultState } from './utils/pulledVaultRefresh'
 import { refreshNoteWindowVaultChanges } from './utils/noteWindowVaultRefresh'
 import { viewMatchesSelection } from './utils/viewIdentity'
-import { isAiWorkspaceWindow, isNoteWindow, isDictationWindow, getNoteWindowParams, type NoteWindowParams } from './utils/windowMode'
+import { isAiWorkspaceWindow, isNoteWindow, getNoteWindowParams, type NoteWindowParams } from './utils/windowMode'
 import { isMiniAppWindow } from './utils/miniAppWindow'
 import { GitSetupDialog } from './components/GitRequiredModal'
 import { RenameDetectedBanner } from './components/RenameDetectedBanner'
@@ -171,7 +171,6 @@ function App() {
 
   if (miniAppWindow) return <MiniAppWindowApp />
   if (aiWorkspaceWindow) return <AiWorkspaceWindowApp />
-  if (isDictationWindow()) return <DictationWindowApp />
 
   return <MainApp noteWindowParams={noteWindowParams} />
 }
@@ -484,20 +483,6 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     void refreshGitRemoteStatus()
     void refreshAllGitRemoteStatuses()
   }, [automaticGitEnabled, gitRepoState, loadVaultModifiedFiles, refreshAllGitRemoteStatuses, refreshGitRemoteStatus])
-
-  // Cmd+Shift+D opens the standalone dictation pill window.
-  useEffect(() => {
-    if (noteWindowParams) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const modifier = event.metaKey || event.ctrlKey
-      if (modifier && event.shiftKey && event.key.toLowerCase() === 'd') {
-        event.preventDefault()
-        void invoke('open_dictation_window').catch(() => undefined)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [noteWindowParams])
 
   const handleOpenSettings = useCallback(() => {
     setSettingsInitialSectionId(null)
@@ -1970,6 +1955,14 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
             onOpen={handleToggleAiWorkspace}
           />
         ) : null}
+        {!noteWindowParams && (
+          <DictationPill
+            vaultPath={resolvedPath}
+            enabled={settings.dictation_enabled ?? true}
+            position={settings.dictation_position ?? 'bottom-right'}
+            opacity={settings.dictation_opacity ?? 0.85}
+          />
+        )}
         <GitSetupDialog open={gitFeaturesEnabled && shouldShowGitSetupDialog} onInitGit={handleInitGitRepo} onDismiss={dismissGitSetupDialog} onNeverForVault={neverForVaultGitSetupDialog} />
         <DeleteProgressNotice count={deleteActions.pendingDeleteCount} />
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
