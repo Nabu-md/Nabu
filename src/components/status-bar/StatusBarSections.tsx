@@ -22,6 +22,7 @@ import {
   SyncBadge,
   VaultReloadingBadge,
 } from './StatusBarBadges'
+import { MiniAppsStatusBarBadge } from './MiniAppsStatusBarBadge'
 import { ICON_STYLE, SEP_STYLE } from './styles'
 import type { VaultOption } from './types'
 import { VaultMenu } from './VaultMenu'
@@ -75,6 +76,11 @@ interface StatusBarPrimarySectionProps {
   onUpdateWorkspaceIdentity?: (path: string, patch: Partial<VaultOption>) => void
   mcpStatus?: McpStatus
   onInstallMcp?: () => void
+  miniAppsProps?: {
+    vaultPath: string | null
+    activeNote?: { path?: string | null; title?: string | null } | null
+    onToast?: (message: string) => void
+  }
   stacked?: boolean
   compact?: boolean
   locale?: AppLocale
@@ -152,12 +158,17 @@ function StatusBarPrimaryBadges(options: {
   isGitVault: boolean
   mcpStatus?: McpStatus
   onInstallMcp?: () => void
+  miniAppsProps?: {
+    vaultPath: string | null
+    activeNote?: { path?: string | null; title?: string | null } | null
+    onToast?: (message: string) => void
+  }
   isOffline: boolean
   isVaultReloading: boolean
   compact: boolean
   locale: AppLocale
 }) {
-  const { modifiedCount, visibleRemoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, syncStatus, lastSyncTime, onTriggerSync, onPullAndPush, onOpenConflictResolver, conflictCount, onClickPulse, isGitVault, mcpStatus, onInstallMcp, isOffline, isVaultReloading, compact, locale } = options
+  const { modifiedCount, visibleRemoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, syncStatus, lastSyncTime, onTriggerSync, onPullAndPush, onOpenConflictResolver, conflictCount, onClickPulse, isGitVault, mcpStatus, onInstallMcp, miniAppsProps, isOffline, isVaultReloading, compact, locale } = options
   return (
     <>
       <OfflineBadge isOffline={isOffline} showSeparator={!compact} compact={compact} locale={locale} />
@@ -219,6 +230,15 @@ function StatusBarPrimaryBadges(options: {
           showSeparator={!compact}
           compact={compact}
           locale={locale}
+        />
+      )}
+      {miniAppsProps && (
+        <MiniAppsStatusBarBadge
+          vaultPath={miniAppsProps.vaultPath}
+          activeNote={miniAppsProps.activeNote}
+          onToast={miniAppsProps.onToast}
+          showSeparator={!compact}
+          compact={compact}
         />
       )}
     </>
@@ -329,7 +349,7 @@ function StatusBarGitControls(
     locale: AppLocale
   },
 ) {
-  const { modifiedCount, vaultPath, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, isOffline, isVaultReloading, isGitVault, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, onClickPulse, mcpStatus, onInstallMcp, compact, locale } = options
+  const { modifiedCount, vaultPath, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, isOffline, isVaultReloading, isGitVault, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, onClickPulse, mcpStatus, onInstallMcp, miniAppsProps, compact, locale } = options
   const gitVaultPath = selectedRepositoryPath || vaultPath
   const { openAddRemote, closeAddRemote, showAddRemote, visibleRemoteStatus, handleRemoteConnected } =
     useStatusBarAddRemote({
@@ -365,6 +385,7 @@ function StatusBarGitControls(
         isGitVault={isGitVault !== false}
         mcpStatus={mcpStatus}
         onInstallMcp={onInstallMcp}
+        miniAppsProps={miniAppsProps}
         isOffline={isOffline === true}
         isVaultReloading={isVaultReloading === true}
         compact={compact}
@@ -381,7 +402,7 @@ function StatusBarGitControls(
 }
 
 export function StatusBarPrimarySection(options: StatusBarPrimarySectionProps) {
-  const { modifiedCount, vaultPath, defaultWorkspacePath, vaults, multiWorkspaceEnabled, onSwitchVault, onSetDefaultWorkspace, onOpenVaultSettings, onOpenLocalFolder, onCreateEmptyVault, onCloneVault, onCloneGettingStarted, onAddRemote, onClickPending, onClickPulse, onCommitPush, commitActionPending = false, gitFeaturesEnabled = true, onInitializeGit, isOffline = false, isVaultReloading = false, isGitVault = true, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, buildNumber, onCheckForUpdates, onRemoveVault, onReorderVaults, onUpdateWorkspaceIdentity, mcpStatus, onInstallMcp, locale = 'en', stacked = false, compact = false } = options
+  const { modifiedCount, vaultPath, defaultWorkspacePath, vaults, multiWorkspaceEnabled, onSwitchVault, onSetDefaultWorkspace, onOpenVaultSettings, onOpenLocalFolder, onCreateEmptyVault, onCloneVault, onCloneGettingStarted, onAddRemote, onClickPending, onClickPulse, onCommitPush, commitActionPending = false, gitFeaturesEnabled = true, onInitializeGit, isOffline = false, isVaultReloading = false, isGitVault = true, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, buildNumber, onCheckForUpdates, onRemoveVault, onReorderVaults, onUpdateWorkspaceIdentity, mcpStatus, onInstallMcp, miniAppsProps, locale = 'en', stacked = false, compact = false } = options
   return (
     <div style={primarySectionStyle(stacked, compact)}>
       <VaultMenu
@@ -432,6 +453,7 @@ export function StatusBarPrimarySection(options: StatusBarPrimarySectionProps) {
         isGitVault={isGitVault}
         mcpStatus={mcpStatus}
         onInstallMcp={onInstallMcp}
+        miniAppsProps={miniAppsProps}
         isOffline={isOffline}
         isVaultReloading={isVaultReloading}
         compact={compact}

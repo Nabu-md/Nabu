@@ -7,6 +7,7 @@ import {
   GitCommit as GitCommitHorizontal,
   GitDiff,
   Pulse,
+  SquaresFour,
   Terminal,
   Warning as AlertTriangle,
 } from '@phosphor-icons/react'
@@ -144,7 +145,7 @@ function handleStatusBarActionKeyDown(event: ReactKeyboardEvent<HTMLButtonElemen
   onClick()
 }
 
-function StatusBarAction(options: {
+export function StatusBarAction(options: {
   copy: ActionTooltipCopy
   children: ReactNode
   onClick?: () => void
@@ -194,7 +195,7 @@ function StatusBarAction(options: {
   )
 }
 
-function StatusBarSeparator({ show = true }: { show?: boolean }) {
+export function StatusBarSeparator({ show = true }: { show?: boolean }) {
   if (!show) return null
   return <span style={SEP_STYLE}>|</span>
 }
@@ -958,5 +959,35 @@ export function McpBadge({ status, onInstall, ...displayOptions }: McpBadgeProps
 export function ClaudeCodeBadge({ status, version, ...displayOptions }: ClaudeCodeBadgeProps) {
   return (
     <StatusWarningBadge kind="claude" status={status} version={version} {...withStatusBadgeDefaults(displayOptions)} />
+  )
+}
+
+export function MiniAppsBadge({
+  onClick,
+  showSeparator = true,
+  compact = false,
+  locale = 'en',
+}: {
+  onClick?: () => void
+  showSeparator?: boolean
+  compact?: boolean
+  locale?: AppLocale
+}) {
+  if (!onClick) return null
+  return (
+    <>
+      <StatusBarSeparator show={showSeparator} />
+      <StatusBarAction
+        copy={{ label: 'Mini Apps' }}
+        onClick={onClick}
+        testId="mini-apps-launcher"
+        compact={compact}
+      >
+        <span style={ICON_STYLE}>
+          <SquaresFour size={13} />
+          {compact ? null : 'Mini Apps'}
+        </span>
+      </StatusBarAction>
+    </>
   )
 }

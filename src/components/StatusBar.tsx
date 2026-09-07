@@ -98,6 +98,11 @@ interface StatusBarProps {
   aiFeaturesEnabled?: boolean
   mcpStatus?: McpStatus
   onInstallMcp?: () => void
+  miniAppsProps?: {
+    vaultPath: string | null
+    activeNote?: { path?: string | null; title?: string | null } | null
+    onToast?: (message: string) => void
+  }
   locale?: AppLocale
 }
 
