@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { AiPanelComposer, AiPanelHeader, AiPanelMessageHistory } from './AiPanelChrome'
 import { AiConversationThreads } from './AiConversationThreads'
 import { DEFAULT_AI_AGENT, getAiAgentDefinition, type AiAgentId, type AiAgentReadiness } from '../lib/aiAgents'

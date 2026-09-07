@@ -1,4 +1,8 @@
 /* App layout - minimal CSS, most styling via Tailwind */
+:root {
+  --sidebar-opacity: 0.7;
+}
+
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -91,4 +95,36 @@ body.mac-chrome.mac-chrome-fullscreen {
 
 .ai-highlight {
   animation: ai-highlight-glow 0.8s ease-out;
+}
+
+/* Phase 4: glassy git-diff sidebar — 70% opacity + frosted blur + noise. */
+.git-diff-sidebar {
+  position: relative;
+  background: color-mix(
+    in srgb,
+    var(--sidebar) calc(var(--sidebar-opacity, 0.7) * 100%),
+    transparent
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid color-mix(in srgb, var(--border-default, var(--border)) 30%, transparent);
+}
+
+.git-diff-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  z-index: 0;
+}
+
+.git-diff-sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dark .git-diff-sidebar::before {
+  opacity: 0.6;
 }
