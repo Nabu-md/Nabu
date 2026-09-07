@@ -966,12 +966,10 @@ export function MiniAppsBadge({
   onClick,
   showSeparator = true,
   compact = false,
-  locale = 'en',
 }: {
   onClick?: () => void
   showSeparator?: boolean
   compact?: boolean
-  locale?: AppLocale
 }) {
   if (!onClick) return null
   return (

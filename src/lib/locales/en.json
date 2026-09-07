@@ -1084,5 +1084,11 @@
   "graph.showNotes": "Notes",
   "graph.showFolders": "Folders",
   "graph.fitView": "Fit graph to screen",
-  "graph.empty": "No notes to graph yet"
+  "graph.empty": "No notes to graph yet",
+  "ai.threads.title": "Chats",
+  "ai.threads.newChat": "New chat",
+  "ai.threads.collapse": "Collapse chat list",
+  "ai.threads.expand": "Expand chat list",
+  "ai.threads.delete": "Delete chat",
+  "ai.threads.empty": "No saved chats yet. Send a message to start one."
 }

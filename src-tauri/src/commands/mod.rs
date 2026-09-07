@@ -1,6 +1,7 @@
 mod ai;
 mod app_icon;
 mod clipboard;
+mod conversations;
 mod dictation;
 mod delete;
 mod folders;
@@ -20,6 +21,7 @@ use std::borrow::Cow;
 pub use ai::*;
 pub use app_icon::*;
 pub use clipboard::*;
+pub use conversations::*;
 pub use delete::*;
 pub use dictation::*;
 pub use folders::*;

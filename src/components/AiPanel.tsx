@@ -1,13 +1,16 @@
-import { useCallback, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { AiPanelComposer, AiPanelHeader, AiPanelMessageHistory } from './AiPanelChrome'
+import { AiConversationThreads } from './AiConversationThreads'
 import { DEFAULT_AI_AGENT, getAiAgentDefinition, type AiAgentId, type AiAgentReadiness } from '../lib/aiAgents'
 import type { AiTarget } from '../lib/aiTargets'
 import type { AppLocale } from '../lib/i18n'
 import type { NoteListItem } from '../utils/ai-context'
 import type { VaultEntry } from '../types'
+import { useAiConversations, type ConversationRecord } from '../hooks/useAiConversations'
 import { useAiPanelController, type AiPanelController } from './useAiPanelController'
 import { useAiPanelPromptQueue } from './useAiPanelPromptQueue'
 import { useAiPanelFocus } from './useAiPanelFocus'
+import type { AiAgentMessage } from '../hooks/useCliAiAgent'
 import { resumeEditorFocus, useInspectorFocusBoundary } from '../hooks/editorFocusOwnership'
 
 export type { AiAgentMessage } from '../hooks/useCliAiAgent'
@@ -57,6 +60,7 @@ interface AiPanelViewProps {
   onSendPrompt?: (text: string) => void
   onMessageHistoryScrollStateChange?: (scrolled: boolean) => void
   targetId?: string
+  vaultPath?: string
 }
 
 function readinessFromReadyFlag(ready: boolean | undefined): AiAgentReadiness {
@@ -177,6 +181,7 @@ export function AiPanelView(options: AiPanelViewProps) {
     onSendPrompt,
     onMessageHistoryScrollStateChange,
     targetId,
+    vaultPath,
   } = options
   const view = resolveAiPanelViewModel({
     defaultAiAgent: providedDefaultAiAgent,
@@ -225,9 +230,15 @@ export function AiPanelView(options: AiPanelViewProps) {
         },
         [handleSend, isActive, onSendPrompt],
       )
+      const threads = useAiThreadsIntegration({
+        vaultPath: vaultPath ?? null,
+        messages: agent.messages,
+        isActive,
+        onClearConversation: handleNewChat,
+      })
 
-      return (
-        <AiPanelFrame panelRef={panelRef} isActive={isActive} showLeftBorder={showLeftBorder} surface={surface}>
+      const panelBody = (
+        <>
           {showHeader && (
             <AiPanelHeader
               agentLabel={view.agentLabel}
@@ -238,7 +249,7 @@ export function AiPanelView(options: AiPanelViewProps) {
               permissionModeDisabled={isActive}
               onPermissionModeChange={handlePermissionModeChange}
               onClose={onClose}
-              onNewChat={handleNewChat}
+              onNewChat={threads ? threads.handleNewChat : handleNewChat}
             />
           )}
           <AiPanelMessageHistory
@@ -268,9 +279,121 @@ export function AiPanelView(options: AiPanelViewProps) {
             onStop={handleStop}
             onUnsupportedAiPaste={onUnsupportedAiPaste}
           />
+        </>
+      )
+
+      if (!threads) {
+        return (
+          <AiPanelFrame panelRef={panelRef} isActive={isActive} showLeftBorder={showLeftBorder} surface={surface}>
+            {panelBody}
+          </AiPanelFrame>
+        )
+      }
+
+      return (
+        <AiPanelFrame panelRef={panelRef} isActive={isActive} showLeftBorder={showLeftBorder} surface={surface}>
+          <div className="flex min-h-0 flex-1">
+            <AiConversationThreads
+              conversations={threads.conversations}
+              activeConversationId={threads.activeConversationId}
+              locale={locale}
+              collapsed={threads.threadsCollapsed}
+              onToggleCollapsed={threads.toggleThreadsCollapsed}
+              onNewChat={threads.handleNewChat}
+              onSelect={threads.handleSelectThread}
+              onDelete={threads.handleDeleteThread}
+            />
+            <div className="flex min-w-0 flex-1 flex-col">{panelBody}</div>
+          </div>
         </AiPanelFrame>
       )
     }
+
+interface AiThreadsIntegration {
+  conversations: ConversationRecord[]
+  activeConversationId: string | null
+  threadsCollapsed: boolean
+  toggleThreadsCollapsed: () => void
+  handleNewChat: () => void
+  handleSelectThread: (id: string) => void
+  handleDeleteThread: (id: string) => void
+}
+
+function useAiThreadsIntegration({
+  vaultPath,
+  messages,
+  isActive,
+  onClearConversation,
+}: {
+  vaultPath: string | null
+  messages: AiAgentMessage[]
+  isActive: boolean
+  onClearConversation: () => void
+}): AiThreadsIntegration | null {
+  const [threadsCollapsed, setThreadsCollapsed] = useState(false)
+  const conversations = useAiConversations({ vaultPath: vaultPath ?? '', enabled: !!vaultPath })
+  const activeThreadIdRef = useRef<string | null>(null)
+  const savedExchangeCountRef = useRef(0)
+
+  // Ensure there is always a thread to write into once the first message lands.
+  useEffect(() => {
+    if (!vaultPath) return
+    if (messages.length === 0) {
+      activeThreadIdRef.current = null
+      savedExchangeCountRef.current = 0
+      return
+    }
+    if (activeThreadIdRef.current) return
+    if (isActive) return
+    void conversations.createConversation().then((created) => {
+      activeThreadIdRef.current = created.id
+    })
+  }, [conversations, isActive, messages.length, vaultPath])
+
+  // Auto-save after each completed exchange (user prompt + assistant reply).
+  useEffect(() => {
+    if (!vaultPath || !activeThreadIdRef.current) return
+    const completed = messages.filter((message) => !message.isStreaming).length
+    if (completed === 0 || completed === savedExchangeCountRef.current) return
+    if (isActive) return
+    savedExchangeCountRef.current = completed
+    const firstUser = messages.find((message) => message.userMessage?.trim())
+    void conversations.saveConversation(activeThreadIdRef.current, messages.map((message) => ({
+      role: message.userMessage && !message.response ? 'user' : 'assistant',
+      content: message.userMessage && !message.response
+        ? message.userMessage
+        : message.response ?? '',
+      created_at: new Date().toISOString(),
+    })), { titleFromFirstMessage: firstUser?.userMessage })
+  }, [conversations, isActive, messages, vaultPath])
+
+  if (!vaultPath) return null
+
+  return {
+    conversations: conversations.conversations,
+    activeConversationId: conversations.activeConversationId ?? activeThreadIdRef.current,
+    threadsCollapsed,
+    toggleThreadsCollapsed: useCallback(() => setThreadsCollapsed((current) => !current), []),
+    handleNewChat: useCallback(() => {
+      activeThreadIdRef.current = null
+      savedExchangeCountRef.current = 0
+      onClearConversation()
+    }, [onClearConversation]),
+    handleSelectThread: useCallback((id: string) => {
+      const thread = conversations.conversations.find((conversation) => conversation.id === id)
+      activeThreadIdRef.current = id
+      savedExchangeCountRef.current = thread?.messages.length ?? 0
+      conversations.selectConversation(id)
+    }, [conversations]),
+    handleDeleteThread: useCallback((id: string) => {
+      if (activeThreadIdRef.current === id) {
+        activeThreadIdRef.current = null
+        savedExchangeCountRef.current = 0
+      }
+      void conversations.deleteConversation(id)
+    }, [conversations]),
+  }
+}
 
     export function AiPanel(options: AiPanelProps) {
       const {
