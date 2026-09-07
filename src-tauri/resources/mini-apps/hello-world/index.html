@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello World</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: CanvasText;
+        background: Canvas;
+      }
+      main {
+        text-align: center;
+        padding: 32px;
+        border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+        border-radius: 12px;
+      }
+      h1 { margin: 0 0 8px; font-size: 20px; }
+      p { margin: 0 0 24px; opacity: 0.7; font-size: 14px; }
+      .counter { font-size: 48px; font-weight: 700; margin-bottom: 16px; }
+      button {
+        font-size: 15px;
+        padding: 8px 18px;
+        margin: 0 6px;
+        border-radius: 8px;
+        border: 1px solid color-mix(in srgb, CanvasText 30%, transparent);
+        background: color-mix(in srgb, CanvasText 8%, transparent);
+        color: CanvasText;
+        cursor: pointer;
+      }
+      button:active { transform: translateY(1px); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Hello World</h1>
+      <p>Sample mini-app · vanilla JS counter</p>
+      <div class="counter" id="counter">0</div>
+      <button id="decrement" aria-label="Decrement">−</button>
+      <button id="increment" aria-label="Increment">+</button>
+      <script>
+        let count = 0
+        const counter = document.getElementById('counter')
+        const subtitle = document.querySelector('p')
+        document.getElementById('increment').addEventListener('click', () => {
+          counter.textContent = String(++count)
+        })
+        document.getElementById('decrement').addEventListener('click', () => {
+          counter.textContent = String(--count)
+        })
+
+        // The launcher exposes packaged context (note, vault) on
+        // `window.miniAppContext` via postMessage from the shell window.
+        function applyContext(context) {
+          if (!context) return
+          if (context.note_title) {
+            subtitle.textContent = `Opened from: ${context.note_title}`
+          }
+        }
+        window.addEventListener('message', (event) => {
+          const payload = event.data
+          if (payload && payload.type === 'mini-app-context') {
+            window.miniAppContext = payload.context
+            applyContext(payload.context)
+          }
+        })
+        applyContext(window.miniAppContext)
+      </script>
+    </main>
+  </body>
+</html>

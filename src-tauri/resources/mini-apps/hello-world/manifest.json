@@ -1,0 +1,10 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "icon": null,
+  "entrypoint_url": "index.html",
+  "width": 640,
+  "height": 480,
+  "resizable": true,
+  "allow_vault_access": false
+}
