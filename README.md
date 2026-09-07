@@ -155,6 +155,7 @@ Nabu stands on the shoulders of these projects. Full transparency, full credit.
 | [anydoc](https://crates.io/crates/anydoc) | MIT | Document-to-Markdown conversion (PDF, DOCX, PPTX, XLSX, ODT, RTF, EPUB, CSV) |
 | [Harper](https://github.com/automattic/harper) | Apache-2.0 | Offline English grammar checking |
 | [FluidVoice](https://github.com/altic-dev/FluidVoice) | GPLv3 | On-device macOS dictation (Parakeet, Whisper, Nemotron, Apple Speech models) — separate-process integration via Apple Events/clipboard |
+| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | Vault tools for AI agents (MCP server) and app skeleton |
 | Tauri | Apache-2.0 | Desktop app framework |
 | React | MIT | UI library |
 | BlockNote | MPL-2.0 | Rich text editor |

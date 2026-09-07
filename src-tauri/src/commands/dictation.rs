@@ -2,7 +2,7 @@ use crate::dictation::{
     cache_clipboard_image, cache_clipboard_text, entry_by_id, recent_entries, ClipboardEntry,
     ClipboardEntryKind,
 };
-use tauri::{WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use uuid::Uuid;
 
 /// Opens the dictation pill in its own always-on-top, frameless window.
@@ -11,7 +11,7 @@ pub fn open_dictation_window(app_handle: tauri::AppHandle) -> Result<String, Str
     let label = "dictation-pill";
     if let Some(existing) = app_handle.get_webview_window(label) {
         let _ = existing.set_focus();
-        return Ok(label);
+        return Ok(label.to_string());
     }
     let window = WebviewWindowBuilder::new(
         &app_handle,
@@ -28,7 +28,7 @@ pub fn open_dictation_window(app_handle: tauri::AppHandle) -> Result<String, Str
     .build()
     .map_err(|error| format!("Failed to open dictation window: {error}"))?;
     let _ = window.set_focus();
-    Ok(label)
+    Ok(label.to_string())
 }
 
 /// Starts a dictation recording session. On macOS this requests audio input;

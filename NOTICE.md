@@ -9,6 +9,7 @@ project, which is the authoritative source for its license text.
 | Project | License | Integration |
 |---|---|---|
 | [FluidVoice](https://github.com/altic-dev/FluidVoice) | GPL-3.0 | Optional on-device macOS dictation backend. Nabu communicates with the standalone FluidVoice app via Apple Events/clipboard only; no FluidVoice code is bundled, linked, or distributed with Nabu. |
+| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | App skeleton and vault tooling. The Tolaria MCP server and vault lifecycle code are derived from the Tolaria project. |
 
 ## Bundled Rust crates (compiled into the application)
 
