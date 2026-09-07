@@ -1,0 +1,210 @@
+import { useEffect, useMemo, useState } from 'react'
+import { CaretDown, CaretUp, SquaresFour, X } from '@phosphor-icons/react'
+import { invoke } from '@tauri-apps/api/core'
+import { isTauri } from '../mock-tauri'
+import {
+  installMiniAppContext,
+  miniAppFrameSource,
+  readMiniAppWindowParams,
+  type MiniAppContextPayload,
+} from '../utils/miniAppWindow'
+import { cleanupTauriEventListener, type TauriUnlisten } from '../utils/tauriEventCleanup'
+
+interface MiniAppConfig {
+  id: string
+  name: string
+  icon: string | null
+  entrypoint_url: string
+  width: number
+  height: number
+  resizable: boolean
+  allow_vault_access: boolean
+}
+
+const MINI_APP_VAULT_DATA_REQUEST_EVENT = 'mini-app-request-vault-data'
+
+function postMiniAppContext(
+  target: Window,
+  params: ReturnType<typeof readMiniAppWindowParams>,
+  requestId = '',
+): void {
+  target.postMessage(
+    {
+      type: 'mini-app-context',
+      request_id: requestId,
+      context: {
+        note_path: params?.notePath ?? null,
+        note_title: params?.noteTitle ?? null,
+        vault_path: params?.vaultPath ?? null,
+      },
+    },
+    '*',
+  )
+}
+
+async function closeMiniAppWindow(): Promise<void> {
+  if (!isTauri()) return
+  const { getCurrentWindow } = await import('@tauri-apps/api/window')
+  await getCurrentWindow().close().catch(() => {})
+}
+
+async function toggleMiniAppDevTools(): Promise<void> {
+  if (!isTauri()) return
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const windowLabel = getCurrentWindow().label
+    await invoke<void>('open_mini_app_devtools', { label: windowLabel })
+  } catch {
+    // Devtools are unavailable in release builds; ignore.
+  }
+}
+
+async function loadMiniAppConfig(
+  appId: string,
+  vaultPath: string | null,
+): Promise<MiniAppConfig | null> {
+  if (!isTauri()) return null
+  try {
+    return await invoke<MiniAppConfig>('get_mini_app_config', {
+      id: appId,
+      vault_path: vaultPath,
+    })
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The shell window for a standalone mini-app. Renders the app's HTML in a
+ * sandboxed iframe served from the `tolaria-mini-app://` protocol, exposes
+ * window controls (close, toggle dev tools), and relays vault-data requests
+ * from the app to the main window.
+ */
+export function MiniAppWindowApp() {
+  const params = useMemo(() => readMiniAppWindowParams(), [])
+  const [config, setConfig] = useState<MiniAppConfig | null>(null)
+  const [devToolsOpen, setDevToolsOpen] = useState(false)
+  const appId = params?.appId ?? ''
+  const vaultPath = params?.vaultPath ?? null
+
+  useEffect(() => {
+    if (!appId) return
+    installMiniAppContext({
+      note_path: params?.notePath,
+      note_title: params?.noteTitle,
+      vault_path: params?.vaultPath ?? undefined,
+      extra: params?.context,
+    } satisfies MiniAppContextPayload)
+
+    let cancelled = false
+    void loadMiniAppConfig(appId, vaultPath).then((loaded) => {
+      if (!cancelled) setConfig(loaded)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [appId, params, vaultPath])
+
+  useEffect(() => {
+    if (!isTauri()) return
+    let unlisten: TauriUnlisten | undefined
+
+    void import('@tauri-apps/api/event')
+      .then(({ listen }) => listen<{ request_id: string }>(MINI_APP_VAULT_DATA_REQUEST_EVENT, (event) => {
+        // Relay the packaged context back to the requesting mini-app iframe.
+        const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')
+        if (!frame?.contentWindow) return
+        postMiniAppContext(frame.contentWindow, params, event.payload.request_id)
+      }))
+      .then((nextUnlisten) => {
+        unlisten = nextUnlisten
+      })
+      .catch(() => undefined)
+
+    return () => cleanupTauriEventListener(unlisten)
+  }, [params])
+
+  // Mini-apps run in a sandboxed iframe (a different window), so the packaged
+  // context is delivered via postMessage both on load and on request.
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')
+      if (!frame?.contentWindow) return
+      if (event.source !== frame.contentWindow) return
+      const payload = event.data as { type?: string; request_id?: string } | null
+      if (payload?.type === 'mini-app-request-vault-data') {
+        postMiniAppContext(frame.contentWindow, params, payload.request_id ?? '')
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [params])
+
+  const handleFrameLoad = () => {
+    const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')
+    if (frame?.contentWindow) postMiniAppContext(frame.contentWindow, params)
+  }
+
+  const frameSrc = appId ? miniAppFrameSource(appId, config?.entrypoint_url) : null
+
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      <header
+        className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-3"
+        data-testid="mini-app-chrome"
+      >
+        <SquaresFour size={15} className="shrink-0 text-muted-foreground" aria-hidden />
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium" title={config?.name ?? appId}>
+          {config?.name ?? (appId || 'Mini App')}
+        </span>
+        {isTauri() && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--hover)] hover:text-foreground"
+              aria-label={devToolsOpen ? 'Close developer tools' : 'Open developer tools'}
+              title="Toggle developer tools"
+              data-testid="mini-app-dev-tools"
+              onClick={() => {
+                setDevToolsOpen((current) => !current)
+                void toggleMiniAppDevTools()
+              }}
+            >
+              {devToolsOpen ? <CaretDown size={15} /> : <CaretUp size={15} />}
+            </button>
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+              aria-label="Close mini-app"
+              title="Close"
+              data-testid="mini-app-close"
+              onClick={() => void closeMiniAppWindow()}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+      </header>
+      <div className="min-h-0 flex-1">
+        {frameSrc ? (
+          <iframe
+            data-mini-app-frame
+            src={frameSrc}
+            className="h-full w-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+            referrerPolicy="no-referrer"
+            title={`${config?.name ?? appId} mini-app`}
+            onLoad={handleFrameLoad}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted-foreground">
+            <div>
+              <p className="mb-2 font-medium text-foreground">Mini-apps require the desktop app</p>
+              <p>The {appId || 'requested'} mini-app can only run inside Tolaria. Open it from the main window.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
