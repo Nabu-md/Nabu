@@ -17,9 +17,12 @@ describe('aiAgentPermissionMode', () => {
   it('preserves known permission modes and exposes compact labels', () => {
     expect(normalizeAiAgentPermissionMode('safe')).toBe('safe')
     expect(normalizeAiAgentPermissionMode('power_user')).toBe('power_user')
+    expect(normalizeAiAgentPermissionMode('deep_research')).toBe('deep_research')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.short).toBe('Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.control).toBe('Vault Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.power_user.short).toBe('Power User')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.deep_research.short).toBe('Deep Research')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.deep_research.control).toBe('Deep Research')
   })
 
   it('formats a local transcript marker for mode changes', () => {

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { NoteList } from './components/NoteList'
+import { GitDiffSidebar } from './components/GitDiffSidebar'
+import { GraphView } from './components/GraphView'
+import { NoteTabBar } from './components/NoteTabBar'
 import { LazyEditor } from './components/LazyEditor'
 import { ResizeHandle } from './components/ResizeHandle'
 import { CreateTypeDialog } from './components/CreateTypeDialog'
@@ -996,6 +999,63 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const changesRepositoryPath = gitSurfaces.changesRepositoryPath
   const gitModifiedCount = gitFeaturesEnabled ? allGitModifiedFiles.length : 0
 
+  // --- Phase 4: git-diff sidebar (replaces the full navigation sidebar) ---
+  const sidebarChangedFiles = useMemo(
+    () => gitFeaturesEnabled ? allGitModifiedFiles : [],
+    [allGitModifiedFiles, gitFeaturesEnabled],
+  )
+  const [sidebarSelectedFile, setSidebarSelectedFile] = useState<string | null>(null)
+  const [sidebarDiff, setSidebarDiff] = useState<string | null>(null)
+  const [sidebarDiffLoading, setSidebarDiffLoading] = useState(false)
+  const sidebarFileRequestSeq = useRef(0)
+  const handleSidebarFileSelect = useCallback((path: string) => {
+    const seq = ++sidebarFileRequestSeq.current
+    setSidebarSelectedFile(path)
+    setSidebarDiff(null)
+    setSidebarDiffLoading(true)
+    void Promise.resolve(loadDiffForPath(path))
+      .then((diffText) => {
+        if (sidebarFileRequestSeq.current !== seq) return
+        setSidebarDiff(diffText)
+      })
+      .catch((error) => {
+        console.warn('Failed to load sidebar diff:', error)
+        if (sidebarFileRequestSeq.current !== seq) return
+        setSidebarDiff(null)
+      })
+      .finally(() => {
+        if (sidebarFileRequestSeq.current === seq) setSidebarDiffLoading(false)
+      })
+  }, [loadDiffForPath])
+  useEffect(() => {
+    if (sidebarSelectedFile && !sidebarChangedFiles.some((file) => file.path === sidebarSelectedFile)) {
+      setSidebarSelectedFile(null)
+      setSidebarDiff(null)
+      setSidebarDiffLoading(false)
+    }
+  }, [sidebarChangedFiles, sidebarSelectedFile])
+  const remoteConfiguredForSidebar = gitSurfaces.remoteStatusForRepository(resolvedPath)?.hasRemote ?? false
+  const handleSidebarCommit = useCallback(async (message: string, push: boolean) => {
+    if (!gitFeaturesEnabled) return
+    try {
+      const tauriInvoke = isTauri() ? invoke : mockInvoke
+      await tauriInvoke<string>('git_commit', { vaultPath: gitSurfaces.commitRepositoryPath || resolvedPath, message })
+      if (push) {
+        await tauriInvoke<unknown>('git_push', { vaultPath: gitSurfaces.commitRepositoryPath || resolvedPath })
+          .catch((error: unknown) => setToastMessage(`Push failed: ${String(error)}`))
+      }
+      setToastMessage(push ? 'Commit created and push requested' : 'Commit created')
+      await refreshGitModifiedFiles()
+      void refreshGitRemoteStatus()
+    } catch (error) {
+      setToastMessage(`Commit failed: ${String(error)}`)
+    }
+  }, [gitFeaturesEnabled, gitSurfaces.commitRepositoryPath, refreshGitModifiedFiles, refreshGitRemoteStatus, resolvedPath, setToastMessage])
+  const sidebarCommitDisabled = !gitFeaturesEnabled || gitRepoState === 'missing'
+  const [graphViewOpen, setGraphViewOpen] = useState(false)
+  const handleToggleGraphView = useCallback(() => setGraphViewOpen((open) => !open), [])
+  const handleCloseGraphView = useCallback(() => setGraphViewOpen(false), [])
+
   const {
     activeDeletedFile,
     activeNoteModified,
@@ -1756,7 +1816,19 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           {sidebarVisible && (
             <>
               <div className="app__sidebar" style={{ width: layout.sidebarWidth }}>
-                <Sidebar entries={visibleEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCanDropNoteOnFolder={noteRetargetingUi.canDropNoteOnFolder} onMoveNoteToFolder={noteRetargetingUi.moveIntoFolder} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} showInbox={explicitOrganizationEnabled} inboxCount={inboxCount} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} />
+                <GitDiffSidebar
+                  vaultPath={resolvedPath}
+                  changedFiles={sidebarChangedFiles}
+                  selectedFile={sidebarSelectedFile}
+                  diff={sidebarDiff}
+                  diffLoading={sidebarDiffLoading}
+                  onFileSelect={handleSidebarFileSelect}
+                  onCommit={sidebarCommitDisabled ? async () => {} : handleSidebarCommit}
+                  remoteConfigured={remoteConfiguredForSidebar}
+                  locale={appLocale}
+                  onOpenGraphView={handleToggleGraphView}
+                  graphViewOpen={graphViewOpen}
+                />
               </div>
               <ResizeHandle onResize={layout.handleSidebarResize} />
             </>

@@ -38,6 +38,9 @@ fn apply_permission_flags(
         AiAgentPermissionMode::PowerUser => {
             command.arg("--dangerously-skip-permissions");
         }
+        AiAgentPermissionMode::DeepResearch => {
+            command.arg("--dangerously-skip-permissions");
+        }
     }
 }
 

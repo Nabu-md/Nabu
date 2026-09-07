@@ -368,6 +368,9 @@ fn agent_tools(permission_mode: AiAgentPermissionMode) -> &'static str {
     match permission_mode {
         AiAgentPermissionMode::Safe => CLAUDE_SAFE_AGENT_TOOLS,
         AiAgentPermissionMode::PowerUser => CLAUDE_POWER_USER_AGENT_TOOLS,
+        // Deep research prompts need the same web-scraping surface as the
+        // dedicated deep research runner.
+        AiAgentPermissionMode::DeepResearch => CLAUDE_RESEARCH_AGENT_TOOLS,
     }
 }
 
@@ -375,6 +378,7 @@ fn preapproved_agent_tools(permission_mode: AiAgentPermissionMode) -> Option<&'s
     match permission_mode {
         AiAgentPermissionMode::Safe => None,
         AiAgentPermissionMode::PowerUser => Some("Bash"),
+        AiAgentPermissionMode::DeepResearch => Some(CLAUDE_RESEARCH_PREAPPROVED_TOOLS),
     }
 }
 
@@ -382,6 +386,7 @@ fn disallowed_agent_tools_compat(permission_mode: AiAgentPermissionMode) -> &'st
     match permission_mode {
         AiAgentPermissionMode::Safe => CLAUDE_SAFE_DISALLOWED_TOOLS_COMPAT,
         AiAgentPermissionMode::PowerUser => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
+        AiAgentPermissionMode::DeepResearch => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
     }
 }
 

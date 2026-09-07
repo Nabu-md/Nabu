@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { CaretDown, GearSix } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { DEFAULT_AI_AGENT, type AiAgentId, type AiAgentReadiness, type AiAgentsStatus } from '../lib/aiAgents'
 import { resolveAiTargetReadiness, targetAgent, type AiModelProvider, type AiTarget } from '../lib/aiTargets'
-import { aiAgentPermissionModeLabels, type AiAgentPermissionMode } from '../lib/aiAgentPermissionMode'
+import { aiAgentPermissionModeLabels, normalizeAiAgentPermissionMode, type AiAgentPermissionMode } from '../lib/aiAgentPermissionMode'
 import type { VaultAiGuidanceStatus } from '../lib/vaultAiGuidance'
+import { getVaultConfig, subscribeVaultConfig } from '../utils/vaultConfigStore'
 import { translate, type AppLocale } from '../lib/i18n'
 import { trackAiWorkspaceChatTitled, trackAiWorkspaceSidebarToggled } from '../lib/productAnalytics'
 import { type modelOptionsForAgent, preferredAgentModel, type AiAgentModelCatalog } from '../lib/aiAgentModels'
@@ -136,7 +137,7 @@ function PermissionPicker({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side={side} className="min-w-[180px]">
-        {(['safe', 'power_user'] as const).map((mode) => (
+        {(['safe', 'power_user', 'deep_research'] as const).map((mode) => (
           <DropdownMenuItem key={mode} onSelect={() => onChange(mode)}>
             {aiAgentPermissionModeLabels(mode, locale).control}
           </DropdownMenuItem>
@@ -749,6 +750,7 @@ function SideAiWorkspaceLayout({
           <DeepResearchPanel
             vaultPath={workspace.vaultPath}
             vaultPaths={workspace.vaultPaths}
+            permissionMode="deep_research"
             model={model.activeConversation?.modelId ?? undefined}
           />
         ) : (
@@ -1046,6 +1048,7 @@ function AiWorkspaceLayout({
         <DeepResearchPanel
           vaultPath={workspace.vaultPath}
           vaultPaths={workspace.vaultPaths}
+          permissionMode="deep_research"
           model={model.activeConversation?.modelId ?? undefined}
         />
       ) : (
@@ -1119,12 +1122,31 @@ function ConversationSessions({
   )
 }
 
+function useWorkspacePermissionMode(): AiAgentPermissionMode {
+  const vaultConfig = useSyncExternalStore(subscribeVaultConfig, getVaultConfig)
+  return normalizeAiAgentPermissionMode(vaultConfig.ai_agent_permission_mode)
+}
+
 export function AiWorkspace(props: AiWorkspaceProps) {
   const workspace = resolveAiWorkspaceProps(props)
   const model = useAiWorkspaceModel(workspace)
   const { onActiveConversationChange } = workspace
-  const [researchMode, setResearchMode] = useState(false)
-  const toggleResearch = useCallback(() => setResearchMode((current) => !current), [])
+  const [manualResearchMode, setResearchMode] = useState(false)
+  // Deep Research as a prompt-box permission mode activates the deep research
+  // panel; the header toggle stays available and can force it back off.
+  const [permissionModeOverride, setPermissionModeOverride] = useState<AiAgentPermissionMode | null>(null)
+  const configPermissionMode = useWorkspacePermissionMode()
+  const permissionMode = permissionModeOverride ?? configPermissionMode
+  const deepResearchActive = permissionMode === 'deep_research'
+  const researchMode = manualResearchMode || deepResearchActive
+  const toggleResearch = useCallback(() => {
+    setResearchMode((current) => {
+      const next = !current
+      if (deepResearchActive && !next) setPermissionModeOverride('safe')
+      else if (!deepResearchActive && next) setPermissionModeOverride('deep_research')
+      return next
+    })
+  }, [deepResearchActive])
 
   useEffect(() => {
     if (!workspace.open || !model.activeId) return

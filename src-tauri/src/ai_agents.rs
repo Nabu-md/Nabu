@@ -24,6 +24,7 @@ pub enum AiAgentPermissionMode {
     #[default]
     Safe,
     PowerUser,
+    DeepResearch,
 }
 
 #[derive(Debug, Clone, Serialize)]

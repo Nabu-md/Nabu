@@ -59,6 +59,9 @@ REDESIGN-PLAN.md
 SF-SYMBOLS-MIGRATION.md
 CODE-HEALTH-REPORT.md
 
+# Planning folder (gitignored, local only)
+.plans/
+
 # Local home dir artifact from worktree ops
 (HOME)/
 

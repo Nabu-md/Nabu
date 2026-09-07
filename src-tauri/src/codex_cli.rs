@@ -408,6 +408,7 @@ fn codex_sandbox(permission_mode: crate::ai_agents::AiAgentPermissionMode) -> &'
     match permission_mode {
         crate::ai_agents::AiAgentPermissionMode::Safe => "read-only",
         crate::ai_agents::AiAgentPermissionMode::PowerUser => "workspace-write",
+        crate::ai_agents::AiAgentPermissionMode::DeepResearch => "workspace-write",
     }
 }
 
@@ -415,6 +416,7 @@ fn codex_approval_policy(permission_mode: crate::ai_agents::AiAgentPermissionMod
     match permission_mode {
         crate::ai_agents::AiAgentPermissionMode::Safe => "on-request",
         crate::ai_agents::AiAgentPermissionMode::PowerUser => "never",
+        crate::ai_agents::AiAgentPermissionMode::DeepResearch => "never",
     }
 }
 

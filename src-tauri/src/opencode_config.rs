@@ -226,6 +226,7 @@ fn permission_config(permission_mode: AiAgentPermissionMode) -> serde_json::Valu
     let bash_permission = match permission_mode {
         AiAgentPermissionMode::Safe => "deny",
         AiAgentPermissionMode::PowerUser => "allow",
+        AiAgentPermissionMode::DeepResearch => "allow",
     };
 
     serde_json::json!({

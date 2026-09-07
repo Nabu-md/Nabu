@@ -6,7 +6,7 @@ import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { WikilinkChatInput } from './WikilinkChatInput'
 import { extractInlineWikilinkReferences } from './inlineWikilinkText'
-import { aiAgentPermissionModeLabels, type AiAgentPermissionMode } from '../lib/aiAgentPermissionMode'
+import { aiAgentPermissionModeLabels, aiAgentPermissionModeTooltipKey, type AiAgentPermissionMode } from '../lib/aiAgentPermissionMode'
 import { createTranslator, type AppLocale } from '../lib/i18n'
 import type { AiAgentMessage } from '../hooks/useCliAiAgent'
 import type { AiAgentReadiness } from '../lib/aiAgents'
@@ -205,9 +205,7 @@ function ComposerControlsRow({
 }
 
 function permissionModeTooltip(mode: AiAgentPermissionMode, t: ReturnType<typeof createTranslator>): { label: string } {
-  return {
-    label: t(mode === 'power_user' ? 'ai.permission.powerUser.tooltip' : 'ai.permission.safe.tooltip'),
-  }
+  return { label: t(aiAgentPermissionModeTooltipKey(mode)) }
 }
 
 function headerStatusText({
@@ -358,7 +356,7 @@ function AiPermissionModeToggle({
         aria-label={t('ai.permission.modeAria')}
         data-testid="ai-permission-mode-toggle"
       >
-        {(['safe', 'power_user'] as const).map((mode) => {
+        {(['safe', 'power_user', 'deep_research'] as const).map((mode) => {
           const selected = value === mode
           return (
             <ActionTooltip

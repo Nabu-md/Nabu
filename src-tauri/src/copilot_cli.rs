@@ -103,6 +103,8 @@ fn append_permission_args(args: &mut Vec<String>, permission_mode: AiAgentPermis
             args.push("--deny-tool=shell".into());
         }
         AiAgentPermissionMode::PowerUser => args.push("--allow-all-tools".into()),
+        // Deep research needs network access for scraping, same as Power User.
+        AiAgentPermissionMode::DeepResearch => args.push("--allow-all-tools".into()),
     }
 }
 
