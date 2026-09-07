@@ -1,10 +1,14 @@
 //! Harper grammar checking (Apache-2.0, offline, in-process).
 
-use harper_core::linting::{Lint, LintGroup, Linter, Suggestion};
-use harper_core::FstDictionary;
+use std::sync::Arc;
+
+use harper_core::linting::{LintGroup, Linter, Suggestion};
+use harper_core::spell::FstDictionary;
+use harper_core::{DictWordMetadata, Dialect, Document};
 use serde::Serialize;
 
-/// A single grammar finding surfaced to the frontend.
+/// A single grammar finding surfaced to the frontend. Offsets are Unicode char
+/// indices so they map directly onto JS string indices.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrammarIssue {
@@ -15,13 +19,14 @@ pub struct GrammarIssue {
     pub severity: &'static str,
 }
 
-fn to_issue(lint: &Lint, chars: &[char]) -> GrammarIssue {
+fn to_issue(lint: &harper_core::linting::Lint, chars_len: usize) -> GrammarIssue {
     let span = lint.span;
     let suggestions: Vec<String> = lint
         .suggestions
         .iter()
         .filter_map(|s| match s {
-            Suggestion::ReplaceWith(cs) => Some(cs.to_string()),
+            Suggestion::ReplaceWith(chars) => Some(chars.iter().collect::<String>()),
+            Suggestion::Remove => Some(String::new()),
             _ => None,
         })
         .collect();
@@ -30,11 +35,10 @@ fn to_issue(lint: &Lint, chars: &[char]) -> GrammarIssue {
     } else {
         "warning"
     };
-    let end = span.end.min(chars.len());
-    let start = span.start.min(end);
-    let message: String = chars[start..end].iter().collect();
+    let start = span.start.min(chars_len);
+    let end = span.end.min(chars_len).max(start);
     GrammarIssue {
-        message,
+        message: lint.message.clone(),
         suggestions,
         start,
         end,
@@ -42,32 +46,27 @@ fn to_issue(lint: &Lint, chars: &[char]) -> GrammarIssue {
     }
 }
 
-/// Check text with Harper and return findings. Offsets are Unicode char indices
-/// so the frontend can map them directly onto JS string indices.
+/// Check text with Harper and return findings.
 #[tauri::command]
 pub fn grammar_check(text: String, extra_words: Vec<String>) -> Result<Vec<GrammarIssue>, String> {
     if text.trim().is_empty() {
         return Ok(Vec::new());
     }
-    let dict = FstDictionary::curated();
-    if !extra_words.is_empty() {
-        let owned = dict.clone();
+    let curated = FstDictionary::curated();
+    let dictionary: Arc<FstDictionary> = if extra_words.is_empty() {
+        Arc::clone(&curated)
+    } else {
+        let mut owned = harper_core::spell::MutableDictionary::new();
         for word in &extra_words {
-            let _ = owned.extend_lexicon(&[word.to_lowercase().as_str().into()]);
+            owned.append_word_str(&word.to_lowercase(), DictWordMetadata::default());
         }
-        let linter = LintGroup::new(owned);
-        return run_lints(&linter, &text);
-    }
-    let linter = LintGroup::new(dict);
-    run_lints(&linter, &text)
-}
-
-fn run_lints(linter: &LintGroup<FstDictionary>, text: &str) -> Result<Vec<GrammarIssue>, String> {
-    let doc = harper_core::Document::new_markdown_default(text);
+        Arc::new(FstDictionary::from(owned))
+    };
+    let mut linter = LintGroup::new_curated(Arc::clone(&dictionary), Dialect::American);
+    let doc = Document::new_markdown_default(&text, dictionary.as_ref());
     let mut lints = linter.lint(&doc);
     lints.sort_by_key(|l| l.span.start);
-    let chars: Vec<char> = text.chars().collect();
-    Ok(lints.iter().map(|l| to_issue(l, &chars)).collect())
+    Ok(lints.iter().map(|l| to_issue(l, text.chars().count())).collect())
 }
 
 /// Return just the issue count for quick UI badge updates.

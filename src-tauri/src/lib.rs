@@ -17,6 +17,7 @@ pub mod deep_research;
 pub mod dictation;
 pub mod mini_apps;
 mod commands;
+pub mod ocr;
 pub mod copilot_cli;
 mod copilot_discovery;
 #[cfg(desktop)]
@@ -382,6 +383,7 @@ macro_rules! app_invoke_handler {
             commands::restore_clipboard_entry,
             commands::start_dictation,
             commands::stop_dictation,
+            commands::open_dictation_window,
             commands::capture_file_drop,
             commands::list_conversations,
             commands::save_conversation,

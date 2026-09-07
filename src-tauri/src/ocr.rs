@@ -5,7 +5,6 @@
 //! directly. No new crates, no network calls, works on macOS 11+.
 
 use std::path::Path;
-use std::process::Command;
 
 use crate::hidden_command;
 
@@ -42,32 +41,6 @@ function run(argv) {
     if (candidates.count > 0) lines.push(candidates.objectAtIndex(0).string.js);
   }
   return JSON.stringify({ ok: true, text: lines.join('\n') });
-}
-"#;
-
-#[cfg(target_os = "macos")]
-const PDF_PAGES_SCRIPT: &str = r#"
-ObjC.import('Quartz');
-ObjC.import('AppKit');
-
-function run(argv) {
-  const path = argv[0];
-  const url = $.NSURL.fileURLWithPath(path);
-  const doc = $.PDFDocument.alloc.initWithURL(url);
-  if (doc.isNil()) return JSON.stringify({ ok: false, error: 'Cannot open PDF' });
-
-  const pages = [];
-  const count = doc.pageCount;
-  for (let i = 0; i < count; i += 1) {
-    const page = doc.pageAtIndex(i);
-    const image = page.thumbnailOfSizeForBox($.NSMakeSize(1600, 2200), $.kPDFDisplayBoxMediaBox);
-    const tiff = image.TIFFRepresentation;
-    const rep = $.NSBitmapImageRep.imageRepWithData(tiff);
-    const png = rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $());
-    if (png.isNil()) return JSON.stringify({ ok: false, error: 'Failed to render page ' + (i + 1) });
-    pages.push($.NSString.alloc.initWithDataEncoding(png, $.NSUTF8StringEncoding).js);
-  }
-  return JSON.stringify({ ok: true, pages: pages });
 }
 "#;
 

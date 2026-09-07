@@ -9,12 +9,15 @@ import {
   useFileDropZone,
   useSpeechRecognition,
 } from '../hooks/useDictation'
+import type { useFluidVoiceDictation } from '../hooks/useFluidVoiceDictation'
 
 export interface DictationPillProps {
   vaultPath: string | null
   enabled?: boolean
   position?: 'bottom-right' | 'bottom-left'
   opacity?: number
+  /** When provided, FluidVoice becomes the selectable dictation backend. */
+  fluidVoice?: ReturnType<typeof useFluidVoiceDictation>
 }
 
 const DICTATION_SHORTCUT_KEY = 'd'
@@ -40,9 +43,11 @@ export function DictationPill({
   enabled = true,
   position = 'bottom-right',
   opacity = 0.85,
+  fluidVoice,
 }: DictationPillProps) {
   const [panelOpen, setPanelOpen] = useState(false)
-  const speech = useSpeechRecognition()
+  const fallbackSpeech = useSpeechRecognition()
+  const speech = fluidVoice ? fluidVoice.webSpeech : fallbackSpeech
   const clipboard = useClipboardCache()
   const dropZone = useFileDropZone(vaultPath)
   const panelRef = useRef<HTMLDivElement | null>(null)

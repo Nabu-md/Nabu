@@ -93,6 +93,12 @@ export function isNoteWindow(): boolean {
   return getStoredNoteWindowParams(getCurrentWindowLabel()) !== null
 }
 
+/** True when this webview hosts the standalone dictation pill window. */
+export function isDictationWindow(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('window') === 'dictation-pill' || getCurrentWindowLabel() === 'dictation-pill'
+}
+
 export function isAiWorkspaceWindow(): boolean {
   const params = new URLSearchParams(window.location.search)
   if (params.get('window') === 'ai-workspace') return true
