@@ -1433,7 +1433,7 @@ mod tests {
             .arg("stdin_probe_parent_child")
             .arg("--ignored")
             .arg("--nocapture")
-            .env("TOLARIA_STDIN_PROBE_CHILD", "1")
+            .env("NABU_STDIN_PROBE_CHILD", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -1472,7 +1472,7 @@ mod tests {
     #[ignore = "spawned by run_subprocess_closes_stdin_even_when_parent_stdin_pipe_is_open"]
     #[test]
     fn stdin_probe_parent_child() {
-        if std::env::var_os("TOLARIA_STDIN_PROBE_CHILD").is_none() {
+        if std::env::var_os("NABU_STDIN_PROBE_CHILD").is_none() {
             return;
         }
 

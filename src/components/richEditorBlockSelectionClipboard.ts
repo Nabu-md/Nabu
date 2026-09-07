@@ -6,7 +6,7 @@ import {
   type RichEditorBlockSelectionEditor,
 } from './richEditorBlockSelectionTypes'
 
-export const TOLARIA_BLOCK_CLIPBOARD_MIME = 'application/x-nabu-blocknote-blocks+json'
+export const NABU_BLOCK_CLIPBOARD_MIME = 'application/x-nabu-blocknote-blocks+json'
 
 function sanitizeMarkup(markup: string): string {
   return DOMPurify.sanitize(markup)
@@ -51,7 +51,7 @@ export function writeSelectedBlocksToClipboard(
   const markdown = blocksToMarkdown(editor, blocks)
 
   clipboardData.clearData()
-  clipboardData.setData(TOLARIA_BLOCK_CLIPBOARD_MIME, JSON.stringify(blocks))
+  clipboardData.setData(NABU_BLOCK_CLIPBOARD_MIME, JSON.stringify(blocks))
   if (fullMarkup) clipboardData.setData('blocknote/html', fullMarkup)
   if (externalMarkup) clipboardData.setData('text/html', externalMarkup)
   if (markdown) {
@@ -62,7 +62,7 @@ export function writeSelectedBlocksToClipboard(
 }
 
 function parseNabuClipboardBlocks(clipboardData: ClipboardDataLike): unknown[] {
-  const serialized = clipboardData.getData(TOLARIA_BLOCK_CLIPBOARD_MIME)
+  const serialized = clipboardData.getData(NABU_BLOCK_CLIPBOARD_MIME)
   if (!serialized) return []
 
   try {

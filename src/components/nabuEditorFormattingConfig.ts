@@ -110,7 +110,7 @@ const UNSUPPORTED_SLASH_MENU_KEYS = new Set([
   'toggle_list',
 ])
 
-const TOLARIA_BLOCK_TYPE_SELECT_ICONS: Record<RichEditorBlockTypeKey, PhosphorIcon> = {
+const NABU_BLOCK_TYPE_SELECT_ICONS: Record<RichEditorBlockTypeKey, PhosphorIcon> = {
   'bullet-list': ListBullets,
   checklist: ListChecks,
   'code-block': CodeBlock,
@@ -125,7 +125,7 @@ const TOLARIA_BLOCK_TYPE_SELECT_ICONS: Record<RichEditorBlockTypeKey, PhosphorIc
   quote: Quotes,
 }
 
-const TOLARIA_SLASH_MENU_ICONS: Partial<Record<string, PhosphorIcon>> = {
+const NABU_SLASH_MENU_ICONS: Partial<Record<string, PhosphorIcon>> = {
   audio: SpeakerHigh,
   bullet_list: ListBullets,
   callout: Note,
@@ -392,7 +392,7 @@ export function createNabuSlashMenuIcon(Icon: PhosphorIcon) {
 export function getNabuBlockTypeSelectItems() {
   return RICH_EDITOR_BLOCK_TYPE_DEFINITIONS.map((item): NabuBlockTypeSelectItem => ({
     ...item,
-    icon: TOLARIA_BLOCK_TYPE_SELECT_ICONS[item.key],
+    icon: NABU_BLOCK_TYPE_SELECT_ICONS[item.key],
   }))
 }
 
@@ -410,7 +410,7 @@ export function filterNabuSlashMenuItems<T extends NabuSlashMenuItem>(
   return items
     .filter((item) => !UNSUPPORTED_SLASH_MENU_KEYS.has(item.key))
     .map((item) => {
-      const NabuIcon = TOLARIA_SLASH_MENU_ICONS[item.key]
+      const NabuIcon = NABU_SLASH_MENU_ICONS[item.key]
 
       return {
         ...item,

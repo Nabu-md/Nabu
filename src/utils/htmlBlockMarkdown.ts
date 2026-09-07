@@ -24,7 +24,7 @@ export {
   BLOCK_TYPE as HTML_BLOCK_TYPE,
 }
 
-const TOKEN_PREFIX = '@@TOLARIA_HTML_BLOCK:'
+const TOKEN_PREFIX = '@@NABU_HTML_BLOCK:'
 const TOKEN_SUFFIX = '@@'
 
 export type HtmlBlockScripts = typeof BLOCK_SCRIPTS_BLOCKED | typeof BLOCK_SCRIPTS_SANDBOXED

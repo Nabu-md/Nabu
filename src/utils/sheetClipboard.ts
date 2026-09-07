@@ -12,9 +12,9 @@ import type { SheetExternalFormulaInput } from './sheetExternalFormulaWorker'
 import { selectedRangeArea } from './sheetSelection'
 import { MAX_SHEET_COLUMNS, MAX_SHEET_ROWS, SHEET_INDEX } from './sheetWorkbook'
 
-export const TOLARIA_SHEET_CLIPBOARD_MIME = 'application/x-nabu-sheet-clipboard'
+export const NABU_SHEET_CLIPBOARD_MIME = 'application/x-nabu-sheet-clipboard'
 
-const TOLARIA_SHEET_CLIPBOARD_VERSION = 1
+const NABU_SHEET_CLIPBOARD_VERSION = 1
 const LOCAL_CELL_REFERENCE_PATTERN = /(^|[^A-Za-z0-9_.\][$])(\$?)([A-Za-z]{1,3})(\$?)([1-9]\d*)(?![A-Za-z0-9_]|\s*\()/g
 
 export interface NabuSheetClipboardPayload {
@@ -95,7 +95,7 @@ function isClipboardPayload(value: unknown): value is NabuSheetClipboardPayload 
   if (!value || typeof value !== 'object') return false
   const payload = value as Partial<NabuSheetClipboardPayload>
   return payload.type === 'nabu-sheet-clipboard'
-    && payload.version === TOLARIA_SHEET_CLIPBOARD_VERSION
+    && payload.version === NABU_SHEET_CLIPBOARD_VERSION
     && isClipboardAction(payload.action)
     && Array.isArray(payload.cells)
     && isClipboardSource(payload.source)
@@ -251,7 +251,7 @@ export function buildNabuSheetClipboardPayload(
       width: area.width,
     },
     type: 'nabu-sheet-clipboard',
-    version: TOLARIA_SHEET_CLIPBOARD_VERSION,
+    version: NABU_SHEET_CLIPBOARD_VERSION,
   }
 }
 
@@ -268,7 +268,7 @@ export function parseNabuSheetClipboardPayload(value: string): NabuSheetClipboar
 
 export function writeNabuSheetClipboard(dataTransfer: DataTransfer, payload: NabuSheetClipboardPayload): void {
   const text = serializeCsvRows(payload.cells)
-  dataTransfer.setData(TOLARIA_SHEET_CLIPBOARD_MIME, JSON.stringify(payload))
+  dataTransfer.setData(NABU_SHEET_CLIPBOARD_MIME, JSON.stringify(payload))
   dataTransfer.setData('text/plain', text)
   dataTransfer.setData('text/csv', text)
 }

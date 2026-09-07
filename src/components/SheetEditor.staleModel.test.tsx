@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createClipboardData, getIronCalcMock, resetSheetEditorTestState } from './SheetEditor.testUtils'
 import { SheetEditor } from './SheetEditor'
-import { TOLARIA_SHEET_CLIPBOARD_MIME } from '../utils/sheetClipboard'
+import { NABU_SHEET_CLIPBOARD_MIME } from '../utils/sheetClipboard'
 
 const ironCalcMock = getIronCalcMock()
 const sheetContent = '---\ntype: Sheet\n---\nMetric,January'
@@ -114,7 +114,7 @@ describe('SheetEditor stale workbook model recovery', () => {
     await screen.findByTestId('ironcalc-workbook')
     const editor = screen.getByTestId('sheet-editor')
     const clipboardData = createClipboardData()
-    clipboardData.setData(TOLARIA_SHEET_CLIPBOARD_MIME, JSON.stringify({
+    clipboardData.setData(NABU_SHEET_CLIPBOARD_MIME, JSON.stringify({
       action: 'copy',
       cells: [['queued paste']],
       source: {

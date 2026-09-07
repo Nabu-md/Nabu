@@ -58,7 +58,7 @@ interface TransformedLine {
   line: MarkdownLine
 }
 
-const FILE_ATTACHMENT_TOKEN_PREFIX = '@@TOLARIA_FILE_ATTACHMENT:'
+const FILE_ATTACHMENT_TOKEN_PREFIX = '@@NABU_FILE_ATTACHMENT:'
 const FILE_ATTACHMENT_TOKEN_SUFFIX = '@@'
 const STANDALONE_ATTACHMENT_LINK_PATTERN = /^( {0,3})\[((?:\\.|[^\]\\\n])*)\]\((<[^>\n]+>|(?:\\.|[^)\s\n])+)(?:[ \t]+"((?:\\.|[^"\\\n])*)")?\)[ \t]*$/u
 

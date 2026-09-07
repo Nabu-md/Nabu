@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { OnboardingShell } from './OnboardingShell'
 import { Button } from '@/components/ui/button'
 import nabuIcon from '@/assets/nabu-icon.svg'
-import { TOLARIA_FIRST_LAUNCH_DOCS_URL } from '@/constants/feedback'
+import { NABU_FIRST_LAUNCH_DOCS_URL } from '@/constants/feedback'
 import { translate, type AppLocale } from '@/lib/i18n'
 import { openExternalUrl } from '@/utils/url'
 
@@ -530,7 +530,7 @@ function WelcomeDocsLink({ locale }: { locale: AppLocale }) {
         variant="link"
         size="sm"
         className="h-auto gap-1 px-0 py-0 text-xs"
-        onClick={() => void openExternalUrl(TOLARIA_FIRST_LAUNCH_DOCS_URL)}
+        onClick={() => void openExternalUrl(NABU_FIRST_LAUNCH_DOCS_URL)}
         data-testid="welcome-docs-link"
       >
         {translate(locale, 'onboarding.welcome.docsLink')}

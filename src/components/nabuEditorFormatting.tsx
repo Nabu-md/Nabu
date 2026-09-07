@@ -206,7 +206,7 @@ function useDeduplicatedFormattingToolbarStore(
   }, [store])
 }
 
-const TOLARIA_BASIC_TEXT_STYLE_TOOLTIPS = {
+const NABU_BASIC_TEXT_STYLE_TOOLTIPS = {
   bold: {
     label: 'Bold',
     mainTooltip: 'Bold (persists in markdown)',
@@ -232,7 +232,7 @@ const TOLARIA_BASIC_TEXT_STYLE_TOOLTIPS = {
   { label: string; mainTooltip: string; secondaryTooltip: string }
 >
 
-const TOLARIA_BASIC_TEXT_STYLE_ICONS = {
+const NABU_BASIC_TEXT_STYLE_ICONS = {
   bold: Bold,
   italic: Italic,
   strike: Strikethrough,
@@ -523,7 +523,7 @@ function NabuBasicTextStyleButton({
 
   if (buttonState === undefined) return null
 
-  const Icon = Reflect.get(TOLARIA_BASIC_TEXT_STYLE_ICONS, basicTextStyle) as PhosphorIcon
+  const Icon = Reflect.get(NABU_BASIC_TEXT_STYLE_ICONS, basicTextStyle) as PhosphorIcon
   const copy = basicTextStyleCopy(basicTextStyle, locale)
 
   return (
@@ -552,7 +552,7 @@ function basicTextStyleCopy(
     }
   }
 
-  return Reflect.get(TOLARIA_BASIC_TEXT_STYLE_TOOLTIPS, basicTextStyle) as {
+  return Reflect.get(NABU_BASIC_TEXT_STYLE_TOOLTIPS, basicTextStyle) as {
     label: string
     mainTooltip: string
     secondaryTooltip: string

@@ -82,10 +82,10 @@ pub fn record_startup_milestone(
     }
 
     let milestone = state.record_milestone(&name, renderer_elapsed_ms, detail);
-    if std::env::var("TOLARIA_STARTUP_TRACE").as_deref() == Ok("1") {
+    if std::env::var("NABU_STARTUP_TRACE").as_deref() == Ok("1") {
         let json = serde_json::to_string(&milestone)
             .map_err(|error| format!("Failed to serialize startup milestone: {error}"))?;
-        eprintln!("TOLARIA_STARTUP_TRACE {json}");
+        eprintln!("NABU_STARTUP_TRACE {json}");
     }
     Ok(milestone)
 }

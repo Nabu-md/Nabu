@@ -5,7 +5,7 @@ import {
   logPerf,
 } from './performanceLogging'
 
-const HARNESS_KEY = '__TOLARIA_PERFORMANCE_HARNESS__'
+const HARNESS_KEY = '__NABU_PERFORMANCE_HARNESS__'
 const HARNESS_DESCRIPTOR = Object.getOwnPropertyDescriptor(globalThis, HARNESS_KEY)
 const VITEST_WORKER_DESCRIPTOR = Object.getOwnPropertyDescriptor(globalThis, '__vitest_worker__')
 

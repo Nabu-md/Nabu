@@ -32,6 +32,7 @@ export const NoteTabBar = memo(function NoteTabBar({
 }: NoteTabBarProps) {
   const dragIndexRef = useRef<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const handleCloseClick = useCallback(
     (event: React.MouseEvent, path: string) => {
@@ -73,6 +74,7 @@ export const NoteTabBar = memo(function NoteTabBar({
             draggable
             onDragStart={(event) => {
               dragIndexRef.current = index
+              setDragging(true)
               event.dataTransfer.effectAllowed = 'move'
               event.dataTransfer.setData('text/plain', tab.path)
             }}
@@ -83,6 +85,7 @@ export const NoteTabBar = memo(function NoteTabBar({
             onDrop={(event) => handleDrop(event, index)}
             onDragEnd={() => {
               dragIndexRef.current = null
+              setDragging(false)
               setDragOverIndex(null)
             }}
             onClick={() => onSelectTab(tab.path)}
@@ -103,7 +106,7 @@ export const NoteTabBar = memo(function NoteTabBar({
               active
                 ? 'bg-background font-semibold text-foreground'
                 : 'text-muted-foreground hover:bg-[var(--hover)] hover:text-foreground',
-              dragOverIndex === index && dragIndexRef.current !== null && 'border-l-2 border-l-[var(--accent-blue)]',
+              dragOverIndex === index && dragging && 'border-l-2 border-l-[var(--accent-blue)]',
             )}
             style={active ? { boxShadow: 'inset 0 -2px 0 0 var(--accent-blue)' } : undefined}
             data-testid={`note-tab-${index}`}

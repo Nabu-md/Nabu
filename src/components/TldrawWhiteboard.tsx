@@ -30,7 +30,7 @@ import { ActionTooltip } from './ui/action-tooltip'
 import { installTldrawTextMeasurementGuard } from './tldrawTextMeasurementGuard'
 
 const EMPTY_TLDRAW_TRANSLATION_URL = 'data:application/json;base64,e30K'
-const TOLARIA_TLDRAW_USER_ID = 'nabu-whiteboard'
+const NABU_TLDRAW_USER_ID = 'nabu-whiteboard'
 const WHITEBOARD_FULLSCREEN_BODY_CLASS = 'tldraw-whiteboard-fullscreen-open'
 
 function resolveTldrawAssetUrl(assetUrl: string | undefined): string {
@@ -108,7 +108,7 @@ function cssSize({ height, width }: PixelSize): CSSProperties {
 function tldrawUserPreferences(themeMode: ResolvedThemeMode): TLUserPreferences {
   return {
     ...defaultUserPreferences,
-    id: TOLARIA_TLDRAW_USER_ID,
+    id: NABU_TLDRAW_USER_ID,
     colorScheme: themeMode,
   }
 }

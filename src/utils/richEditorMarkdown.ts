@@ -49,7 +49,7 @@ interface RichEditorBlockSerializationOptions {
 const EMPTY_CHECKLIST_ITEM_FILLER = '\u200B'
 const EMPTY_CHECKLIST_ITEM_LINE_RE = /^([ \t]*[-*+][ \t]+\[[ xX]\])[ \t]*$/u
 const BLANK_PARAGRAPH_PLACEHOLDER = '\u200B'
-const BACKSLASH_BEFORE_BRACE_PLACEHOLDER = '\uE000TOLARIA_BACKSLASH_LBRACE\uE001'
+const BACKSLASH_BEFORE_BRACE_PLACEHOLDER = '\uE000NABU_BACKSLASH_LBRACE\uE001'
 
 interface ParsedBlockquoteSourceLine {
   content: string

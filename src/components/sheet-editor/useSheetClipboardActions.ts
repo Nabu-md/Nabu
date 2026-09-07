@@ -5,7 +5,7 @@ import {
   parseNabuSheetClipboardPayload,
   rangesIntersect,
   shiftedClipboardCellInput,
-  TOLARIA_SHEET_CLIPBOARD_MIME,
+  NABU_SHEET_CLIPBOARD_MIME,
   writeNabuSheetClipboard,
   type NabuSheetClipboardPayload,
 } from '../../utils/sheetClipboard'
@@ -314,7 +314,7 @@ function useSheetPasteCaptureHandler({
       return
     }
 
-    const payload = parseNabuSheetClipboardPayload(event.clipboardData.getData(TOLARIA_SHEET_CLIPBOARD_MIME))
+    const payload = parseNabuSheetClipboardPayload(event.clipboardData.getData(NABU_SHEET_CLIPBOARD_MIME))
     if (!payload || !applyNabuClipboardPaste(payload)) {
       scheduleSelectedRowsSerialization(workbookRef, scheduleSerialize)
       return

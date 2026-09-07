@@ -7,10 +7,10 @@ import {
 export const MATH_INLINE_TYPE = 'mathInline'
 export const MATH_BLOCK_TYPE = 'mathBlock'
 
-const INLINE_TOKEN_PREFIX = '@@TOLARIA_MATH_INLINE:'
-const BLOCK_TOKEN_PREFIX = '@@TOLARIA_MATH_BLOCK:'
+const INLINE_TOKEN_PREFIX = '@@NABU_MATH_INLINE:'
+const BLOCK_TOKEN_PREFIX = '@@NABU_MATH_BLOCK:'
 const TOKEN_SUFFIX = '@@'
-const INLINE_TOKEN_RE = /@@TOLARIA_MATH_INLINE:([^@]+)@@/g
+const INLINE_TOKEN_RE = /@@NABU_MATH_INLINE:([^@]+)@@/g
 const CODE_FENCE_PREFIXES = ['```', '~~~']
 
 interface InlineItem {

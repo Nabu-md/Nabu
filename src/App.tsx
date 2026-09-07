@@ -101,7 +101,7 @@ import { resolveAiTargetReadiness, type AiTarget } from './lib/aiTargets'
 import { isAiAgentInstalled } from './lib/aiAgents'
 import { areGitFeaturesEnabled } from './lib/gitSettings'
 import { useAppCommandAiActions } from './hooks/useAppCommandAiActions'
-import { TOLARIA_DOCS_URL } from './constants/feedback'
+import { NABU_DOCS_URL } from './constants/feedback'
 import { openExternalUrl } from './utils/url'
 import {
   translate,
@@ -209,7 +209,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const openFeedback = useCallback(() => setShowFeedback(true), [])
   const closeFeedback = useCallback(() => setShowFeedback(false), [])
   const openDocs = useCallback(() => {
-    void openExternalUrl(TOLARIA_DOCS_URL)
+    void openExternalUrl(NABU_DOCS_URL)
   }, [])
   const networkStatus = useNetworkStatus()
   const { settings, loaded: settingsLoaded, saveSettings } = useSettings()
@@ -1074,13 +1074,17 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
         if (sidebarFileRequestSeq.current === seq) setSidebarDiffLoading(false)
       })
   }, [loadDiffForPath])
-  useEffect(() => {
+  // Reset the sidebar selection during render when the changed-file list no
+  // longer contains it (React's recommended state-adjustment pattern).
+  const [prevChangedFiles, setPrevChangedFiles] = useState(sidebarChangedFiles)
+  if (prevChangedFiles !== sidebarChangedFiles) {
+    setPrevChangedFiles(sidebarChangedFiles)
     if (sidebarSelectedFile && !sidebarChangedFiles.some((file) => file.path === sidebarSelectedFile)) {
       setSidebarSelectedFile(null)
       setSidebarDiff(null)
       setSidebarDiffLoading(false)
     }
-  }, [sidebarChangedFiles, sidebarSelectedFile])
+  }
   const remoteConfiguredForSidebar = gitSurfaces.remoteStatusForRepository(resolvedPath)?.hasRemote ?? false
   const handleSidebarCommit = useCallback(async (message: string, push: boolean) => {
     if (!gitFeaturesEnabled) return

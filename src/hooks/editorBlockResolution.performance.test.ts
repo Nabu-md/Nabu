@@ -100,7 +100,7 @@ describe('resolveBlocksForTarget performance paths', () => {
         { type: 'text', text: ' across the pipe.' },
       ],
     })
-    expect(JSON.stringify(resolved.blocks)).not.toContain('TOLARIA_MATH')
+    expect(JSON.stringify(resolved.blocks)).not.toContain('NABU_MATH')
   })
 
   it('keeps image-heavy large notes on the off-thread direct parser', async () => {

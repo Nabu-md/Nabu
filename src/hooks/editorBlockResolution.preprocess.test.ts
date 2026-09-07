@@ -76,7 +76,7 @@ describe('preProcessRichEditorMarkdown', () => {
     expect(preprocessed).toContain('\\~$1.5k/mo now, \\~$3k/mo')
     expect(preprocessed).toContain('\\~$115 lifetime vs \\~$223')
     expect(preprocessed).toContain('~~deleted~~')
-    expect(preprocessed).not.toContain('TOLARIA_MATH_INLINE')
+    expect(preprocessed).not.toContain('NABU_MATH_INLINE')
   })
 
   it('renders bare task-list markers as empty checklist blocks', async () => {

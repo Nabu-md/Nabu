@@ -32,8 +32,8 @@ interface InlineParserState {
   text: InlineMarkdownText
 }
 
-const DURABLE_MARKDOWN_TOKEN_PREFIX = '@@TOLARIA_'
-const DURABLE_MARKDOWN_TOKEN_RE = /^@@TOLARIA_[A-Z_]+:[^@]+@@$/u
+const DURABLE_MARKDOWN_TOKEN_PREFIX = '@@NABU_'
+const DURABLE_MARKDOWN_TOKEN_RE = /^@@NABU_[A-Z_]+:[^@]+@@$/u
 const TEXT_STYLE_KEYS: StyleKey[] = ['bold', 'code', 'italic', 'strike']
 
 export function fastMarkdownTextItem(

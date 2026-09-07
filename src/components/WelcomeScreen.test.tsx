@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { WelcomeScreen } from './WelcomeScreen'
 import nabuIcon from '@/assets/nabu-icon.svg'
-import { TOLARIA_FIRST_LAUNCH_DOCS_URL } from '@/constants/feedback'
+import { NABU_FIRST_LAUNCH_DOCS_URL } from '@/constants/feedback'
 
 const dragRegionMouseDown = vi.fn()
 const openExternalUrl = vi.fn()
@@ -177,7 +177,7 @@ describe('WelcomeScreen', () => {
     it('opens the first-launch docs from the welcome card', () => {
       render(<WelcomeScreen {...defaultProps} />)
       fireEvent.click(screen.getByTestId('welcome-docs-link'))
-      expect(openExternalUrl).toHaveBeenCalledWith(TOLARIA_FIRST_LAUNCH_DOCS_URL)
+      expect(openExternalUrl).toHaveBeenCalledWith(NABU_FIRST_LAUNCH_DOCS_URL)
     })
   })
 

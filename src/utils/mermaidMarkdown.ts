@@ -10,7 +10,7 @@ import {
 
 export const MERMAID_BLOCK_TYPE = 'mermaidBlock'
 
-const TOKEN_PREFIX = '@@TOLARIA_MERMAID_BLOCK:'
+const TOKEN_PREFIX = '@@NABU_MERMAID_BLOCK:'
 const TOKEN_SUFFIX = '@@'
 
 interface MermaidPayload {

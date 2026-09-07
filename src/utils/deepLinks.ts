@@ -2,7 +2,7 @@ import type { VaultEntry } from '../types'
 import { joinVaultPath, normalizeNotePathForCollision, normalizeNotePathForIdentity, normalizeNotePathSeparators } from './notePathIdentity'
 import { workspaceAliasFromOption } from './workspaces'
 
-export const TOLARIA_DEEP_LINK_SCHEME = 'nabu'
+export const NABU_DEEP_LINK_SCHEME = 'nabu'
 
 export interface DeepLinkVault {
   alias?: string | null
@@ -198,7 +198,7 @@ export function parseNabuDeepLink({ rawUrl }: NabuDeepLinkInput): ParsedNabuDeep
     return { ok: false, error: 'malformed_url' }
   }
 
-  if (parsed.protocol !== `${TOLARIA_DEEP_LINK_SCHEME}:`) return { ok: false, error: 'invalid_scheme' }
+  if (parsed.protocol !== `${NABU_DEEP_LINK_SCHEME}:`) return { ok: false, error: 'invalid_scheme' }
   if (!parsed.hostname) return { ok: false, error: 'missing_vault' }
 
   const rawPathname = rawPathnameForNabuUrl({ rawUrl })
@@ -239,6 +239,6 @@ export function buildNabuDeepLinkForEntry({
   const slug = vaultDeepLinkSlug(vault, vaults)
   return {
     ok: true,
-    url: `${TOLARIA_DEEP_LINK_SCHEME}://${slug}/${encodeRelativePath({ path: relativePath })}`,
+    url: `${NABU_DEEP_LINK_SCHEME}://${slug}/${encodeRelativePath({ path: relativePath })}`,
   }
 }

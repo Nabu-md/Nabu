@@ -541,7 +541,7 @@ fn create_getting_started_vault_from_repo(
 }
 
 fn getting_started_repo_url() -> String {
-    std::env::var("TOLARIA_GETTING_STARTED_REPO_URL")
+    std::env::var("NABU_GETTING_STARTED_REPO_URL")
         .or_else(|_| std::env::var("LAPUTA_GETTING_STARTED_REPO_URL"))
         .unwrap_or_else(|_| GETTING_STARTED_REPO_URL.to_string())
 }

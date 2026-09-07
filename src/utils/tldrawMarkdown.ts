@@ -11,7 +11,7 @@ import {
 export const TLDRAW_BLOCK_TYPE = 'tldrawBlock'
 export const TLDRAW_DEFAULT_HEIGHT = '520'
 
-const TOKEN_PREFIX = '@@TOLARIA_TLDRAW_BLOCK:'
+const TOKEN_PREFIX = '@@NABU_TLDRAW_BLOCK:'
 const TOKEN_SUFFIX = '@@'
 
 interface TldrawPayload {

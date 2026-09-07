@@ -20,14 +20,14 @@ export const CODACY_HOME_URL = withContributionUtm('https://codacy.com/nabu')
 export const CODESCENE_HOME_URL = withContributionUtm('https://codescene.com/')
 export const CIRCLECI_HOME_URL = withContributionUtm('https://circleci.com/')
 export const UNBLOCKED_HOME_URL = withContributionUtm('https://getunblocked.com/')
-export const TOLARIA_DEVELOPMENT_ARTICLE_URL = 'https://refactoring.fm/p/introducing-the-nabu-alliance'
-export const TOLARIA_DOCS_URL = 'https://refactoringhq.github.io/nabu/'
-export const TOLARIA_FIRST_LAUNCH_DOCS_URL = `${TOLARIA_DOCS_URL}start/first-launch`
-export const TOLARIA_PRODUCT_BOARD_URL = 'https://nabu.canny.io/'
-export const TOLARIA_GITHUB_DISCUSSIONS_URL = 'https://github.com/refactoringhq/nabu/discussions'
-export const TOLARIA_GITHUB_CONTRIBUTING_URL = 'https://github.com/refactoringhq/nabu/blob/main/CONTRIBUTING.md'
-export const TOLARIA_GITHUB_ISSUES_URL = 'https://github.com/refactoringhq/nabu/issues'
-export const TOLARIA_GITHUB_PULL_REQUESTS_URL = 'https://github.com/refactoringhq/nabu/pulls'
+export const NABU_DEVELOPMENT_ARTICLE_URL = 'https://refactoring.fm/p/introducing-the-nabu-alliance'
+export const NABU_DOCS_URL = 'https://refactoringhq.github.io/nabu/'
+export const NABU_FIRST_LAUNCH_DOCS_URL = `${NABU_DOCS_URL}start/first-launch`
+export const NABU_PRODUCT_BOARD_URL = 'https://nabu.canny.io/'
+export const NABU_GITHUB_DISCUSSIONS_URL = 'https://github.com/refactoringhq/nabu/discussions'
+export const NABU_GITHUB_CONTRIBUTING_URL = 'https://github.com/refactoringhq/nabu/blob/main/CONTRIBUTING.md'
+export const NABU_GITHUB_ISSUES_URL = 'https://github.com/refactoringhq/nabu/issues'
+export const NABU_GITHUB_PULL_REQUESTS_URL = 'https://github.com/refactoringhq/nabu/pulls'
 
 export type ContributionTone = 'blue' | 'green' | 'yellow' | 'purple' | 'red'
 export type ContributionIcon = typeof Lightbulb
@@ -129,7 +129,7 @@ export const SPONSOR_DEVELOPMENT_ARTICLE_LINK = {
   analyticsAction: 'sponsors_development_article',
   textKey: 'feedback.sponsors.developmentLinkText',
   labelKey: 'feedback.sponsors.developmentLinkLabel',
-  url: TOLARIA_DEVELOPMENT_ARTICLE_URL,
+  url: NABU_DEVELOPMENT_ARTICLE_URL,
 } satisfies ContributionTextLink
 
 export const CONTRIBUTION_PATHS = [
@@ -139,7 +139,7 @@ export const CONTRIBUTION_PATHS = [
     descriptionKey: 'feedback.featureRequests.description',
     ctaLabelKey: 'feedback.featureRequests.cta',
     labelKey: 'feedback.featureRequests.linkLabel',
-    url: TOLARIA_PRODUCT_BOARD_URL,
+    url: NABU_PRODUCT_BOARD_URL,
     icon: Lightbulb,
     tone: 'green',
   },
@@ -149,7 +149,7 @@ export const CONTRIBUTION_PATHS = [
     descriptionKey: 'feedback.discussions.description',
     ctaLabelKey: 'feedback.discussions.cta',
     labelKey: 'feedback.discussions.linkLabel',
-    url: TOLARIA_GITHUB_DISCUSSIONS_URL,
+    url: NABU_GITHUB_DISCUSSIONS_URL,
     icon: MessagesSquare,
     tone: 'purple',
   },
@@ -159,14 +159,14 @@ export const CONTRIBUTION_PATHS = [
     descriptionKey: 'feedback.contributeCode.description',
     ctaLabelKey: 'feedback.contributeCode.cta',
     labelKey: 'feedback.contributeCode.linkLabel',
-    url: TOLARIA_GITHUB_PULL_REQUESTS_URL,
+    url: NABU_GITHUB_PULL_REQUESTS_URL,
     icon: GitPullRequest,
     tone: 'yellow',
     secondaryLink: {
       analyticsAction: 'contributing_guide',
       ctaLabelKey: 'feedback.contributingGuide.cta',
       labelKey: 'feedback.contributingGuide.linkLabel',
-      url: TOLARIA_GITHUB_CONTRIBUTING_URL,
+      url: NABU_GITHUB_CONTRIBUTING_URL,
     },
   },
 ] satisfies ContributionPath[]
@@ -177,7 +177,7 @@ export const BUG_REPORT_PATH = {
   descriptionKey: 'feedback.reportBug.description',
   ctaLabelKey: 'feedback.reportBug.cta',
   labelKey: 'feedback.reportBug.linkLabel',
-  url: TOLARIA_GITHUB_ISSUES_URL,
+  url: NABU_GITHUB_ISSUES_URL,
   icon: Bug,
   tone: 'red',
 } satisfies ContributionPath

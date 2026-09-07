@@ -39,7 +39,7 @@ function parsePreprocessedParagraph(markdown: string) {
 }
 
 function attachmentTokenCount(markdown: string): number {
-  return markdown.match(/@@TOLARIA_FILE_ATTACHMENT:/gu)?.length ?? 0
+  return markdown.match(/@@NABU_FILE_ATTACHMENT:/gu)?.length ?? 0
 }
 
 describe('file attachment Markdown roundtrip', () => {

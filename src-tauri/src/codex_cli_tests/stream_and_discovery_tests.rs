@@ -90,7 +90,7 @@ fn run_codex_agent_stream_writes_prompt_and_closes_stdin_with_parent_pipe_open()
         .arg("codex_stdin_probe_parent_child")
         .arg("--ignored")
         .arg("--nocapture")
-        .env("TOLARIA_CODEX_STDIN_PROBE_PARENT_CHILD", "1")
+        .env("NABU_CODEX_STDIN_PROBE_PARENT_CHILD", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -129,7 +129,7 @@ fn run_codex_agent_stream_writes_prompt_and_closes_stdin_with_parent_pipe_open()
 #[ignore = "spawned by run_codex_agent_stream_writes_prompt_and_closes_stdin_with_parent_pipe_open"]
 #[test]
 fn codex_stdin_probe_parent_child() {
-    if std::env::var_os("TOLARIA_CODEX_STDIN_PROBE_PARENT_CHILD").is_none() {
+    if std::env::var_os("NABU_CODEX_STDIN_PROBE_PARENT_CHILD").is_none() {
         return;
     }
 

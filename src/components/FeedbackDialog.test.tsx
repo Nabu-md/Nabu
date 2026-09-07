@@ -7,12 +7,12 @@ import {
   CODACY_HOME_URL,
   CODESCENE_HOME_URL,
   REFACTORING_HOME_URL,
-  TOLARIA_DEVELOPMENT_ARTICLE_URL,
-  TOLARIA_GITHUB_CONTRIBUTING_URL,
-  TOLARIA_GITHUB_DISCUSSIONS_URL,
-  TOLARIA_GITHUB_ISSUES_URL,
-  TOLARIA_GITHUB_PULL_REQUESTS_URL,
-  TOLARIA_PRODUCT_BOARD_URL,
+  NABU_DEVELOPMENT_ARTICLE_URL,
+  NABU_GITHUB_CONTRIBUTING_URL,
+  NABU_GITHUB_DISCUSSIONS_URL,
+  NABU_GITHUB_ISSUES_URL,
+  NABU_GITHUB_PULL_REQUESTS_URL,
+  NABU_PRODUCT_BOARD_URL,
   UNBLOCKED_HOME_URL,
 } from '../constants/feedback'
 import { APP_COMMAND_EVENT_NAME, APP_COMMAND_IDS } from '../hooks/appCommandDispatcher'
@@ -115,12 +115,12 @@ describe('FeedbackDialog', () => {
       ['sponsor_codescene', CODESCENE_HOME_URL],
       ['sponsor_circleci', CIRCLECI_HOME_URL],
       ['sponsor_unblocked', UNBLOCKED_HOME_URL],
-      ['sponsors_development_article', TOLARIA_DEVELOPMENT_ARTICLE_URL],
-      ['feature_requests', TOLARIA_PRODUCT_BOARD_URL],
-      ['discussions', TOLARIA_GITHUB_DISCUSSIONS_URL],
-      ['pull_requests', TOLARIA_GITHUB_PULL_REQUESTS_URL],
-      ['contributing_guide', TOLARIA_GITHUB_CONTRIBUTING_URL],
-      ['issues', TOLARIA_GITHUB_ISSUES_URL],
+      ['sponsors_development_article', NABU_DEVELOPMENT_ARTICLE_URL],
+      ['feature_requests', NABU_PRODUCT_BOARD_URL],
+      ['discussions', NABU_GITHUB_DISCUSSIONS_URL],
+      ['pull_requests', NABU_GITHUB_PULL_REQUESTS_URL],
+      ['contributing_guide', NABU_GITHUB_CONTRIBUTING_URL],
+      ['issues', NABU_GITHUB_ISSUES_URL],
     ]
     for (const [index, [action, url]] of expectedActions.entries()) {
       expect(trackEvent).toHaveBeenNthCalledWith(index + 1, 'contribution_action_clicked', {
@@ -135,12 +135,12 @@ describe('FeedbackDialog', () => {
     expect(openExternalUrl).toHaveBeenNthCalledWith(3, CODESCENE_HOME_URL)
     expect(openExternalUrl).toHaveBeenNthCalledWith(4, CIRCLECI_HOME_URL)
     expect(openExternalUrl).toHaveBeenNthCalledWith(5, UNBLOCKED_HOME_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(6, TOLARIA_DEVELOPMENT_ARTICLE_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(7, TOLARIA_PRODUCT_BOARD_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(8, TOLARIA_GITHUB_DISCUSSIONS_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(9, TOLARIA_GITHUB_PULL_REQUESTS_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(10, TOLARIA_GITHUB_CONTRIBUTING_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(11, TOLARIA_GITHUB_ISSUES_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(6, NABU_DEVELOPMENT_ARTICLE_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(7, NABU_PRODUCT_BOARD_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(8, NABU_GITHUB_DISCUSSIONS_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(9, NABU_GITHUB_PULL_REQUESTS_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(10, NABU_GITHUB_CONTRIBUTING_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(11, NABU_GITHUB_ISSUES_URL)
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByTestId('feedback-dialog')).toBeInTheDocument()
   })
@@ -174,7 +174,7 @@ describe('FeedbackDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Product Board' }))
 
     expect(await screen.findByText(/couldn’t open Product Board automatically/i)).toBeInTheDocument()
-    expect(screen.getByText(TOLARIA_PRODUCT_BOARD_URL)).toBeInTheDocument()
+    expect(screen.getByText(NABU_PRODUCT_BOARD_URL)).toBeInTheDocument()
   })
 
   it('closes when pressing Escape', () => {

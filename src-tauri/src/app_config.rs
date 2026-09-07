@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 
 const APP_CONFIG_POLICY_JSON: &str = include_str!("../../mcp-server/app-config-policy.json");
-const APP_CONFIG_NAMESPACE_ENV: &str = "TOLARIA_APP_CONFIG_NAMESPACE";
+const APP_CONFIG_NAMESPACE_ENV: &str = "NABU_APP_CONFIG_NAMESPACE";
 
 #[derive(Debug, Deserialize)]
 struct AppConfigPolicy {

@@ -335,6 +335,26 @@ function useAiThreadsIntegration({
   const activeThreadIdRef = useRef<string | null>(null)
   const savedExchangeCountRef = useRef(0)
 
+  const toggleThreadsCollapsed = useCallback(() => setThreadsCollapsed((current) => !current), [])
+  const handleNewChat = useCallback(() => {
+    activeThreadIdRef.current = null
+    savedExchangeCountRef.current = 0
+    onClearConversation()
+  }, [onClearConversation])
+  const handleSelectThread = useCallback((id: string) => {
+    const thread = conversations.conversations.find((conversation) => conversation.id === id)
+    activeThreadIdRef.current = id
+    savedExchangeCountRef.current = thread?.messages.length ?? 0
+    conversations.selectConversation(id)
+  }, [conversations])
+  const handleDeleteThread = useCallback((id: string) => {
+    if (activeThreadIdRef.current === id) {
+      activeThreadIdRef.current = null
+      savedExchangeCountRef.current = 0
+    }
+    void conversations.deleteConversation(id)
+  }, [conversations])
+
   // Ensure there is always a thread to write into once the first message lands.
   useEffect(() => {
     if (!vaultPath) return
@@ -371,27 +391,12 @@ function useAiThreadsIntegration({
 
   return {
     conversations: conversations.conversations,
-    activeConversationId: conversations.activeConversationId ?? activeThreadIdRef.current,
+    activeConversationId: conversations.activeConversationId,
     threadsCollapsed,
-    toggleThreadsCollapsed: useCallback(() => setThreadsCollapsed((current) => !current), []),
-    handleNewChat: useCallback(() => {
-      activeThreadIdRef.current = null
-      savedExchangeCountRef.current = 0
-      onClearConversation()
-    }, [onClearConversation]),
-    handleSelectThread: useCallback((id: string) => {
-      const thread = conversations.conversations.find((conversation) => conversation.id === id)
-      activeThreadIdRef.current = id
-      savedExchangeCountRef.current = thread?.messages.length ?? 0
-      conversations.selectConversation(id)
-    }, [conversations]),
-    handleDeleteThread: useCallback((id: string) => {
-      if (activeThreadIdRef.current === id) {
-        activeThreadIdRef.current = null
-        savedExchangeCountRef.current = 0
-      }
-      void conversations.deleteConversation(id)
-    }, [conversations]),
+    toggleThreadsCollapsed,
+    handleNewChat,
+    handleSelectThread,
+    handleDeleteThread,
   }
 }
 

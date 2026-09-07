@@ -26,10 +26,10 @@ const FCITX_ENV_HINT_KEYS: [&str; 4] = [
 const FCITX_GTK3_IM_MODULE_RELATIVE_PATH: &str =
     "usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules/im-fcitx5.so";
 #[cfg(all(desktop, target_os = "linux"))]
-const TOLARIA_FCITX_IMMODULES_CACHE_FILE: &str = "nabu-appimage-fcitx5-immodules.cache";
+const NABU_FCITX_IMMODULES_CACHE_FILE: &str = "nabu-appimage-fcitx5-immodules.cache";
 const COLRV1_EMOJI_FONT_FILE: &str = "Noto-COLRv1.ttf";
 #[cfg(all(desktop, target_os = "linux"))]
-const TOLARIA_COLRV1_FONTCONFIG_FILE: &str = "nabu-appimage-no-colrv1-emoji.conf";
+const NABU_COLRV1_FONTCONFIG_FILE: &str = "nabu-appimage-no-colrv1-emoji.conf";
 
 const WAYLAND_CLIENT_PRELOAD_CANDIDATES: [&str; 7] = [
     "/usr/lib64/libwayland-client.so.0",
@@ -246,7 +246,7 @@ where
     }
 
     if has_non_empty_env(&mut get_var, "LD_PRELOAD")
-        || get_var("TOLARIA_APPIMAGE_WAYLAND_PRELOAD_ATTEMPTED").is_some_and(|value| value == "1")
+        || get_var("NABU_APPIMAGE_WAYLAND_PRELOAD_ATTEMPTED").is_some_and(|value| value == "1")
     {
         return None;
     }
@@ -415,7 +415,7 @@ fn colrv1_fontconfig_file_path() -> Option<std::path::PathBuf> {
     Some(
         cache_dir
             .join("nabu")
-            .join(TOLARIA_COLRV1_FONTCONFIG_FILE),
+            .join(NABU_COLRV1_FONTCONFIG_FILE),
     )
 }
 
@@ -427,7 +427,7 @@ fn fcitx_immodules_cache_file_path() -> Option<std::path::PathBuf> {
     Some(
         cache_dir
             .join("nabu")
-            .join(TOLARIA_FCITX_IMMODULES_CACHE_FILE),
+            .join(NABU_FCITX_IMMODULES_CACHE_FILE),
     )
 }
 
@@ -479,7 +479,7 @@ fn apply_wayland_client_preload() {
     let error = std::process::Command::new(exe)
         .args(launched_process_args())
         .env("LD_PRELOAD", preload_path)
-        .env("TOLARIA_APPIMAGE_WAYLAND_PRELOAD_ATTEMPTED", "1")
+        .env("NABU_APPIMAGE_WAYLAND_PRELOAD_ATTEMPTED", "1")
         .exec();
     eprintln!("Nabu AppImage Wayland preload skipped: failed to re-exec ({error})");
 }

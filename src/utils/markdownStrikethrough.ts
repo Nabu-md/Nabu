@@ -12,7 +12,7 @@ interface TextPosition {
 const FENCE_SCAN_OPTIONS: MarkdownFenceScanOptions = {
   closingMustEndLine: false,
 }
-const ASCII_PLACEHOLDER_PREFIX = '@@TOLARIA_'
+const ASCII_PLACEHOLDER_PREFIX = '@@NABU_'
 const ASCII_PLACEHOLDER_SUFFIX = '@@'
 const UNICODE_PLACEHOLDER_START = '\u2039'
 const UNICODE_PLACEHOLDER_END = '\u203A'
