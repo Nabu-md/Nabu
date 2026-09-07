@@ -1,6 +1,6 @@
 import type { VaultEntry } from '../types'
 
-const NO_WORKSPACE_KEY = '__tolaria_no_workspace__'
+const NO_WORKSPACE_KEY = '__nabu_no_workspace__'
 
 interface TypeNameQuery {
   type: string

@@ -30,15 +30,15 @@ function parserEditor(): RichEditorBlockSelectionEditor {
   }
 }
 
-function clipboardWithBlockNoteHTML(tolariaData: string): TestClipboardData {
+function clipboardWithBlockNoteHTML(nabuData: string): TestClipboardData {
   const clipboardData = new TestClipboardData()
-  clipboardData.setData(TOLARIA_BLOCK_CLIPBOARD_MIME, tolariaData)
+  clipboardData.setData(TOLARIA_BLOCK_CLIPBOARD_MIME, nabuData)
   clipboardData.setData('blocknote/html', '<p>HTML</p>')
   return clipboardData
 }
 
 describe('rich editor block-selection clipboard helpers', () => {
-  it('writes Tolaria JSON, rich HTML, external HTML, and markdown formats', () => {
+  it('writes Nabu JSON, rich HTML, external HTML, and markdown formats', () => {
     const clipboardData = new TestClipboardData()
     const editor: RichEditorBlockSelectionEditor = {
       document: [
@@ -57,13 +57,13 @@ describe('rich editor block-selection clipboard helpers', () => {
     expect(clipboardData.getData('text/plain')).toBe('Two')
   })
 
-  it('parses Tolaria blocks before falling back to HTML or markdown', () => {
-    const clipboardData = clipboardWithBlockNoteHTML(JSON.stringify([{ id: 'tolaria', type: 'paragraph' }]))
+  it('parses Nabu blocks before falling back to HTML or markdown', () => {
+    const clipboardData = clipboardWithBlockNoteHTML(JSON.stringify([{ id: 'nabu', type: 'paragraph' }]))
 
-    expect(parseClipboardBlocks(parserEditor(), clipboardData)).toEqual([{ id: 'tolaria', type: 'paragraph' }])
+    expect(parseClipboardBlocks(parserEditor(), clipboardData)).toEqual([{ id: 'nabu', type: 'paragraph' }])
   })
 
-  it('falls back from invalid Tolaria data to BlockNote HTML', () => {
+  it('falls back from invalid Nabu data to BlockNote HTML', () => {
     const clipboardData = clipboardWithBlockNoteHTML('{')
 
     expect(parseClipboardBlocks(parserEditor(), clipboardData)).toEqual([{ id: 'html', type: 'paragraph' }])

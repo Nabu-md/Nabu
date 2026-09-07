@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Tolaria previously split validation between GitHub Actions and CircleCI Chunk sidecars. The
+Nabu previously split validation between GitHub Actions and CircleCI Chunk sidecars. The
 sidecars already provided the faster inner-loop execution model, while GitHub Actions repeated
 dependency setup and separately orchestrated frontend, Rust, Playwright, documentation, and
 four cross-platform release builds.
@@ -17,7 +17,7 @@ across alpha, stable, shared-artifact, documentation, and pull-request maintenan
 
 ## Decision
 
-CircleCI is the sole custom CI/CD orchestrator for Tolaria. A single `.circleci/config.yml` owns:
+CircleCI is the sole custom CI/CD orchestrator for Nabu. A single `.circleci/config.yml` owns:
 
 - frontend, Rust, CodeScene, Codacy, coverage, and Playwright validation;
 - Linux build verification;
@@ -32,9 +32,9 @@ Chunk sidecars remain the inner-loop and pre-push validation environment. The Ci
 reuses the same lane scripts so local-agent validation and authoritative CI execute the same gates.
 
 GitHub remains the source host, release registry, and Pages host. CircleCI accesses GitHub through a
-least-privilege `GH_TOKEN` stored in the restricted `tolaria-github` context. CodeScene credentials
-live separately in the `tolaria-ci` context. Release signing and telemetry secrets live in
-`tolaria-release`, so build jobs cannot write to GitHub and publication jobs cannot read signing
+least-privilege `GH_TOKEN` stored in the restricted `nabu-github` context. CodeScene credentials
+live separately in the `nabu-ci` context. Release signing and telemetry secrets live in
+`nabu-release`, so build jobs cannot write to GitHub and publication jobs cannot read signing
 credentials.
 
 GitHub Pages publishes from the `gh-pages` branch. GitHub may show its managed Pages deployment,

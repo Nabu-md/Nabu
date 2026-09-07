@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { StartupShellFallback } from './StartupShellFallback'
 
-const STARTUP_SHELL_FALLBACK_NODE_KEY = '__tolariaStartupShellFallbackNode'
+const STARTUP_SHELL_FALLBACK_NODE_KEY = '__nabuStartupShellFallbackNode'
 
 describe('StartupShellFallback', () => {
   afterEach(() => {
@@ -34,7 +34,7 @@ describe('StartupShellFallback', () => {
 
   it('falls back to the static boot shell when the capture script has not run', () => {
     const bootShell = document.createElement('div')
-    bootShell.id = 'tolaria-boot-shell'
+    bootShell.id = 'nabu-boot-shell'
     const list = document.createElement('div')
     list.className = 'startup-shell-fallback__list'
     bootShell.append(list)

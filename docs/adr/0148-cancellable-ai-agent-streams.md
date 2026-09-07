@@ -15,7 +15,7 @@ The stop control needs to work across the shared JSON-line runtime and line-orie
 
 ## Decision
 
-Tolaria treats the request-scoped AI-agent event name as the cancellation handle for app-managed CLI-agent streams.
+Nabu treats the request-scoped AI-agent event name as the cancellation handle for app-managed CLI-agent streams.
 
 The desktop backend wraps `stream_ai_agent` execution in an AI-agent stream scope. When an adapter spawns a child process, it registers that child under the current scoped stream id through a shared process registry. The renderer can then call `abort_ai_agent_stream(event_name)` with the same scoped id used for event delivery. The command validates the `ai-agent-stream-*` prefix and safe character set before killing the registered child, and returns `false` when no active child is present.
 

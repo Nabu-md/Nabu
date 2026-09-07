@@ -5,7 +5,7 @@
 
 ## Context
 
-Tolaria allows any folder to be a vault, including a documentation folder inside a larger repository. Git itself discovers an ancestor work tree from that folder, but Git output remains relative to the repository root. Treating those paths as vault-relative can expose sibling Markdown files, produce incorrect note paths, and let an app-created commit include staged or unstaged work outside the selected vault.
+Nabu allows any folder to be a vault, including a documentation folder inside a larger repository. Git itself discovers an ancestor work tree from that folder, but Git output remains relative to the repository root. Treating those paths as vault-relative can expose sibling Markdown files, produce incorrect note paths, and let an app-created commit include staged or unstaged work outside the selected vault.
 
 The vault is a content boundary: indexing, search, attachments, navigation, status, and app-created commits must not expand merely because repository metadata lives in an ancestor. Branches, remotes, fetch, pull, push, merge, and rebase state are repository-wide concerns and must use the actual work-tree root.
 
@@ -13,13 +13,13 @@ The vault is a content boundary: indexing, search, attachments, navigation, stat
 
 Every vault-facing Git operation resolves a `GitWorkspace` through the active Git provider. The context has three values:
 
-- `vault_root`: the selected Tolaria content boundary
+- `vault_root`: the selected Nabu content boundary
 - `git_root`: the nearest work-tree root discovered by Git
 - `vault_pathspec`: the vault path relative to `git_root`
 
-Provider output from `git rev-parse --show-prefix` determines the pathspec; Tolaria derives the native Git root from that prefix so WSL-backed paths never need unsafe reverse translation. Vault-scoped commands run at `git_root` with an explicit pathspec, and one mapping boundary converts repository-relative output back to vault-relative paths.
+Provider output from `git rev-parse --show-prefix` determines the pathspec; Nabu derives the native Git root from that prefix so WSL-backed paths never need unsafe reverse translation. Vault-scoped commands run at `git_root` with an explicit pathspec, and one mapping boundary converts repository-relative output back to vault-relative paths.
 
-Tolaria stages a vault with `git add -A -- <vault_pathspec>` and commits with `git commit --only -- <vault_pathspec>`. This includes all vault changes while preserving pre-existing staged and unstaged entries outside the vault. Repository-wide sync commands run at `git_root`, identify parent-repository feedback explicitly, and return only vault-relative changed paths to note refresh flows.
+Nabu stages a vault with `git add -A -- <vault_pathspec>` and commits with `git commit --only -- <vault_pathspec>`. This includes all vault changes while preserving pre-existing staged and unstaged entries outside the vault. Repository-wide sync commands run at `git_root`, identify parent-repository feedback explicitly, and return only vault-relative changed paths to note refresh flows.
 
 Settings exposes the resolved Git root. Analytics records only `git_root_relation` (`vault`, `parent`, or `none`) and stable resolution-failure categories; filesystem paths are never analytics properties.
 

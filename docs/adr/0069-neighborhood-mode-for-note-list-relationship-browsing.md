@@ -8,13 +8,13 @@ date: 2026-04-19
 
 ## Context
 
-Tolaria already had a relationship-browsing state behind `SidebarSelection.kind === 'entity'`, but the product language and interaction model were still fuzzy. The pinned source note rendered as a special card instead of a normal note row, grouped relationship results were deduplicated across sections, and Cmd-click behaved like a legacy "open separately" affordance rather than a clear graph-navigation action.
+Nabu already had a relationship-browsing state behind `SidebarSelection.kind === 'entity'`, but the product language and interaction model were still fuzzy. The pinned source note rendered as a special card instead of a normal note row, grouped relationship results were deduplicated across sections, and Cmd-click behaved like a legacy "open separately" affordance rather than a clear graph-navigation action.
 
 The new note-list flow needed an explicit product concept for browsing related notes around a source note, plus keyboard semantics that matched the mouse flow. The team also wanted the list to preserve graph truth instead of collapsing overlapping relationships away when a note legitimately belonged to multiple groups.
 
 ## Decision
 
-**Tolaria formalizes `SidebarSelection.kind === 'entity'` as Neighborhood mode.** The note list now treats the selected note as the neighborhood source, pins it at the top using the standard active note-row styling, shows outgoing relationship groups first and inverse/backlink groups after, keeps empty groups visible with count `0`, and allows the same note to appear in multiple groups when multiple relationships are true.
+**Nabu formalizes `SidebarSelection.kind === 'entity'` as Neighborhood mode.** The note list now treats the selected note as the neighborhood source, pins it at the top using the standard active note-row styling, shows outgoing relationship groups first and inverse/backlink groups after, keeps empty groups visible with count `0`, and allows the same note to appear in multiple groups when multiple relationships are true.
 
 **Neighborhood navigation is a distinct pivot action.** Plain click and plain `Enter` open the focused note without replacing the current neighborhood. Cmd/Ctrl-click and Cmd/Ctrl-`Enter` open the note and pivot the note list into that note's Neighborhood.
 

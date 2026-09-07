@@ -3,7 +3,7 @@ set -euo pipefail
 
 total_shards="${1:-${PLAYWRIGHT_SHARDS:-8}}"
 concurrency="${PLAYWRIGHT_CONCURRENCY:-$total_shards}"
-log_dir="${TMPDIR:-/tmp}/tolaria-playwright-shards-$$"
+log_dir="${TMPDIR:-/tmp}/nabu-playwright-shards-$$"
 batch_pids=()
 shared_server="${PLAYWRIGHT_SHARED_SERVER:-1}"
 server_port="${PLAYWRIGHT_SMOKE_PORT:-41741}"
@@ -81,7 +81,7 @@ start_shared_server() {
   fi
 
   printf '[chunk-playwright] starting shared server at %s\n' "$base_url"
-  TOLARIA_VITE_CACHE_DIR="${TOLARIA_VITE_CACHE_DIR:-${TMPDIR:-/tmp}/tolaria-vite-smoke-shared}" \
+  TOLARIA_VITE_CACHE_DIR="${TOLARIA_VITE_CACHE_DIR:-${TMPDIR:-/tmp}/nabu-vite-smoke-shared}" \
     node scripts/playwright-smoke-server.mjs "$server_port" >"${log_dir}/shared-server.log" 2>&1 &
   server_pid="$!"
   wait_for_shared_server

@@ -115,7 +115,7 @@ async function dispatchMenuCommandBurst(page: Page, commandId: string, count: nu
     }
     const dispatchBrowserMenuCommand = testWindow.__laputaTest?.dispatchBrowserMenuCommand
     if (typeof dispatchBrowserMenuCommand !== 'function') {
-      throw new Error('Tolaria test bridge is missing dispatchBrowserMenuCommand')
+      throw new Error('Nabu test bridge is missing dispatchBrowserMenuCommand')
     }
     for (let index = 0; index < commandCount; index += 1) {
       dispatchBrowserMenuCommand(id)

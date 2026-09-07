@@ -8,7 +8,7 @@ date: 2026-04-17
 
 ## Context
 
-Tolaria already had explicit git actions in the status bar (ADR-0032) and a remote-aware manual commit flow (ADR-0059), but git-backed vaults still depended on the user remembering to create checkpoints. That worked for deliberate commits, yet it left a gap for ordinary writing sessions where the app had already saved all note content but no git checkpoint had been recorded.
+Nabu already had explicit git actions in the status bar (ADR-0032) and a remote-aware manual commit flow (ADR-0059), but git-backed vaults still depended on the user remembering to create checkpoints. That worked for deliberate commits, yet it left a gap for ordinary writing sessions where the app had already saved all note content but no git checkpoint had been recorded.
 
 The new checkpointing behavior needed to stay conservative:
 
@@ -19,7 +19,7 @@ The new checkpointing behavior needed to stay conservative:
 
 ## Decision
 
-**Tolaria introduces installation-local AutoGit settings plus a dedicated `useAutoGit` hook that triggers a shared `useCommitFlow.runAutomaticCheckpoint()` path after configurable idle or inactive thresholds.** The checkpoint runs only when the current vault is git-backed, there are pending saved changes (or local commits waiting to push), and no unsaved edits remain.
+**Nabu introduces installation-local AutoGit settings plus a dedicated `useAutoGit` hook that triggers a shared `useCommitFlow.runAutomaticCheckpoint()` path after configurable idle or inactive thresholds.** The checkpoint runs only when the current vault is git-backed, there are pending saved changes (or local commits waiting to push), and no unsaved edits remain.
 
 `useCommitFlow.runAutomaticCheckpoint()` is now the single checkpoint runner for both AutoGit and the status-bar quick commit action. That shared path generates deterministic automatic commit messages (`Updated N note(s)` / `Updated N file(s)`), commits locally when no remote exists, and can also do a push-only retry when commits already exist locally.
 
@@ -27,7 +27,7 @@ The new checkpointing behavior needed to stay conservative:
 
 - **Option A** (chosen): A shared checkpoint runner used by both AutoGit timers and the quick commit action. Pros: one git policy, one message generator, one remote-handling path. Cons: adds another cross-cutting settings-driven hook.
 - **Option B**: A separate background AutoGit implementation. Pros: could evolve independently from the manual commit flow. Cons: high risk of drift in commit messages, push behavior, and remote handling.
-- **Option C**: Commit on every save. Pros: simplest trigger model. Cons: far too noisy for git history, especially with Tolaria's autosave model.
+- **Option C**: Commit on every save. Pros: simplest trigger model. Cons: far too noisy for git history, especially with Nabu's autosave model.
 
 ## Consequences
 

@@ -5,12 +5,12 @@ URL: /troubleshooting/ai-agent-not-found
 
 # AI Agent Not Found
 
-Tolaria can only launch local CLI agents that are installed and discoverable.
+Nabu can only launch local CLI agents that are installed and discoverable.
 
 ## Symptoms
 
 - The AI panel says no supported agent is available.
-- Claude Code or another agent works in one shell but not in Tolaria.
+- Claude Code or another agent works in one shell but not in Nabu.
 
 ## Checks
 
@@ -24,7 +24,7 @@ If the command fails, install or repair the agent first.
 
 ## Path Issues
 
-Desktop apps can inherit a different `PATH` from your interactive shell. Tolaria checks common install locations, but shell setup can still vary. Prefer installing CLI tools in standard locations or making them available from your login shell.
+Desktop apps can inherit a different `PATH` from your interactive shell. Nabu checks common install locations, but shell setup can still vary. Prefer installing CLI tools in standard locations or making them available from your login shell.
 
 ---
 
@@ -35,13 +35,13 @@ URL: /troubleshooting/git-auth
 
 # Git Authentication
 
-Tolaria uses system Git authentication. It does not manage provider passwords directly.
+Nabu uses system Git authentication. It does not manage provider passwords directly.
 
 ## Symptoms
 
 - Push fails.
 - Pull asks for credentials repeatedly.
-- Remote fetch works in one terminal but not in Tolaria.
+- Remote fetch works in one terminal but not in Nabu.
 
 ## Checks
 
@@ -75,7 +75,7 @@ Use this checklist when a local or API model provider does not connect.
 For Ollama or LM Studio:
 
 1. Start the local model server.
-2. Confirm the base URL in Tolaria matches the server.
+2. Confirm the base URL in Nabu matches the server.
 3. Confirm the model ID is installed and loaded by the provider.
 4. Use the Settings test action again.
 
@@ -106,7 +106,7 @@ Sync conflicts happen when local and remote changes touch the same content.
 ## What To Do
 
 1. Stop editing the conflicted note.
-2. Open the conflict resolver if Tolaria presents it.
+2. Open the conflict resolver if Nabu presents it.
 3. Review both sides.
 4. Choose the correct content or merge manually.
 5. Commit the resolved file.
@@ -128,13 +128,13 @@ URL: /troubleshooting/vault-not-loading
 
 # Vault Not Loading
 
-Use this checklist when Tolaria cannot open or refresh a vault.
+Use this checklist when Nabu cannot open or refresh a vault.
 
 ## Check The Folder
 
 - Confirm the folder exists.
 - Confirm the folder contains readable files.
-- Confirm Tolaria has permission to access the folder.
+- Confirm Nabu has permission to access the folder.
 - Try opening a smaller test vault to isolate the issue.
 
 ## Check Git

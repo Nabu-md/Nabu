@@ -8,13 +8,13 @@ date: 2026-04-29
 
 ## Context
 
-Saved Views already persist as user-editable YAML files in the vault and sync through Git. Filename ordering was stable, but it forced users to rename files just to change sidebar order and gave Tolaria no durable way to support drag reordering, move actions, or keyboard-first ordering controls.
+Saved Views already persist as user-editable YAML files in the vault and sync through Git. Filename ordering was stable, but it forced users to rename files just to change sidebar order and gave Nabu no durable way to support drag reordering, move actions, or keyboard-first ordering controls.
 
 The ordering choice also needs to travel with the view definition itself. Saved Views are part of the vault's shared information architecture, not a machine-local preference.
 
 ## Decision
 
-**Each Saved View may store an optional top-level `order` number in its YAML definition, and Tolaria sorts views by that value before falling back to filename.**
+**Each Saved View may store an optional top-level `order` number in its YAML definition, and Nabu sorts views by that value before falling back to filename.**
 
 - Lower `order` values render earlier in the sidebar and other Saved View lists.
 - Views without `order` sort after ordered views and then fall back to filename ordering for stability.
@@ -31,5 +31,5 @@ The ordering choice also needs to travel with the view definition itself. Saved 
 
 - Saved View ordering becomes part of the vault and syncs naturally through Git.
 - Existing views remain valid; unordered files keep a stable fallback sort until reordered.
-- Reordering can touch multiple view files in one action because Tolaria normalizes the sequence.
+- Reordering can touch multiple view files in one action because Nabu normalizes the sequence.
 - Future Saved View features should treat `order` as part of the shared YAML schema rather than introducing a parallel ordering store.

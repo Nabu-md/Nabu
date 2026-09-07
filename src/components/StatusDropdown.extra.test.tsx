@@ -10,8 +10,8 @@ describe('StatusDropdown extra coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     document.documentElement.style.removeProperty('zoom')
-    document.documentElement.style.removeProperty('--tolaria-overlay-zoom-factor')
-    document.documentElement.style.removeProperty('--tolaria-overlay-zoom-inverse')
+    document.documentElement.style.removeProperty('--nabu-overlay-zoom-factor')
+    document.documentElement.style.removeProperty('--nabu-overlay-zoom-inverse')
   })
 
   afterEach(() => {
@@ -84,7 +84,7 @@ describe('StatusDropdown extra coverage', () => {
     const rectSpy = vi
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockReturnValue(makeRect({ left: 1170, right: 1261, top: 650, bottom: 681.2 }))
-    document.documentElement.style.setProperty('--tolaria-overlay-zoom-factor', '1.3')
+    document.documentElement.style.setProperty('--nabu-overlay-zoom-factor', '1.3')
 
     render(
       <StatusDropdown

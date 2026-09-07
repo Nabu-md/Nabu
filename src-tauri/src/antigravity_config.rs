@@ -66,8 +66,8 @@ fn write_workspace_mcp_config(
         .as_object_mut()
         .ok_or("Invalid mcp_config.json: mcpServers is not an object")?;
     servers.insert(
-        "tolaria".to_string(),
-        crate::cli_agent_runtime::tolaria_node_mcp_server(
+        "nabu".to_string(),
+        crate::cli_agent_runtime::nabu_node_mcp_server(
             mcp_server_path,
             vault_path,
             vault_paths,
@@ -187,8 +187,8 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(config_path).unwrap()).unwrap();
 
         assert_eq!(config["mcpServers"]["other"]["command"], "example");
-        assert_eq!(config["mcpServers"]["tolaria"]["command"], "node");
-        assert_eq!(config["mcpServers"]["tolaria"]["env"]["WS_UI_PORT"], "9711");
+        assert_eq!(config["mcpServers"]["nabu"]["command"], "node");
+        assert_eq!(config["mcpServers"]["nabu"]["env"]["WS_UI_PORT"], "9711");
     }
 
     #[test]

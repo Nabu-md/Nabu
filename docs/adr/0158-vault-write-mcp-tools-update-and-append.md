@@ -8,7 +8,7 @@ date: 2026-07-11
 
 ## Context
 
-ADR-0011 shipped the Tolaria MCP server with one writable vault tool: `create_note`. It deliberately uses `O_CREAT|O_EXCL` (`open(..., 'wx')`) so an agent can only add a new Markdown file and never overwrite an existing one. That made the tool safe to expose alongside each app-managed agent's Safe / Power User permission profile.
+ADR-0011 shipped the Nabu MCP server with one writable vault tool: `create_note`. It deliberately uses `O_CREAT|O_EXCL` (`open(..., 'wx')`) so an agent can only add a new Markdown file and never overwrite an existing one. That made the tool safe to expose alongside each app-managed agent's Safe / Power User permission profile.
 
 Issue #895 points out the gap this leaves: agents can create notes but cannot maintain living documents. An `Agent` note tracking an assistant's status, a `Project` note accumulating decisions, or frontmatter properties such as `status` / `schedule` / `related_to` all evolve over time. Today the user has to edit those notes by hand even when the agent already knows the new state, which fragments the knowledge graph and forces supplementary notes instead of in-place updates.
 

@@ -215,7 +215,7 @@ describe('SettingsPanel', () => {
 
     fireEvent.change(screen.getByLabelText('Model ID'), { target: { value: 'local-llama' } })
     fireEvent.pointerDown(screen.getByText('No key').closest('button')!, { button: 0, pointerType: 'mouse' })
-    fireEvent.click(screen.getByRole('option', { name: 'Save locally in Tolaria' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Save locally in Nabu' }))
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'lm-secret' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add local model' }))
     await waitFor(() => expect(screen.getByText('Ollama · local-llama')).toBeInTheDocument())
@@ -384,7 +384,7 @@ describe('SettingsPanel', () => {
     const confirmation = within(teamRow).getByTestId('settings-workspace-remove-confirm-team')
     expect(screen.queryByTestId('confirm-delete-dialog')).not.toBeInTheDocument()
     expect(confirmation).toHaveTextContent('Remove vault?')
-    expect(confirmation).toHaveTextContent("This removes Team Vault from Tolaria's vault list. Files on disk are not deleted.")
+    expect(confirmation).toHaveTextContent("This removes Team Vault from Nabu's vault list. Files on disk are not deleted.")
 
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
     expect(onRemoveVault).not.toHaveBeenCalled()

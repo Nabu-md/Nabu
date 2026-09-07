@@ -4,9 +4,9 @@ import { defineConfig } from "vitepress";
 const base = process.env.VITEPRESS_BASE ?? "/";
 
 export default defineConfig({
-  title: "Tolaria",
+  title: "Nabu",
   description:
-    "Tolaria is a local-first Markdown knowledge base with native relationships, Git history, and AI workflows.",
+    "Nabu is a local-first Markdown knowledge base with native relationships, Git history, and AI workflows.",
   base,
   vite: {
     build: {
@@ -17,7 +17,7 @@ export default defineConfig({
   cleanUrls: true,
   head: [
     ["link", { rel: "icon", type: "image/png", href: `${base}landing/favicon.png` }],
-    ["meta", { property: "og:title", content: "Tolaria" }],
+    ["meta", { property: "og:title", content: "Nabu" }],
     [
       "meta",
       {
@@ -37,13 +37,13 @@ gtag('config', 'G-0NJ6E1GH9D');`,
     ],
   ],
   themeConfig: {
-    logo: { src: "/landing/tolaria-icon.png", alt: "Tolaria" },
+    logo: { src: "/landing/nabu-icon.png", alt: "Nabu" },
     nav: [
       { text: "Start", link: "/start/install" },
       { text: "Concepts", link: "/concepts/vaults" },
       { text: "Guides", link: "/guides/capture-a-note" },
       { text: "Templates", link: "/templates/portent" },
-      { text: "Downloads", link: "https://tolaria.md/download/", target: "_self", noIcon: true },
+      { text: "Downloads", link: "https://nabu.md/download/", target: "_self", noIcon: true },
     ],
     search: {
       provider: "local",
@@ -52,7 +52,7 @@ gtag('config', 'G-0NJ6E1GH9D');`,
       {
         text: "Start Here",
         items: [
-          { text: "Install Tolaria", link: "/start/install" },
+          { text: "Install Nabu", link: "/start/install" },
           { text: "First Launch", link: "/start/first-launch" },
           { text: "Getting Started Vault", link: "/start/getting-started-vault" },
           { text: "Open Or Create A Vault", link: "/start/open-or-create-vault" },
@@ -131,7 +131,7 @@ gtag('config', 'G-0NJ6E1GH9D');`,
     footer: {
       message: "Free and open source. Local-first, Git-first, and Markdown-based.",
       copyright:
-        "Tolaria is AGPL-3.0-or-later. The Tolaria name and logo remain covered by the project trademark policy.",
+        "Nabu is AGPL-3.0-or-later. The Nabu name and logo remain covered by the project trademark policy.",
     },
   },
 });

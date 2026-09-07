@@ -8,13 +8,13 @@ date: 2026-04-22
 
 ## Context
 
-ADR-0025 made `type:` the canonical classification field, and ADR-0033 reopened subfolders as a valid way to organize files in the vault. Once Tolaria exposed both type sections and the folder tree in the sidebar, note reorganization had an unresolved ambiguity: does retargeting a note mean changing its semantic type, moving its file, or both?
+ADR-0025 made `type:` the canonical classification field, and ADR-0033 reopened subfolders as a valid way to organize files in the vault. Once Nabu exposed both type sections and the folder tree in the sidebar, note reorganization had an unresolved ambiguity: does retargeting a note mean changing its semantic type, moving its file, or both?
 
-Without an explicit model, drag-and-drop and command-palette flows would need to duplicate their own validation and persistence logic, and Tolaria could easily drift back toward the old type-folder coupling that ADR-0006 deliberately removed.
+Without an explicit model, drag-and-drop and command-palette flows would need to duplicate their own validation and persistence logic, and Nabu could easily drift back toward the old type-folder coupling that ADR-0006 deliberately removed.
 
 ## Decision
 
-**Tolaria treats note retargeting as one shared interaction model with two distinct mutation paths: types change metadata, folders change file paths.**
+**Nabu treats note retargeting as one shared interaction model with two distinct mutation paths: types change metadata, folders change file paths.**
 
 - Retargeting a note to a type updates only the note's `type:` frontmatter. The file stays where it is.
 - Retargeting a note to a folder preserves the current filename and `type:` value, and moves the file through the same crash-safe rename transaction pipeline used for backend rename commands.
@@ -31,4 +31,4 @@ Without an explicit model, drag-and-drop and command-palette flows would need to
 - Type sections are semantic targets only; they must never imply a filesystem move.
 - Folder targets are physical move operations; they must preserve filename/title behavior, reject collisions, and rewrite path-based wikilinks through the shared rename pipeline.
 - Future note-retargeting surfaces should reuse the shared retargeting abstraction instead of introducing another mutation path.
-- Re-evaluate this ADR if Tolaria later supports bulk retargeting, folder rules that intentionally infer type, or another organization primitive that needs different semantics.
+- Re-evaluate this ADR if Nabu later supports bulk retargeting, folder rules that intentionally infer type, or another organization primitive that needs different semantics.

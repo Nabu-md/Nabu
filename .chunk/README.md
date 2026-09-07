@@ -31,7 +31,7 @@ chunk validate --remote lint
 bash .chunk/run-sidecar-gates-local.sh true
 ```
 
-Use `chunk sidecar setup --name tolaria-hooks` for the first remote environment setup. Once the environment passes, create a snapshot and launch future sidecars from that snapshot to avoid reinstalling Node, Rust, Tauri Linux dependencies, Playwright Chromium, and `cargo-llvm-cov` every time.
+Use `chunk sidecar setup --name nabu-hooks` for the first remote environment setup. Once the environment passes, create a snapshot and launch future sidecars from that snapshot to avoid reinstalling Node, Rust, Tauri Linux dependencies, Playwright Chromium, and `cargo-llvm-cov` every time.
 
 Keep native macOS Tauri QA outside Chunk. The sidecar is Linux-based and is meant to catch portable lint, build, unit coverage, Rust, and Playwright smoke failures before the full local pre-push hook runs. Browser provisioning uses `.chunk/install-playwright-browsers.mjs` because Playwright's built-in installer can outlive the current Chunk SSH session while extracting large archives.
 
@@ -39,9 +39,9 @@ Keep native macOS Tauri QA outside Chunk. The sidecar is Linux-based and is mean
 
 The local pre-push hook prefers the sidecar fast path when Chunk is available. It targets three independent sidecars by name and always passes `--sidecar-id` after resolution, avoiding races with Chunk's global active-sidecar state:
 
-- `tolaria-hooks-frontend-2`: lint and build first, then frontend coverage with `FRONTEND_COVERAGE_SHARDS=2` and `VITEST_COVERAGE_MAX_WORKERS=2`.
-- `tolaria-hooks-rust`: clippy, rustfmt, and `cargo llvm-cov` with `CARGO_BUILD_JOBS=2`.
-- `tolaria-hooks-playwright`: curated Playwright smoke with one shared Vite server, eight shards, and four concurrent shard workers.
+- `nabu-hooks-frontend-2`: lint and build first, then frontend coverage with `FRONTEND_COVERAGE_SHARDS=2` and `VITEST_COVERAGE_MAX_WORKERS=2`.
+- `nabu-hooks-rust`: clippy, rustfmt, and `cargo llvm-cov` with `CARGO_BUILD_JOBS=2`.
+- `nabu-hooks-playwright`: curated Playwright smoke with one shared Vite server, eight shards, and four concurrent shard workers.
 
 Set `LAPUTA_PREPUSH_LOCAL=1` to force the old local path. Use `SIDECAR_FRONTEND_ID`, `SIDECAR_RUST_ID`, or `SIDECAR_PLAYWRIGHT_ID` to pin a lane to a specific sidecar when duplicate names exist in CircleCI. Use `SIDECAR_SNAPSHOT_ID=<snapshot-id>` when provisioning missing lane sidecars from a prepared snapshot.
 

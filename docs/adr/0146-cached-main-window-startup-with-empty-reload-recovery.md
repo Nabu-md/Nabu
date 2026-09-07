@@ -13,7 +13,7 @@ ADR-0124 allowed secondary note windows to use the cached/incremental `list_vaul
 
 That forced reload invalidates the cache and runs a full filesystem scan before the main window finishes indexing. On large local macOS vaults this can make startup look hung for tens of seconds, with the status bar stuck in the vault reloading state even when a healthy cached index is available.
 
-Tolaria still needs the recovery behavior that motivated the fresh reload path: if a startup cache returns an empty result for a vault that should contain notes, the app should recover with a fresh scan instead of leaving the user with an empty graph.
+Nabu still needs the recovery behavior that motivated the fresh reload path: if a startup cache returns an empty result for a vault that should contain notes, the app should recover with a fresh scan instead of leaving the user with an empty graph.
 
 ## Decision
 

@@ -35,12 +35,12 @@ import { _wikilinkEntriesRef } from './editorSchema'
 import { openEditorAttachmentOrUrl } from './editorAttachmentActions'
 import { insertImageBlockAfterCursor } from './editorImageInsertion'
 import { useBlockNoteSideMenuHoverGuard } from './blockNoteSideMenuHoverGuard'
-import { TolariaSlashMenu } from './TolariaSlashMenu'
-import { TolariaFormattingToolbar, TolariaFormattingToolbarController } from './tolariaEditorFormatting'
-import { TolariaCollapsedHeadingsController, TolariaSideMenu } from './tolariaBlockNoteSideMenu'
+import { NabuSlashMenu } from './NabuSlashMenu'
+import { NabuFormattingToolbar, NabuFormattingToolbarController } from './nabuEditorFormatting'
+import { NabuCollapsedHeadingsController, NabuSideMenu } from './nabuBlockNoteSideMenu'
 import { useEditorLinkActivation } from './useEditorLinkActivation'
 import { ImageLightbox } from './ImageLightbox'
-import { TolariaFilePanelController } from './TolariaFilePanel'
+import { NabuFilePanelController } from './NabuFilePanel'
 import { refreshCodeBlockSyntaxHighlighting } from './editorCodeBlockHighlightRefresh'
 import { ActionTooltip } from './ui/action-tooltip'
 import { Button } from './ui/button'
@@ -230,7 +230,7 @@ function useRequiredComponentsContext() {
   return components
 }
 
-function TolariaOpenLinkButton({ url, vaultPath }: Pick<LinkToolbarProps, 'url'> & { vaultPath?: string }) {
+function NabuOpenLinkButton({ url, vaultPath }: Pick<LinkToolbarProps, 'url'> & { vaultPath?: string }) {
   const Components = useRequiredComponentsContext()
   const dict = useDictionary()
   const handleOpen = useCallback(() => {
@@ -249,7 +249,7 @@ function TolariaOpenLinkButton({ url, vaultPath }: Pick<LinkToolbarProps, 'url'>
   )
 }
 
-function TolariaLinkToolbar({ vaultPath, ...props }: LinkToolbarProps & { vaultPath?: string }) {
+function NabuLinkToolbar({ vaultPath, ...props }: LinkToolbarProps & { vaultPath?: string }) {
   return (
     <LinkToolbar {...props}>
       <EditLinkButton
@@ -259,7 +259,7 @@ function TolariaLinkToolbar({ vaultPath, ...props }: LinkToolbarProps & { vaultP
         setToolbarOpen={props.setToolbarOpen}
         setToolbarPositionFrozen={props.setToolbarPositionFrozen}
       />
-      <TolariaOpenLinkButton url={props.url} vaultPath={vaultPath} />
+      <NabuOpenLinkButton url={props.url} vaultPath={vaultPath} />
       <DeleteLinkButton range={props.range} setToolbarOpen={props.setToolbarOpen} />
     </LinkToolbar>
   )
@@ -567,14 +567,14 @@ function EditorInteractionControllers({
   runEditorAction,
   vaultPath,
 }: EditorInteractionControllersProps) {
-  const sideMenu = useCallback((props: SideMenuProps) => <TolariaSideMenu {...props} locale={locale} />, [locale])
+  const sideMenu = useCallback((props: SideMenuProps) => <NabuSideMenu {...props} locale={locale} />, [locale])
 
   return (
     <>
-      <TolariaCollapsedHeadingsController />
+      <NabuCollapsedHeadingsController />
       <SideMenuController sideMenu={sideMenu} />
-      <TolariaFormattingToolbarController
-        formattingToolbar={(props) => <TolariaFormattingToolbar {...props} locale={locale} vaultPath={vaultPath} />}
+      <NabuFormattingToolbarController
+        formattingToolbar={(props) => <NabuFormattingToolbar {...props} locale={locale} vaultPath={vaultPath} />}
         floatingUIOptions={{
           elementProps: {
             onMouseDownCapture: handleToolbarMouseDownCapture,
@@ -582,18 +582,18 @@ function EditorInteractionControllers({
         }}
       />
       <LinkToolbarController
-        linkToolbar={(props) => <TolariaLinkToolbar {...props} vaultPath={vaultPath} />}
+        linkToolbar={(props) => <NabuLinkToolbar {...props} vaultPath={vaultPath} />}
         floatingUIOptions={{
           elementProps: {
             onMouseDownCapture: handleToolbarMouseDownCapture,
           },
         }}
       />
-      <TolariaFilePanelController />
+      <NabuFilePanelController />
       <SuggestionMenuController
         triggerCharacter="/"
         getItems={getSlashMenuItems}
-        suggestionMenuComponent={TolariaSlashMenu}
+        suggestionMenuComponent={NabuSlashMenu}
       />
       <GridSuggestionMenuController triggerCharacter=":" columns={10} minQueryLength={1} getItems={getEmojiItems} />
       <SuggestionMenuController

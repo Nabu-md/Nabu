@@ -1,7 +1,7 @@
 # Vault Expressions
 
 ::: v-pre
-Vault expressions let rendered content read values from Tolaria notes. The `{{...}}` template form currently runs in HTML blocks. Sheet formulas use the same `[[note]].field` reference forms inside `=` formulas, but spreadsheet calculations still use IronCalc functions.
+Vault expressions let rendered content read values from Nabu notes. The `{{...}}` template form currently runs in HTML blocks. Sheet formulas use the same `[[note]].field` reference forms inside `=` formulas, but spreadsheet calculations still use IronCalc functions.
 
 ## Reference Syntax
 
@@ -16,7 +16,7 @@ Vault expressions let rendered content read values from Tolaria notes. The `{{..
 | `{{[[budget]].B5}}` | Single cell from a sheet note. |
 | `{{[[brief]].2}}` | Second raw body line from another note. |
 
-Wikilink targets resolve like normal Tolaria links, so they can use filenames, paths, or note titles when those targets are unambiguous.
+Wikilink targets resolve like normal Nabu links, so they can use filenames, paths, or note titles when those targets are unambiguous.
 
 Line references are 1-based and exclude YAML frontmatter. `[[note]].A1` means grid or cell access and may split comma-separated content. `[[note]].1` means the whole first body line, preserving commas as text.
 
@@ -76,7 +76,7 @@ For scalar values, `json(...)` returns the JSON representation of that value. Fo
   "path": "/vault/acceleration-whiplash.md",
   "status": "Evergreened",
   "raw": "[[acceleration-whiplash]]",
-  "deepLink": "tolaria://refactoring-vault/acceleration-whiplash.md"
+  "deepLink": "nabu://refactoring-vault/acceleration-whiplash.md"
 }
 ```
 

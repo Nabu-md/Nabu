@@ -1,4 +1,4 @@
-pub(crate) fn tolaria_node_mcp_server(
+pub(crate) fn nabu_node_mcp_server(
     mcp_server_path: &str,
     vault_path: &str,
     vault_paths: &[String],

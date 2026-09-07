@@ -1,7 +1,7 @@
 export function installFixtureVaultDesktopBridgeInBrowser(): void {
   const dispatchBrowserMenuCommand =
     window.__laputaTest?.dispatchBrowserMenuCommand
-    ?? (() => { throw new Error('Tolaria test bridge is missing dispatchBrowserMenuCommand') })
+    ?? (() => { throw new Error('Nabu test bridge is missing dispatchBrowserMenuCommand') })
 
   const specialHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
     trigger_menu_command: (args) => {

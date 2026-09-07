@@ -1,5 +1,5 @@
 const ACTION_TOOLTIP_RECOVERY_BOUNDARY_NAME = 'ActionTooltipBoundary'
-const RECOVERED_ACTION_TOOLTIP_ERROR_MARK = '__tolariaRecoveredActionTooltipError'
+const RECOVERED_ACTION_TOOLTIP_ERROR_MARK = '__nabuRecoveredActionTooltipError'
 
 type MarkedRecoveredActionTooltipError = Error & {
   [RECOVERED_ACTION_TOOLTIP_ERROR_MARK]?: true

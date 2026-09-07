@@ -5,11 +5,11 @@ URL: /start/open-or-create-vault
 
 # Open Or Create A Vault
 
-A Tolaria vault is a folder on disk. The folder can contain Markdown notes, attachments, type definitions, saved views, and Git metadata.
+A Nabu vault is a folder on disk. The folder can contain Markdown notes, attachments, type definitions, saved views, and Git metadata.
 
 ## Open An Existing Folder
 
-Choose an existing folder if you already have Markdown notes. Tolaria scans `.md` files and uses frontmatter when it exists.
+Choose an existing folder if you already have Markdown notes. Nabu scans `.md` files and uses frontmatter when it exists.
 
 Good starting points:
 
@@ -20,7 +20,7 @@ Good starting points:
 
 ## Create A New Vault
 
-Choose a new empty folder if you want Tolaria conventions from the start. New notes and optional type definitions are created as Markdown files.
+Choose a new empty folder if you want Nabu conventions from the start. New notes and optional type definitions are created as Markdown files.
 
 ## Use More Than One Vault
 
@@ -30,6 +30,6 @@ Once enabled, the bottom-left vault menu lets you include vaults in the unified 
 
 ## Git Is Recommended, Not Required
 
-Tolaria works well with a plain folder of Markdown files. You can open, edit, organize, and search notes without making the vault a Git repository.
+Nabu works well with a plain folder of Markdown files. You can open, edit, organize, and search notes without making the vault a Git repository.
 
-Git is recommended when you want local history, diff views, recovery, pull, push, and remote sync without a proprietary backend. If a vault is not already a repository, Tolaria can initialize one when you explicitly ask it to.
+Git is recommended when you want local history, diff views, recovery, pull, push, and remote sync without a proprietary backend. If a vault is not already a repository, Nabu can initialize one when you explicitly ask it to.

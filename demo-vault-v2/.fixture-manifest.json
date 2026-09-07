@@ -1,5 +1,5 @@
 {
-  "name": "Tolaria QA fixture",
+  "name": "Nabu QA fixture",
   "purpose": "Curated local vault for native QA and developer flows. This is not the public Getting Started starter vault.",
   "large_fixture": {
     "generator": "python3 scripts/generate_demo_vault.py",

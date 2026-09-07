@@ -307,10 +307,10 @@ function mermaidSvg(page: Page, diagramIndex: number): Locator {
 
 function mermaidBodyArtifacts(page: Page): Locator {
   return page.locator([
-    'body > [data-tolaria-mermaid-render-host]',
-    'body > [id^="tolaria-mermaid-"]',
-    'body > [id^="dtolaria-mermaid-"]',
-    'body > [id^="itolaria-mermaid-"]',
+    'body > [data-nabu-mermaid-render-host]',
+    'body > [id^="nabu-mermaid-"]',
+    'body > [id^="dnabu-mermaid-"]',
+    'body > [id^="inabu-mermaid-"]',
   ].join(', '))
 }
 
@@ -336,8 +336,8 @@ async function setDocumentZoom(page: Page, percent: number): Promise<void> {
   await page.evaluate((zoomPercent) => {
     const factor = zoomPercent / 100
     document.documentElement.style.setProperty('zoom', `${zoomPercent}%`)
-    document.documentElement.style.setProperty('--tolaria-overlay-zoom-factor', String(factor))
-    document.documentElement.style.setProperty('--tolaria-overlay-zoom-inverse', String(1 / factor))
+    document.documentElement.style.setProperty('--nabu-overlay-zoom-factor', String(factor))
+    document.documentElement.style.setProperty('--nabu-overlay-zoom-inverse', String(1 / factor))
     window.dispatchEvent(new Event('laputa-zoom-change'))
   }, percent)
 }
@@ -514,7 +514,7 @@ for (const diagramCase of MEASURED_MERMAID_DIAGRAM_CASES) {
   })
 }
 
-test('fullscreen Mermaid diagrams keep the active Tolaria surface in dark mode', async ({ page }) => {
+test('fullscreen Mermaid diagrams keep the active Nabu surface in dark mode', async ({ page }) => {
   await openNote(page, 'Mermaid Reported')
   await expectRenderedDiagramCount(page, 1)
   await switchToResolvedTheme(page, 'dark')
@@ -575,7 +575,7 @@ test('Mermaid diagram clicks stay stable while a vault reload settles', async ({
   await mermaidSvg(page, 0).click()
 
   await expectRenderedDiagramCount(page, 1)
-  await expect(page.locator('#tolaria-fatal-render-error')).toHaveCount(0)
+  await expect(page.locator('#nabu-fatal-render-error')).toHaveCount(0)
   await expect(mermaidSvg(page, 0)).toContainText('Linked to a planned shift?')
   expect(pageErrors).toEqual([])
 })
@@ -664,7 +664,7 @@ ${REPORTED_INVALID_DIAGRAM}
   await toggleRawMode(page, '.bn-editor')
   await expect(page.locator('[data-testid="mermaid-diagram-error"]')).toContainText('## ABC')
   await expect(mermaidBodyArtifacts(page)).toHaveCount(0)
-  await expect(page.locator('#tolaria-fatal-render-error')).toHaveCount(0)
+  await expect(page.locator('#nabu-fatal-render-error')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Open the AI panel' }).click()
   await expect(page.getByTestId('ai-panel')).toBeVisible({ timeout: 5_000 })
@@ -678,5 +678,5 @@ ${REPORTED_INVALID_DIAGRAM}
   await page.getByTestId('agent-send').click()
   await expect(page.getByTestId('ai-message').last()).toBeVisible({ timeout: 5_000 })
   await expect(mermaidBodyArtifacts(page)).toHaveCount(0)
-  await expect(page.locator('#tolaria-fatal-render-error')).toHaveCount(0)
+  await expect(page.locator('#nabu-fatal-render-error')).toHaveCount(0)
 })

@@ -1,8 +1,8 @@
 import type { VaultEntry } from '../types'
 
-export const TOGGLE_GITIGNORED_VISIBILITY_EVENT = 'tolaria:toggle-gitignored-visibility'
-export const GITIGNORED_VISIBILITY_CHANGED_EVENT = 'tolaria:gitignored-visibility-changed'
-export const GITIGNORED_VISIBILITY_APPLIED_EVENT = 'tolaria:gitignored-visibility-applied'
+export const TOGGLE_GITIGNORED_VISIBILITY_EVENT = 'nabu:toggle-gitignored-visibility'
+export const GITIGNORED_VISIBILITY_CHANGED_EVENT = 'nabu:gitignored-visibility-changed'
+export const GITIGNORED_VISIBILITY_APPLIED_EVENT = 'nabu:gitignored-visibility-applied'
 
 interface GitignoredVisibilityChangedDetail {
   hide: boolean

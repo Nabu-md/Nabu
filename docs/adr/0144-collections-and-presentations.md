@@ -8,13 +8,13 @@ date: 2026-06-24
 
 ## Context
 
-Tolaria already has several ways to select a group of notes: built-in sidebar filters such as All Notes and Inbox, type sections, folder rows, saved Views, and Neighborhood mode around one note. Product-wise, these are all collections of notes. The current implementation still routes most of them through a component named `NoteList`, which makes the list presentation look like the domain model.
+Nabu already has several ways to select a group of notes: built-in sidebar filters such as All Notes and Inbox, type sections, folder rows, saved Views, and Neighborhood mode around one note. Product-wise, these are all collections of notes. The current implementation still routes most of them through a component named `NoteList`, which makes the list presentation look like the domain model.
 
 Spreadsheets also introduced a parallel single-note concern: a note can keep the same durable identity while choosing a different display mode through `_display`. Collections need the same separation between the notes being selected and how those notes are presented. Future presentations such as boards, calendars, tables, timelines, and graphs need presentation-specific field mappings, such as board column field, calendar start/end fields, or table columns, without inventing a parallel data model.
 
 ## Decision
 
-**Tolaria treats a Collection as the internal representation of a selected group of notes plus its presentation configuration.** A collection can be built from a saved View YAML file, a type section, a built-in sidebar filter, a folder, or Neighborhood mode. The first supported presentation is `list`, preserving current behavior.
+**Nabu treats a Collection as the internal representation of a selected group of notes plus its presentation configuration.** A collection can be built from a saved View YAML file, a type section, a built-in sidebar filter, a folder, or Neighborhood mode. The first supported presentation is `list`, preserving current behavior.
 
 Saved Views remain the most configurable persisted collection artifact. Existing top-level saved-view fields (`sort`, `listPropertiesDisplay`, `filters`, `order`, `name`, `icon`, `color`) remain valid. The renderer normalizes them into an in-memory collection presentation:
 
@@ -27,14 +27,14 @@ presentation:
     - owner
 ```
 
-Future saved-view YAML may store nested `presentation` configuration. For compatibility, Tolaria reads legacy top-level list fields and lets nested `presentation.type: list` override them in memory. The current implementation does not rewrite existing YAML into the nested shape.
+Future saved-view YAML may store nested `presentation` configuration. For compatibility, Nabu reads legacy top-level list fields and lets nested `presentation.type: list` override them in memory. The current implementation does not rewrite existing YAML into the nested shape.
 
 `SidebarSelection` remains the navigation input for now. Renderer code adapts it to `CollectionDefinition` through `src/collections/collectionFromSelection.ts`, and resolves visible entries through `src/collections/resolveCollectionEntries.ts`. This is an implementation bridge, not a new user-visible concept.
 
 ## Options considered
 
 - **Use one Collection concept with nested presentation config** (chosen): keeps the product model small, matches saved-view YAML, and lets built-in sections and type sections behave like generated collections without exposing separate "source" terminology.
-- **Separate CollectionSource and CollectionPresentation concepts everywhere**: precise internally, but adds vocabulary and wiring before Tolaria has multiple presentations. It remains a possible implementation detail later, not a product concept now.
+- **Separate CollectionSource and CollectionPresentation concepts everywhere**: precise internally, but adds vocabulary and wiring before Nabu has multiple presentations. It remains a possible implementation detail later, not a product concept now.
 - **Keep adding one-off branches to NoteList/App.tsx**: fastest for the next feature, but makes boards, calendars, and graph-like surfaces compete with list-specific assumptions.
 - **Use `kind` on saved views**: already explored in prior Kanban work, but `kind` is vague and "view" is overloaded across saved Views, app view mode, and note display. `presentation.type` is clearer and leaves room for presentation-specific config.
 

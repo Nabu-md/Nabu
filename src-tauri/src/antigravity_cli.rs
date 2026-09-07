@@ -34,7 +34,7 @@ where
 
 fn format_antigravity_error(stderr_output: &str, status: &str) -> String {
     if is_auth_or_setup_error(stderr_output) {
-        return "Antigravity CLI is not ready. Run `agy` in your terminal to finish install and sign-in, then retry in Tolaria.".into();
+        return "Antigravity CLI is not ready. Run `agy` in your terminal to finish install and sign-in, then retry in Nabu.".into();
     }
 
     let stderr = stderr_output.trim();
@@ -71,7 +71,7 @@ mod tests {
         AgentStreamRequest {
             message: "Summarize".into(),
             model: None,
-            system_prompt: Some("Use Tolaria conventions".into()),
+            system_prompt: Some("Use Nabu conventions".into()),
             vault_path,
             vault_paths: Vec::new(),
             permission_mode: AiAgentPermissionMode::Safe,
@@ -97,7 +97,7 @@ mod tests {
             dir.path(),
             r#"stdin="$(cat)"
 if [ "$stdin" != "System instructions:
-Use Tolaria conventions
+Use Nabu conventions
 
 User request:
 Summarize" ]; then

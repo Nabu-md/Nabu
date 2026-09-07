@@ -195,7 +195,7 @@ describe('vaultExpressions', () => {
     const notes = JSON.parse(documentObject.getElementById('notes')?.textContent ?? '[]') as Array<Record<string, unknown>>
 
     expect(essay).toMatchObject({
-      deepLink: 'tolaria://refactoring-vault/acceleration-whiplash.md',
+      deepLink: 'nabu://refactoring-vault/acceleration-whiplash.md',
       path: '/vault/acceleration-whiplash.md',
       status: 'Evergreened',
       target: 'acceleration-whiplash',
@@ -203,13 +203,13 @@ describe('vaultExpressions', () => {
     })
     expect(notes).toHaveLength(2)
     expect(notes[0]).toMatchObject({
-      deepLink: 'tolaria://refactoring-vault/starting-work-is-easier-finishing-it-is-harder.md',
+      deepLink: 'nabu://refactoring-vault/starting-work-is-easier-finishing-it-is-harder.md',
       path: '/vault/starting-work-is-easier-finishing-it-is-harder.md',
       status: 'Extracted',
       title: 'Starting work is easier, finishing it is harder',
     })
     expect(notes[1]).toMatchObject({
-      deepLink: 'tolaria://refactoring-vault/human-reviews-do-not-scale-like-ai-coding.md',
+      deepLink: 'nabu://refactoring-vault/human-reviews-do-not-scale-like-ai-coding.md',
       path: '/vault/human-reviews-do-not-scale-like-ai-coding.md',
       status: 'Evergreen',
       title: 'Human reviews do not scale like AI coding',
@@ -264,7 +264,7 @@ describe('vaultExpressions', () => {
 
     expect(notes).toHaveLength(linkedTargets.length)
     expect(notes[23]).toMatchObject({
-      deepLink: 'tolaria://refactoring-vault/related-24.md',
+      deepLink: 'nabu://refactoring-vault/related-24.md',
       title: 'Related 24',
     })
     expect(workspaceReads).toBeLessThanOrEqual(entries.length * 5)

@@ -9,7 +9,7 @@ export const STARTUP_TARGETS_MS = {
   activeVaultUsable: 800,
   reactShell: 300,
 } as const
-export const STARTUP_MARK_PREFIX = 'tolaria:'
+export const STARTUP_MARK_PREFIX = 'nabu:'
 
 type StartupSource = 'scan' | 'snapshot'
 export type StartupPhase =

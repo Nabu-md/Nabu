@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Tolaria",
+  "productName": "Nabu",
   "version": "0.1.0",
-  "identifier": "club.refactoring.tolaria",
+  "identifier": "club.refactoring.nabu",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5202",
@@ -14,7 +14,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Tolaria",
+        "title": "Nabu",
         "width": 1400,
         "height": 900,
         "minWidth": 480,
@@ -43,9 +43,9 @@
         "font-src": "'self' data:",
         "media-src": "'self' asset: http://asset.localhost data: blob: https:",
         "object-src": "'self' asset: http://asset.localhost",
-        "frame-src": "'self' asset: http://asset.localhost data: tolaria-html-block: http://tolaria-html-block.localhost tolaria-mini-app: http://tolaria-mini-app.localhost"
+        "frame-src": "'self' asset: http://asset.localhost data: nabu-html-block: http://nabu-html-block.localhost nabu-mini-app: http://nabu-mini-app.localhost"
       },
-      "devCsp": "default-src 'self' ipc: http://ipc.localhost http://localhost:5202 http://127.0.0.1:5202 asset: http://asset.localhost data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5202 http://127.0.0.1:5202 https://us.i.posthog.com https://eu.i.posthog.com https://us-assets.i.posthog.com https://eu-assets.i.posthog.com; connect-src 'self' ipc: http://ipc.localhost http://localhost:5202 http://127.0.0.1:5202 data: ws://localhost:5202 ws://127.0.0.1:5202 ws://localhost:9710 ws://127.0.0.1:9710 ws://localhost:9711 ws://127.0.0.1:9711 https:; img-src 'self' asset: http://asset.localhost data: blob: https:; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self' data:; media-src 'self' asset: http://asset.localhost data: blob: https:; object-src 'self' asset: http://asset.localhost; frame-src 'self' asset: http://asset.localhost data: tolaria-html-block: http://tolaria-html-block.localhost tolaria-mini-app: http://tolaria-mini-app.localhost",
+      "devCsp": "default-src 'self' ipc: http://ipc.localhost http://localhost:5202 http://127.0.0.1:5202 asset: http://asset.localhost data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5202 http://127.0.0.1:5202 https://us.i.posthog.com https://eu.i.posthog.com https://us-assets.i.posthog.com https://eu-assets.i.posthog.com; connect-src 'self' ipc: http://ipc.localhost http://localhost:5202 http://127.0.0.1:5202 data: ws://localhost:5202 ws://127.0.0.1:5202 ws://localhost:9710 ws://127.0.0.1:9710 ws://localhost:9711 ws://127.0.0.1:9711 https:; img-src 'self' asset: http://asset.localhost data: blob: https:; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self' data:; media-src 'self' asset: http://asset.localhost data: blob: https:; object-src 'self' asset: http://asset.localhost; frame-src 'self' asset: http://asset.localhost data: nabu-html-block: http://nabu-html-block.localhost nabu-mini-app: http://nabu-mini-app.localhost",
       "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,
@@ -69,22 +69,19 @@
       "resources/mini-apps/**/*": "mini-apps/"
     },
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ]
   },
   "plugins": {
     "deep-link": {
-      "desktop": {
-        "schemes": ["tolaria"]
-      }
+       "desktop": {
+         "schemes": ["nabu"]
+       }
     },
     "updater": {
       "endpoints": [
-        "https://refactoringhq.github.io/tolaria/stable/latest.json"
+        "https://refactoringhq.github.io/nabu/stable/latest.json"
       ],
       "windows": {
         "installMode": "passive"

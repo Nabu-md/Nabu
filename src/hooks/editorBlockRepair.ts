@@ -27,7 +27,7 @@ function createEditorBlockId(): string {
   if (typeof randomUUID === 'function') return randomUUID.call(globalThis.crypto)
 
   fallbackBlockIdSequence += 1
-  return `tolaria-block-${fallbackBlockIdSequence}`
+  return `nabu-block-${fallbackBlockIdSequence}`
 }
 
 function createUniqueEditorBlockId(context: RepairContext): string {

@@ -14,7 +14,7 @@ Weakening the app window's `script-src` would expose every renderer surface to i
 
 ## Decision
 
-**Tolaria serves only opted-in scripted HTML block previews through the private `tolaria-html-block` Tauri URI scheme.**
+**Nabu serves only opted-in scripted HTML block previews through the private `nabu-html-block` Tauri URI scheme.**
 
 The renderer resolves vault expressions, sanitizes markup, and builds the complete iframe document exactly as before. It UTF-8/base64url encodes that sanitized document into the protocol path. The native protocol handler accepts only GET requests with one bounded valid payload, decodes UTF-8, and returns the document with a restrictive response-header CSP. The iframe still uses `sandbox="allow-scripts ..."` without `allow-same-origin`, so the loaded document receives an opaque origin.
 

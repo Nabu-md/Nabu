@@ -75,7 +75,7 @@ run_frontend_coverage_job() {
 }
 
 run_frontend_lane() {
-  log_dir="${TMPDIR:-/tmp}/tolaria-sidecar-frontend-$$"
+  log_dir="${TMPDIR:-/tmp}/nabu-sidecar-frontend-$$"
   jobs_file="${log_dir}/jobs"
   mkdir -p "$log_dir"
   : > "$jobs_file"

@@ -180,7 +180,7 @@ describe('migrateLocalStorageToVaultConfig', () => {
     expect(result.zoom).toBe(0.9)
   })
 
-  it('still migrates legacy Laputa storage keys when Tolaria keys are absent', () => {
+  it('still migrates legacy Laputa storage keys when Nabu keys are absent', () => {
     store[LEGACY_APP_STORAGE_KEYS.zoom] = '110'
     store[LEGACY_APP_STORAGE_KEYS.viewMode] = 'editor-only'
 

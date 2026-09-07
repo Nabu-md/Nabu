@@ -8,7 +8,7 @@ import {
 
 describe('frontend readiness recovery', () => {
   beforeEach(() => {
-    window.__tolariaFrontendReady = false
+    window.__nabuFrontendReady = false
     sessionStorage.clear()
   })
 
@@ -19,7 +19,7 @@ describe('frontend readiness recovery', () => {
 
     markFrontendReady()
 
-    expect(window.__tolariaFrontendReady).toBe(true)
+    expect(window.__nabuFrontendReady).toBe(true)
     expect(sessionStorage.getItem(STARTUP_RELOAD_ATTEMPT_STORAGE_NAME)).toBeNull()
     expect(onReady).toHaveBeenCalledOnce()
   })

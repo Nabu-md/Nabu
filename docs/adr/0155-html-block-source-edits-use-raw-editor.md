@@ -8,13 +8,13 @@ date: 2026-07-04
 
 ## Context
 
-ADR-0154 introduced sandboxed fenced HTML blocks and initially made the block source editable inline in rich mode. Tolaria already has a raw Markdown editor that exposes the exact fenced source users need to change, and keeping a second inline source editor creates duplicate editing behavior inside an otherwise rendered block.
+ADR-0154 introduced sandboxed fenced HTML blocks and initially made the block source editable inline in rich mode. Nabu already has a raw Markdown editor that exposes the exact fenced source users need to change, and keeping a second inline source editor creates duplicate editing behavior inside an otherwise rendered block.
 
 Raw mode also needs to stay comfortable for HTML-block work: fenced `html` contents should be syntax-highlighted as HTML, and pressing `Tab` while editing source should insert a tab instead of moving focus out of CodeMirror.
 
 ## Decision
 
-**Tolaria renders HTML blocks as preview-only rich-editor blocks and routes source edits through raw CodeMirror mode.** The rich block keeps copy, raw-editor, height reset, and resize controls, but no inline source textarea or edit button.
+**Nabu renders HTML blocks as preview-only rich-editor blocks and routes source edits through raw CodeMirror mode.** The rich block keeps copy, raw-editor, height reset, and resize controls, but no inline source textarea or edit button.
 
 Raw Markdown mode directly depends on CodeMirror's HTML language support so fenced `html` code contents are highlighted inside the Markdown document. The raw editor binds `Tab` to CodeMirror's literal tab insertion command.
 

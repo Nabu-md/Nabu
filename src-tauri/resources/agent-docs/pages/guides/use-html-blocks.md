@@ -28,7 +28,7 @@ The `height` attribute controls the preview height. You can also resize the bloc
 
 ## Add Live Vault Values
 
-HTML block source can include vault expressions inside `{{...}}`. Tolaria resolves them before the HTML is sanitized and rendered.
+HTML block source can include vault expressions inside `{{...}}`. Nabu resolves them before the HTML is sanitized and rendered.
 
 ```html
 <p>Status: {{status}}</p>
@@ -44,7 +44,7 @@ See [Vault Expressions](/reference/vault-expressions) for the full syntax and fo
 
 ## Style The Preview
 
-Inline `style` attributes and `<style>` tags work. Tolaria places sanitized style blocks in the iframe head so CSS applies to the whole preview.
+Inline `style` attributes and `<style>` tags work. Nabu places sanitized style blocks in the iframe head so CSS applies to the whole preview.
 
 Remote loading is intentionally blocked. External stylesheets, CSS `@import`, CSS `url(...)`, remote scripts, nested frames, workers, forms, and network requests are removed or blocked by the sandbox.
 
@@ -78,13 +78,13 @@ Scripts are blocked by default. Opt into an opaque-origin script sandbox only wh
 ```
 ````
 
-`json(...)` returns safely escaped JSON. When the value is a wikilink or a relationship list of wikilinks, Tolaria enriches it with note metadata such as `title`, `status`, `path`, `target`, `raw`, and `deepLink`.
+`json(...)` returns safely escaped JSON. When the value is a wikilink or a relationship list of wikilinks, Nabu enriches it with note metadata such as `title`, `status`, `path`, `target`, `raw`, and `deepLink`.
 
-The script sandbox is still constrained. It can use standard DOM APIs inside the preview, but it cannot access the parent Tolaria window, Tauri APIs, same-origin storage, remote network data, external script files, workers, forms, or nested frames.
+The script sandbox is still constrained. It can use standard DOM APIs inside the preview, but it cannot access the parent Nabu window, Tauri APIs, same-origin storage, remote network data, external script files, workers, forms, or nested frames.
 
 ## Troubleshooting
 
-If a `{{...}}` expression stays visible, Tolaria could not parse or resolve it. Check the note target, property name, function arguments, or whether the referenced note is ambiguous.
+If a `{{...}}` expression stays visible, Nabu could not parse or resolve it. Check the note target, property name, function arguments, or whether the referenced note is ambiguous.
 
 If script code appears not to run, confirm the fence has `scripts="sandboxed"` and that the script is inline. External `src` scripts are not supported.
 

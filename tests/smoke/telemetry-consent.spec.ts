@@ -6,7 +6,7 @@ test.describe('Telemetry consent dialog', () => {
     // The consent dialog should NOT appear (only appears when null)
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText('Help improve Tolaria')).not.toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Help improve Nabu')).not.toBeVisible({ timeout: 5000 })
   })
 
   test('privacy toggles are visible in settings panel', async ({ page }) => {

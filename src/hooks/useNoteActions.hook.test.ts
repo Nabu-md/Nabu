@@ -223,7 +223,7 @@ describe('useNoteActions hook', () => {
 
   it('keeps the active tab open when gitignored visibility reports a /tmp alias', async () => {
     const activeEntry = makeEntry({
-      path: '/private/tmp/tolaria-vault/active.md',
+      path: '/private/tmp/nabu-vault/active.md',
       filename: 'active.md',
       title: 'Active',
     })
@@ -237,12 +237,12 @@ describe('useNoteActions hook', () => {
       window.dispatchEvent(new CustomEvent(GITIGNORED_VISIBILITY_APPLIED_EVENT, {
         detail: {
           hide: true,
-          visiblePaths: ['/tmp/tolaria-vault/active.md'],
+          visiblePaths: ['/tmp/nabu-vault/active.md'],
         },
       }))
     })
 
-    expect(result.current.activeTabPath).toBe('/private/tmp/tolaria-vault/active.md')
+    expect(result.current.activeTabPath).toBe('/private/tmp/nabu-vault/active.md')
     expect(result.current.tabs).toHaveLength(1)
   })
 

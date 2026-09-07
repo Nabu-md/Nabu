@@ -94,8 +94,8 @@ mod tests {
     fn test_vault_relative_path_string_normalizes_tmp_alias_and_backslashes() {
         assert_eq!(
             vault_relative_path_string(
-                Path::new("/private/tmp/tolaria-vault"),
-                Path::new("/tmp/tolaria-vault/projects\\active.md"),
+                Path::new("/private/tmp/nabu-vault"),
+                Path::new("/tmp/nabu-vault/projects\\active.md"),
             )
             .unwrap(),
             "projects/active.md"

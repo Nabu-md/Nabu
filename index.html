@@ -97,7 +97,7 @@
         background: var(--startup-surface-sidebar);
         border-right: 1px solid var(--startup-border-subtle);
         flex: 0 0 250px;
-        padding: calc(18px + var(--tolaria-macos-traffic-light-padding, 0px)) 14px 14px;
+        padding: calc(18px + var(--nabu-macos-traffic-light-padding, 0px)) 14px 14px;
         width: 250px;
       }
       .startup-shell-fallback__list {
@@ -223,12 +223,12 @@
         box-shadow: 0 12px 26px rgba(0, 0, 0, 0.30), 0 1px 4px rgba(0, 0, 0, 0.22);
       }
     </style>
-    <title>Tolaria</title>
+    <title>Nabu</title>
   </head>
   <body>
     <script>
       (() => {
-        var key = 'tolaria-theme';
+        var key = 'nabu-theme';
         var legacyKey = 'laputa-theme';
         var systemDarkQuery = '(prefers-color-scheme: dark)';
         function normalizeTheme(value) {
@@ -264,8 +264,8 @@
       })();
     </script>
     <script>
-      const readyEventName = 'tolaria:frontend-ready';
-      const reloadAttemptKey = 'tolaria:startup-reload-attempted';
+      const readyEventName = 'nabu:frontend-ready';
+      const reloadAttemptKey = 'nabu:startup-reload-attempted';
       const startupTimeoutMs = 10000;
       const isTauri = '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
 
@@ -295,7 +295,7 @@
       };
 
       const reloadIfFrontendStalls = () => {
-        if (window.__tolariaFrontendReady === true) return;
+        if (window.__nabuFrontendReady === true) return;
         if (hasReloadAttempted()) return;
         if (!markReloadAttempted()) return;
 
@@ -308,7 +308,7 @@
       }
     </script>
     <div id="root">
-      <div id="tolaria-boot-shell" class="startup-shell-fallback" data-testid="startup-shell-fallback" aria-hidden="true">
+      <div id="nabu-boot-shell" class="startup-shell-fallback" data-testid="startup-shell-fallback" aria-hidden="true">
         <div class="startup-shell-fallback__sidebar">
           <div class="startup-shell-fallback__sidebar-block startup-shell-fallback__sidebar-block--short"></div>
           <div class="startup-shell-fallback__nav">
@@ -338,8 +338,8 @@
     </div>
     <script>
       (() => {
-        var bootShell = document.getElementById('tolaria-boot-shell');
-        window.__tolariaStartupShellFallbackNode = bootShell ? bootShell.cloneNode(true) : null;
+        var bootShell = document.getElementById('nabu-boot-shell');
+        window.__nabuStartupShellFallbackNode = bootShell ? bootShell.cloneNode(true) : null;
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>

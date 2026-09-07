@@ -2587,6 +2587,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "nabu"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "block2",
+ "chrono",
+ "csv",
+ "dirs 5.0.1",
+ "futures-util",
+ "gray_matter",
+ "ironcalc_base",
+ "log",
+ "notify",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "png 0.17.16",
+ "regex",
+ "reqwest 0.12.28",
+ "sentry",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-deep-link",
+ "tauri-plugin-dialog",
+ "tauri-plugin-log",
+ "tauri-plugin-opener",
+ "tauri-plugin-prevent-default",
+ "tauri-plugin-process",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tempfile",
+ "tokio",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5204,46 +5244,6 @@ dependencies = [
  "futures-sink",
  "pin-project-lite",
  "tokio",
-]
-
-[[package]]
-name = "tolaria"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "block2",
- "chrono",
- "csv",
- "dirs 5.0.1",
- "futures-util",
- "gray_matter",
- "ironcalc_base",
- "log",
- "notify",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "png 0.17.16",
- "regex",
- "reqwest 0.12.28",
- "sentry",
- "serde",
- "serde_json",
- "serde_yaml",
- "tauri",
- "tauri-build",
- "tauri-plugin-deep-link",
- "tauri-plugin-dialog",
- "tauri-plugin-log",
- "tauri-plugin-opener",
- "tauri-plugin-prevent-default",
- "tauri-plugin-process",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tempfile",
- "tokio",
- "uuid",
- "walkdir",
 ]
 
 [[package]]

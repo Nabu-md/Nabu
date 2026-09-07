@@ -63,14 +63,14 @@ export function buildMiniAppWindowUrl(
 
 /**
  * Resolves the URL for the mini-app's content iframe. Mini-app files are
- * served by the `tolaria-mini-app://` URI protocol (registered in the Tauri
+ * served by the `nabu-mini-app://` URI protocol (registered in the Tauri
  * backend); outside Tauri (browser previews) the app cannot be served, so a
  * fallback URL is returned instead.
  */
 export function miniAppFrameSource(appId: string, entrypointUrl = 'index.html'): string | null {
   if (!isTauri()) return null
   const entrypoint = entrypointUrl.trim().replace(/^\/+/, '') || 'index.html'
-  return `http://tolaria-mini-app.localhost/${encodeURIComponent(appId)}/${entrypoint.split('/').map(encodeURIComponent).join('/')}`
+  return `http://nabu-mini-app.localhost/${encodeURIComponent(appId)}/${entrypoint.split('/').map(encodeURIComponent).join('/')}`
 }
 
 export function installMiniAppContext(context: MiniAppContextPayload | null | undefined): void {

@@ -145,7 +145,7 @@ window.__laputaTest = {
     }
 
     if (!window.__laputaTest?.dispatchBrowserMenuCommand) {
-      throw new Error('Tolaria test bridge is missing dispatchBrowserMenuCommand')
+      throw new Error('Nabu test bridge is missing dispatchBrowserMenuCommand')
     }
 
     window.__laputaTest.dispatchBrowserMenuCommand(id)
@@ -184,9 +184,9 @@ function isStartupDefaultExportImportError(error: unknown): boolean {
 }
 
 function fatalRenderOverlay(): HTMLElement {
-  const existing = document.getElementById('tolaria-fatal-render-error')
+  const existing = document.getElementById('nabu-fatal-render-error')
   const overlay = existing ?? document.createElement('pre')
-  overlay.id = 'tolaria-fatal-render-error'
+  overlay.id = 'nabu-fatal-render-error'
   overlay.style.cssText = [
     'position:fixed',
     'inset:24px',
@@ -209,7 +209,7 @@ function showFatalRenderError(
 ): void {
   const overlay = fatalRenderOverlay()
   overlay.textContent = [
-    'Tolaria render error',
+    'Nabu render error',
     '',
     errorText(error),
     '',
@@ -258,7 +258,7 @@ function captureRecoverableReactRootError(
 
 function getRequiredRootElement(): HTMLElement {
   const root = document.getElementById('root')
-  if (!root) throw new Error('Tolaria root element is missing')
+  if (!root) throw new Error('Nabu root element is missing')
   return root
 }
 

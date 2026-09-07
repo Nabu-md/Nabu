@@ -39,7 +39,7 @@ if (install.status !== 0) {
   process.exit(1)
 }
 
-const temporaryDirectory = mkdtempSync(join(tmpdir(), 'tolaria-codacy-'))
+const temporaryDirectory = mkdtempSync(join(tmpdir(), 'nabu-codacy-'))
 const failures = []
 try {
   const changedFiles = [...additions.keys()].map((path) => path.slice(root.length + 1)).filter((path) => existsSync(resolve(root, path)))

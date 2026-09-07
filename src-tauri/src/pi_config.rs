@@ -197,19 +197,19 @@ fn build_mcp_config_from_base(
     vault_paths: &[String],
     _permission_mode: AiAgentPermissionMode,
 ) -> Result<String, String> {
-    let mcp_server = tolaria_mcp_server_config(vault_path, vault_paths)?;
+    let mcp_server = nabu_mcp_server_config(vault_path, vault_paths)?;
     let root = ensure_object(&mut config);
     let settings = ensure_child_object(root, "settings");
     settings.insert("toolPrefix".into(), Value::String("none".into()));
     settings.insert("idleTimeout".into(), Value::Number(10.into()));
     let servers = ensure_child_object(root, "mcpServers");
-    servers.insert("tolaria".into(), mcp_server);
+    servers.insert("nabu".into(), mcp_server);
 
     serde_json::to_string(&config)
         .map_err(|error| format!("Failed to serialize Pi MCP config: {error}"))
 }
 
-fn tolaria_mcp_server_config(vault_path: &str, vault_paths: &[String]) -> Result<Value, String> {
+fn nabu_mcp_server_config(vault_path: &str, vault_paths: &[String]) -> Result<Value, String> {
     let mcp_server_path = crate::cli_agent_runtime::mcp_server_path_string()?;
     let vault_paths = crate::cli_agent_runtime::active_vault_paths_json(vault_path, vault_paths);
 
@@ -435,7 +435,7 @@ mod tests {
         assert_eq!(mcp["imports"][0], "codex");
         assert_eq!(mcp["mcpServers"]["personal"]["command"], "personal-mcp");
         assert_eq!(
-            mcp["mcpServers"]["tolaria"]["env"]["VAULT_PATH"],
+            mcp["mcpServers"]["nabu"]["env"]["VAULT_PATH"],
             "/tmp/vault"
         );
     }
@@ -453,7 +453,7 @@ mod tests {
     }
 
     #[test]
-    fn mcp_config_includes_tolaria_server_for_active_vault() {
+    fn mcp_config_includes_nabu_server_for_active_vault() {
         if let Ok(config) = build_mcp_config(
             "/tmp/vault",
             &[],
@@ -461,8 +461,8 @@ mod tests {
         ) {
             let json: serde_json::Value = serde_json::from_str(&config).unwrap();
             assert_base_mcp_config(&json);
-            assert_tolaria_mcp_env(&json);
-            assert_tolaria_mcp_args(&json);
+            assert_nabu_mcp_env(&json);
+            assert_nabu_mcp_args(&json);
         }
     }
 
@@ -470,9 +470,9 @@ mod tests {
         assert_eq!(
             (
                 &json["settings"]["toolPrefix"],
-                &json["mcpServers"]["tolaria"]["command"],
-                &json["mcpServers"]["tolaria"]["lifecycle"],
-                &json["mcpServers"]["tolaria"]["directTools"],
+                &json["mcpServers"]["nabu"]["command"],
+                &json["mcpServers"]["nabu"]["lifecycle"],
+                &json["mcpServers"]["nabu"]["directTools"],
             ),
             (
                 &serde_json::json!("none"),
@@ -483,20 +483,20 @@ mod tests {
         );
     }
 
-    fn assert_tolaria_mcp_env(json: &serde_json::Value) {
+    fn assert_nabu_mcp_env(json: &serde_json::Value) {
         assert_eq!(
-            json["mcpServers"]["tolaria"]["env"]["VAULT_PATH"],
+            json["mcpServers"]["nabu"]["env"]["VAULT_PATH"],
             "/tmp/vault"
         );
         assert_eq!(
-            json["mcpServers"]["tolaria"]["env"]["VAULT_PATHS"],
+            json["mcpServers"]["nabu"]["env"]["VAULT_PATHS"],
             r#"["/tmp/vault"]"#
         );
-        assert_eq!(json["mcpServers"]["tolaria"]["env"]["WS_UI_PORT"], "9711");
+        assert_eq!(json["mcpServers"]["nabu"]["env"]["WS_UI_PORT"], "9711");
     }
 
-    fn assert_tolaria_mcp_args(json: &serde_json::Value) {
-        assert!(json["mcpServers"]["tolaria"]["args"][0]
+    fn assert_nabu_mcp_args(json: &serde_json::Value) {
+        assert!(json["mcpServers"]["nabu"]["args"][0]
             .as_str()
             .unwrap()
             .ends_with("index.js"));

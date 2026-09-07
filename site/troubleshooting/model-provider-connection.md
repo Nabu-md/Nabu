@@ -7,7 +7,7 @@ Use this checklist when a local or API model provider does not connect.
 For Ollama or LM Studio:
 
 1. Start the local model server.
-2. Confirm the base URL in Tolaria matches the server.
+2. Confirm the base URL in Nabu matches the server.
 3. Confirm the model ID is installed and loaded by the provider.
 4. Use the Settings test action again.
 

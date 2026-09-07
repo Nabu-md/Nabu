@@ -76,7 +76,7 @@ async function loadMiniAppConfig(
 
 /**
  * The shell window for a standalone mini-app. Renders the app's HTML in a
- * sandboxed iframe served from the `tolaria-mini-app://` protocol, exposes
+ * sandboxed iframe served from the `nabu-mini-app://` protocol, exposes
  * window controls (close, toggle dev tools), and relays vault-data requests
  * from the app to the main window.
  */
@@ -200,7 +200,7 @@ export function MiniAppWindowApp() {
           <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted-foreground">
             <div>
               <p className="mb-2 font-medium text-foreground">Mini-apps require the desktop app</p>
-              <p>The {appId || 'requested'} mini-app can only run inside Tolaria. Open it from the main window.</p>
+              <p>The {appId || 'requested'} mini-app can only run inside Nabu. Open it from the main window.</p>
             </div>
           </div>
         )}

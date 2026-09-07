@@ -95,8 +95,8 @@ async function installVaultSwitchMocks(page: Page): Promise<SmokeVaultData> {
   const data = buildSmokeVaultData()
   await page.addInitScript((data: SmokeVaultData) => {
     localStorage.clear()
-    localStorage.setItem('tolaria_welcome_dismissed', '1')
-    localStorage.setItem('tolaria:claude-code-onboarding-dismissed', '1')
+    localStorage.setItem('nabu_welcome_dismissed', '1')
+    localStorage.setItem('nabu:claude-code-onboarding-dismissed', '1')
 
     let activeVaultPath = data.workVaultPath
     let handlers: Record<string, MockHandler> | null = null

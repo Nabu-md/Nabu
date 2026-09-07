@@ -149,7 +149,7 @@ describe('useNoteListSort (via NoteList)', () => {
     expectVisibleNoteOrder(['Alpha', 'Beta'])
   })
 
-  it('reads legacy list sort preferences when Tolaria key is absent', () => {
+  it('reads legacy list sort preferences when Nabu key is absent', () => {
     localStorageMock.setItem(LEGACY_APP_STORAGE_KEYS.sortPreferences, JSON.stringify({ '__list__': { option: 'title', direction: 'asc' } }))
     const entries = [
       makeEntry({ path: '/c.md', title: 'Charlie', modifiedAt: 3000 }),

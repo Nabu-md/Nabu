@@ -9,13 +9,13 @@ supersedes: "0118"
 
 ## Context
 
-ADR-0118 made secondary note windows entry-scoped to avoid repeated full-vault scans. That reduced startup work, but it also removed the vault-index context that normal Tolaria capabilities depend on: properties, view actions, quick open/search, workspace-aware navigation, and other command surfaces no longer behaved like the main window.
+ADR-0118 made secondary note windows entry-scoped to avoid repeated full-vault scans. That reduced startup work, but it also removed the vault-index context that normal Nabu capabilities depend on: properties, view actions, quick open/search, workspace-aware navigation, and other command surfaces no longer behaved like the main window.
 
-The product expectation is that opening a note in a separate window creates another capable Tolaria window, not a reduced editor shell. Performance remains important, but capability parity is the stronger contract.
+The product expectation is that opening a note in a separate window creates another capable Nabu window, not a reduced editor shell. Performance remains important, but capability parity is the stronger contract.
 
 ## Decision
 
-**Secondary note windows load the same active vault/workspace graph as a normal Tolaria window.** They still start in editor-only view mode and auto-open the requested note from the URL parameters, but the app keeps the shared vault loader, mounted-workspace filtering, watcher scope, editor entry list, and workspace-aware note actions enabled.
+**Secondary note windows load the same active vault/workspace graph as a normal Nabu window.** They still start in editor-only view mode and auto-open the requested note from the URL parameters, but the app keeps the shared vault loader, mounted-workspace filtering, watcher scope, editor entry list, and workspace-aware note actions enabled.
 
 `main.tsx` always mounts `App`; note-window mode is handled inside `App` through `getNoteWindowParams()` and `useNoteWindowLifecycle`.
 
@@ -27,6 +27,6 @@ The product expectation is that opening a note in a separate window creates anot
 
 ## Consequences
 
-- Secondary windows can use normal Tolaria capabilities such as Properties, view actions, quick open/search, wikilink navigation, and workspace-aware note operations.
+- Secondary windows can use normal Nabu capabilities such as Properties, view actions, quick open/search, wikilink navigation, and workspace-aware note operations.
 - Opening several note windows can repeat vault-loading work. This is acceptable for now because correctness and parity are more important than avoiding the scan.
 - ADR-0118 is superseded. If secondary-window startup becomes too slow, optimize with shared state or incremental loading without removing app capabilities.

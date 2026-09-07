@@ -12,7 +12,7 @@ The AI panel is a sibling subtree to the command palette in the component tree. 
 
 ## Decision
 
-**Introduce `aiPromptBridge.ts` as a module-level singleton event bus.** The bridge exposes `queueAiPrompt(text, references)` (write path) and `takeQueuedAiPrompt()` (consume path), backed by a module variable and a `CustomEvent` on `window` (`tolaria:ai-prompt-queued`). The command palette enqueues a prompt; the AI panel listens for the event, consumes the prompt via `takeQueuedAiPrompt`, and dispatches it to the agent. A companion `requestOpenAiChat()` function fires a separate `tolaria:open-ai-chat` event to open the panel before the prompt is sent.
+**Introduce `aiPromptBridge.ts` as a module-level singleton event bus.** The bridge exposes `queueAiPrompt(text, references)` (write path) and `takeQueuedAiPrompt()` (consume path), backed by a module variable and a `CustomEvent` on `window` (`nabu:ai-prompt-queued`). The command palette enqueues a prompt; the AI panel listens for the event, consumes the prompt via `takeQueuedAiPrompt`, and dispatches it to the agent. A companion `requestOpenAiChat()` function fires a separate `nabu:open-ai-chat` event to open the panel before the prompt is sent.
 
 ## Options considered
 

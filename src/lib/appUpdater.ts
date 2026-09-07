@@ -14,7 +14,7 @@ export type AppUpdateDownloadEvent =
   | { event: 'Finished' }
 
 export const RESTART_REQUIRED_FOLDER_PICKER_MESSAGE =
-  'Tolaria needs a restart before macOS can open another folder picker. Restart to apply the downloaded update and try again.'
+  'Nabu needs a restart before macOS can open another folder picker. Restart to apply the downloaded update and try again.'
 
 let restartRequiredAfterUpdate = false
 

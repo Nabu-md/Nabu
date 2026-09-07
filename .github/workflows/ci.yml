@@ -13,7 +13,7 @@ permissions:
 
 env:
   # Bump this when Tauri/Rust target artifacts capture stale absolute paths.
-  RUST_TARGET_CACHE_VERSION: v2026-04-14-tolaria
+  RUST_TARGET_CACHE_VERSION: v2026-04-14-nabu
   # Keep large production frontend builds below CI runner memory limits.
   NODE_OPTIONS: --max-old-space-size=4096
 

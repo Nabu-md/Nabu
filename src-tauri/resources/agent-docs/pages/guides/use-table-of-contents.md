@@ -16,7 +16,7 @@ Use the editor toolbar, the command palette, or the shortcut:
 
 ## How It Works
 
-Tolaria builds the outline from the current note's headings. The panel updates as the note changes and can jump to sections in the editor.
+Nabu builds the outline from the current note's headings. The panel updates as the note changes and can jump to sections in the editor.
 
 ## Good Uses
 

@@ -1,12 +1,12 @@
 # Git Authentication
 
-Tolaria uses system Git authentication. It does not manage provider passwords directly.
+Nabu uses system Git authentication. It does not manage provider passwords directly.
 
 ## Symptoms
 
 - Push fails.
 - Pull asks for credentials repeatedly.
-- Remote fetch works in one terminal but not in Tolaria.
+- Remote fetch works in one terminal but not in Nabu.
 
 ## Checks
 

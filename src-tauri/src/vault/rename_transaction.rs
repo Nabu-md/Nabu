@@ -18,7 +18,7 @@ pub(super) struct RenameWorkspace {
 
 impl RenameWorkspace {
     pub(super) fn new(vault: &Path) -> Result<Self, String> {
-        let dir = vault.join(".tolaria-rename-txn");
+        let dir = vault.join(".nabu-rename-txn");
         fs::create_dir_all(&dir).map_err(|e| {
             format!(
                 "Failed to create rename transaction dir {}: {}",
@@ -225,7 +225,7 @@ fn candidate_filename(filename: &str, attempt: usize) -> String {
 }
 
 fn transaction_dir(vault: &Path) -> PathBuf {
-    vault.join(".tolaria-rename-txn")
+    vault.join(".nabu-rename-txn")
 }
 
 fn remove_empty_transaction_dir(dir: &Path) {

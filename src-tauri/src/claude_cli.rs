@@ -30,7 +30,7 @@ const CLAUDE_PROVIDER_ENV_KEYS: &[EnvName<'static>] = &[
     EnvName::trusted("SSL_CERT_DIR"),
     EnvName::trusted("NODE_EXTRA_CA_CERTS"),
 ];
-const LOCALIZED_ERROR_PREFIX: &str = "tolaria:i18n-error:";
+const LOCALIZED_ERROR_PREFIX: &str = "nabu:i18n-error:";
 const CLAUDE_TOO_MANY_REDIRECTS_KEY: &str = "ai.error.claude.tooManyRedirects";
 
 /// Status returned by `check_claude_cli`.
@@ -881,7 +881,7 @@ mod tests {
 
         assert_eq!(
             (
-                message.starts_with("tolaria:i18n-error:"),
+                message.starts_with("nabu:i18n-error:"),
                 message.contains(r#""key":"ai.error.claude.tooManyRedirects""#),
                 message.contains("https://example.invalid"),
                 message.contains("secret"),

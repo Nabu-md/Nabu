@@ -53,7 +53,7 @@ describe('editor durable markdown blocks', () => {
       '',
       '```html height="420"',
       '<section class="card">',
-      '  <h2>Hello Tolaria</h2>',
+      '  <h2>Hello Nabu</h2>',
       '  <details><summary>More</summary>Safe static content</details>',
       '</section>',
       '```',
@@ -69,7 +69,7 @@ describe('editor durable markdown blocks', () => {
       height: '420',
       html: [
         '<section class="card">',
-        '  <h2>Hello Tolaria</h2>',
+        '  <h2>Hello Nabu</h2>',
         '  <details><summary>More</summary>Safe static content</details>',
         '</section>',
         '',

@@ -82,7 +82,7 @@ describe('UpdateBanner', () => {
     }))
 
     expect(screen.getByTestId('update-banner')).toBeTruthy()
-    expect(screen.getByText(/Tolaria Alpha 2026\.4\.16\.3/)).toBeTruthy()
+    expect(screen.getByText(/Nabu Alpha 2026\.4\.16\.3/)).toBeTruthy()
     expect(screen.getByText(/is available/)).toBeTruthy()
     expect(screen.getByTestId('update-now-btn')).toBeTruthy()
     expect(screen.getByTestId('update-release-notes')).toBeTruthy()
@@ -95,7 +95,7 @@ describe('UpdateBanner', () => {
       displayVersion: 'Alpha 2026.4.16.3',
     }), makeActions(), 'zh-CN')
 
-    expect(screen.getByText(/Tolaria Alpha 2026\.4\.16\.3/)).toBeTruthy()
+    expect(screen.getByText(/Nabu Alpha 2026\.4\.16\.3/)).toBeTruthy()
     expect(screen.getByText(/可用/)).toBeTruthy()
     expect(screen.getByTestId('update-release-notes')).toHaveTextContent('发行说明')
     expect(screen.getByTestId('update-now-btn')).toHaveTextContent('立即更新')
@@ -126,7 +126,7 @@ describe('UpdateBanner', () => {
   it('shows progress bar during download', () => {
     renderBanner(makeDownloadingStatus())
 
-    expect(screen.getByText(/Downloading Tolaria Alpha 2026\.4\.16\.3/)).toBeTruthy()
+    expect(screen.getByText(/Downloading Nabu Alpha 2026\.4\.16\.3/)).toBeTruthy()
     expect(screen.getByText('65%')).toBeTruthy()
 
     const progressBar = screen.getByTestId('update-progress')
@@ -148,7 +148,7 @@ describe('UpdateBanner', () => {
   it('shows restart button when update is ready', () => {
     renderBanner(makeReadyStatus())
 
-    expect(screen.getByText(/Tolaria 2026\.4\.16/)).toBeTruthy()
+    expect(screen.getByText(/Nabu 2026\.4\.16/)).toBeTruthy()
     expect(screen.getByText(/restart to apply/)).toBeTruthy()
     expect(screen.getByTestId('update-restart-btn')).toBeTruthy()
   })

@@ -11,7 +11,7 @@ Inbox review turns quick captures into usable knowledge.
 
 When a note is organized enough, mark it as organized. Use `Cmd+E` on macOS or `Ctrl+E` on Windows and Linux, or click the organize action in the breadcrumb bar.
 
-That action is what removes the note from Inbox. If auto-advance is enabled in Settings > Workflow, Tolaria opens the next Inbox item immediately after you mark the current note organized.
+That action is what removes the note from Inbox. If auto-advance is enabled in Settings > Workflow, Nabu opens the next Inbox item immediately after you mark the current note organized.
 
 ## Review Checklist
 

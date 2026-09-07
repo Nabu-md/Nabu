@@ -8,13 +8,13 @@ date: 2026-05-28
 
 ## Context
 
-Tolaria's alpha and stable release workflows both need to build the same platform artifact set: dual-architecture macOS updater bundles, optional stable macOS DMGs, Linux bundles, and signed Windows installers/updater bundles. Keeping those build jobs copied into both release workflows made platform fixes and validation changes easy to apply in one channel while accidentally leaving the other channel behind.
+Nabu's alpha and stable release workflows both need to build the same platform artifact set: dual-architecture macOS updater bundles, optional stable macOS DMGs, Linux bundles, and signed Windows installers/updater bundles. Keeping those build jobs copied into both release workflows made platform fixes and validation changes easy to apply in one channel while accidentally leaving the other channel behind.
 
 The release workflows still differ in how they compute versions, create releases, and publish alpha vs. stable metadata, but the artifact build contract is shared.
 
 ## Decision
 
-**Tolaria centralizes release artifact production in `.github/workflows/release-build-artifacts.yml`, invoked by alpha and stable release workflows through `workflow_call`.** Channel-specific workflows own versioning and publishing; the shared workflow owns platform build, signing, validation, and artifact upload behavior.
+**Nabu centralizes release artifact production in `.github/workflows/release-build-artifacts.yml`, invoked by alpha and stable release workflows through `workflow_call`.** Channel-specific workflows own versioning and publishing; the shared workflow owns platform build, signing, validation, and artifact upload behavior.
 
 ## Alternatives considered
 

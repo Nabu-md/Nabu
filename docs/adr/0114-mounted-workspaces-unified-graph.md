@@ -8,13 +8,13 @@ date: 2026-05-07
 
 ## Context
 
-Tolaria users can already register multiple vaults, but switching vaults historically replaced the active graph. That model breaks down when separate Git repositories represent different workspaces that still need to reference each other: search, quick-open, wikilink navigation, and note lists should see one graph, while Git status, folders, saved views, and sync controls remain scoped to the repository currently in focus.
+Nabu users can already register multiple vaults, but switching vaults historically replaced the active graph. That model breaks down when separate Git repositories represent different workspaces that still need to reference each other: search, quick-open, wikilink navigation, and note lists should see one graph, while Git status, folders, saved views, and sync controls remain scoped to the repository currently in focus.
 
-The app also needs a stable way to disambiguate same-named notes across repositories without writing machine-specific paths into Markdown. A full storage migration or database-backed graph would conflict with Tolaria's filesystem-first model and make separate Git histories harder to reason about.
+The app also needs a stable way to disambiguate same-named notes across repositories without writing machine-specific paths into Markdown. A full storage migration or database-backed graph would conflict with Nabu's filesystem-first model and make separate Git histories harder to reason about.
 
 ## Decision
 
-**Tolaria treats the registered vault list as an installation-local mounted-workspace set and annotates loaded entries with workspace provenance.**
+**Nabu treats the registered vault list as an installation-local mounted-workspace set and annotates loaded entries with workspace provenance.**
 
 Specifically:
 

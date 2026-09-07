@@ -13,7 +13,7 @@ mod subprocess;
 pub(crate) use extraction::extract_mcp_server_to_stable_dir;
 pub(crate) use runtime::{find_mcp_runtime, find_node};
 
-const MCP_SERVER_NAME: &str = "tolaria";
+const MCP_SERVER_NAME: &str = "nabu";
 const LEGACY_MCP_SERVER_NAME: &str = "laputa";
 
 /// Status of the MCP server installation.
@@ -150,16 +150,16 @@ fn push_unique_path(paths: &mut Vec<PathBuf>, path: PathBuf) {
 
 fn linux_package_mcp_server_dirs(root: &Path) -> Vec<PathBuf> {
     vec![
-        root.join("Tolaria").join("mcp-server"),
-        root.join("Tolaria").join("resources").join("mcp-server"),
-        root.join("lib").join("Tolaria").join("mcp-server"),
+        root.join("Nabu").join("mcp-server"),
+        root.join("Nabu").join("resources").join("mcp-server"),
+        root.join("lib").join("Nabu").join("mcp-server"),
         root.join("lib")
-            .join("Tolaria")
+            .join("Nabu")
             .join("resources")
             .join("mcp-server"),
-        root.join("lib").join("tolaria").join("mcp-server"),
+        root.join("lib").join("nabu").join("mcp-server"),
         root.join("lib")
-            .join("tolaria")
+            .join("nabu")
             .join("resources")
             .join("mcp-server"),
     ]
@@ -307,7 +307,7 @@ pub fn mcp_config_snippet(vault_path: &str) -> Result<String, String> {
     let _ = vault_path;
     let runtime = find_mcp_runtime().map_err(|e| {
         format!(
-            "Node.js 18+ or Bun 1+ is required on PATH before Tolaria can build MCP config: {e}"
+            "Node.js 18+ or Bun 1+ is required on PATH before Nabu can build MCP config: {e}"
         )
     })?;
     let server_dir = mcp_server_dir_for_registration()?;
@@ -323,7 +323,7 @@ pub fn opencode_mcp_config_snippet(vault_path: &str) -> Result<String, String> {
     let _ = vault_path;
     let runtime = find_mcp_runtime().map_err(|e| {
         format!(
-            "Node.js 18+ or Bun 1+ is required on PATH before Tolaria can build OpenCode MCP config: {e}"
+            "Node.js 18+ or Bun 1+ is required on PATH before Nabu can build OpenCode MCP config: {e}"
         )
     })?;
     let server_dir = mcp_server_dir_for_registration()?;
@@ -348,12 +348,12 @@ fn register_mcp_to_configs(entry: &serde_json::Value, config_paths: &[PathBuf]) 
     status.to_string()
 }
 
-/// Register Tolaria as an MCP server in external AI tool config files.
+/// Register Nabu as an MCP server in external AI tool config files.
 pub fn register_mcp(vault_path: &str) -> Result<String, String> {
     let _ = vault_path;
     let runtime = find_mcp_runtime().map_err(|e| {
         format!(
-            "Node.js 18+ or Bun 1+ is required on PATH before Tolaria can register MCP tools: {e}"
+            "Node.js 18+ or Bun 1+ is required on PATH before Nabu can register MCP tools: {e}"
         )
     })?;
     let server_dir = mcp_server_dir_for_registration()?;
@@ -373,7 +373,7 @@ pub fn register_mcp(vault_path: &str) -> Result<String, String> {
     Ok(status)
 }
 
-/// Insert or update the Tolaria entry in an MCP config file.
+/// Insert or update the Nabu entry in an MCP config file.
 fn upsert_mcp_config(config_path: &Path, entry: &serde_json::Value) -> Result<bool, String> {
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)
@@ -493,7 +493,7 @@ pub fn remove_mcp() -> String {
 
 /// Check whether the MCP server is properly installed and registered.
 ///
-/// Returns `Installed` when the Tolaria entry exists for the active vault in
+/// Returns `Installed` when the Nabu entry exists for the active vault in
 /// an external AI tool config and the referenced index.js file is present.
 /// Otherwise returns `NotInstalled`.
 pub fn check_mcp_status(vault_path: &str) -> McpStatus {
@@ -559,7 +559,7 @@ mod tests {
         index_js: &'a str,
     }
 
-    fn assert_registered_tolaria_server(
+    fn assert_registered_nabu_server(
         config: &serde_json::Value,
         expected: ExpectedMcpServer<'_>,
     ) {
@@ -603,13 +603,13 @@ mod tests {
 
     #[test]
     fn build_mcp_entry_strips_windows_extended_length_script_prefix() {
-        let entry = build_mcp_entry("node", r"\\?\D:\Tolaria\mcp-server\index.js");
+        let entry = build_mcp_entry("node", r"\\?\D:\Nabu\mcp-server\index.js");
 
-        assert_eq!(entry["args"][0], r"D:\Tolaria\mcp-server\index.js",);
+        assert_eq!(entry["args"][0], r"D:\Nabu\mcp-server\index.js",);
     }
 
     #[test]
-    fn build_mcp_config_snippet_wraps_tolaria_server_entry() {
+    fn build_mcp_config_snippet_wraps_nabu_server_entry() {
         let entry = test_mcp_entry("/path/to/index.js");
         let snippet = build_mcp_config_snippet(&entry).unwrap();
         let config: serde_json::Value = serde_json::from_str(&snippet).unwrap();
@@ -625,14 +625,14 @@ mod tests {
     fn mcp_server_dir_candidates_prefer_resource_root_before_linux_packages() {
         let dev_path = Path::new("/repo/mcp-server");
         let resource_roots = vec![PathBuf::from(
-            "/Applications/Tolaria.app/Contents/Resources",
+            "/Applications/Nabu.app/Contents/Resources",
         )];
         let candidates = mcp_server_dir_candidates(dev_path, &resource_roots);
 
-        let resource_dir = PathBuf::from("/Applications/Tolaria.app/Contents/Resources/mcp-server");
+        let resource_dir = PathBuf::from("/Applications/Nabu.app/Contents/Resources/mcp-server");
         let linux_pos = candidates
             .iter()
-            .position(|path| path == &PathBuf::from("/usr/local/Tolaria/mcp-server"))
+            .position(|path| path == &PathBuf::from("/usr/local/Nabu/mcp-server"))
             .unwrap();
 
         assert_eq!(candidates[0], dev_path);
@@ -643,25 +643,25 @@ mod tests {
     #[test]
     fn mcp_server_dir_candidates_include_linux_package_resource_roots() {
         let dev_path = Path::new("/repo/mcp-server");
-        let resource_roots = vec![PathBuf::from("/opt/tolaria")];
+        let resource_roots = vec![PathBuf::from("/opt/nabu")];
         let candidates = mcp_server_dir_candidates(dev_path, &resource_roots);
         let expected = vec![
-            PathBuf::from("/opt/tolaria/Tolaria/mcp-server"),
-            PathBuf::from("/opt/tolaria/Tolaria/resources/mcp-server"),
-            PathBuf::from("/opt/tolaria/lib/Tolaria/mcp-server"),
-            PathBuf::from("/opt/tolaria/lib/Tolaria/resources/mcp-server"),
-            PathBuf::from("/opt/tolaria/lib/tolaria/mcp-server"),
-            PathBuf::from("/opt/tolaria/lib/tolaria/resources/mcp-server"),
-            PathBuf::from("/usr/local/Tolaria/mcp-server"),
-            PathBuf::from("/usr/local/Tolaria/resources/mcp-server"),
-            PathBuf::from("/usr/local/lib/Tolaria/mcp-server"),
-            PathBuf::from("/usr/local/lib/Tolaria/resources/mcp-server"),
-            PathBuf::from("/usr/local/lib/tolaria/mcp-server"),
-            PathBuf::from("/usr/local/lib/tolaria/resources/mcp-server"),
-            PathBuf::from("/usr/lib/Tolaria/mcp-server"),
-            PathBuf::from("/usr/lib/Tolaria/resources/mcp-server"),
-            PathBuf::from("/usr/lib/tolaria/mcp-server"),
-            PathBuf::from("/usr/lib/tolaria/resources/mcp-server"),
+            PathBuf::from("/opt/nabu/Nabu/mcp-server"),
+            PathBuf::from("/opt/nabu/Nabu/resources/mcp-server"),
+            PathBuf::from("/opt/nabu/lib/Nabu/mcp-server"),
+            PathBuf::from("/opt/nabu/lib/Nabu/resources/mcp-server"),
+            PathBuf::from("/opt/nabu/lib/nabu/mcp-server"),
+            PathBuf::from("/opt/nabu/lib/nabu/resources/mcp-server"),
+            PathBuf::from("/usr/local/Nabu/mcp-server"),
+            PathBuf::from("/usr/local/Nabu/resources/mcp-server"),
+            PathBuf::from("/usr/local/lib/Nabu/mcp-server"),
+            PathBuf::from("/usr/local/lib/Nabu/resources/mcp-server"),
+            PathBuf::from("/usr/local/lib/nabu/mcp-server"),
+            PathBuf::from("/usr/local/lib/nabu/resources/mcp-server"),
+            PathBuf::from("/usr/lib/Nabu/mcp-server"),
+            PathBuf::from("/usr/lib/Nabu/resources/mcp-server"),
+            PathBuf::from("/usr/lib/nabu/mcp-server"),
+            PathBuf::from("/usr/lib/nabu/resources/mcp-server"),
         ];
 
         assert_candidates_include(&candidates, &expected);
@@ -672,32 +672,32 @@ mod tests {
         let dev_path = Path::new("/repo/mcp-server");
         let candidates = mcp_server_dir_candidates(dev_path, &[]);
 
-        assert!(candidates.contains(&PathBuf::from("/usr/lib/Tolaria/mcp-server")));
+        assert!(candidates.contains(&PathBuf::from("/usr/lib/Nabu/mcp-server")));
     }
 
     #[test]
     fn mcp_server_dir_candidates_include_linux_appimage_resource_root() {
         let dev_path = Path::new("/repo/mcp-server");
-        let resource_roots = vec![PathBuf::from("/tmp/.mount_tolaria/usr")];
+        let resource_roots = vec![PathBuf::from("/tmp/.mount_nabu/usr")];
         let candidates = mcp_server_dir_candidates(dev_path, &resource_roots);
 
         assert_candidates_include(
             &candidates,
             &[PathBuf::from(
-                "/tmp/.mount_tolaria/usr/lib/tolaria/resources/mcp-server",
+                "/tmp/.mount_nabu/usr/lib/nabu/resources/mcp-server",
             )],
         );
     }
 
     #[test]
     fn mcp_server_dir_candidates_include_runtime_dev_roots_when_build_path_is_stale() {
-        let stale_dev_path = Path::new("/Users/runner/work/tolaria/tolaria/mcp-server");
-        let current_dir = Path::new("/Users/luca/Workspace/tolaria");
+        let stale_dev_path = Path::new("/Users/runner/work/nabu/nabu/mcp-server");
+        let current_dir = Path::new("/Users/luca/Workspace/nabu");
         let candidates = mcp_server_dir_candidates_for(stale_dev_path, &[], Some(current_dir));
 
-        assert!(candidates.contains(&PathBuf::from("/Users/luca/Workspace/tolaria/mcp-server")));
+        assert!(candidates.contains(&PathBuf::from("/Users/luca/Workspace/nabu/mcp-server")));
         assert!(candidates.contains(&PathBuf::from(
-            "/Users/luca/Workspace/tolaria/src-tauri/resources/mcp-server"
+            "/Users/luca/Workspace/nabu/src-tauri/resources/mcp-server"
         )));
     }
 
@@ -705,14 +705,14 @@ mod tests {
     fn mcp_server_dir_candidates_include_macos_bundle_resources() {
         let dev_path = Path::new("/repo/mcp-server");
         let resource_roots = vec![PathBuf::from(
-            "/Applications/Tolaria.app/Contents/Resources",
+            "/Applications/Nabu.app/Contents/Resources",
         )];
         let candidates = mcp_server_dir_candidates_for(dev_path, &resource_roots, None);
 
         assert_candidates_include(
             &candidates,
             &[PathBuf::from(
-                "/Applications/Tolaria.app/Contents/Resources/mcp-server",
+                "/Applications/Nabu.app/Contents/Resources/mcp-server",
             )],
         );
     }
@@ -727,7 +727,7 @@ mod tests {
         assert!(!was_update);
 
         let config = read_config(&config_path);
-        assert_registered_tolaria_server(
+        assert_registered_nabu_server(
             &config,
             ExpectedMcpServer {
                 index_js: "/test/index.js",
@@ -848,7 +848,7 @@ mod tests {
         assert!(!was_update);
         assert_eq!(config["theme"], "GitHub");
         assert_eq!(config["mcpServers"]["other"]["command"], "example");
-        assert_registered_tolaria_server(
+        assert_registered_nabu_server(
             &config,
             ExpectedMcpServer {
                 index_js: "/antigravity/index.js",
@@ -946,7 +946,7 @@ mod tests {
 
         let raw = std::fs::read_to_string(&claude_user_cfg).unwrap();
         let config: serde_json::Value = serde_json::from_str(&raw).unwrap();
-        assert_registered_tolaria_server(
+        assert_registered_nabu_server(
             &config,
             ExpectedMcpServer {
                 index_js: "/test/index.js",
@@ -1089,7 +1089,7 @@ mod tests {
         let config_path = tmp.path().join("mcp.json");
         let config = serde_json::json!({
             "mcpServers": {
-                "tolaria": { "command": "node", "args": ["/index.js"] },
+                "nabu": { "command": "node", "args": ["/index.js"] },
                 "laputa": { "command": "node", "args": ["/legacy.js"] },
                 "other-server": { "command": "other", "args": [] }
             }
@@ -1112,7 +1112,7 @@ mod tests {
         let config = serde_json::json!({
             "preferredEditor": "vim",
             "mcpServers": {
-                "tolaria": { "command": "node", "args": ["/index.js"] }
+                "nabu": { "command": "node", "args": ["/index.js"] }
             }
         });
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
@@ -1148,7 +1148,7 @@ mod tests {
         let config_path = tmp.path().join("mcp.json");
         let config = serde_json::json!({
             "mcpServers": {
-                "tolaria": {
+                "nabu": {
                     "type": "stdio",
                     "command": "node",
                     "args": [index_js.to_string_lossy()],

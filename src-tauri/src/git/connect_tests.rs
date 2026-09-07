@@ -153,7 +153,7 @@ fn git_add_remote_sets_local_identity_when_existing_repo_has_none() {
         .unwrap();
     assert_eq!(
         String::from_utf8_lossy(&email.stdout).trim(),
-        "vault@tolaria.default"
+        "vault@nabu.default"
     );
 }
 

@@ -114,12 +114,12 @@ describe('resolveEntry', () => {
 
   it('resolves path-style targets against Windows entry paths', () => {
     const archivedAdr = makeEntry({
-      path: 'C:\\Users\\lrfno\\Documents\\Tolaria Vault\\archive\\0031-foo.md',
+      path: 'C:\\Users\\lrfno\\Documents\\Nabu Vault\\archive\\0031-foo.md',
       filename: '0031-foo.md',
       title: '0031 Foo',
     })
     const currentAdr = makeEntry({
-      path: 'C:\\Users\\lrfno\\Documents\\Tolaria Vault\\docs\\adr\\0031-foo.md',
+      path: 'C:\\Users\\lrfno\\Documents\\Nabu Vault\\docs\\adr\\0031-foo.md',
       filename: '0031-foo.md',
       title: '0031 Foo',
     })
@@ -129,7 +129,7 @@ describe('resolveEntry', () => {
 
   it('resolves Windows path-style targets that contain underscores and extensions', () => {
     const topic = makeEntry({
-      path: 'C:\\Users\\lrfno\\Documents\\Tolaria Vault\\project\\02_notes\\00_topic.md',
+      path: 'C:\\Users\\lrfno\\Documents\\Nabu Vault\\project\\02_notes\\00_topic.md',
       filename: '00_topic.md',
       title: '00 Topic',
     })
@@ -206,8 +206,8 @@ describe('relativePathStem', () => {
   it('normalizes Windows extended-length paths before extracting the vault-relative stem', () => {
     expect(
       relativePathStem(
-        '\\\\?\\C:\\Users\\lrfno\\Documents\\tolaria-vault\\application-design-and-build.md',
-        'C:\\Users\\lrfno\\Documents\\tolaria-vault',
+        '\\\\?\\C:\\Users\\lrfno\\Documents\\nabu-vault\\application-design-and-build.md',
+        'C:\\Users\\lrfno\\Documents\\nabu-vault',
       ),
     ).toBe('application-design-and-build')
   })
@@ -215,8 +215,8 @@ describe('relativePathStem', () => {
   it('keeps nested Windows note paths vault-relative with slash separators', () => {
     expect(
       relativePathStem(
-        'C:\\Users\\lrfno\\Documents\\Tolaria Vault\\projects\\application-design-and-build.md',
-        'c:/users/lrfno/documents/tolaria vault',
+        'C:\\Users\\lrfno\\Documents\\Nabu Vault\\projects\\application-design-and-build.md',
+        'c:/users/lrfno/documents/nabu vault',
       ),
     ).toBe('projects/application-design-and-build')
   })

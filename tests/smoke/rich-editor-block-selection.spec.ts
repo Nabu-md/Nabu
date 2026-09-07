@@ -5,7 +5,7 @@ import {
   removeFixtureVaultCopy,
 } from '../helpers/fixtureVault'
 
-const BLOCK_SELECTION = '.tolaria-rich-editor-block-selected'
+const BLOCK_SELECTION = '.nabu-rich-editor-block-selected'
 const MOD_SHIFT_ARROW_DOWN = process.platform === 'darwin'
   ? 'Meta+Shift+ArrowDown'
   : 'Control+Shift+ArrowDown'

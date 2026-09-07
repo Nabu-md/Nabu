@@ -57,7 +57,7 @@ export class UnsupportedImageFormatError extends Error implements UnsupportedIma
   readonly kind = 'unsupported-heic'
 
   constructor(fileName: string) {
-    super('HEIC and HEIF images are not supported by Tolaria image import yet.')
+    super('HEIC and HEIF images are not supported by Nabu image import yet.')
     this.name = 'UnsupportedImageFormatError'
     this.fileName = fileName
   }
@@ -311,7 +311,7 @@ async function registerNativeDropListeners(
 
 interface UseImageDropOptions {
   containerRef: RefObject<HTMLDivElement | null>
-  /** Called when an image-like file is recognized but not supported by Tolaria. */
+  /** Called when an image-like file is recognized but not supported by Nabu. */
   onImageImportError?: ImageImportErrorHandler
   /** Called with an asset URL for each image dropped via Tauri native drag-drop. */
   onImageUrl?: (url: string) => void

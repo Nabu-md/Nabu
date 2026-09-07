@@ -8,11 +8,11 @@ date: 2026-07-20
 
 ## Context
 
-macOS owns Escape as the system command for leaving native window fullscreen. Tolaria also uses Escape to dismiss shadcn/Radix dialogs and popovers. Preventing the DOM keyboard event is not sufficient in WKWebView: AppKit still processes the same physical keypress and exits fullscreen after the overlay closes.
+macOS owns Escape as the system command for leaving native window fullscreen. Nabu also uses Escape to dismiss shadcn/Radix dialogs and popovers. Preventing the DOM keyboard event is not sufficient in WKWebView: AppKit still processes the same physical keypress and exits fullscreen after the overlay closes.
 
 ## Decision
 
-Tolaria installs a narrow AppKit local key monitor on macOS. The renderer reports whether a visible dismissible surface is open through shared shadcn dialog/popover refs and the legacy Settings panel lifecycle. When the main window is fullscreen and that state is open, the monitor consumes physical Escape and dispatches a synthetic Escape into the focused webview element so the overlay closes without AppKit leaving fullscreen. Every other key and every Escape outside that exact state continues through the normal native path.
+Nabu installs a narrow AppKit local key monitor on macOS. The renderer reports whether a visible dismissible surface is open through shared shadcn dialog/popover refs and the legacy Settings panel lifecycle. When the main window is fullscreen and that state is open, the monitor consumes physical Escape and dispatches a synthetic Escape into the focused webview element so the overlay closes without AppKit leaving fullscreen. Every other key and every Escape outside that exact state continues through the normal native path.
 
 The monitor uses `objc2-app-kit` directly. Its two platform-boundary operations carry explicit `SAFETY` invariants: AppKit supplies a non-null callback event for the callback lifetime, and the block returns only that same event pointer or null.
 

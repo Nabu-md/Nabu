@@ -1,5 +1,5 @@
-const RELEASE_HISTORY_URL = 'https://tolaria.md/releases/'
-const DOWNLOAD_FRAME_NAME = 'tolaria-download-frame'
+const RELEASE_HISTORY_URL = 'https://nabu.md/releases/'
+const DOWNLOAD_FRAME_NAME = 'nabu-download-frame'
 const WINDOWS_MANAGED_INSTALL_NOTE =
   'Windows updater bundles are signed. Authenticode publisher signing is added when configured; managed devices may require IT approval before install.'
 
@@ -50,23 +50,23 @@ type DownloadPageContent = {
 
 const PLATFORM_METADATA: Record<StablePlatformKey, { buttonLabel: string; label: string }> = {
   'darwin-aarch64': {
-    buttonLabel: 'Download Tolaria for macOS Apple Silicon',
+    buttonLabel: 'Download Nabu for macOS Apple Silicon',
     label: 'macOS Apple Silicon',
   },
   'darwin-x86_64': {
-    buttonLabel: 'Download Tolaria for Intel Mac',
+    buttonLabel: 'Download Nabu for Intel Mac',
     label: 'macOS Intel',
   },
   'linux-x86_64': {
-    buttonLabel: 'Download Tolaria AppImage for Linux',
+    buttonLabel: 'Download Nabu AppImage for Linux',
     label: 'Linux AppImage',
   },
   'linux-x86_64-rpm': {
-    buttonLabel: 'Download Tolaria RPM for Linux',
+    buttonLabel: 'Download Nabu RPM for Linux',
     label: 'Linux RPM',
   },
   'windows-x86_64': {
-    buttonLabel: 'Download Tolaria for Windows',
+    buttonLabel: 'Download Nabu for Windows',
     label: 'Windows',
   },
 }
@@ -410,17 +410,17 @@ function buildStableDownloadPageContent(
   if (Object.keys(downloads).length > 0) {
     return {
       helperText: 'Your download should start automatically. If it does not, use one of the platform links below.',
-      message: 'Preparing the latest stable Tolaria download for your platform.',
+      message: 'Preparing the latest stable Nabu download for your platform.',
       shouldRedirect: true,
-      title: 'Tolaria Stable Download',
+      title: 'Nabu Stable Download',
     }
   }
 
   return {
     helperText: 'Use the button below to check the latest release history.',
-    message: 'No stable Tolaria downloads are available yet.',
+    message: 'No stable Nabu downloads are available yet.',
     shouldRedirect: false,
-    title: 'Tolaria Stable Download Unavailable',
+    title: 'Nabu Stable Download Unavailable',
   }
 }
 
@@ -461,7 +461,7 @@ function buildDownloadsMarkup(downloads: StableDownloadTargets): string {
 function buildDownloadFrameMarkup(downloads: StableDownloadTargets): string {
   if (Object.keys(downloads).length === 0) return ''
 
-  return `<iframe title="Tolaria installer download" name="${DOWNLOAD_FRAME_NAME}" sandbox="allow-downloads" hidden></iframe>`
+  return `<iframe title="Nabu installer download" name="${DOWNLOAD_FRAME_NAME}" sandbox="allow-downloads" hidden></iframe>`
 }
 
 function buildRedirectMarkup(downloads: StableDownloadTargets): string {
@@ -525,10 +525,10 @@ function buildRedirectMarkup(downloads: StableDownloadTargets): string {
         }
 
         if (requiresWindowsChoice) {
-          return 'Use the signed Windows installer link below. Company-managed devices may require IT approval of the Tolaria publisher.';
+          return 'Use the signed Windows installer link below. Company-managed devices may require IT approval of the Nabu publisher.';
         }
 
-        return 'Starting the latest stable Tolaria download for ' + target.label + '.';
+        return 'Starting the latest stable Nabu download for ' + target.label + '.';
       }
 
       function updateDownloadMessage(target, requiresMacChoice, requiresWindowsChoice) {

@@ -6,13 +6,13 @@ import { isTauri } from '../mock-tauri'
 import type { VaultEntry } from '../types'
 import { writeClipboardText } from '../utils/clipboardText'
 import {
-  buildTolariaDeepLinkForEntry,
+  buildNabuDeepLinkForEntry,
   relativePathForVaultItem,
-  resolveTolariaDeepLink,
+  resolveNabuDeepLink,
   type DeepLinkBuildError,
   type DeepLinkOpenError,
   type DeepLinkVault,
-  type ResolvedTolariaDeepLink,
+  type ResolvedNabuDeepLink,
 } from '../utils/deepLinks'
 import { notePathsMatch } from '../utils/notePathIdentity'
 import { cleanupTauriEventListener, type TauriUnlisten } from '../utils/tauriEventCleanup'
@@ -45,13 +45,13 @@ interface PendingPeerRoute {
 
 type DeepLinkRouteMessage =
   | {
-      type: 'tolaria-deep-link-route-request'
+      type: 'nabu-deep-link-route-request'
       id: string
       request: PendingNavigation
     }
-  | { type: 'tolaria-deep-link-route-claimed'; id: string }
+  | { type: 'nabu-deep-link-route-claimed'; id: string }
 
-const DEEP_LINK_ROUTE_CHANNEL = 'tolaria-deep-link-routing'
+const DEEP_LINK_ROUTE_CHANNEL = 'nabu-deep-link-routing'
 const DEEP_LINK_ROUTE_FALLBACK_MS = 250
 let deepLinkRouteSequence = 0
 
@@ -104,23 +104,23 @@ function deepLinkRouteId(): string {
 function isRouteClaimMessage(
   message: unknown,
   id: string,
-): message is Extract<DeepLinkRouteMessage, { type: 'tolaria-deep-link-route-claimed' }> {
+): message is Extract<DeepLinkRouteMessage, { type: 'nabu-deep-link-route-claimed' }> {
   if (!message || typeof message !== 'object') return false
-  return Reflect.get(message, 'type') === 'tolaria-deep-link-route-claimed' && Reflect.get(message, 'id') === id
+  return Reflect.get(message, 'type') === 'nabu-deep-link-route-claimed' && Reflect.get(message, 'id') === id
 }
 
 function routeRequestFromMessage(
   message: unknown,
-): Extract<DeepLinkRouteMessage, { type: 'tolaria-deep-link-route-request' }> | null {
+): Extract<DeepLinkRouteMessage, { type: 'nabu-deep-link-route-request' }> | null {
   if (!message || typeof message !== 'object') return null
-  if (Reflect.get(message, 'type') !== 'tolaria-deep-link-route-request') return null
+  if (Reflect.get(message, 'type') !== 'nabu-deep-link-route-request') return null
   const id = Reflect.get(message, 'id')
   const request = Reflect.get(message, 'request')
   if (typeof id !== 'string' || !request || typeof request !== 'object') return null
   return {
     id,
     request: request as PendingNavigation,
-    type: 'tolaria-deep-link-route-request',
+    type: 'nabu-deep-link-route-request',
   }
 }
 
@@ -160,7 +160,7 @@ function requestPeerDeepLinkRoute({
     if (isRouteClaimMessage(event.data, id)) finish(onClaimed)
   }
   channel.postMessage({
-    type: 'tolaria-deep-link-route-request',
+    type: 'nabu-deep-link-route-request',
     id,
     request,
   } satisfies DeepLinkRouteMessage)
@@ -215,7 +215,7 @@ function useDeepLinkResolver(options: DeepLinkResolverConfig) {
   } = options
   const peerRouteRef = useRef<PendingPeerRoute | null>(null)
   const openResolvedDeepLink = useCallback(
-    (request: Extract<ResolvedTolariaDeepLink, { ok: true }>) => {
+    (request: Extract<ResolvedNabuDeepLink, { ok: true }>) => {
     const nextNavigation = {
       absolutePath: request.absolutePath,
       relativePath: request.relativePath,
@@ -251,7 +251,7 @@ function useDeepLinkResolver(options: DeepLinkResolverConfig) {
   useEffect(() => {
     if (!enabled || !pendingUrl || !vaultListLoaded) return
 
-    const resolved = resolveTolariaDeepLink({
+    const resolved = resolveNabuDeepLink({
       rawUrl: pendingUrl,
       vaults: knownVaults,
     })
@@ -289,7 +289,7 @@ function useDeepLinkPeerRouteListener({
 
       setPendingNavigation(message.request)
       channel.postMessage({
-        type: 'tolaria-deep-link-route-claimed',
+        type: 'nabu-deep-link-route-claimed',
         id: message.id,
       } satisfies DeepLinkRouteMessage)
       focusCurrentWindow()
@@ -537,7 +537,7 @@ function useDeepLinkCopyActions({
   const copyEntryDeepLink = useCallback(
     (entry: VaultEntry) => {
     const vaultPath = vaultPathForEntry(entry, currentVaultPath)
-      const result = buildTolariaDeepLinkForEntry({
+      const result = buildNabuDeepLinkForEntry({
         entry,
         vaultPath,
         vaults: knownVaults,

@@ -23,8 +23,8 @@ describe('HTML block protocol routing', () => {
   it('routes installed sandboxed previews through the isolated protocol', () => {
     const previewSource = htmlBlockFrameSource('Safe preview', 'browser-source', 'sandboxed') ?? ''
 
-    expect(convertFileSrcMock).toHaveBeenCalledWith(expect.stringMatching(/^[A-Za-z0-9_-]+$/u), 'tolaria-html-block')
-    expect(previewSource).toMatch(/^tolaria-html-block:\/\/localhost\//u)
+    expect(convertFileSrcMock).toHaveBeenCalledWith(expect.stringMatching(/^[A-Za-z0-9_-]+$/u), 'nabu-html-block')
+    expect(previewSource).toMatch(/^nabu-html-block:\/\/localhost\//u)
     expect(previewSource).not.toContain('browser-source')
   })
 

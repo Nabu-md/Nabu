@@ -113,7 +113,7 @@ function dispatchVaultRegistryChanged(
   const registrationType = message.registrationType === 'clone' ? 'clone' : 'attach'
   trackEvent('mcp_vault_registered', { registration_type: registrationType })
   callbacksRef.current?.onVaultRegistryChanged?.(path)
-  window.dispatchEvent(new CustomEvent('tolaria:vault-registry-changed', { detail: { path } }))
+  window.dispatchEvent(new CustomEvent('nabu:vault-registry-changed', { detail: { path } }))
 }
 
 function dispatchUiActionMessage(

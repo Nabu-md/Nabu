@@ -277,7 +277,7 @@ fn mcp_config(vault_path: &str, vault_paths: &[String]) -> Result<String, String
     let mcp_server_path = crate::cli_agent_runtime::mcp_server_path_string()?;
     let config = serde_json::json!({
         "mcpServers": {
-            "tolaria": crate::cli_agent_runtime::tolaria_node_mcp_server(
+            "nabu": crate::cli_agent_runtime::nabu_node_mcp_server(
                 &mcp_server_path,
                 vault_path,
                 vault_paths,
@@ -718,13 +718,13 @@ mod tests {
         let extra_vaults = vec!["/tmp/secondary-vault".to_string()];
         if let Ok(config_str) = mcp_config("/tmp/test-vault", &extra_vaults) {
             let parsed: serde_json::Value = serde_json::from_str(&config_str).unwrap();
-            assert!(parsed["mcpServers"]["tolaria"]["command"].is_string());
+            assert!(parsed["mcpServers"]["nabu"]["command"].is_string());
             assert_eq!(
-                parsed["mcpServers"]["tolaria"]["env"]["VAULT_PATH"],
+                parsed["mcpServers"]["nabu"]["env"]["VAULT_PATH"],
                 "/tmp/test-vault"
             );
             assert_eq!(
-                parsed["mcpServers"]["tolaria"]["env"]["VAULT_PATHS"],
+                parsed["mcpServers"]["nabu"]["env"]["VAULT_PATHS"],
                 "[\"/tmp/test-vault\",\"/tmp/secondary-vault\"]"
             );
         }

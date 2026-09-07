@@ -17,8 +17,8 @@ interface TauriWindowInternals {
   metadata?: { currentWindow?: { label?: string } }
 }
 
-const NOTE_WINDOW_STORAGE_PREFIX = 'tolaria:note-window:'
-const AI_WORKSPACE_WINDOW_STORAGE_PREFIX = 'tolaria:ai-workspace-window:'
+const NOTE_WINDOW_STORAGE_PREFIX = 'nabu:note-window:'
+const AI_WORKSPACE_WINDOW_STORAGE_PREFIX = 'nabu:ai-workspace-window:'
 const AI_WORKSPACE_WINDOW_LABEL = 'ai-workspace'
 const AI_WORKSPACE_WINDOW_STORAGE_KEY = `${AI_WORKSPACE_WINDOW_STORAGE_PREFIX}${AI_WORKSPACE_WINDOW_LABEL}`
 

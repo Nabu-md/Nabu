@@ -9,7 +9,7 @@ Connect a remote when you want backup or sync beyond the current machine.
 
 ## Before You Start
 
-Make sure the remote repository exists and your system Git can authenticate to it. Tolaria uses system Git rather than storing provider-specific credentials.
+Make sure the remote repository exists and your system Git can authenticate to it. Nabu uses system Git rather than storing provider-specific credentials.
 
 ## Steps
 

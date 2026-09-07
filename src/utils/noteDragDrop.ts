@@ -1,4 +1,4 @@
-export const NOTE_DRAG_MIME_TYPE = 'application/x-tolaria-note-path'
+export const NOTE_DRAG_MIME_TYPE = 'application/x-nabu-note-path'
 
 let activeDraggedNotePath: string | null = null
 

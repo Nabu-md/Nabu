@@ -285,8 +285,8 @@ describe('useNoteCreation hook', () => {
     vi.mocked(isTauri).mockReturnValue(true)
     vi.mocked(invoke).mockResolvedValueOnce(undefined)
     vi.spyOn(Date, 'now').mockReturnValue(1700000000000)
-    const windowsVaultPath = String.raw`\\?\C:\Users\alex\Documents\Tolaria`
-    const createdPath = String.raw`\\?\C:\Users\alex\Documents\Tolaria/untitled-project-1700000000.md`
+    const windowsVaultPath = String.raw`\\?\C:\Users\alex\Documents\Nabu`
+    const createdPath = String.raw`\\?\C:\Users\alex\Documents\Nabu/untitled-project-1700000000.md`
     const { result } = renderHook(() => useNoteCreation({
       ...makeConfig(),
       vaultPath: windowsVaultPath,
@@ -342,8 +342,8 @@ describe('useNoteCreation hook', () => {
       .mockRejectedValueOnce(new Error('not found'))
       .mockResolvedValueOnce(undefined)
     const onTypeStateChanged = vi.fn()
-    const windowsVaultPath = String.raw`\\?\C:\Users\alex\Documents\Tolaria`
-    const createdPath = String.raw`\\?\C:\Users\alex\Documents\Tolaria/recipe.md`
+    const windowsVaultPath = String.raw`\\?\C:\Users\alex\Documents\Nabu`
+    const createdPath = String.raw`\\?\C:\Users\alex\Documents\Nabu/recipe.md`
     const { result } = renderHook(() => useNoteCreation({
       ...makeConfig(),
       vaultPath: windowsVaultPath,

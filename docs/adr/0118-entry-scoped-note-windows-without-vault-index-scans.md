@@ -12,11 +12,11 @@ ADR-0031 kept secondary note windows on the full `App` shell so they would inher
 
 In practice, repeated note-window opens were paying that full-vault scan cost even when the window only needed one known note path. The startup path loaded the vault index and passed related entries into the editor even though note-window mode renders a single-note surface. That extra work increased window-open cost and made every secondary window depend on repository-wide entry hydration for a workflow that is intentionally scoped to one note.
 
-Tolaria still wants note windows to reuse the main App architecture rather than reviving a separate `NoteWindow` shell. The missing decision was how far the shared vault loader should go when the window contract is already narrowed to a single entry.
+Nabu still wants note windows to reuse the main App architecture rather than reviving a separate `NoteWindow` shell. The missing decision was how far the shared vault loader should go when the window contract is already narrowed to a single entry.
 
 ## Decision
 
-**Secondary note windows continue to render the full `App` shell, but they no longer load the full vault index during startup.** In note-window mode, Tolaria skips the shared vault-entry scan, reloads only the requested note entry, and scopes editor entry props to that active note instead of passing repository-wide visible entries.
+**Secondary note windows continue to render the full `App` shell, but they no longer load the full vault index during startup.** In note-window mode, Nabu skips the shared vault-entry scan, reloads only the requested note entry, and scopes editor entry props to that active note instead of passing repository-wide visible entries.
 
 This keeps the architectural benefit of ADR-0031 (one window architecture, one editor surface) while changing the data-loading contract for secondary windows from vault-scoped to entry-scoped.
 

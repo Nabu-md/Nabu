@@ -282,8 +282,8 @@ export function initSentry(anonymousId: AnonymousTelemetryId): void {
       ? 'stable'
       : sentryBuildVersion.includes('-') ? 'prerelease' : 'internal'
 
-    Sentry.setTag('tolaria.build_version', sentryBuildVersion)
-    Sentry.setTag('tolaria.release_kind', releaseKind)
+    Sentry.setTag('nabu.build_version', sentryBuildVersion)
+    Sentry.setTag('nabu.release_kind', releaseKind)
   }
   sentryInitialized = true
 }

@@ -1,6 +1,6 @@
 # Public Docs Plan
 
-This document records the phase 1 information architecture for public Tolaria documentation. The public docs source lives in `site/`; the existing `docs/` directory remains contributor, architecture, and agent context.
+This document records the phase 1 information architecture for public Nabu documentation. The public docs source lives in `site/`; the existing `docs/` directory remains contributor, architecture, and agent context.
 
 ## Audiences
 

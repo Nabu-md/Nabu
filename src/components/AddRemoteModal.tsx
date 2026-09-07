@@ -128,7 +128,7 @@ export function AddRemoteModal(
         <DialogHeader>
           <DialogTitle>Add Remote</DialogTitle>
           <DialogDescription>
-            Connect this local vault to a git remote. Your existing local commits stay intact; Tolaria
+            Connect this local vault to a git remote. Your existing local commits stay intact; Nabu
             will only connect the vault when the remote history is safe to use.
           </DialogDescription>
         </DialogHeader>

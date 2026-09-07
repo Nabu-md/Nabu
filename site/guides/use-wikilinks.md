@@ -21,4 +21,4 @@ related_to:
 
 ## Keep Links Stable
 
-Prefer clear note titles and filenames. Tolaria's wikilink autocomplete helps you pick the right target while you type.
+Prefer clear note titles and filenames. Nabu's wikilink autocomplete helps you pick the right target while you type.

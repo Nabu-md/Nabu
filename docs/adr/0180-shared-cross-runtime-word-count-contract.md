@@ -31,4 +31,4 @@ Rust remains the authority for persisted `VaultEntry.wordCount` during vault par
 - Rust and TypeScript retain small regex adapters because they execute in separate runtimes, but neither owns an independent multilingual state machine.
 - Dirty word counts update on the existing deferred metadata schedule, keeping per-keystroke rendering free of recount work.
 - Any future preprocessing or script coverage change must update the shared fixture matrix before either adapter.
-- Re-evaluate if Tolaria introduces an existing shared Rust/Wasm text-processing runtime whose adoption removes more code than it adds.
+- Re-evaluate if Nabu introduces an existing shared Rust/Wasm text-processing runtime whose adoption removes more code than it adds.

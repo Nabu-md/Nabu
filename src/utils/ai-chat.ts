@@ -31,7 +31,7 @@ export function buildSystemPrompt(
   }
 
   const preamble = [
-    'You are a helpful AI assistant integrated into Tolaria, a personal knowledge management app.',
+    'You are a helpful AI assistant integrated into Nabu, a personal knowledge management app.',
     'The user has selected the following notes as context. Use them to answer questions accurately.',
     'You can use MCP tools to read the full content of any note.',
     'When you mention or reference a note by name, always use [[Note Title]] wikilink syntax so the user can click to open it.',

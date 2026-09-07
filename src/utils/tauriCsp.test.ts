@@ -50,10 +50,10 @@ describe('Tauri Content Security Policy', () => {
     const devCsp = config.app.security.devCsp as string
 
     expect(csp['frame-src']).toBe(
-      "'self' asset: http://asset.localhost data: tolaria-html-block: http://tolaria-html-block.localhost",
+      "'self' asset: http://asset.localhost data: nabu-html-block: http://nabu-html-block.localhost",
     )
     expect(devCsp).toContain(
-      "frame-src 'self' asset: http://asset.localhost data: tolaria-html-block: http://tolaria-html-block.localhost",
+      "frame-src 'self' asset: http://asset.localhost data: nabu-html-block: http://nabu-html-block.localhost",
     )
     expect(csp['script-src']).not.toContain("'unsafe-inline'")
   })

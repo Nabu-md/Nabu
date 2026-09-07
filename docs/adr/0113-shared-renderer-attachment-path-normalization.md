@@ -8,7 +8,7 @@ date: 2026-05-07
 
 ## Context
 
-Tolaria already treats vault attachments as ordinary files under `attachments/`, and ADRs around previews and asset scoping rely on Tauri asset URLs to render them safely. In practice, attachment handling had started to fragment across the renderer: some flows joined `vaultPath + attachments/...`, some decoded `convertFileSrc` URLs directly, some handled Windows separators ad hoc, and some only worked for one editor surface.
+Nabu already treats vault attachments as ordinary files under `attachments/`, and ADRs around previews and asset scoping rely on Tauri asset URLs to render them safely. In practice, attachment handling had started to fragment across the renderer: some flows joined `vaultPath + attachments/...`, some decoded `convertFileSrc` URLs directly, some handled Windows separators ad hoc, and some only worked for one editor surface.
 
 That duplication turned attachment behavior into a drift risk. Opening file blocks, following editor links, serializing raw-mode Markdown, rewriting image URLs after vault switches, and copying dropped files into the vault all needed the same three representations to stay in sync:
 
@@ -18,7 +18,7 @@ That duplication turned attachment behavior into a drift risk. Opening file bloc
 
 ## Decision
 
-**Tolaria centralizes attachment path conversion in a single renderer-owned primitive and keeps portable `attachments/...` references as the canonical cross-surface representation.**
+**Nabu centralizes attachment path conversion in a single renderer-owned primitive and keeps portable `attachments/...` references as the canonical cross-surface representation.**
 
 Specifically:
 

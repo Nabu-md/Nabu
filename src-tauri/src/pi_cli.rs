@@ -24,7 +24,7 @@ where
     F: FnMut(AiAgentStreamEvent),
 {
     let agent_dir = tempfile::Builder::new()
-        .prefix("tolaria-pi-agent-")
+        .prefix("nabu-pi-agent-")
         .tempdir()
         .map_err(|error| format!("Failed to create Pi config directory: {error}"))?;
     let command = crate::pi_config::build_command(binary, &request, agent_dir.path())?;

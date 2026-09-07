@@ -5,7 +5,7 @@ URL: /reference/frontmatter-fields
 
 # Frontmatter Fields
 
-Tolaria uses conventions instead of a required schema.
+Nabu uses conventions instead of a required schema.
 
 | Field | Meaning |
 | --- | --- |
@@ -27,7 +27,7 @@ Tolaria uses conventions instead of a required schema.
 
 ## Custom Fields
 
-You can add your own fields. If a field contains wikilinks, Tolaria can treat it as a relationship.
+You can add your own fields. If a field contains wikilinks, Nabu can treat it as a relationship.
 
 ## System Fields
 

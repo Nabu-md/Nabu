@@ -306,7 +306,7 @@ function PulseHeader({
 
   const leftPadding =
     sidebarCollapsed && isMac()
-    ? `var(--tolaria-macos-traffic-light-padding, ${MACOS_TRAFFIC_LIGHT_SAFE_PADDING}px)`
+    ? `var(--nabu-macos-traffic-light-padding, ${MACOS_TRAFFIC_LIGHT_SAFE_PADDING}px)`
     : '16px'
   const headerStyle = {
     height: 52,

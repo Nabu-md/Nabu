@@ -23,7 +23,7 @@ error: invalid value 'untrusted' for '--ask-for-approval <APPROVAL_POLICY>'
 
 ## Decision
 
-Tolaria launches app-managed Codex sessions with:
+Nabu launches app-managed Codex sessions with:
 
 ```text
 codex --sandbox <sandbox> --ask-for-approval <approval> exec --json ...
@@ -40,7 +40,7 @@ read-only sandbox. The `--sandbox` values are unchanged.
 
 ## Consequences
 
-- Codex CLI versions that reject `untrusted` can start from the Tolaria AI
+- Codex CLI versions that reject `untrusted` can start from the Nabu AI
   panel under Vault Safe.
 - Vault Safe remains a best-effort safe profile rather than a true
   built-in-tools-off mode, unchanged from ADR-0103: Codex still exposes

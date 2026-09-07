@@ -6,14 +6,14 @@ describe('buildReleaseHistoryPage', () => {
       {
         assets: [
           {
-            browser_download_url: 'https://example.com/Tolaria.dmg',
-            name: 'Tolaria.dmg',
+            browser_download_url: 'https://example.com/Nabu.dmg',
+            name: 'Nabu.dmg',
           },
         ],
         body: '## Highlights\n\n- Faster startup\n- Better release notes',
         body_html: '<h2>Highlights</h2><ul><li>Faster startup</li><li>Better release notes</li></ul>',
-        html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.4.19',
-        name: 'Tolaria Stable 2026.4.19',
+        html_url: 'https://github.com/refactoringhq/nabu/releases/tag/stable-v2026.4.19',
+        name: 'Nabu Stable 2026.4.19',
         prerelease: false,
         published_at: '2026-04-19T11:00:00Z',
         tag_name: 'stable-v2026.4.19',
@@ -21,13 +21,13 @@ describe('buildReleaseHistoryPage', () => {
       {
         assets: [
           {
-            browser_download_url: 'https://example.com/Tolaria-setup.exe',
-            name: 'Tolaria-setup.exe',
+            browser_download_url: 'https://example.com/Nabu-setup.exe',
+            name: 'Nabu-setup.exe',
           },
         ],
         body: '**Alpha** notes with [details](https://example.com/details).',
         body_html: '<p><strong>Alpha</strong> notes with <a href="https://example.com/details">details</a>.</p>',
-        html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/2026.4.19-alpha.1',
+        html_url: 'https://github.com/refactoringhq/nabu/releases/tag/2026.4.19-alpha.1',
         name: 'Alpha 2026.4.19.1',
         prerelease: true,
         published_at: '2026-04-19T10:00:00Z',
@@ -45,7 +45,7 @@ describe('buildReleaseHistoryPage', () => {
     expect(html).toContain('<h2>Highlights</h2>')
     expect(html).toContain('<li>Faster startup</li>')
     expect(html).toContain('<strong>Alpha</strong> notes')
-    expect(html).toContain('Tolaria-setup.exe')
+    expect(html).toContain('Nabu-setup.exe')
     expect(html).toContain('View on GitHub')
     expect(html).not.toContain('class="release-channel"')
   })
@@ -57,11 +57,11 @@ describe('buildReleaseHistoryPage', () => {
         body_html: [
           '<h2>What&apos;s Changed</h2>',
           '<ul>',
-          '<li><a href="https://github.com/refactoringhq/tolaria/commit/ee71a00">ee71a00</a> feat: add paste without formatting command</li>',
+          '<li><a href="https://github.com/refactoringhq/nabu/commit/ee71a00">ee71a00</a> feat: add paste without formatting command</li>',
           '</ul>',
         ].join(''),
-        html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.5.2',
-        name: 'Tolaria 2026.5.2',
+        html_url: 'https://github.com/refactoringhq/nabu/releases/tag/stable-v2026.5.2',
+        name: 'Nabu 2026.5.2',
         prerelease: false,
         published_at: '2026-05-02T16:15:00Z',
         tag_name: 'stable-v2026.5.2',
@@ -96,29 +96,29 @@ describe('buildReleaseHistoryPage', () => {
     const html = buildReleaseHistoryPage([
       {
         body: 'Older alpha release',
-        name: 'Tolaria Alpha 2026.4.20.9',
+        name: 'Nabu Alpha 2026.4.20.9',
         prerelease: true,
         published_at: '2026-04-20T09:44:02Z',
         tag_name: 'alpha-v2026.4.20-alpha.9',
       },
       {
         body: 'Newest alpha release',
-        name: 'Tolaria Alpha 2026.4.20.12',
+        name: 'Nabu Alpha 2026.4.20.12',
         prerelease: true,
         published_at: '2026-04-20T16:53:41Z',
         tag_name: 'alpha-v2026.4.20-alpha.12',
       },
       {
         body: 'Middle alpha release',
-        name: 'Tolaria Alpha 2026.4.20.10',
+        name: 'Nabu Alpha 2026.4.20.10',
         prerelease: true,
         published_at: '2026-04-20T10:32:01Z',
         tag_name: 'alpha-v2026.4.20-alpha.10',
       },
     ])
 
-    expect(html.indexOf('Tolaria Alpha 2026.4.20.12')).toBeLessThan(html.indexOf('Tolaria Alpha 2026.4.20.10'))
-    expect(html.indexOf('Tolaria Alpha 2026.4.20.10')).toBeLessThan(html.indexOf('Tolaria Alpha 2026.4.20.9'))
+    expect(html.indexOf('Nabu Alpha 2026.4.20.12')).toBeLessThan(html.indexOf('Nabu Alpha 2026.4.20.10'))
+    expect(html.indexOf('Nabu Alpha 2026.4.20.10')).toBeLessThan(html.indexOf('Nabu Alpha 2026.4.20.9'))
   })
 
   it('deduplicates equivalent stable calendar tags and keeps the richer notes', () => {
@@ -126,14 +126,14 @@ describe('buildReleaseHistoryPage', () => {
       {
         assets: [
           {
-            browser_download_url: 'https://example.com/Tolaria_2026.5.13_macOS_Silicon.dmg',
-            name: 'Tolaria_2026.5.13_macOS_Silicon.dmg',
+            browser_download_url: 'https://example.com/Nabu_2026.5.13_macOS_Silicon.dmg',
+            name: 'Nabu_2026.5.13_macOS_Silicon.dmg',
           },
         ],
         body: '## What&apos;s Changed\n\n<ul><li></li></ul>',
         body_html: '<h2>What&apos;s Changed</h2><ul><li></li></ul>',
-        html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.5.13',
-        name: 'Tolaria 2026.5.13',
+        html_url: 'https://github.com/refactoringhq/nabu/releases/tag/stable-v2026.5.13',
+        name: 'Nabu 2026.5.13',
         prerelease: false,
         published_at: '2026-05-13T09:30:44Z',
         tag_name: 'stable-v2026.5.13',
@@ -141,8 +141,8 @@ describe('buildReleaseHistoryPage', () => {
       {
         assets: [
           {
-            browser_download_url: 'https://example.com/Tolaria_2026.5.13_macOS_Silicon.dmg',
-            name: 'Tolaria_2026.5.13_macOS_Silicon.dmg',
+            browser_download_url: 'https://example.com/Nabu_2026.5.13_macOS_Silicon.dmg',
+            name: 'Nabu_2026.5.13_macOS_Silicon.dmg',
           },
         ],
         body_html: [
@@ -153,8 +153,8 @@ describe('buildReleaseHistoryPage', () => {
           '<li>Support mounted vault workspaces</li>',
           '</ul>',
         ].join(''),
-        html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/v2026-05-13',
-        name: 'Tolaria v2026-05-13',
+        html_url: 'https://github.com/refactoringhq/nabu/releases/tag/v2026-05-13',
+        name: 'Nabu v2026-05-13',
         prerelease: false,
         published_at: '2026-05-13T09:21:30Z',
         tag_name: 'v2026-05-13',
@@ -162,9 +162,9 @@ describe('buildReleaseHistoryPage', () => {
     ])
 
     expect(html).toContain('Stable<span class="tab-count">1</span>')
-    expect(html).toContain('Tolaria v2026-05-13')
+    expect(html).toContain('Nabu v2026-05-13')
     expect(html).toContain('Add AI visibility setting')
-    expect(html).not.toContain('Tolaria 2026.5.13')
+    expect(html).not.toContain('Nabu 2026.5.13')
   })
 
   it('filters draft releases and shows an empty state for channels without published builds', () => {

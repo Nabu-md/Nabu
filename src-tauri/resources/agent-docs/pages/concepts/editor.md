@@ -5,7 +5,7 @@ URL: /concepts/editor
 
 # Editor
 
-Tolaria offers a rich editor for daily writing and a raw Markdown mode for exact file control. Both modes write back to the same Markdown file.
+Nabu offers a rich editor for daily writing and a raw Markdown mode for exact file control. Both modes write back to the same Markdown file.
 
 ## Rich Editing
 
@@ -33,7 +33,7 @@ Raw mode shows the Markdown source directly. Use it when you need to edit YAML f
 
 Toggle raw mode with `Cmd+\` on macOS or `Ctrl+\` on Windows and Linux.
 
-Tolaria highlights invalid YAML frontmatter in raw mode so malformed metadata is easier to locate and repair.
+Nabu highlights invalid YAML frontmatter in raw mode so malformed metadata is easier to locate and repair.
 
 ## Table Of Contents
 

@@ -1,15 +1,15 @@
 [package]
-name = "tolaria"
-version = "0.1.0"
-description = "Personal knowledge and life management app"
-authors = ["Luca Rossi"]
-license = "AGPL-3.0-or-later"
-repository = ""
-edition = "2021"
-rust-version = "1.77.2"
+name = "nabu"
+  version = "0.1.0"
+  description = "Personal knowledge and life management app"
+  authors = ["Luca Rossi"]
+  license = "AGPL-3.0-or-later"
+  repository = ""
+  edition = "2021"
+  rust-version = "1.77.2"
 
 [lib]
-name = "tolaria_lib"
+name = "nabu_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

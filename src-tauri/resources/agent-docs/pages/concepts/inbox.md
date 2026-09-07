@@ -25,4 +25,4 @@ When reviewing the Inbox:
 
 ## Healthy Inbox Habit
 
-Keep the Inbox small enough that it can be reviewed in one focused pass. Tolaria works best when capture is fast and organization is deliberate.
+Keep the Inbox small enough that it can be reviewed in one focused pass. Nabu works best when capture is fast and organization is deliberate.

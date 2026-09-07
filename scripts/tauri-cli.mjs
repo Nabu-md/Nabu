@@ -3,7 +3,7 @@ import console from 'node:console'
 import path from 'node:path'
 import process from 'node:process'
 
-export const DEV_APP_CONFIG_NAMESPACE = 'com.tolaria.app.dev'
+export const DEV_APP_CONFIG_NAMESPACE = 'com.nabu.app.dev'
 export const DEV_TAURI_CONFIG_PATH = path.join('src-tauri', 'tauri.dev.conf.json')
 
 const repoRoot = path.resolve(import.meta.dirname, '..')

@@ -1,12 +1,12 @@
 import { useLayoutEffect, useRef } from 'react'
 
-const STARTUP_SHELL_FALLBACK_NODE_KEY = '__tolariaStartupShellFallbackNode'
+const STARTUP_SHELL_FALLBACK_NODE_KEY = '__nabuStartupShellFallbackNode'
 
 function startupShellFallbackNode(): Node | null {
   const capturedNode = Reflect.get(window, STARTUP_SHELL_FALLBACK_NODE_KEY)
   if (capturedNode instanceof Node) return capturedNode.cloneNode(true)
 
-  return document.getElementById('tolaria-boot-shell')?.cloneNode(true) ?? null
+  return document.getElementById('nabu-boot-shell')?.cloneNode(true) ?? null
 }
 
 export function StartupShellFallback() {

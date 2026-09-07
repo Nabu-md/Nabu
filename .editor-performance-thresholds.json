@@ -123,5 +123,5 @@
   },
   "version": 2,
   "updatedAt": "2026-07-27T15:42:56Z",
-  "description": "Ratcheted perceived-latency budgets for stable synthetic Tolaria flows. Lower is better; maxMs values only move down unless a reviewer explicitly changes the threshold file."
+  "description": "Ratcheted perceived-latency budgets for stable synthetic Nabu flows. Lower is better; maxMs values only move down unless a reviewer explicitly changes the threshold file."
 }

@@ -28,7 +28,7 @@ const BASE_CSP_DIRECTIVES = [
   "font-src data:",
   "style-src 'unsafe-inline'",
 ]
-const ALLOWED_URI_PATTERN = /^(?:(?:https?|mailto|tel|tolaria):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/iu
+const ALLOWED_URI_PATTERN = /^(?:(?:https?|mailto|tel|nabu):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/iu
 const EXECUTABLE_SCRIPT_TYPES = new Set(['', 'application/javascript', 'text/javascript'])
 const DATA_SCRIPT_TYPES = new Set(['application/json', 'application/ld+json', 'text/plain'])
 
@@ -245,7 +245,7 @@ export function htmlBlockFrameSource(
   scripts: HtmlBlockScripts,
 ): string | undefined {
   if (scripts !== SCRIPTS_SANDBOXED || !isTauri()) return browserSource
-  return convertFileSrc(htmlBlockProtocolPayload(srcDoc), 'tolaria-html-block')
+  return convertFileSrc(htmlBlockProtocolPayload(srcDoc), 'nabu-html-block')
 }
 
 function escapeScriptAttributeValue(value: string): string {

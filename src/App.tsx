@@ -1286,7 +1286,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       const checkedChannel = normalizeReleaseChannel(settings.release_channel)
       setToastMessage(`No newer ${checkedChannel} update is available right now`)
     } else if (result.kind === 'available') {
-      setToastMessage(`Tolaria ${result.displayVersion} is available`)
+      setToastMessage(`Nabu ${result.displayVersion} is available`)
     } else {
       setToastMessage(result.message)
     }
@@ -1305,7 +1305,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     }
   }, [refreshVaultAiGuidance, resolvedPath, vault])
 
-  const restoreVaultAiGuidance = useCallback(async (successToast: string | null = 'Tolaria AI guidance restored') => {
+  const restoreVaultAiGuidance = useCallback(async (successToast: string | null = 'Nabu AI guidance restored') => {
     if (!resolvedPath) return
     try {
       const tauriInvoke = isTauri() ? invoke : mockInvoke
@@ -1314,7 +1314,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       await refreshVaultAiGuidance()
       if (successToast) setToastMessage(successToast)
     } catch (err) {
-      setToastMessage(`Failed to restore Tolaria AI guidance: ${err}`)
+      setToastMessage(`Failed to restore Nabu AI guidance: ${err}`)
     }
   }, [refreshVaultAiGuidance, resolvedPath, vault])
 

@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import type { VaultOption } from '../components/StatusBar'
 import { loadVaultList } from '../utils/vaultListStore'
 
-const VAULT_REGISTRY_CHANGED_EVENT = 'tolaria:vault-registry-changed'
+const VAULT_REGISTRY_CHANGED_EVENT = 'nabu:vault-registry-changed'
 
 function persistedVault(vault: VaultOption) {
   return {

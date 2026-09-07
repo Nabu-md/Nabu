@@ -1,10 +1,10 @@
 # Properties
 
-Properties are frontmatter fields that Tolaria can display, filter, and edit.
+Properties are frontmatter fields that Nabu can display, filter, and edit.
 
 ## Suggested Properties
 
-Suggested properties are the fields Tolaria knows how to create quickly from the Properties panel. When a suggested property is missing, the panel shows a shortcut to add it with the right editor.
+Suggested properties are the fields Nabu knows how to create quickly from the Properties panel. When a suggested property is missing, the panel shows a shortcut to add it with the right editor.
 
 | Field | Purpose |
 | --- | --- |
@@ -25,7 +25,7 @@ Type documents use `_pinned_properties` to choose which fields appear in the edi
 
 The Properties panel is the safest place to edit structured properties. Toggle it with `Cmd+Shift+I` on macOS or `Ctrl+Shift+I` on Windows and Linux.
 
-Date fields use Tolaria's picker, relationship fields can use wikilinks, and raw Markdown mode is available when you need direct control over YAML.
+Date fields use Nabu's picker, relationship fields can use wikilinks, and raw Markdown mode is available when you need direct control over YAML.
 
 ## Referencing Properties
 

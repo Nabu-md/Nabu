@@ -10,7 +10,7 @@ superseded_by: "0121"
 
 ## Context
 
-ADR-0098 extended Tolaria's file-first preview model from images to PDFs while keeping binary files as ordinary `VaultEntry` records. In practice, vaults also carry voice notes, interview recordings, screen captures, and short clips that users need to inspect in context without round-tripping through another app.
+ADR-0098 extended Nabu's file-first preview model from images to PDFs while keeping binary files as ordinary `VaultEntry` records. In practice, vaults also carry voice notes, interview recordings, screen captures, and short clips that users need to inspect in context without round-tripping through another app.
 
 The existing binary preview architecture already had the important constraints in place:
 
@@ -22,7 +22,7 @@ Audio and video support should extend that same model rather than introducing a 
 
 ## Decision
 
-**Tolaria previews supported image, audio, video, and PDF files in the editor pane while keeping them as ordinary binary vault files.**
+**Nabu previews supported image, audio, video, and PDF files in the editor pane while keeping them as ordinary binary vault files.**
 
 - The scanner keeps the coarse `fileKind: "binary"` representation; `src/utils/filePreview.ts` infers preview support from safe extension allow-lists.
 - `FilePreview` remains the single renderer-owned preview surface for supported binary files.
@@ -39,6 +39,6 @@ Audio and video support should extend that same model rather than introducing a 
 ## Consequences
 
 - Audio and video do not become notes and do not get special persistence semantics.
-- Tolaria's binary preview surface now covers the common safe media formats without changing cache shape, scanner output, or the filesystem-first model.
+- Nabu's binary preview surface now covers the common safe media formats without changing cache shape, scanner output, or the filesystem-first model.
 - Scoped runtime asset access and active-vault command validation remain the security boundary for binary previews and external-open actions.
-- Re-evaluate this decision if Tolaria later needs editing, waveform/timeline tooling, subtitles, or transcoding, because those would justify a richer media-specific subsystem.
+- Re-evaluate this decision if Nabu later needs editing, waveform/timeline tooling, subtitles, or transcoding, because those would justify a richer media-specific subsystem.

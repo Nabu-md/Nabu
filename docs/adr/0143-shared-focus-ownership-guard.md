@@ -8,7 +8,7 @@ date: 2026-06-23
 
 ## Context
 
-Tolaria has multiple renderer surfaces that intentionally reject programmatic focus while another surface owns keyboard input. The rich editor must not steal focus back from the Properties panel, and the sheet editor must not let IronCalc autofocus reclaim keyboard capture after focus moves to app chrome or dialogs.
+Nabu has multiple renderer surfaces that intentionally reject programmatic focus while another surface owns keyboard input. The rich editor must not steal focus back from the Properties panel, and the sheet editor must not let IronCalc autofocus reclaim keyboard capture after focus moves to app chrome or dialogs.
 
 The editor and sheet implementations previously installed separate `HTMLElement.prototype.focus` patches and separate document focus listeners. That duplicated lifecycle made unmount order matter: removing one surface guard could restore the native focus method while another guard was still mounted.
 

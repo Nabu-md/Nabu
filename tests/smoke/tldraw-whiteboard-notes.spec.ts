@@ -167,7 +167,7 @@ test('tldraw whiteboard fences render as embedded canvases and remain Markdown-d
   expect(rawAfterRichMode).not.toContain('@@TOLARIA_TLDRAW')
 })
 
-test('embedded tldraw whiteboards follow Tolaria theme changes', async ({ page }) => {
+test('embedded tldraw whiteboards follow Nabu theme changes', async ({ page }) => {
   await openNote(page, 'Whiteboard Embed')
 
   const tldrawContainer = page.locator('.tldraw-whiteboard .tl-container').first()

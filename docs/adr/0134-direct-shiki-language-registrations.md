@@ -8,11 +8,11 @@ date: 2026-05-29
 
 ## Context
 
-Tolaria uses `@blocknote/code-block` for rich-editor fenced-code highlighting. The bundled BlockNote highlighter covers the common web and systems languages already in the editor menu, but it does not include several common Shiki grammars such as PowerShell, VBScript, Dart, Dockerfile, Terraform/HCL, and TOML. Users still expect imported fences like `powershell`, `ps1`, `vb`, and `vbscript` to highlight, show a valid language picker state, and serialize back to a stable Markdown fence.
+Nabu uses `@blocknote/code-block` for rich-editor fenced-code highlighting. The bundled BlockNote highlighter covers the common web and systems languages already in the editor menu, but it does not include several common Shiki grammars such as PowerShell, VBScript, Dart, Dockerfile, Terraform/HCL, and TOML. Users still expect imported fences like `powershell`, `ps1`, `vb`, and `vbscript` to highlight, show a valid language picker state, and serialize back to a stable Markdown fence.
 
 ## Decision
 
-**Tolaria keeps BlockNote's code-block integration and adds direct, lazy `@shikijs/langs` registrations for missing common languages and aliases.**
+**Nabu keeps BlockNote's code-block integration and adds direct, lazy `@shikijs/langs` registrations for missing common languages and aliases.**
 
 ## Options considered
 
@@ -24,4 +24,4 @@ Tolaria uses `@blocknote/code-block` for rich-editor fenced-code highlighting. T
 
 `src/components/codeBlockOptions.ts` remains the owner of the BlockNote highlighter configuration, but extra grammar modules are now imported directly from `@shikijs/langs` only when a matching fence or picker value needs highlighting. `src/utils/codeBlockLanguageCatalog.ts` owns the supported extra language labels and aliases, and `src/utils/codeBlockLanguage.ts` normalizes known imported aliases such as `ps1` and `vb` to the canonical picker language.
 
-The language menu grows, but unsupported aliases still fail safely by staying as plain explicit fence names. If Tolaria later needs a generated language bundle, export-time highlighting, or a substantially smaller menu, this ADR should be superseded by a custom Shiki packaging decision.
+The language menu grows, but unsupported aliases still fail safely by staying as plain explicit fence names. If Nabu later needs a generated language bundle, export-time highlighting, or a substantially smaller menu, this ADR should be superseded by a custom Shiki packaging decision.

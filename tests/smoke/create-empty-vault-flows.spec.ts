@@ -40,7 +40,7 @@ function untitledNoteRow(page: Page) {
 }
 
 async function expectFreshVaultSeedEntries(page: Page) {
-  await expect(page.getByText('AGENTS.md — Tolaria Vault', { exact: true })).toBeVisible()
+  await expect(page.getByText('AGENTS.md — Nabu Vault', { exact: true })).toBeVisible()
   await expect(page.getByText('CLAUDE.md', { exact: true })).toBeVisible()
   await expect(page.getByText('Config', { exact: true })).toHaveCount(0)
 }
@@ -84,7 +84,7 @@ async function installEmptyVaultMocks(
 
     function buildFreshVaultSeedEntries(vaultPath: string): MockEntry[] {
       return [
-        buildEntry(vaultPath, 'AGENTS.md — Tolaria Vault', { fileName: 'AGENTS.md' }),
+        buildEntry(vaultPath, 'AGENTS.md — Nabu Vault', { fileName: 'AGENTS.md' }),
         buildEntry(vaultPath, 'CLAUDE.md', { fileName: 'CLAUDE.md' }),
         buildEntry(vaultPath, 'Type', { fileName: 'type.md', isA: 'Type' }),
         buildEntry(vaultPath, 'Note', { fileName: 'note.md', isA: 'Type' }),
@@ -113,7 +113,7 @@ async function installEmptyVaultMocks(
     )
 
     localStorage.clear()
-    localStorage.setItem('tolaria:claude-code-onboarding-dismissed', '1')
+    localStorage.setItem('nabu:claude-code-onboarding-dismissed', '1')
 
     Object.defineProperty(window, 'prompt', {
       configurable: true,

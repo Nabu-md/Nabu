@@ -65,7 +65,7 @@ describe('SingleEditorView wikilink creation suggestions', () => {
 
   it('shows existing notes for empty and one-character bracket queries', async () => {
     const exactEntry = makeEntry({
-      path: String.raw`C:\Users\alex\Documents\Tolaria\project\alpha.md`,
+      path: String.raw`C:\Users\alex\Documents\Nabu\project\alpha.md`,
       filename: 'alpha.md',
       title: 'Alpha',
     })
@@ -75,8 +75,8 @@ describe('SingleEditorView wikilink creation suggestions', () => {
         editor={createEditor() as never}
         entries={[exactEntry]}
         onNavigateWikilink={vi.fn()}
-        sourceEntry={makeEntry({ path: String.raw`C:\Users\alex\Documents\Tolaria\source.md`, title: 'Source' })}
-        vaultPath={String.raw`C:\Users\alex\Documents\Tolaria`}
+        sourceEntry={makeEntry({ path: String.raw`C:\Users\alex\Documents\Nabu\source.md`, title: 'Source' })}
+        vaultPath={String.raw`C:\Users\alex\Documents\Nabu`}
       />,
     )
 

@@ -1,6 +1,6 @@
 # Performance Regression Harness
 
-Tolaria's core performance gate measures milestones a user can perceive in an isolated
+Nabu's core performance gate measures milestones a user can perceive in an isolated
 Chromium session. It uses deterministic in-memory vault fixtures, one discarded warmup,
 five measured samples, median budgets, and p90 diagnostics. The gate never reads or
 modifies a real vault.

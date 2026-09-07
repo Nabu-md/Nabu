@@ -52,7 +52,7 @@ const OPEN_RAW_EDITOR_LABEL = translate('en', 'editor.toolbar.rawOpen')
 
 function renderIdFromReactId(reactId: string): string {
   const safeId = reactId.replace(/[^a-zA-Z0-9_-]/g, '')
-  return `tolaria-mermaid-${safeId || 'diagram'}`
+  return `nabu-mermaid-${safeId || 'diagram'}`
 }
 
 function initializeMermaid(mermaid: MermaidApi) {
@@ -101,7 +101,7 @@ function normalizeTimelinePeriodLabelsForRender(diagram: string): string {
 
 function appendMermaidRenderHost(): HTMLDivElement {
   const host = document.createElement('div')
-  host.setAttribute('data-tolaria-mermaid-render-host', '')
+  host.setAttribute('data-nabu-mermaid-render-host', '')
   host.style.cssText = MERMAID_RENDER_HOST_STYLE
   document.body.appendChild(host)
   return host

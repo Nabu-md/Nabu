@@ -150,7 +150,7 @@ fn client_for(url: &Url) -> Result<Client, String> {
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(CONNECT_TIMEOUT)
         .timeout(REQUEST_TIMEOUT)
-        .user_agent("Tolaria remote image importer")
+        .user_agent("Nabu remote image importer")
         .resolve(host, address)
         .build()
         .map_err(|_| remote_image_error(FailureReason("HTTP client setup failed")))

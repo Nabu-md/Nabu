@@ -1,7 +1,7 @@
 {
-  "name": "tolaria-mcp-server",
+  "name": "nabu-mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for Tolaria vault operations",
+  "description": "MCP server for Nabu vault operations",
   "type": "module",
   "main": "index.js",
   "scripts": {

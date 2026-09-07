@@ -9,13 +9,13 @@ supersedes: "0013"
 
 ## Context
 
-ADR-0013 removed the vault-authored theming system and made Tolaria light-only. That kept the app simpler, but dark mode has become a product requirement for long writing sessions and accessibility.
+ADR-0013 removed the vault-authored theming system and made Nabu light-only. That kept the app simpler, but dark mode has become a product requirement for long writing sessions and accessibility.
 
-The previous theming system should not return in its old form: vault notes, live user-authored themes, and broad runtime editing created too much maintenance burden. Tolaria still needs a small app-owned theme architecture because the UI spans Tailwind/shadcn variables, BlockNote/Mantine surfaces, CodeMirror raw editing, syntax highlighting, and product-specific states such as selected rows, badges, warnings, and diff lines.
+The previous theming system should not return in its old form: vault notes, live user-authored themes, and broad runtime editing created too much maintenance burden. Nabu still needs a small app-owned theme architecture because the UI spans Tailwind/shadcn variables, BlockNote/Mantine surfaces, CodeMirror raw editing, syntax highlighting, and product-specific states such as selected rows, badges, warnings, and diff lines.
 
 ## Decision
 
-**Tolaria will support internal app-owned light and dark themes through a semantic CSS-variable contract, with the user's theme mode persisted as installation-local app settings.**
+**Nabu will support internal app-owned light and dark themes through a semantic CSS-variable contract, with the user's theme mode persisted as installation-local app settings.**
 
 The v1 theme runtime is deliberately smaller than a general theming system:
 
@@ -40,4 +40,4 @@ The v1 theme runtime is deliberately smaller than a general theming system:
 - App settings, not vault frontmatter, store the selected theme mode because it is an installation-local comfort preference.
 - Startup must avoid a light-mode flash when dark mode is selected, so the runtime needs a pre-React localStorage mirror and a minimal `index.html` prepaint style in addition to persisted Tauri settings.
 - Domain tokens should be introduced only when a surface needs a role that generic semantic tokens cannot express clearly.
-- Re-evaluate if Tolaria decides to support user-authored custom themes, per-vault themes, or system-synchronized mode as a first-class product requirement.
+- Re-evaluate if Nabu decides to support user-authored custom themes, per-vault themes, or system-synchronized mode as a first-class product requirement.

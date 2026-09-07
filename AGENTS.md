@@ -1,4 +1,4 @@
-# AGENTS.md — Tolaria App
+# AGENTS.md — Nabu App
 
 ## 1. Development Process
 
@@ -63,7 +63,7 @@ Do not edit `.codescene-thresholds` to lower the values. If the gate blocks you,
 
 **Before every commit:** run CodeScene file-level review on every touched or newly created code file and verify the rule above. Then run `mcp__codescene__pre_commit_code_health_safeguard` for the repository and do not commit unless its quality gates pass. **Boy Scout Rule:** every file you touch must leave with a higher score, unless it was already `10.0`, in which case it must stay `10.0`. If an analyzer or gate is unavailable, stop and obtain explicit repository-owner approval for a documented exception.
 
-**Before the final direct-to-main push:** run `mcp__codescene__analyze_change_set` with `base_ref=origin/main`. This is Tolaria's PR-preflight equivalent: every affected file must be improved or stable, and the overall quality gate must pass. Refactor and repeat if any file is degraded. Exception: if the analysis cannot complete after one retry, use the mandatory-rule exception protocol and obtain repository-owner approval before pushing.
+**Before the final direct-to-main push:** run `mcp__codescene__analyze_change_set` with `base_ref=origin/main`. This is Nabu's PR-preflight equivalent: every affected file must be improved or stable, and the overall quality gate must pass. Refactor and repeat if any file is degraded. Exception: if the analysis cannot complete after one retry, use the mandatory-rule exception protocol and obtain repository-owner approval before pushing.
 
 **If CodeScene gate blocks your push:** use `mcp__codescene__code_health_score` to find the worst file, refactor it, commit, push again. Do not wait for laputa-refactor because it is a background loop rather than a substitute for fixing your own regressions; if no in-scope refactor can restore the gate, stop and obtain explicit repository-owner direction.
 
@@ -84,7 +84,7 @@ Use Codacy as a security and static-analysis gate before a task is considered re
 - **Boy Scout Rule for existing files:** after editing, every touched file must have fewer local findings than its recorded baseline; a zero-finding file must stay at zero. Fix every existing Critical/High finding in a touched file; if this cannot be achieved, stop and obtain explicit repository-owner approval for the documented exception.
 - **Before every commit:** re-scan every touched/new code file individually and compare the complete SARIF results with its recorded baseline. Do not rely on added-line filtering, repository totals, or `pnpm codacy:gate` alone; if an individual scan cannot complete, stop and obtain explicit repository-owner approval.
 - **Post-push dashboard verification:** after `git push origin main`, wait until `codacy_get_repository_with_analysis` reports the exact pushed SHA as `lastAnalysedCommit`. Re-read the enabled-tool roster, paginate `codacy_list_repository_issues` to completion, and filter by each exact manifest path; use file-level MCP queries as supporting detail, not as a substitute for the complete repository issue list because newly created files may not yet resolve through file lookup. Absence from the issue list counts as zero only when the exact SHA is analyzed, the analyzer roster still matches the pre-edit parity record, and the repository reports no analyzer problem. Every new code file must have zero dashboard findings at every severity from every enabled analyzer; every existing touched file must have no new finding and must have fewer findings than its pre-edit dashboard baseline (or remain at zero). If the dashboard reports a finding—even one from a deprecated or misconfigured analyzer—the task remains unfinished until the file is fixed or the analyzer configuration is corrected and a replacement exact SHA is fully reanalyzed. Exception: if verification remains unavailable after one retry, use the mandatory-rule exception protocol and obtain repository-owner approval before release.
-- **Repository-wide dashboard counts:** use `codacy_get_repository_with_analysis` for the total and `codacy_list_repository_issues` with full pagination for severity/tool breakdowns. Derive the provider/organization/repository from the Git remote without printing credential-bearing remote URLs; for this repository use `gh` / `refactoringhq` / `tolaria` and branch `main`.
+- **Repository-wide dashboard counts:** use `codacy_get_repository_with_analysis` for the total and `codacy_list_repository_issues` with full pagination for severity/tool breakdowns. Derive the provider/organization/repository from the Git remote without printing credential-bearing remote URLs; for this repository use `gh` / `refactoringhq` / `nabu` and branch `main`.
 - **Escalation:** if a scanner is unavailable or a finding is demonstrably false, stop and obtain explicit repository-owner approval recorded in the completion comment. Rule suppression requires that same explicit approval and documentation.
 - `pnpm codacy:gate` is a required fail-closed added-line safety net in pre-push and CI; it does not replace the touched-file before/after check.
 
@@ -117,8 +117,8 @@ BASE_URL="http://localhost:5201" npx playwright test tests/smoke/<slug>.spec.ts
 ```bash
 pnpm tauri dev &
 sleep 10
-bash ~/.openclaw/skills/tolaria-qa/scripts/focus-app.sh laputa
-bash ~/.openclaw/skills/tolaria-qa/scripts/screenshot.sh /tmp/qa-native.png
+bash ~/.openclaw/skills/nabu-qa/scripts/focus-app.sh laputa
+bash ~/.openclaw/skills/nabu-qa/scripts/screenshot.sh /tmp/qa-native.png
 ```
 
 Use computer-use/browser-control interaction for native UI QA when either tool is present in the current environment: click, hover, drag, select, scroll, and type the way a real user would with the mouse and trackpad. For every UI feature, test the primary mouse-driven path first, then verify each keyboard shortcut or keyboard-first workflow implemented or modified by the task. If neither interaction tool is present, run the scripted focus, screenshot, and shortcut checks and document that limitation.
@@ -186,7 +186,7 @@ Use shadcn/ui components for user-facing interactive elements instead of raw HTM
 | Toggle/switch | `Switch` or `ToggleGroup` from shadcn/ui |
 | Dialog/modal | `Dialog` from shadcn/ui |
 
-**Component search trigger:** when the requested interaction does not map to a component in the table above, search `src/components/` by the interaction name and ARIA role before building a component. **Visual language:** new UI must follow Tolaria's existing components and design tokens; a deliberate exception requires explicit repository-owner design approval recorded through the mandatory-rule exception protocol.
+**Component search trigger:** when the requested interaction does not map to a component in the table above, search `src/components/` by the interaction name and ARIA role before building a component. **Visual language:** new UI must follow Nabu's existing components and design tokens; a deliberate exception requires explicit repository-owner design approval recorded through the mandatory-rule exception protocol.
 
 ---
 
@@ -202,9 +202,9 @@ Use shadcn/ui components for user-facing interactive elements instead of raw HTM
 ### QA scripts
 
 ```bash
-bash ~/.openclaw/skills/tolaria-qa/scripts/focus-app.sh Tolaria
-bash ~/.openclaw/skills/tolaria-qa/scripts/screenshot.sh /tmp/out.png
-bash ~/.openclaw/skills/tolaria-qa/scripts/shortcut.sh "command" "s"
+bash ~/.openclaw/skills/nabu-qa/scripts/focus-app.sh Nabu
+bash ~/.openclaw/skills/nabu-qa/scripts/screenshot.sh /tmp/out.png
+bash ~/.openclaw/skills/nabu-qa/scripts/shortcut.sh "command" "s"
 ```
 
 ### Diagrams

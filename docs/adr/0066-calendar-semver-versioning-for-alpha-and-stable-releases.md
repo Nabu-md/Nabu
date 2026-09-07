@@ -9,7 +9,7 @@ supersedes: "0057"
 
 ## Context
 
-ADR-0057 kept Tolaria on two updater channels and used "next stable patch" semver for alpha builds. That preserved ordering, but it no longer matched the agreed product naming:
+ADR-0057 kept Nabu on two updater channels and used "next stable patch" semver for alpha builds. That preserved ordering, but it no longer matched the agreed product naming:
 
 - Alpha should display as `Alpha YYYY.M.D.N`
 - Alpha should ship the technical version `YYYY.M.D-alpha.N`
@@ -19,7 +19,7 @@ The naming change still needs to stay semver-safe when users switch between Stab
 
 ## Decision
 
-**Tolaria keeps exactly two updater channels (`stable` and `alpha`), but both now use calendar-semver release numbers.** Stable promotions use `stable-vYYYY.M.D` tags and stamp the technical version `YYYY.M.D`. Every push to `main` publishes an alpha build with technical version `YYYY.M.D-alpha.N` and display label `Alpha YYYY.M.D.N`.
+**Nabu keeps exactly two updater channels (`stable` and `alpha`), but both now use calendar-semver release numbers.** Stable promotions use `stable-vYYYY.M.D` tags and stamp the technical version `YYYY.M.D`. Every push to `main` publishes an alpha build with technical version `YYYY.M.D-alpha.N` and display label `Alpha YYYY.M.D.N`.
 
 If the latest stable tag already uses the current UTC calendar date, the alpha workflow advances to the next calendar day before assigning `-alpha.N`. That keeps alpha semver-newer than the most recent stable build even after a same-day promotion.
 

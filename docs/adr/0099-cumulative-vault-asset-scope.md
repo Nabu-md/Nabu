@@ -15,10 +15,10 @@ Tauri's filesystem scope treats forbidden paths as permanent precedence rules: a
 
 ## Decision
 
-**Tolaria accumulates Tauri asset protocol access for vault roots loaded during the current app session and never forbids a previously loaded vault root at runtime.**
+**Nabu accumulates Tauri asset protocol access for vault roots loaded during the current app session and never forbids a previously loaded vault root at runtime.**
 
 - `sync_vault_asset_scope` adds the canonical vault root and requested vault root when they are missing from the runtime asset scope.
-- The runtime asset scope remains narrower than global filesystem access because only vault roots that Tolaria has loaded are added.
+- The runtime asset scope remains narrower than global filesystem access because only vault roots that Nabu has loaded are added.
 - Command paths still enforce the active vault boundary through the Rust command layer before reads, writes, external opens, and attachment imports.
 - Asset scope revocation is deferred to process exit, because Tauri does not expose a safe runtime unallow operation for directories.
 

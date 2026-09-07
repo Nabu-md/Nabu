@@ -159,7 +159,7 @@ pub fn get_agent_docs_path(app_handle: tauri::AppHandle) -> Result<String, Strin
         .into_iter()
         .find(|path| path.join("index.md").is_file())
         .map(|path| path.to_string_lossy().into_owned())
-        .ok_or_else(|| "Tolaria agent docs are not bundled in this build.".to_string())
+        .ok_or_else(|| "Nabu agent docs are not bundled in this build.".to_string())
 }
 
 #[tauri::command]

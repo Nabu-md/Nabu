@@ -5,13 +5,13 @@ URL: /troubleshooting/vault-not-loading
 
 # Vault Not Loading
 
-Use this checklist when Tolaria cannot open or refresh a vault.
+Use this checklist when Nabu cannot open or refresh a vault.
 
 ## Check The Folder
 
 - Confirm the folder exists.
 - Confirm the folder contains readable files.
-- Confirm Tolaria has permission to access the folder.
+- Confirm Nabu has permission to access the folder.
 - Try opening a smaller test vault to isolate the issue.
 
 ## Check Git

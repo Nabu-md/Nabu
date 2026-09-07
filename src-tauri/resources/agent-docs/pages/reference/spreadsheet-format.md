@@ -43,7 +43,7 @@ The frontmatter stores note metadata. The body stores rows and cells. There is n
 
 ## Frontmatter
 
-All ordinary Tolaria fields remain available:
+All ordinary Nabu fields remain available:
 
 - `type`
 - `status`
@@ -54,7 +54,7 @@ All ordinary Tolaria fields remain available:
 
 The `_display: sheet` field is the display-as marker. Omit it for ordinary text notes.
 
-The `_sheet` key is reserved for spreadsheet presentation metadata. It follows the same system-field convention as other underscore-prefixed Tolaria fields: hidden from normal property editing, but visible and editable in raw source.
+The `_sheet` key is reserved for spreadsheet presentation metadata. It follows the same system-field convention as other underscore-prefixed Nabu fields: hidden from normal property editing, but visible and editable in raw source.
 
 ## Body
 
@@ -70,7 +70,7 @@ Any cell whose input starts with `=` is treated as a formula. Other cells are tr
 
 ## `_sheet` Metadata
 
-Tolaria stores spreadsheet presentation state in `_sheet` as plain YAML.
+Nabu stores spreadsheet presentation state in `_sheet` as plain YAML.
 
 | Field | Meaning |
 | --- | --- |
@@ -119,7 +119,7 @@ These formats affect presentation, not the underlying cell input in the CSV body
 
 ## Markdown Style Import
 
-When Tolaria imports a non-formula CSV cell, simple Markdown wrappers can seed initial styles:
+When Nabu imports a non-formula CSV cell, simple Markdown wrappers can seed initial styles:
 
 | Cell text | Stored value | Style |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ After save, the style belongs in `_sheet` metadata and the body keeps the unwrap
 
 ## Wikilinks
 
-Non-formula cells can store normal Tolaria wikilinks:
+Non-formula cells can store normal Nabu wikilinks:
 
 ```csv
 Account,Source
@@ -140,7 +140,7 @@ Newsletter,[[newsletter-revenue]]
 Sponsors,[[sponsorship-pipeline]]
 ```
 
-Formula cells can reference another sheet note with Tolaria's cross-sheet syntax:
+Formula cells can reference another sheet note with Nabu's cross-sheet syntax:
 
 ```txt
 =[[newsletter-revenue]].B5
@@ -155,7 +155,7 @@ Cross-sheet cell references resolve another sheet note by wikilink target, then 
 
 When editing a sheet note programmatically:
 
-- preserve the YAML frontmatter delimiter and ordinary Tolaria fields
+- preserve the YAML frontmatter delimiter and ordinary Nabu fields
 - keep `_display: sheet` when the file should display as a spreadsheet
 - keep spreadsheet presentation state under `_sheet`
 - parse and serialize the body as CSV, not by splitting on every comma manually

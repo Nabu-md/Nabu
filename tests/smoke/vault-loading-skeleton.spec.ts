@@ -44,9 +44,9 @@ const slowVaultEntries = [
 
 async function installSlowVaultMock(page: Page): Promise<void> {
   await page.addInitScript((entries) => {
-    localStorage.setItem('tolaria_welcome_dismissed', '1')
-    localStorage.setItem('tolaria:ai-agents-onboarding-dismissed', '1')
-    localStorage.setItem('tolaria:claude-code-onboarding-dismissed', '1')
+    localStorage.setItem('nabu_welcome_dismissed', '1')
+    localStorage.setItem('nabu:ai-agents-onboarding-dismissed', '1')
+    localStorage.setItem('nabu:claude-code-onboarding-dismissed', '1')
 
     const mockWindow = window as MockWindow
     let handlers: MockHandlers | null = null
@@ -133,7 +133,7 @@ async function expectLoadedVaultSearch(page: Page): Promise<void> {
 test('slow vault open keeps one startup shell visible while notes load', async ({ page }) => {
   await installSlowVaultMock(page)
   await page.goto('/', { waitUntil: 'domcontentloaded' })
-  await expect(page.locator('#tolaria-boot-diagnostics')).toHaveCount(0)
+  await expect(page.locator('#nabu-boot-diagnostics')).toHaveCount(0)
   await expectUnifiedShellWhileVaultLoads(page)
   await resolveVaultScan(page)
   await expectLoadedVaultSearch(page)

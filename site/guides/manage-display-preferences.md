@@ -19,7 +19,7 @@ An individual note can override the default width from the editor toolbar. That 
 
 ## Sidebar Labels
 
-Tolaria can pluralize type names in the sidebar. Turn this off in Settings if your type names should be shown exactly as written, or use `_sidebar_label` on a type document for an explicit label.
+Nabu can pluralize type names in the sidebar. Turn this off in Settings if your type names should be shown exactly as written, or use `_sidebar_label` on a type document for an explicit label.
 
 ## Vault Content
 

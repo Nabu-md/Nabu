@@ -52,7 +52,7 @@ describe('FeedbackDialog', () => {
   it('renders the contribution paths when open', async () => {
     render(<FeedbackDialog open={true} onClose={vi.fn()} buildNumber="b281" releaseChannel="alpha" />)
     expect(screen.getByTestId('feedback-dialog')).toBeInTheDocument()
-    expect(screen.getByText('Contribute to Tolaria')).toBeInTheDocument()
+    expect(screen.getByText('Contribute to Nabu')).toBeInTheDocument()
     expect(screen.getByText('Pick the path that fits what you want to do! Any type of help is appreciated')).toBeInTheDocument()
     expect(screen.getByText('Join Refactoring')).toBeInTheDocument()
     expect(screen.getByText('Sponsors')).toBeInTheDocument()
@@ -61,8 +61,8 @@ describe('FeedbackDialog', () => {
     expect(screen.getByText('Contribute code')).toBeInTheDocument()
     expect(screen.getByText('Report a bug')).toBeInTheDocument()
     expect(screen.getByText(/Refactoring is my newsletter and community/i)).toBeInTheDocument()
-    expect(screen.getByText(/Tolaria is supported by a panel of tools/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'how I develop Tolaria' })).toBeInTheDocument()
+    expect(screen.getByText(/Nabu is supported by a panel of tools/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'how I develop Nabu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open Codacy' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open CodeScene' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open CircleCI' })).toBeInTheDocument()
@@ -79,11 +79,11 @@ describe('FeedbackDialog', () => {
   it('localizes the contribution dialog', () => {
     render(<FeedbackDialog open={true} onClose={vi.fn()} buildNumber="b281" locale="zh-CN" releaseChannel="alpha" />)
 
-    expect(screen.getByText('参与 Tolaria 贡献')).toBeInTheDocument()
+    expect(screen.getByText('参与 Nabu 贡献')).toBeInTheDocument()
     expect(screen.getByText('功能请求')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '打开产品看板' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '复制诊断' })).toBeInTheDocument()
-    expect(screen.queryByText('Contribute to Tolaria')).not.toBeInTheDocument()
+    expect(screen.queryByText('Contribute to Nabu')).not.toBeInTheDocument()
     expect(screen.queryByText('Feature requests')).not.toBeInTheDocument()
   })
 
@@ -102,7 +102,7 @@ describe('FeedbackDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open CodeScene' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open CircleCI' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Unblocked' }))
-    fireEvent.click(screen.getByRole('button', { name: 'how I develop Tolaria' }))
+    fireEvent.click(screen.getByRole('button', { name: 'how I develop Nabu' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Product Board' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Discussions' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open PRs' }))
@@ -161,7 +161,7 @@ describe('FeedbackDialog', () => {
       surface: 'contribute_dialog',
     })
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
-    expect(writeText.mock.calls[0]?.[0]).toContain('Tolaria sanitized diagnostics')
+    expect(writeText.mock.calls[0]?.[0]).toContain('Nabu sanitized diagnostics')
     expect(writeText.mock.calls[0]?.[0]).toContain('Build: b281')
     expect(writeText.mock.calls[0]?.[0]).toContain('Release channel: alpha')
     expect(screen.getByText('Diagnostics copied.')).toBeInTheDocument()

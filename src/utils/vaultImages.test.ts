@@ -60,11 +60,11 @@ describe('resolveImageUrls', () => {
 
   it('converts Windows relative attachment paths without mixed separators', () => {
     tauriMode = true
-    const vaultPath = 'C:\\Users\\lnq12\\Documents\\tolaria-test\\Getting Started'
+    const vaultPath = 'C:\\Users\\lnq12\\Documents\\nabu-test\\Getting Started'
     const markdown = '![BlockNote image](attachments/1776508281809-CleanShot.png)'
 
     expect(resolveImageUrls(markdown, vaultPath)).toBe(
-      `![BlockNote image](${assetUrl('C:\\Users\\lnq12\\Documents\\tolaria-test\\Getting Started\\attachments\\1776508281809-CleanShot.png')})`,
+      `![BlockNote image](${assetUrl('C:\\Users\\lnq12\\Documents\\nabu-test\\Getting Started\\attachments\\1776508281809-CleanShot.png')})`,
     )
   })
 
@@ -78,7 +78,7 @@ describe('resolveImageUrls', () => {
 
   it('rewrites legacy asset URLs from a different vault', () => {
     tauriMode = true
-    const legacyUrl = assetUrl('/Users/luca/Workspace/tolaria-getting-started/attachments/CleanShot.png')
+    const legacyUrl = assetUrl('/Users/luca/Workspace/nabu-getting-started/attachments/CleanShot.png')
     const markdown = `![CleanShot](${legacyUrl})`
 
     expect(resolveImageUrls(markdown, '/Users/john/Documents/Getting Started')).toBe(
@@ -88,7 +88,7 @@ describe('resolveImageUrls', () => {
 
   it('rewrites Windows legacy asset URLs from a different vault', () => {
     tauriMode = true
-    const legacyUrl = httpAssetUrl('C:\\Users\\old\\Workspace\\tolaria-getting-started\\attachments\\CleanShot.png')
+    const legacyUrl = httpAssetUrl('C:\\Users\\old\\Workspace\\nabu-getting-started\\attachments\\CleanShot.png')
     const markdown = `![CleanShot](${legacyUrl})`
 
     expect(resolveImageUrls(markdown, 'C:\\Users\\john\\Documents\\Getting Started')).toBe(
@@ -319,10 +319,10 @@ describe('portableImageUrls', () => {
   })
 
   it('converts Windows extended-length asset URLs to relative paths', () => {
-    const url = httpAssetUrl('\\\\?\\C:\\Users\\lnq12\\Documents\\tolaria-test\\Getting Started\\attachments\\1777388840027-shot.png')
+    const url = httpAssetUrl('\\\\?\\C:\\Users\\lnq12\\Documents\\nabu-test\\Getting Started\\attachments\\1777388840027-shot.png')
     const markdown = `![screenshot](${url})`
 
-    expect(portableImageUrls(markdown, 'C:\\Users\\lnq12\\Documents\\tolaria-test\\Getting Started')).toBe(
+    expect(portableImageUrls(markdown, 'C:\\Users\\lnq12\\Documents\\nabu-test\\Getting Started')).toBe(
       '![screenshot](attachments/1777388840027-shot.png)',
     )
   })

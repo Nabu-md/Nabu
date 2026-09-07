@@ -8,13 +8,13 @@ date: 2026-04-27
 
 ## Context
 
-Tolaria notes are plain Markdown files, while the rich editor uses BlockNote and raw mode uses CodeMirror. Users need fenced `mermaid` blocks to render as diagrams in the note surface without changing the canonical file format or hiding the source from raw editing.
+Nabu notes are plain Markdown files, while the rich editor uses BlockNote and raw mode uses CodeMirror. Users need fenced `mermaid` blocks to render as diagrams in the note surface without changing the canonical file format or hiding the source from raw editing.
 
 BlockNote can parse fenced code blocks, but a generic highlighted code block does not provide diagram rendering. Rendering Mermaid directly from the Markdown fence also has to preserve the original fence source when notes are saved, copied through raw mode, closed, and reopened.
 
 ## Decision
 
-**Tolaria will support Mermaid diagrams through a Markdown placeholder round-trip owned by the editor pipeline and rendered with the `mermaid` package.**
+**Nabu will support Mermaid diagrams through a Markdown placeholder round-trip owned by the editor pipeline and rendered with the `mermaid` package.**
 
 The implementation:
 
@@ -26,7 +26,7 @@ The implementation:
 
 ## Options considered
 
-- **Tolaria-owned placeholder round-trip with Mermaid rendering** (chosen): matches the existing wikilink and math architecture, keeps Markdown as the source of truth, and gives Tolaria explicit control over serialization.
+- **Nabu-owned placeholder round-trip with Mermaid rendering** (chosen): matches the existing wikilink and math architecture, keeps Markdown as the source of truth, and gives Nabu explicit control over serialization.
 - **Render all `mermaid` code blocks by overriding the generic code-block renderer**: smaller surface, but it couples diagram behavior to the code-highlighting package and makes exact source preservation harder.
 - **Raw-mode-only Mermaid support**: preserves source but fails the enhanced note reading experience users expect.
 - **Store parsed diagram metadata outside the Markdown body**: enables richer future editing, but violates the files-first model.

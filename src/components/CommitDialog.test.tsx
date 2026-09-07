@@ -171,7 +171,7 @@ describe('CommitDialog', () => {
     render(<CommitDialog open={true} modifiedCount={2} commitMode="local" onCommit={onCommit} onClose={onClose} />)
 
     expect(screen.getByRole('heading', { name: 'Commit' })).toBeInTheDocument()
-    expect(screen.getByText('This vault has no git remote configured. Tolaria will create a local commit only.')).toBeInTheDocument()
+    expect(screen.getByText('This vault has no git remote configured. Nabu will create a local commit only.')).toBeInTheDocument()
     expect(screen.getByText(`${submitShortcut} to commit locally`)).toBeInTheDocument()
     expect(getActionButton('Commit')).toBeDisabled()
   })

@@ -8,7 +8,7 @@ date: 2026-05-26
 
 ## Context
 
-The AI panel used to behave like another right-side editor panel. That kept the agent UI inside the main Tolaria window even when the user undocked it, so the "floating" surface could not be moved to another macOS space or placed beside Tolaria as a real window.
+The AI panel used to behave like another right-side editor panel. That kept the agent UI inside the main Nabu window even when the user undocked it, so the "floating" surface could not be moved to another macOS space or placed beside Nabu as a real window.
 
 The AI surface also needed to support multiple chat sessions, per-chat target selection, and a single header that does not duplicate the old panel title and permission controls.
 

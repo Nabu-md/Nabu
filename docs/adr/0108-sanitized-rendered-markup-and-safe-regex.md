@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-Tolaria renders generated SVG/HTML from trusted libraries such as Mermaid and KaTeX, and it allows users to opt into regex matching in filters and editor find/replace. Codacy SRM flagged the raw markup insertion and direct regex construction as Critical XSS/DoS risks.
+Nabu renders generated SVG/HTML from trusted libraries such as Mermaid and KaTeX, and it allows users to opt into regex matching in filters and editor find/replace. Codacy SRM flagged the raw markup insertion and direct regex construction as Critical XSS/DoS risks.
 
 ## Decision
 

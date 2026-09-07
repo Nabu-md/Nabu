@@ -43,16 +43,16 @@ function CalloutBlockView({ block, contentRef }: CalloutBlockViewProps) {
 
   return (
     <aside
-      className={`tolaria-callout tolaria-callout--${family}`}
+      className={`nabu-callout nabu-callout--${family}`}
       data-callout-type={calloutType}
     >
-      <div className="tolaria-callout__header">
+      <div className="nabu-callout__header">
         <CalloutHeading
           calloutType={calloutType}
           heading={heading}
         />
       </div>
-      <div ref={contentRef} className="tolaria-callout__body" />
+      <div ref={contentRef} className="nabu-callout__body" />
     </aside>
   )
 }

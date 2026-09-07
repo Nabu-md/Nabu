@@ -102,19 +102,19 @@ fn vault_accent_color(mode: AppIconMode) -> Rgb {
 objc2::extern_class!(
     #[unsafe(super(objc2_app_kit::NSResponder, objc2_foundation::NSObject))]
     #[name = "NSApplication"]
-    struct TolariaApplication;
+    struct NabuApplication;
 );
 
 #[cfg(target_os = "macos")]
-impl TolariaApplication {
+impl NabuApplication {
     objc2::extern_methods!(
         #[unsafe(method(sharedApplication))]
         #[unsafe(method_family = none)]
-        fn shared_application(marker: MainThreadMarker) -> objc2::rc::Retained<TolariaApplication>;
+        fn shared_application(marker: MainThreadMarker) -> objc2::rc::Retained<NabuApplication>;
 
         #[unsafe(method(setApplicationIconImage:))]
         #[unsafe(method_family = none)]
-        fn set_tolaria_application_icon(&self, image: &objc2_app_kit::NSImage);
+        fn set_nabu_application_icon(&self, image: &objc2_app_kit::NSImage);
     );
 }
 
@@ -145,8 +145,8 @@ fn set_native_app_icon(image: tauri::image::Image<'static>) -> Result<(), String
     let data = NSData::from_vec(encode_png(&image)?);
     let image = NSImage::initWithData(NSImage::alloc(), &data)
         .ok_or_else(|| "Failed to create macOS app icon image".to_string())?;
-    let app = TolariaApplication::shared_application(marker);
-    app.set_tolaria_application_icon(&image);
+    let app = NabuApplication::shared_application(marker);
+    app.set_nabu_application_icon(&image);
     Ok(())
 }
 

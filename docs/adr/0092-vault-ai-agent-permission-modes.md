@@ -14,12 +14,12 @@ The mode must be visible at the point of use, must not mutate global CLI setting
 
 ## Decision
 
-**Tolaria stores an `ai_agent_permission_mode` per vault with values `safe` and `power_user`, defaulting missing or null values to `safe`, and passes that normalized mode through the AI panel stream request into each CLI adapter.**
+**Nabu stores an `ai_agent_permission_mode` per vault with values `safe` and `power_user`, defaulting missing or null values to `safe`, and passes that normalized mode through the AI panel stream request into each CLI adapter.**
 
 The AI panel header displays the current mode and offers a compact Vault Safe / Power User control that is disabled while an agent run is active. Changing the mode preserves the transcript and inserts a local transcript marker.
 
 Adapter mappings remain conservative:
-- Claude Code Safe keeps `acceptEdits`, strict Tolaria MCP config, and file/search/edit tools only; Power User adds Bash to the allowed tool list without using `--dangerously-skip-permissions`.
+- Claude Code Safe keeps `acceptEdits`, strict Nabu MCP config, and file/search/edit tools only; Power User adds Bash to the allowed tool list without using `--dangerously-skip-permissions`.
 - Codex keeps the active-vault `workspace-write` sandbox and `--ask-for-approval never` in both modes.
 - OpenCode uses transient `OPENCODE_CONFIG_CONTENT`; Safe denies bash and external directories, while Power User allows bash but still denies external directories.
 - Pi receives the mode on the adapter request path; both modes currently use the same transient MCP adapter config.

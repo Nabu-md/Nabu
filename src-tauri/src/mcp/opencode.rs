@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn build_config_snippet_wraps_tolaria_entry_in_opencode_schema() {
+    fn build_config_snippet_wraps_nabu_entry_in_opencode_schema() {
         let snippet =
             build_config_snippet(&build_entry("node", "/app/mcp-server/index.js")).unwrap();
         let config: Value = serde_json::from_str(&snippet).unwrap();
@@ -183,7 +183,7 @@ mod tests {
             serde_json::json!({
                 "$schema": "https://opencode.ai/config.json",
                 "mcp": {
-                    "tolaria": {
+                    "nabu": {
                         "type": "local",
                         "command": ["node", "/app/mcp-server/index.js"],
                         "enabled": true,
@@ -249,7 +249,7 @@ mod tests {
             &config_path,
             serde_json::json!({
                 "mcp": {
-                    "tolaria": { "type": "local" },
+                    "nabu": { "type": "local" },
                     "laputa": { "type": "local" },
                     "other": { "type": "local" }
                 }

@@ -6,7 +6,7 @@ Date: 2026-08-14
 
 ## Context
 
-The HTML bootstrap loaded Inter, IBM Plex Mono, and JetBrains Mono through a render-blocking Google Fonts stylesheet. Offline, air-gapped, and firewall-blocked desktop launches could wait on that request before painting Tolaria's startup shell, breaking the product's offline-first contract.
+The HTML bootstrap loaded Inter, IBM Plex Mono, and JetBrains Mono through a render-blocking Google Fonts stylesheet. Offline, air-gapped, and firewall-blocked desktop launches could wait on that request before painting Nabu's startup shell, breaking the product's offline-first contract.
 
 System-font fallbacks would remove the network dependency but would also change typography between machines and between online and offline sessions.
 

@@ -1,6 +1,6 @@
 # Manage Git Manually Or With AutoGit
 
-Tolaria can act as a lightweight Git client for a Git-enabled vault. You can manage commits and pushes yourself, or enable AutoGit to create conservative checkpoints after editing pauses or when the app is no longer active.
+Nabu can act as a lightweight Git client for a Git-enabled vault. You can manage commits and pushes yourself, or enable AutoGit to create conservative checkpoints after editing pauses or when the app is no longer active.
 
 ## Manual Git
 
@@ -14,7 +14,7 @@ If the remote has changed, pull first and resolve any conflicts. If the vault ha
 
 ## AutoGit
 
-AutoGit is available in Settings for Git-enabled vaults. When enabled, Tolaria automatically commits and pushes saved local changes after an idle pause or after the app becomes inactive.
+AutoGit is available in Settings for Git-enabled vaults. When enabled, Nabu automatically commits and pushes saved local changes after an idle pause or after the app becomes inactive.
 
 Use AutoGit when you want the safety of regular checkpoints without interrupting capture or editing. You can still inspect each note's current diff, review note history, and browse the whole-vault history before making larger manual commits.
 

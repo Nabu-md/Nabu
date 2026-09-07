@@ -26,7 +26,7 @@ import { TLDRAW_BLOCK_TYPE, TLDRAW_DEFAULT_HEIGHT } from '../utils/tldrawMarkdow
 import { HTML_BLOCK_DEFAULT_HEIGHT, HTML_BLOCK_TYPE } from '../utils/htmlBlockMarkdown'
 import { MARKDOWN_HIGHLIGHT_STYLE } from '../utils/markdownHighlightMarkdown'
 import type { VaultEntry } from '../types'
-import { createTolariaCodeBlockOptions } from './codeBlockOptions'
+import { createNabuCodeBlockOptions } from './codeBlockOptions'
 import { HtmlBlock } from './HtmlBlock'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { MermaidDiagram } from './MermaidDiagram'
@@ -358,12 +358,12 @@ export function mediaBlockPropsForPreviewRuntime<T extends MediaBlockPreviewProp
   }
 }
 
-export function TolariaAudioBlock(props: AudioBlockProps) {
+export function NabuAudioBlock(props: AudioBlockProps) {
   const externalMediaPreview = useExternalMediaPreview()
   return <AudioBlock {...mediaBlockPropsForPreviewRuntime(props, externalMediaPreview)} />
 }
 
-export function TolariaVideoBlock(props: VideoBlockProps) {
+export function NabuVideoBlock(props: VideoBlockProps) {
   const externalMediaPreview = useExternalMediaPreview()
   return <VideoBlock {...mediaBlockPropsForPreviewRuntime(props, externalMediaPreview)} />
 }
@@ -371,7 +371,7 @@ export function TolariaVideoBlock(props: VideoBlockProps) {
 const AudioBlockSpec = createReactBlockSpec(
   createAudioBlockConfig,
   (config) => ({
-    render: TolariaAudioBlock,
+    render: NabuAudioBlock,
     parse: audioParse(config),
     toExternalHTML: AudioToExternalHTML,
     runsBefore: ['file'],
@@ -381,7 +381,7 @@ const AudioBlockSpec = createReactBlockSpec(
 const VideoBlockSpec = createReactBlockSpec(
   createVideoBlockConfig,
   (config) => ({
-    render: TolariaVideoBlock,
+    render: NabuVideoBlock,
     parse: videoParse(config),
     toExternalHTML: VideoToExternalHTML,
     runsBefore: ['file'],
@@ -456,7 +456,7 @@ const HtmlBlockSpec = createReactBlockSpec(
   },
 )
 
-const codeBlock = createCodeBlockSpec(createTolariaCodeBlockOptions())
+const codeBlock = createCodeBlockSpec(createNabuCodeBlockOptions())
 const audioBlock = AudioBlockSpec()
 const htmlBlock = HtmlBlockSpec()
 const mathBlock = MathBlock()

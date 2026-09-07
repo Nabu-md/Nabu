@@ -69,7 +69,7 @@ async function dispatchAppCommand(page: Page, id: string): Promise<void> {
   await page.evaluate((commandId) => {
     const bridge = window.__laputaTest?.dispatchAppCommand
     if (typeof bridge !== 'function') {
-      throw new Error('Tolaria test bridge is missing dispatchAppCommand')
+      throw new Error('Nabu test bridge is missing dispatchAppCommand')
     }
     bridge(commandId)
   }, id)

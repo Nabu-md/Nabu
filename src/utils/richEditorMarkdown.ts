@@ -79,7 +79,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readDirectMarkdownMetrics(
   editor: DirectMarkdownCapableSerializer,
 ): BlockNoteDirectMarkdownMetrics | undefined {
-  return editor.__tolariaLastDirectMarkdownMetrics
+  return editor.__nabuLastDirectMarkdownMetrics
 }
 
 export function installRichEditorMarkdownSerializer(editor: unknown): void {
@@ -183,7 +183,7 @@ function serializeRichEditorBodyToMarkdownWithTrace(
 ): string {
   const startedAt = now()
   const directEditor = editor as DirectMarkdownCapableSerializer
-  delete directEditor.__tolariaLastDirectMarkdownMetrics
+  delete directEditor.__nabuLastDirectMarkdownMetrics
   const document = blocks
   const serialized = serializeDurableEditorBlocks(editor, document, vaultPath)
   const body = compactMarkdown(

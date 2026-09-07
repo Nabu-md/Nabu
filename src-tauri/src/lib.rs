@@ -430,8 +430,8 @@ pub fn run() {
     linux_appimage::apply_startup_env_overrides();
 
     let builder = tauri::Builder::default()
-        .register_uri_scheme_protocol("tolaria-html-block", html_block_protocol::handle_request)
-        .register_uri_scheme_protocol("tolaria-mini-app", mini_apps::handle_request)
+        .register_uri_scheme_protocol("nabu-html-block", html_block_protocol::handle_request)
+        .register_uri_scheme_protocol("nabu-mini-app", mini_apps::handle_request)
         .manage(commands::StartupTimingState::default())
         .manage(mini_apps::MiniAppRoots::default());
 
@@ -458,7 +458,7 @@ pub fn run() {
 }
 
 /// CLI entry point for deep research (step 3.3.4 of the Phase 3 plan).
-/// Invoked as `tolaria research "<query>" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]`.
+/// Invoked as `nabu research "<query>" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]`.
 /// Runs the same orchestrator as the Tauri IPC command and prints stream
 /// events to stdout. Returns an error code when the research fails.
 pub fn run_research_cli() -> Result<(), String> {
@@ -466,7 +466,7 @@ pub fn run_research_cli() -> Result<(), String> {
 
     let mut args = std::env::args().skip(1);
     if args.next().as_deref() != Some("research") {
-        return Err("Usage: tolaria research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]".into());
+        return Err("Usage: nabu research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]".into());
     }
 
     let mut query = None;
@@ -489,7 +489,7 @@ pub fn run_research_cli() -> Result<(), String> {
             }
             "--help" | "-h" => {
                 println!(
-                    "Usage: tolaria research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]\n\nRuns a multi-step AI deep research session against any installed CLI agent\n(claude_code, codex, copilot, opencode, pi, antigravity, kiro, hermes; default claude_code).\n  --depth N   max research iterations (1-5, default 3)\n  --vault     vault directory for agent file access (default: current directory)\n  --model     model for the agent (agent-specific, e.g. sonnet for Claude)\n  --agent     CLI agent that runs the research loop (default: claude_code)"
+                    "Usage: nabu research \"<query>\" [--depth N] [--vault <path>] [--model <model>] [--agent <id>]\n\nRuns a multi-step AI deep research session against any installed CLI agent\n(claude_code, codex, copilot, opencode, pi, antigravity, kiro, hermes; default claude_code).\n  --depth N   max research iterations (1-5, default 3)\n  --vault     vault directory for agent file access (default: current directory)\n  --model     model for the agent (agent-specific, e.g. sonnet for Claude)\n  --agent     CLI agent that runs the research loop (default: claude_code)"
                 );
                 return Ok(());
             }

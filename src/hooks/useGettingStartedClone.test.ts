@@ -88,7 +88,7 @@ describe('useGettingStartedClone', () => {
 
     expect(onSuccess).not.toHaveBeenCalled()
     expect(onError).toHaveBeenCalledWith(
-      'Tolaria needs a restart before macOS can open another folder picker. Restart to apply the downloaded update and try again.',
+      'Nabu needs a restart before macOS can open another folder picker. Restart to apply the downloaded update and try again.',
     )
   })
 })

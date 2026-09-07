@@ -11,7 +11,7 @@ import { detectVitestRetryMode, VITEST_RETRY_MODE } from './vitest-coverage-retr
 
 const rootDir = process.cwd()
 const finalCoverageDir = resolve(rootDir, process.env.VITEST_COVERAGE_FINAL_DIR ?? 'coverage')
-const coverageRunRoot = resolve(os.tmpdir(), 'tolaria-vitest-coverage-runs')
+const coverageRunRoot = resolve(os.tmpdir(), 'nabu-vitest-coverage-runs')
 const forwardedArgs = process.argv.slice(2)
 const hasFileParallelismOverride = forwardedArgs.some((arg) =>
   arg === '--fileParallelism' || arg === '--no-file-parallelism'

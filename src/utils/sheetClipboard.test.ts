@@ -1,9 +1,9 @@
 import type { Model } from '@ironcalc/workbook'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  buildTolariaSheetClipboardPayload,
+  buildNabuSheetClipboardPayload,
   shiftedClipboardCellInput,
-  writeTolariaSheetClipboard,
+  writeNabuSheetClipboard,
 } from './sheetClipboard'
 import { SHEET_INDEX } from './sheetWorkbook'
 
@@ -44,7 +44,7 @@ function makeModel(cells: Record<string, string>): Model {
 
 describe('sheet clipboard', () => {
   it('copies regular formulas as formula text in plain clipboard formats', () => {
-    const payload = buildTolariaSheetClipboardPayload(
+    const payload = buildNabuSheetClipboardPayload(
       makeModel({ '1:1': '=B2+C2' }),
       '/vault/budget.md',
       'copy',
@@ -54,14 +54,14 @@ describe('sheet clipboard', () => {
     expect(payload?.cells).toEqual([['=B2+C2']])
     if (!payload) throw new Error('Expected formula copy to build a clipboard payload')
     const clipboardData = makeClipboardData()
-    writeTolariaSheetClipboard(clipboardData, payload)
+    writeNabuSheetClipboard(clipboardData, payload)
     expect(clipboardData.getData('text/plain')).toBe('=B2+C2')
     expect(clipboardData.getData('text/csv')).toBe('=B2+C2')
   })
 
   it('copies external formula sources even when the workbook cell contains the evaluated value', () => {
     const formula = '=C15*[[refactoring-newsletter-model-assumptions]].C19'
-    const payload = buildTolariaSheetClipboardPayload(
+    const payload = buildNabuSheetClipboardPayload(
       makeModel({ '1:1': '$23,527' }),
       '/vault/business-plan.md',
       'copy',
@@ -71,7 +71,7 @@ describe('sheet clipboard', () => {
     expect(payload?.cells).toEqual([[formula]])
     if (!payload) throw new Error('Expected external formula copy to build a clipboard payload')
     const clipboardData = makeClipboardData()
-    writeTolariaSheetClipboard(clipboardData, payload)
+    writeNabuSheetClipboard(clipboardData, payload)
     expect(clipboardData.getData('text/plain')).toBe(formula)
   })
 
@@ -86,7 +86,7 @@ describe('sheet clipboard', () => {
         row: 10,
         width: 1,
       },
-      type: 'tolaria-sheet-clipboard' as const,
+      type: 'nabu-sheet-clipboard' as const,
       version: 1,
     }
 

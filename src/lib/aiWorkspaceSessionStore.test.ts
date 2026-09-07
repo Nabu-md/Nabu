@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const STORAGE_KEY = 'tolaria:ai-workspace-sessions:v1'
+const STORAGE_KEY = 'nabu:ai-workspace-sessions:v1'
 
 function createStorageMock() {
   const store = new Map<string, string>()

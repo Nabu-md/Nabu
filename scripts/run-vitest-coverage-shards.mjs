@@ -16,7 +16,7 @@ const concurrency = positiveInteger(
   'FRONTEND_COVERAGE_CONCURRENCY',
 )
 const runId = `${Date.now()}-${process.pid}`
-const shardRoot = resolve(os.tmpdir(), 'tolaria-vitest-coverage-shards', runId)
+const shardRoot = resolve(os.tmpdir(), 'nabu-vitest-coverage-shards', runId)
 const finalCoverageDir = resolve(rootDir, 'coverage')
 const coverageRequire = createCoverageRequire()
 const { createCoverageMap } = coverageRequire('istanbul-lib-coverage')

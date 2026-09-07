@@ -1,8 +1,8 @@
 # Spreadsheet Formulas
 
-Formula cells start with `=` and are evaluated by IronCalc through Tolaria's sheet editor.
+Formula cells start with `=` and are evaluated by IronCalc through Nabu's sheet editor.
 
-Tolaria adds vault-aware sheet references on top of the normal spreadsheet formula model. Everything else should be treated as IronCalc formula behavior. IronCalc aims for Excel-compatible formulas, but the upstream project is still evolving, so verify advanced formulas against the IronCalc docs when precision matters.
+Nabu adds vault-aware sheet references on top of the normal spreadsheet formula model. Everything else should be treated as IronCalc formula behavior. IronCalc aims for Excel-compatible formulas, but the upstream project is still evolving, so verify advanced formulas against the IronCalc docs when precision matters.
 
 ::: v-pre
 The same `[[note]].field` target forms are also available to HTML block vault expressions. Use [Vault Expressions](/reference/vault-expressions) for `{{...}}` syntax and HTML formatting helpers.
@@ -28,9 +28,9 @@ Use parentheses when a model depends on precedence:
 =(B2+B3-B4)/B5
 ```
 
-## Tolaria Note References
+## Nabu Note References
 
-Tolaria supports wikilink cell references for values that live in another sheet note:
+Nabu supports wikilink cell references for values that live in another sheet note:
 
 ```txt
 =[[newsletter-revenue]].B5
@@ -39,7 +39,7 @@ Tolaria supports wikilink cell references for values that live in another sheet 
 =[[launch-brief]].2
 ```
 
-The target inside `[[...]]` resolves like a normal Tolaria wikilink. The cell address after the dot uses A1 notation.
+The target inside `[[...]]` resolves like a normal Nabu wikilink. The cell address after the dot uses A1 notation.
 
 Absolute markers follow spreadsheet copy behavior:
 
@@ -75,7 +75,7 @@ Line references exclude YAML frontmatter, are 1-based, and preserve commas as te
 
 ## Autocomplete Functions
 
-Tolaria's formula autocomplete exposes the implemented function catalog from the bundled IronCalc engine. The current catalog has 195 functions.
+Nabu's formula autocomplete exposes the implemented function catalog from the bundled IronCalc engine. The current catalog has 195 functions.
 
 The dropdown shows a small ranked set of matches while you type. Keep typing to narrow the result list. Function names with digits and dots, such as `BIN2DEC` and `ERFC.PRECISE`, are supported.
 
@@ -181,7 +181,7 @@ Format the result as a percentage with a cell `num_fmt` such as `0.00%`.
 
 ## IronCalc Function Families
 
-IronCalc documents formulas by category. Use these upstream pages for detailed syntax and examples. The upstream documentation may include newer functions that are not yet present in Tolaria's bundled IronCalc version.
+IronCalc documents formulas by category. Use these upstream pages for detailed syntax and examples. The upstream documentation may include newer functions that are not yet present in Nabu's bundled IronCalc version.
 
 | Family | Link |
 | --- | --- |

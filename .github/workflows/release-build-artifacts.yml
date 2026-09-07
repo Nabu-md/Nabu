@@ -16,7 +16,7 @@ on:
 
 env:
   # Bump this when Tauri/Rust target artifacts capture stale absolute paths.
-  RUST_TARGET_CACHE_VERSION: v2026-04-14-tolaria
+  RUST_TARGET_CACHE_VERSION: v2026-04-14-nabu
   # The production Vite bundle can exceed Node's default ~2GB heap on
   # macOS arm64 runners while Tauri runs beforeBuildCommand.
   NODE_OPTIONS: --max-old-space-size=4096
@@ -388,11 +388,11 @@ jobs:
           }
 
           for deb in src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb; do
-            validate_desktop_categories "$deb" "$RUNNER_TEMP/tolaria-deb-desktop"
+            validate_desktop_categories "$deb" "$RUNNER_TEMP/nabu-deb-desktop"
           done
 
           for rpm_package in src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm; do
-            validate_desktop_categories "$rpm_package" "$RUNNER_TEMP/tolaria-rpm-desktop"
+            validate_desktop_categories "$rpm_package" "$RUNNER_TEMP/nabu-rpm-desktop"
           done
 
       - name: Upload Linux bundles

@@ -306,7 +306,7 @@ describe('useUpdater', () => {
     })
 
     expect(mockOpenExternalUrl).toHaveBeenCalledWith(
-      'https://tolaria.md/releases/'
+      'https://nabu.md/releases/'
     )
   })
 

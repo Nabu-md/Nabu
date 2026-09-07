@@ -20,10 +20,10 @@ async function mockFreshStart(
     const browserWindow = window as BrowserWindow
 
     localStorage.clear()
-    localStorage.setItem('tolaria:ai-agents-onboarding-dismissed', '1')
-    localStorage.setItem('tolaria:claude-code-onboarding-dismissed', '1')
+    localStorage.setItem('nabu:ai-agents-onboarding-dismissed', '1')
+    localStorage.setItem('nabu:claude-code-onboarding-dismissed', '1')
     if (config.rememberWelcomeDismissal) {
-      localStorage.setItem('tolaria_welcome_dismissed', '1')
+      localStorage.setItem('nabu_welcome_dismissed', '1')
     }
 
     const applyOverrides = (handlers?: Record<string, Handler> | null) => {
@@ -70,7 +70,7 @@ test('accepting telemetry consent on a fresh start opens the vault choice wizard
 
   await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByText('Help improve Tolaria')).toBeVisible()
+  await expect(page.getByText('Help improve Nabu')).toBeVisible()
   await page.getByTestId('telemetry-accept').click()
 
   await expect(page.getByTestId('welcome-screen')).toBeVisible()
@@ -127,7 +127,7 @@ for (const action of ['accept', 'decline'] as const) {
 
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-    await expect(page.getByText('Help improve Tolaria')).toBeVisible()
+    await expect(page.getByText('Help improve Nabu')).toBeVisible()
     await page.getByTestId(`telemetry-${action}`).click()
 
     await expect(page.getByTestId('welcome-screen')).toBeVisible()

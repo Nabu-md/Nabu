@@ -404,7 +404,7 @@ mod tests {
     fn translates_windows_paths_for_wsl() {
         let cases = [
             (r"C:\Users\Luca\Vault", "/mnt/c/Users/Luca/Vault"),
-            ("D:/Work/Tolaria", "/mnt/d/Work/Tolaria"),
+            ("D:/Work/Nabu", "/mnt/d/Work/Nabu"),
             (r"\\wsl$\Ubuntu\home\luca\vault", "/home/luca/vault"),
             (r"\\wsl.localhost\Debian\var\repo", "/var/repo"),
         ];

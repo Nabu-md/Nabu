@@ -8,7 +8,7 @@ function dataTransferWithGetData(getData: (type: string) => unknown): DataTransf
 describe('note drag/drop data', () => {
   afterEach(() => clearDraggedNotePath())
 
-  it('writes the Tolaria note path and plain text drag payloads', () => {
+  it('writes the Nabu note path and plain text drag payloads', () => {
     const setData = vi.fn()
     const dataTransfer = { setData } as unknown as DataTransfer
 

@@ -97,8 +97,8 @@ describe('initSentry', () => {
       release: sentryRelease,
     }))
     expect(sentryMocks.setUser).toHaveBeenCalledWith({ id: 'anonymous-user' })
-    expect(sentryMocks.setTag).toHaveBeenCalledWith('tolaria.build_version', buildVersion)
-    expect(sentryMocks.setTag).toHaveBeenCalledWith('tolaria.release_kind', releaseKind)
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('nabu.build_version', buildVersion)
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('nabu.release_kind', releaseKind)
   })
 
   it('drops active whiteboard platform permission rejections before sending them to Sentry', () => {

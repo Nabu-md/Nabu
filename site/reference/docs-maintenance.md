@@ -29,7 +29,7 @@ For each stable release:
 1. Use the public release history as the source of truth for what shipped.
 2. Map every user-facing highlight to a concept, guide, reference, or troubleshooting page.
 3. Add or refresh a Getting Started vault example when the feature is best learned by opening a real file.
-4. Review the landing page separately and promote only the capabilities that explain Tolaria's durable value.
+4. Review the landing page separately and promote only the capabilities that explain Nabu's durable value.
 5. Remove instructions for features that were withheld from the final release.
 
 ## Page Types

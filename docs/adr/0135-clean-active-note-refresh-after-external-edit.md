@@ -11,7 +11,7 @@ supersedes: "0111"
 
 ADR-0111 made external vault refreshes path-aware and preserved focused editor mounts so unrelated watcher events would not disrupt cursor state. That avoided needless remount churn, but it also meant a clean active note edited by Codex or another external process could remain visibly stale while the editor stayed focused. Because no later safe-remount trigger was guaranteed, users could see the old content until a full app restart.
 
-Tolaria's filesystem-first model requires clean in-memory editor state to converge to the file on disk during the current session. Unsaved local editor buffers still need protection, but editor focus alone is not enough reason to keep showing stale content when the changed-path batch identifies the active file.
+Nabu's filesystem-first model requires clean in-memory editor state to converge to the file on disk during the current session. Unsaved local editor buffers still need protection, but editor focus alone is not enough reason to keep showing stale content when the changed-path batch identifies the active file.
 
 ## Decision
 
@@ -37,7 +37,7 @@ Git pulls, AI-agent refresh callbacks, and filesystem-watcher batches continue t
 
 ## Consequences
 
-- External edits to the currently open clean note become visible without restarting Tolaria.
+- External edits to the currently open clean note become visible without restarting Nabu.
 - Unsaved local content remains authoritative and is not replaced by watcher, pull, or agent refreshes.
 - The changed-path batch remains part of the external-refresh contract; callers should pass specific file paths whenever available.
 - Unrelated watcher events still avoid active-editor remounts, so broad vault churn does not disturb the editor unless the active file itself changed.

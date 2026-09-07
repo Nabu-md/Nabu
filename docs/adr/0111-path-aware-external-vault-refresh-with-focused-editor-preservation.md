@@ -9,14 +9,14 @@ supersedes: "0071"
 
 ## Context
 
-ADR-0071 established a shared reconciliation path for external vault mutations so git pulls, AI-agent writes, and other non-local edits would reload vault-derived state and protect unsaved local changes. That policy was directionally right, but the original "reopen the clean active note" rule was too broad once Tolaria added a native filesystem watcher and more editor-mounted integrations.
+ADR-0071 established a shared reconciliation path for external vault mutations so git pulls, AI-agent writes, and other non-local edits would reload vault-derived state and protect unsaved local changes. That policy was directionally right, but the original "reopen the clean active note" rule was too broad once Nabu added a native filesystem watcher and more editor-mounted integrations.
 
 Two problems emerged:
 
 - unrelated external updates could remount a clean active editor even when the active file itself did not change
 - remounting while focus was inside the rich or raw editor surface could drop cursor/focus state and disrupt native input flows even when the vault refresh itself was otherwise safe
 
-Tolaria still needs refreshed entries, folders, views, backlinks, and other derived state after external writes. But it should only pay the cost of an active-editor remount when the changed-path batch actually requires one and the user is not actively focused inside the editor.
+Nabu still needs refreshed entries, folders, views, backlinks, and other derived state after external writes. But it should only pay the cost of an active-editor remount when the changed-path batch actually requires one and the user is not actively focused inside the editor.
 
 ## Decision
 

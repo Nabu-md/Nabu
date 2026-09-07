@@ -9,7 +9,7 @@ supersedes: "0066"
 
 ## Context
 
-ADR-0066 made Tolaria releases calendar-semver versions and advanced alpha by one day after a
+ADR-0066 made Nabu releases calendar-semver versions and advanced alpha by one day after a
 same-day stable promotion. A manually created `v2027-07-31` tag passed the stable workflow in
 2026. Alpha then treated that future stable version as authoritative and correctly advanced to
 `2027.8.1-alpha.N`. Rejecting future tags prevents recurrence, but immediately returning to a

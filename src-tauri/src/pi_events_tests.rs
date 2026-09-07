@@ -131,7 +131,7 @@ fn format_empty_success_returns_localized_error_markers() {
     let empty = format_empty_success("");
     let diagnostic = format_empty_success("Pi completed without JSON output");
 
-    assert!(empty.starts_with("tolaria:i18n-error:"));
+    assert!(empty.starts_with("nabu:i18n-error:"));
     assert!(empty.contains(r#""key":"ai.error.pi.emptyOutput""#));
     assert!(diagnostic.contains(r#""key":"ai.error.pi.emptyOutputWithDiagnostic""#));
     assert!(diagnostic.contains("Pi completed without JSON output"));

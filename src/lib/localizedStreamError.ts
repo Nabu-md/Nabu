@@ -6,7 +6,7 @@ import {
   type TranslationValues,
 } from './i18n'
 
-const LOCALIZED_ERROR_PREFIX = 'tolaria:i18n-error:'
+const LOCALIZED_ERROR_PREFIX = 'nabu:i18n-error:'
 
 interface LocalizedStreamErrorRequest {
   message: string

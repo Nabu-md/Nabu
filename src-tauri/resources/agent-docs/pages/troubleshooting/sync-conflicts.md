@@ -10,7 +10,7 @@ Sync conflicts happen when local and remote changes touch the same content.
 ## What To Do
 
 1. Stop editing the conflicted note.
-2. Open the conflict resolver if Tolaria presents it.
+2. Open the conflict resolver if Nabu presents it.
 3. Review both sides.
 4. Choose the correct content or merge manually.
 5. Commit the resolved file.

@@ -1,5 +1,5 @@
 /**
- * Hook for communicating with the Tolaria MCP WebSocket bridge.
+ * Hook for communicating with the Nabu MCP WebSocket bridge.
  *
  * Provides typed tool invocations for vault operations:
  * - readNote, createNote, searchNotes, appendToNote

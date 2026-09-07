@@ -10,7 +10,7 @@ import { createMalformedBlockClipboardRecoveryPlugin } from './richEditorMalform
 import type { RichEditorPropRunner, RichEditorSomeProp } from './richEditorTransformRecoveryTypes'
 export { isStaleBlockReferenceError } from './richEditorRecoveryClassifier'
 
-const DISPATCH_RECOVERY_STATE_KEY = '__tolariaRichEditorTransformErrorRecovery'
+const DISPATCH_RECOVERY_STATE_KEY = '__nabuRichEditorTransformErrorRecovery'
 const RECOVERABLE_EDITOR_HANDLER_PROPS = new Set([
   'handleDOMEvents',
   'handleDrop',

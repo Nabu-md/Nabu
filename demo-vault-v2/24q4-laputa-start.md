@@ -9,7 +9,7 @@ status: Done
 
 # Start Laputa App Project
 
-The original spike that proved Tolaria could read a markdown vault, render note metadata, and support keyboard-first navigation.
+The original spike that proved Nabu could read a markdown vault, render note metadata, and support keyboard-first navigation.
 
 - Set the initial four-panel layout.
 - Proved the note list, editor, and inspector could coexist in one flow.

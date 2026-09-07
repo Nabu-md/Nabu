@@ -124,7 +124,7 @@ describe('SheetEditor stale workbook model recovery', () => {
         row: 1,
         width: 1,
       },
-      type: 'tolaria-sheet-clipboard',
+      type: 'nabu-sheet-clipboard',
       version: 1,
     }))
 

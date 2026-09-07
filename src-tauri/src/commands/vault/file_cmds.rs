@@ -7,7 +7,7 @@ use super::boundary::{
     with_boundary, with_existing_paths, with_requested_root, with_validated_path, ValidatedPathMode,
 };
 
-const LOCALIZED_ERROR_PREFIX: &str = "tolaria:i18n-error:";
+const LOCALIZED_ERROR_PREFIX: &str = "nabu:i18n-error:";
 const FILE_ACTION_INSPECT_PATH_ERROR_KEY: &str = "fileActions.error.inspectPath";
 const FILE_ACTION_PATH_MISSING_ERROR_KEY: &str = "fileActions.error.pathMissing";
 

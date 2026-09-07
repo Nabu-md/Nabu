@@ -56,8 +56,8 @@ const blockNoteViewState = vi.hoisted(() => ({
   onChange: null as (() => void) | null,
 }))
 type MockEditorWithDirectMarkdownState = typeof mockEditor & {
-  __tolariaDirectMarkdownCache?: unknown
-  __tolariaLastDirectMarkdownMetrics?: unknown
+  __nabuDirectMarkdownCache?: unknown
+  __nabuLastDirectMarkdownMetrics?: unknown
   blocksToMarkdownDirect?: unknown
 }
 
@@ -177,9 +177,9 @@ vi.mock('@blocknote/mantine', () => ({
 
 vi.mock('@blocknote/mantine/style.css', () => ({}))
 
-vi.mock('./tolariaEditorFormatting', () => ({
-  TolariaFormattingToolbar: ({ children }: PropsWithChildren) => <>{children}</>,
-  TolariaFormattingToolbarController: () => null,
+vi.mock('./nabuEditorFormatting', () => ({
+  NabuFormattingToolbar: ({ children }: PropsWithChildren) => <>{children}</>,
+  NabuFormattingToolbarController: () => null,
 }))
 
 vi.mock('./SheetEditor', () => ({
@@ -329,8 +329,8 @@ export function resetEditorTestState() {
   blockNoteViewState.onChange = null
   mockEditor.document = [{ id: '1', type: 'paragraph', content: [], props: {}, children: [] }]
   const editorWithDirectMarkdownState = mockEditor as MockEditorWithDirectMarkdownState
-  delete editorWithDirectMarkdownState.__tolariaDirectMarkdownCache
-  delete editorWithDirectMarkdownState.__tolariaLastDirectMarkdownMetrics
+  delete editorWithDirectMarkdownState.__nabuDirectMarkdownCache
+  delete editorWithDirectMarkdownState.__nabuLastDirectMarkdownMetrics
   delete editorWithDirectMarkdownState.blocksToMarkdownDirect
   capturedSuggestionState.getItems = null
   capturedSuggestionState.getItemsByTrigger = {}

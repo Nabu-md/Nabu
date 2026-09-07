@@ -19,7 +19,7 @@ async function installStaleStarterMocks(page: Page) {
 
   await page.addInitScript((data: StaleStarterPaths) => {
     localStorage.clear()
-    localStorage.setItem('tolaria:claude-code-onboarding-dismissed', '1')
+    localStorage.setItem('nabu:claude-code-onboarding-dismissed', '1')
 
     let ref: Record<string, unknown> | null = null
 

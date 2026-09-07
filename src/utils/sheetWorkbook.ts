@@ -702,8 +702,8 @@ function bridgeExternalFormulaCellContent(
 }
 
 function workbookNameFromPath({ path }: { path: string }): string {
-  const filename = path.split(/[\\/]/).at(-1) ?? 'Tolaria Sheet'
-  return filename.replace(/\.md$/i, '') || 'Tolaria Sheet'
+  const filename = path.split(/[\\/]/).at(-1) ?? 'Nabu Sheet'
+  return filename.replace(/\.md$/i, '') || 'Nabu Sheet'
 }
 
 export function summarizeSheetContent(content: string): SheetContentSummary {

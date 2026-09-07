@@ -348,7 +348,7 @@ describe('useEditorSaveWithLinks', () => {
 
   it('derives a filename fallback title from a Windows path', () => {
     const { result } = renderHookWithLinks()
-    const path = String.raw`D:\Projects_CC\Tolaria\Tol_V1\focus-test.md`
+    const path = String.raw`D:\Projects_CC\Nabu\Tol_V1\focus-test.md`
 
     act(() => {
       result.current.handleContentChange(path, '---\ntype: Note\n_display: sheet\n---\nA,B\n1,2\n')

@@ -1,6 +1,6 @@
 # Supported Platforms
 
-Tolaria is a desktop app built with Tauri. Releases currently target macOS, Windows, and Linux.
+Nabu is a desktop app built with Tauri. Releases currently target macOS, Windows, and Linux.
 
 | Platform | Current support | Notes |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Primary support means the platform is part of normal development and release val
 
 Include:
 
-- Tolaria version.
+- Nabu version.
 - Operating system and version.
 - CPU architecture.
 - Whether the vault is local-only or connected to a remote.

@@ -169,7 +169,7 @@ describe('useLayoutPanels', () => {
     expectPanelWidths(result, { sidebar: 250, noteList: 300, inspector: 280 })
   })
 
-  it('persists resized panel widths with the Tolaria storage key', () => {
+  it('persists resized panel widths with the Nabu storage key', () => {
     storePanelWidths(LEGACY_APP_STORAGE_KEYS.layoutPanels, {
       sidebar: 260,
       noteList: 340,

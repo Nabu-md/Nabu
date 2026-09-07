@@ -14,7 +14,7 @@ export interface ContextMenuPositionOptions {
 
 function getRootZoom(): number {
   const overlayZoom = parseZoomValue(
-    getComputedStyle(document.documentElement).getPropertyValue('--tolaria-overlay-zoom-factor').trim(),
+    getComputedStyle(document.documentElement).getPropertyValue('--nabu-overlay-zoom-factor').trim(),
   )
   if (overlayZoom !== null) return overlayZoom
 

@@ -98,8 +98,8 @@ fn build_copilot_args(spec: &CopilotCommandSpec) -> Vec<String> {
 fn append_permission_args(args: &mut Vec<String>, permission_mode: AiAgentPermissionMode) {
     match permission_mode {
         AiAgentPermissionMode::Safe => {
-            args.push("--available-tools=write,tolaria".into());
-            args.push("--allow-tool=write,tolaria".into());
+            args.push("--available-tools=write,nabu".into());
+            args.push("--allow-tool=write,nabu".into());
             args.push("--deny-tool=shell".into());
         }
         AiAgentPermissionMode::PowerUser => args.push("--allow-all-tools".into()),
@@ -118,7 +118,7 @@ fn build_copilot_mcp_config(request: &AgentStreamRequest) -> Result<String, Stri
 }
 
 fn copilot_mcp_config_json(input: CopilotMcpConfigInput<'_>) -> Result<String, String> {
-    let mut server = crate::cli_agent_runtime::tolaria_node_mcp_server(
+    let mut server = crate::cli_agent_runtime::nabu_node_mcp_server(
         input.mcp_server_path,
         &input.request.vault_path,
         &input.request.vault_paths,
@@ -130,7 +130,7 @@ fn copilot_mcp_config_json(input: CopilotMcpConfigInput<'_>) -> Result<String, S
 
     let config = serde_json::json!({
         "mcpServers": {
-            "tolaria": server
+            "nabu": server
         }
     });
     serde_json::to_string(&config)
@@ -139,7 +139,7 @@ fn copilot_mcp_config_json(input: CopilotMcpConfigInput<'_>) -> Result<String, S
 
 fn format_copilot_error(stderr_output: &str, status: &str) -> String {
     if is_auth_or_setup_error(stderr_output) {
-        return "GitHub Copilot CLI is not ready. Run `copilot login` in your terminal, then run `copilot` from this vault folder and trust it before retrying in Tolaria.".into();
+        return "GitHub Copilot CLI is not ready. Run `copilot login` in your terminal, then run `copilot` from this vault folder and trust it before retrying in Nabu.".into();
     }
 
     let stderr = stderr_output.trim();
@@ -175,7 +175,7 @@ mod tests {
     fn spec(permission_mode: AiAgentPermissionMode) -> CopilotCommandSpec {
         CopilotCommandSpec {
             prompt: "Prompt".into(),
-            mcp_config: r#"{"mcpServers":{"tolaria":{}}}"#.into(),
+            mcp_config: r#"{"mcpServers":{"nabu":{}}}"#.into(),
             vault_path: "/tmp/vault".into(),
             permission_mode,
         }
@@ -185,7 +185,7 @@ mod tests {
         AgentStreamRequest {
             message: "Summarize".into(),
             model: None,
-            system_prompt: Some("Use Tolaria conventions".into()),
+            system_prompt: Some("Use Nabu conventions".into()),
             vault_path,
             vault_paths: vec!["/team-vault".into()],
             permission_mode,
@@ -219,8 +219,8 @@ mod tests {
             .any(|window| window == ["-p", "Prompt"]));
         assert!(actual_args.contains(&"-s".to_string()));
         assert!(actual_args.contains(&"--no-ask-user".to_string()));
-        assert!(actual_args.contains(&"--available-tools=write,tolaria".to_string()));
-        assert!(actual_args.contains(&"--allow-tool=write,tolaria".to_string()));
+        assert!(actual_args.contains(&"--available-tools=write,nabu".to_string()));
+        assert!(actual_args.contains(&"--allow-tool=write,nabu".to_string()));
         assert!(actual_args.contains(&"--deny-tool=shell".to_string()));
         assert!(!actual_args
             .iter()
@@ -241,20 +241,20 @@ mod tests {
     }
 
     #[test]
-    fn copilot_mcp_config_uses_tolaria_stdio_server() {
+    fn copilot_mcp_config_uses_nabu_stdio_server() {
         let request = request("/tmp/vault".into(), AiAgentPermissionMode::Safe);
         let config = copilot_mcp_config_json(CopilotMcpConfigInput {
             request: &request,
-            mcp_server_path: "/opt/tolaria/mcp-server/index.js",
+            mcp_server_path: "/opt/nabu/mcp-server/index.js",
             node_command: "/usr/local/bin/node",
         })
         .unwrap();
         let json: serde_json::Value = serde_json::from_str(&config).unwrap();
-        let server = &json["mcpServers"]["tolaria"];
+        let server = &json["mcpServers"]["nabu"];
 
         assert_eq!(server["type"], "stdio");
         assert_eq!(server["command"], "/usr/local/bin/node");
-        assert_eq!(server["args"][0], "/opt/tolaria/mcp-server/index.js");
+        assert_eq!(server["args"][0], "/opt/nabu/mcp-server/index.js");
         assert_eq!(server["tools"][0], "*");
         assert_eq!(server["env"]["VAULT_PATH"], "/tmp/vault");
         assert_eq!(server["env"]["WS_UI_PORT"], "9711");

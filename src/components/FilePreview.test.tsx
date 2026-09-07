@@ -143,7 +143,7 @@ describe('FilePreview', () => {
 
     expect(screen.getByTestId('pdf-file-preview')).toHaveAttribute(
       'data',
-      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?tolaria_pdf_preview=/u),
+      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?nabu_pdf_preview=/u),
     )
     expect(screen.getByText('PDF file')).toBeInTheDocument()
   })
@@ -153,7 +153,7 @@ describe('FilePreview', () => {
 
     expect(screen.getByTestId('pdf-file-preview')).toHaveAttribute(
       'data',
-      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?tolaria_pdf_preview=/u),
+      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?nabu_pdf_preview=/u),
     )
   })
 
@@ -166,7 +166,7 @@ describe('FilePreview', () => {
 
     expect(screen.getByTestId('pdf-file-preview')).toHaveAttribute(
       'data',
-      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?tolaria_pdf_preview=/u),
+      expect.stringMatching(/^asset:\/\/\/vault\/Attachments\/report\.pdf\?nabu_pdf_preview=/u),
     )
     expect(screen.getByTestId('pdf-file-preview').getAttribute('data')).not.toBe(firstPdfSrc)
   })

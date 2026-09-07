@@ -11,7 +11,7 @@ supersedes:
 
 ## Context
 
-Tolaria already lets native text surfaces keep their own undo stacks, but app-level state changes such as frontmatter edits, archive toggles, favorite toggles, and organization toggles did not share a consistent undo/redo model. Routing all Undo and Redo through the native menu items left these app actions one-way while also making command-palette discoverability inconsistent.
+Nabu already lets native text surfaces keep their own undo stacks, but app-level state changes such as frontmatter edits, archive toggles, favorite toggles, and organization toggles did not share a consistent undo/redo model. Routing all Undo and Redo through the native menu items left these app actions one-way while also making command-palette discoverability inconsistent.
 
 ## Decision
 

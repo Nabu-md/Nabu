@@ -5,7 +5,7 @@ URL: /concepts/notes
 
 # Notes
 
-A note is a Markdown file with optional YAML frontmatter. Tolaria reads the first H1 as the primary title and keeps the file on disk as the durable representation.
+A note is a Markdown file with optional YAML frontmatter. Nabu reads the first H1 as the primary title and keeps the file on disk as the durable representation.
 
 ## Anatomy
 
@@ -19,12 +19,12 @@ belongs_to:
 
 # Launch Documentation
 
-Draft the public Tolaria docs and keep them close to code changes.
+Draft the public Nabu docs and keep them close to code changes.
 ```
 
 ## Titles
 
-The first H1 is the note title. Tolaria uses that title wherever the note is displayed: note lists, search results, wikilink suggestions, relationship pickers, tabs, and window titles.
+The first H1 is the note title. Nabu uses that title wherever the note is displayed: note lists, search results, wikilink suggestions, relationship pickers, tabs, and window titles.
 
 The title is separate from the filename. The filename stays visible in the breadcrumb so you can see the file on disk, and you can rename it independently when needed.
 
@@ -32,7 +32,7 @@ Use the breadcrumb action to rename the file to match the title. New untitled no
 
 ## Body Links
 
-Use `[[wikilinks]]` to connect notes from the body. Tolaria shows autocomplete suggestions while you type, and links can resolve by filename or title.
+Use `[[wikilinks]]` to connect notes from the body. Nabu shows autocomplete suggestions while you type, and links can resolve by filename or title.
 
 ## Frontmatter
 

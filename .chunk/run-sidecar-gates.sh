@@ -2,7 +2,7 @@
 set -euo pipefail
 
 start_time=$(date +%s)
-log_dir="${TMPDIR:-/tmp}/tolaria-sidecar-gates-$$"
+log_dir="${TMPDIR:-/tmp}/nabu-sidecar-gates-$$"
 rust_changed="${RUST_CHANGED:-true}"
 rust_phase="${SIDECAR_RUST_PHASE:-after-coverage}"
 playwright_phase="${SIDECAR_PLAYWRIGHT_PHASE:-after}"

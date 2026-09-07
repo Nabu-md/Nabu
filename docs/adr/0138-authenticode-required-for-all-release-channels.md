@@ -29,4 +29,4 @@ At the same time, CI coverage uploads started failing because the pinned Codecov
 - Missing, expired, partial, or invalid Windows code-signing credentials fail alpha and stable release artifact builds.
 - The repository cannot publish unsigned Windows installers as a convenience fallback.
 - A trusted Windows code-signing certificate still has to come from a certificate authority or signing service; generating a local self-signed certificate is not an acceptable substitute for release artifacts.
-- If Tolaria later adopts Microsoft Trusted Signing, Store packaging, or another signing provider, that integration should replace the PFX secret import path while preserving mandatory verification before upload.
+- If Nabu later adopts Microsoft Trusted Signing, Store packaging, or another signing provider, that integration should replace the PFX secret import path while preserving mandatory verification before upload.

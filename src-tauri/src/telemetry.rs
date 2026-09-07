@@ -117,8 +117,8 @@ pub fn init_sentry_from_settings() -> bool {
             id: Some(anonymous_id),
             ..Default::default()
         }));
-        scope.set_tag("tolaria.build_version", build_version);
-        scope.set_tag("tolaria.release_kind", sentry_release_kind(build_version));
+        scope.set_tag("nabu.build_version", build_version);
+        scope.set_tag("nabu.release_kind", sentry_release_kind(build_version));
     });
 
     *SENTRY_GUARD.lock().unwrap() = Some(guard);

@@ -39,12 +39,12 @@ fn runtime_resource_roots_for_env(
     }
     if let Some(appdir) = appdir {
         push_resource_root(&mut roots, appdir.join("usr"));
-        push_resource_root(&mut roots, appdir.join("usr/lib/tolaria"));
-        push_resource_root(&mut roots, appdir.join("usr/lib/Tolaria"));
+        push_resource_root(&mut roots, appdir.join("usr/lib/nabu"));
+        push_resource_root(&mut roots, appdir.join("usr/lib/Nabu"));
     }
     if let Some(local_app_data) = local_app_data {
-        push_resource_root(&mut roots, local_app_data.join("Tolaria"));
-        push_resource_root(&mut roots, local_app_data.join("tolaria"));
+        push_resource_root(&mut roots, local_app_data.join("Nabu"));
+        push_resource_root(&mut roots, local_app_data.join("nabu"));
     }
 
     roots
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn includes_tauri_macos_app_bundle_resource_directory() {
-        let resource_dir = PathBuf::from("/Applications/Tolaria.app/Contents/Resources");
+        let resource_dir = PathBuf::from("/Applications/Nabu.app/Contents/Resources");
         let roots = runtime_resource_roots_for_env(None, None, None, Some(resource_dir.clone()));
 
         assert!(roots.contains(&resource_dir));
@@ -98,11 +98,11 @@ mod tests {
     #[test]
     fn includes_windows_install_locations() {
         let local_app_data = PathBuf::from(r"C:\Users\alex\AppData\Local");
-        let install_dir = local_app_data.join("Tolaria");
+        let install_dir = local_app_data.join("Nabu");
         let roots = runtime_resource_roots_for_env(None, None, Some(local_app_data.clone()), None);
 
         assert_eq!(roots.iter().filter(|root| *root == &install_dir).count(), 1);
-        assert!(roots.contains(&local_app_data.join("tolaria")));
+        assert!(roots.contains(&local_app_data.join("nabu")));
 
         let candidates =
             super::super::mcp_server_dir_candidates(Path::new("/repo/mcp-server"), &roots);
@@ -111,28 +111,28 @@ mod tests {
 
     #[test]
     fn client_script_path_strips_windows_extended_length_disk_prefix() {
-        let path = PathBuf::from(r"\\?\D:\Tolaria\mcp-server\index.js");
+        let path = PathBuf::from(r"\\?\D:\Nabu\mcp-server\index.js");
 
-        assert_eq!(client_script_path(&path), r"D:\Tolaria\mcp-server\index.js",);
+        assert_eq!(client_script_path(&path), r"D:\Nabu\mcp-server\index.js",);
     }
 
     #[test]
     fn client_script_path_strips_windows_extended_length_unc_prefix() {
-        let path = PathBuf::from(r"\\?\UNC\server\share\Tolaria\mcp-server\index.js");
+        let path = PathBuf::from(r"\\?\UNC\server\share\Nabu\mcp-server\index.js");
 
         assert_eq!(
             client_script_path(&path),
-            r"\\server\share\Tolaria\mcp-server\index.js",
+            r"\\server\share\Nabu\mcp-server\index.js",
         );
     }
 
     #[test]
     fn client_script_path_preserves_normal_paths_with_spaces() {
-        let path = PathBuf::from(r"D:\Program Files\Tolaria\mcp-server\index.js");
+        let path = PathBuf::from(r"D:\Program Files\Nabu\mcp-server\index.js");
 
         assert_eq!(
             client_script_path(&path),
-            r"D:\Program Files\Tolaria\mcp-server\index.js",
+            r"D:\Program Files\Nabu\mcp-server\index.js",
         );
     }
 }

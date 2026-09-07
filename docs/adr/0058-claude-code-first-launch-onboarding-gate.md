@@ -9,7 +9,7 @@ date: 2026-04-12
 
 ## Context
 
-Tolaria's AI features depend on the `claude` CLI being installed on the user's machine. New users arriving with no prior context could open the app, try AI-powered workflows, and get silent failures with no explanation.
+Nabu's AI features depend on the `claude` CLI being installed on the user's machine. New users arriving with no prior context could open the app, try AI-powered workflows, and get silent failures with no explanation.
 
 A dedicated first-launch prompt was needed to:
 - Surface whether the `claude` CLI is already present.
@@ -32,5 +32,5 @@ The existing `useOnboarding` hook already handles vault setup and resolves to a 
 
 - The app boot sequence now has four phases: loading → welcome (if needed) → Claude Code check (once) → main shell.
 - `useClaudeCodeOnboarding(enabled)` takes a boolean so the gate is skipped entirely in note windows and before vault onboarding completes.
-- The dismissal key (`tolaria:claude-code-onboarding-dismissed`) must be pre-set in Playwright storage state so smoke tests bypass the gate.
+- The dismissal key (`nabu:claude-code-onboarding-dismissed`) must be pre-set in Playwright storage state so smoke tests bypass the gate.
 - Re-evaluation warranted if the `claude` CLI gains an in-app auto-install path, making the manual prompt unnecessary.

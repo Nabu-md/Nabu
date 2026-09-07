@@ -1,5 +1,5 @@
-import { collapsedSectionHiddenBlockIds } from './tolariaCollapsedSections'
-import type { TolariaBlockNoteEditor } from './tolariaBlockNoteDom'
+import { collapsedSectionHiddenBlockIds } from './nabuCollapsedSections'
+import type { NabuBlockNoteEditor } from './nabuBlockNoteDom'
 import {
   documentBlock,
   isBlockLike,
@@ -42,7 +42,7 @@ function documentBlockEntries(
 
 export function navigableDocumentBlockIds(editor: RichEditorBlockSelectionEditor): string[] {
   const blockIds = documentBlockIds(editor.document)
-  const hiddenBlockIds = collapsedSectionHiddenBlockIds(editor as unknown as TolariaBlockNoteEditor)
+  const hiddenBlockIds = collapsedSectionHiddenBlockIds(editor as unknown as NabuBlockNoteEditor)
   return hiddenBlockIds.size === 0
     ? blockIds
     : blockIds.filter((id) => !hiddenBlockIds.has(id))
@@ -160,7 +160,7 @@ export function collapsedContentOperationBlockIds(
   selectedBlockIds: readonly string[],
 ): string[] {
   const selected = new Set(selectedBlockIds)
-  const hiddenBlockIds = collapsedSectionHiddenBlockIds(editor as unknown as TolariaBlockNoteEditor)
+  const hiddenBlockIds = collapsedSectionHiddenBlockIds(editor as unknown as NabuBlockNoteEditor)
   const entries = documentBlockEntries(editor.document)
   const operationBlockIds: string[] = []
 

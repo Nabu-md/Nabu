@@ -7,7 +7,7 @@ import { buildAgentSystemPrompt } from './ai-agent'
 describe('buildAgentSystemPrompt', () => {
   it('returns preamble when no vault context', () => {
     const prompt = buildAgentSystemPrompt()
-    expect(prompt).toContain('working inside Tolaria')
+    expect(prompt).toContain('working inside Nabu')
     expect(prompt).toContain('active vault')
     expect(prompt).toContain("vault's AGENTS.md")
     expect(prompt).toContain('Vault Safe mode is active')
@@ -18,17 +18,17 @@ describe('buildAgentSystemPrompt', () => {
 
   it('appends vault context when provided', () => {
     const prompt = buildAgentSystemPrompt('Recent notes: foo, bar')
-    expect(prompt).toContain('working inside Tolaria')
+    expect(prompt).toContain('working inside Nabu')
     expect(prompt).toContain('Vault context:')
     expect(prompt).toContain('Recent notes: foo, bar')
   })
 
-  it('points safe-mode agents to bundled Tolaria docs without shell commands', () => {
+  it('points safe-mode agents to bundled Nabu docs without shell commands', () => {
     const prompt = buildAgentSystemPrompt({ agentDocsPath: '/app/agent-docs' })
 
     expect(prompt).toContain('/app/agent-docs/index.md')
     expect(prompt).toContain('/app/agent-docs/pages/templates/portent.md')
-    expect(prompt).toContain("Portent as Tolaria's default best-practice model")
+    expect(prompt).toContain("Portent as Nabu's default best-practice model")
     expect(prompt).not.toContain('ripgrep')
     expect(prompt).toContain('Prefer bundled docs over guesses')
   })
@@ -53,7 +53,7 @@ describe('buildAgentSystemPrompt', () => {
 
   it('does not promise shell execution for Pi power user mode', () => {
     const prompt = buildAgentSystemPrompt({ agent: 'pi', permissionMode: 'power_user' })
-    expect(prompt).toContain('Pi currently uses the same conservative Tolaria MCP configuration')
+    expect(prompt).toContain('Pi currently uses the same conservative Nabu MCP configuration')
     expect(prompt).not.toContain('Local shell commands are available')
   })
 

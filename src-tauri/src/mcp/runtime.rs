@@ -174,7 +174,7 @@ fn verify_node_version(node: &Path) -> Result<(), String> {
     };
     if major < 18 {
         return Err(format!(
-            "Node.js 18+ is required for Tolaria MCP tools; found {}",
+            "Node.js 18+ is required for Nabu MCP tools; found {}",
             raw_version.trim()
         ));
     }
@@ -344,7 +344,7 @@ fn verify_bun_version(bun: &Path) -> Result<(), String> {
     };
     if major < 1 {
         return Err(format!(
-            "Bun 1+ is required for Tolaria MCP tools; found {}",
+            "Bun 1+ is required for Nabu MCP tools; found {}",
             raw_version.trim()
         ));
     }

@@ -8,13 +8,13 @@ date: 2026-06-18
 
 ## Context
 
-Tolaria needs Linux WebKitGTK startup safeguards because some Wayland/AppImage environments crash before the app can render. The existing startup path treated native Linux Wayland launches and sealed Linux AppImage launches the same way by setting both `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1` unless the user had already provided either variable.
+Nabu needs Linux WebKitGTK startup safeguards because some Wayland/AppImage environments crash before the app can render. The existing startup path treated native Linux Wayland launches and sealed Linux AppImage launches the same way by setting both `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1` unless the user had already provided either variable.
 
 That broad fallback protected unstable AppImage launches, but it also applied the last-resort compositing disablement to native Wayland sessions. Native Wayland still needs the DMABUF crash workaround, but disabling WebKit compositing there can make windows feel unresponsive. The sealed AppImage runtime remains the verified environment that needs both rendering overrides.
 
 ## Decision
 
-Tolaria scopes Linux WebKit rendering safeguards by launch environment:
+Nabu scopes Linux WebKit rendering safeguards by launch environment:
 
 - Native Linux Wayland launches set `WEBKIT_DISABLE_DMABUF_RENDERER=1` by default, while preserving WebKit compositing unless the user explicitly disables it.
 - Linux AppImage launches continue to set both `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1` by default because the sealed AppImage path has the verified rendering failure this fallback protects.

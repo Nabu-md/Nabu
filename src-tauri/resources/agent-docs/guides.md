@@ -64,7 +64,7 @@ URL: /guides/commit-and-push
 
 # Manage Git Manually Or With AutoGit
 
-Tolaria can act as a lightweight Git client for a Git-enabled vault. You can manage commits and pushes yourself, or enable AutoGit to create conservative checkpoints after editing pauses or when the app is no longer active.
+Nabu can act as a lightweight Git client for a Git-enabled vault. You can manage commits and pushes yourself, or enable AutoGit to create conservative checkpoints after editing pauses or when the app is no longer active.
 
 ## Manual Git
 
@@ -78,7 +78,7 @@ If the remote has changed, pull first and resolve any conflicts. If the vault ha
 
 ## AutoGit
 
-AutoGit is available in Settings for Git-enabled vaults. When enabled, Tolaria automatically commits and pushes saved local changes after an idle pause or after the app becomes inactive.
+AutoGit is available in Settings for Git-enabled vaults. When enabled, Nabu automatically commits and pushes saved local changes after an idle pause or after the app becomes inactive.
 
 Use AutoGit when you want the safety of regular checkpoints without interrupting capture or editing. You can still inspect each note's current diff, review note history, and browse the whole-vault history before making larger manual commits.
 
@@ -105,7 +105,7 @@ Local model targets are for tools such as Ollama and LM Studio. They usually nee
 
 API model targets are for hosted providers such as OpenAI, Anthropic, Gemini, OpenRouter, or another OpenAI-compatible endpoint.
 
-Tolaria does not store provider API keys in vault settings. Choose one of the supported key paths:
+Nabu does not store provider API keys in vault settings. Choose one of the supported key paths:
 
 - Save the key locally on this device.
 - Read the key from an environment variable.
@@ -113,7 +113,7 @@ Tolaria does not store provider API keys in vault settings. Choose one of the su
 
 ## Test The Connection
 
-After adding a provider, use the test action in Settings. A successful test means Tolaria reached the endpoint and the model replied.
+After adding a provider, use the test action in Settings. A successful test means Nabu reached the endpoint and the model replied.
 
 ## Select The Target
 
@@ -132,7 +132,7 @@ Connect a remote when you want backup or sync beyond the current machine.
 
 ## Before You Start
 
-Make sure the remote repository exists and your system Git can authenticate to it. Tolaria uses system Git rather than storing provider-specific credentials.
+Make sure the remote repository exists and your system Git can authenticate to it. Nabu uses system Git rather than storing provider-specific credentials.
 
 ## Steps
 
@@ -222,7 +222,7 @@ An individual note can override the default width from the editor toolbar. That 
 
 ## Sidebar Labels
 
-Tolaria can pluralize type names in the sidebar. Turn this off in Settings if your type names should be shown exactly as written, or use `_sidebar_label` on a type document for an explicit label.
+Nabu can pluralize type names in the sidebar. Turn this off in Settings if your type names should be shown exactly as written, or use `_sidebar_label` on a type document for an explicit label.
 
 ## Vault Content
 
@@ -243,7 +243,7 @@ Inbox review turns quick captures into usable knowledge.
 
 When a note is organized enough, mark it as organized. Use `Cmd+E` on macOS or `Ctrl+E` on Windows and Linux, or click the organize action in the breadcrumb bar.
 
-That action is what removes the note from Inbox. If auto-advance is enabled in Settings > Workflow, Tolaria opens the next Inbox item immediately after you mark the current note organized.
+That action is what removes the note from Inbox. If auto-advance is enabled in Settings > Workflow, Nabu opens the next Inbox item immediately after you mark the current note organized.
 
 ## Review Checklist
 
@@ -276,7 +276,7 @@ URL: /guides/use-ai-panel
 
 # Use The AI
 
-Tolaria gives you two ways to ask for AI help: open the AI panel for an ongoing conversation, or prompt directly from the editor with `Cmd+K` followed by a space.
+Nabu gives you two ways to ask for AI help: open the AI panel for an ongoing conversation, or prompt directly from the editor with `Cmd+K` followed by a space.
 
 ## Choose How To Prompt
 
@@ -291,13 +291,13 @@ Open Settings and choose the default AI target:
 - **Local model** for Ollama or LM Studio chat over note context.
 - **API model** for OpenAI, Anthropic, Gemini, OpenRouter, or an OpenAI-compatible endpoint.
 
-If a coding agent is missing, install it and reopen Tolaria or switch to another target.
+If a coding agent is missing, install it and reopen Nabu or switch to another target.
 
 ## Choose An Agent Model
 
 Some coding agents expose a model picker in the AI workspace. Choose **Agent default** to let the CLI decide, or select one of the models reported by the installed agent.
 
-Tolaria remembers the choice separately for each agent. If an agent removes a previously selected model, Tolaria falls back to **Agent default** instead of sending an obsolete model ID.
+Nabu remembers the choice separately for each agent. If an agent removes a previously selected model, Nabu falls back to **Agent default** instead of sending an obsolete model ID.
 
 ## Permission Mode
 
@@ -317,7 +317,7 @@ Direct model targets always stay in chat mode. They can use note context, but th
 
 ## Review Changes
 
-AI edits are file edits. Review them with Tolaria's diff and Git history before committing.
+AI edits are file edits. Review them with Nabu's diff and Git history before committing.
 
 Use the stop control when a request is no longer useful or an agent is taking the wrong direction. Stopping ends the active stream without changing the target for your next request.
 
@@ -330,7 +330,7 @@ URL: /guides/use-command-palette
 
 # Use The Command Palette
 
-The command palette is the fastest way to move around Tolaria.
+The command palette is the fastest way to move around Nabu.
 
 Open it with:
 
@@ -387,7 +387,7 @@ The `height` attribute controls the preview height. You can also resize the bloc
 
 ## Add Live Vault Values
 
-HTML block source can include vault expressions inside `{{...}}`. Tolaria resolves them before the HTML is sanitized and rendered.
+HTML block source can include vault expressions inside `{{...}}`. Nabu resolves them before the HTML is sanitized and rendered.
 
 ```html
 <p>Status: {{status}}</p>
@@ -403,7 +403,7 @@ See [Vault Expressions](/reference/vault-expressions) for the full syntax and fo
 
 ## Style The Preview
 
-Inline `style` attributes and `<style>` tags work. Tolaria places sanitized style blocks in the iframe head so CSS applies to the whole preview.
+Inline `style` attributes and `<style>` tags work. Nabu places sanitized style blocks in the iframe head so CSS applies to the whole preview.
 
 Remote loading is intentionally blocked. External stylesheets, CSS `@import`, CSS `url(...)`, remote scripts, nested frames, workers, forms, and network requests are removed or blocked by the sandbox.
 
@@ -437,13 +437,13 @@ Scripts are blocked by default. Opt into an opaque-origin script sandbox only wh
 ```
 ````
 
-`json(...)` returns safely escaped JSON. When the value is a wikilink or a relationship list of wikilinks, Tolaria enriches it with note metadata such as `title`, `status`, `path`, `target`, `raw`, and `deepLink`.
+`json(...)` returns safely escaped JSON. When the value is a wikilink or a relationship list of wikilinks, Nabu enriches it with note metadata such as `title`, `status`, `path`, `target`, `raw`, and `deepLink`.
 
-The script sandbox is still constrained. It can use standard DOM APIs inside the preview, but it cannot access the parent Tolaria window, Tauri APIs, same-origin storage, remote network data, external script files, workers, forms, or nested frames.
+The script sandbox is still constrained. It can use standard DOM APIs inside the preview, but it cannot access the parent Nabu window, Tauri APIs, same-origin storage, remote network data, external script files, workers, forms, or nested frames.
 
 ## Troubleshooting
 
-If a `{{...}}` expression stays visible, Tolaria could not parse or resolve it. Check the note target, property name, function arguments, or whether the referenced note is ambiguous.
+If a `{{...}}` expression stays visible, Nabu could not parse or resolve it. Check the note target, property name, function arguments, or whether the referenced note is ambiguous.
 
 If script code appears not to run, confirm the fence has `scripts="sandboxed"` and that the script is inline. External `src` scripts are not supported.
 
@@ -458,11 +458,11 @@ URL: /guides/use-media-previews
 
 # Use Media Previews
 
-Media previews let you inspect vault files without leaving Tolaria.
+Media previews let you inspect vault files without leaving Nabu.
 
 ## Open A File
 
-Select an image, PDF, media file, HTML file, or unsupported file from a folder or file list. Tolaria opens supported files in the app and offers an external-open action for files that should use the system default app.
+Select an image, PDF, media file, HTML file, or unsupported file from a folder or file list. Nabu opens supported files in the app and offers an external-open action for files that should use the system default app.
 
 Standalone HTML files open as sanitized previews. Toggle raw mode to edit their source, and use the external-open action when a page needs scripts, forms, remote resources, or other browser behavior that the safe preview intentionally disables.
 
@@ -478,15 +478,15 @@ Folder browsing still shows files in their folders even when a category is hidde
 
 ## Attachments
 
-When you paste or drop an image into a note, Tolaria copies it into the vault and references the copied file from Markdown.
+When you paste or drop an image into a note, Nabu copies it into the vault and references the copied file from Markdown.
 
-When you paste a selection from a web page, Tolaria also tries to import public `http` and `https` images into the vault. The text is pasted immediately while image imports finish in the background. Successful imports become portable `attachments/...` references; failed imports remain remote and produce a non-blocking message.
+When you paste a selection from a web page, Nabu also tries to import public `http` and `https` images into the vault. The text is pasted immediately while image imports finish in the background. Successful imports become portable `attachments/...` references; failed imports remain remote and produce a non-blocking message.
 
 ## Troubleshooting
 
 If a preview does not render, open the file in the default app to confirm the file is valid, then check whether the file is inside the active vault and not blocked by operating-system permissions.
 
-If a pasted web image stays remote, the host may have rejected the download, the response may not be a supported image, or the URL may have failed Tolaria's local-network and size safety checks.
+If a pasted web image stays remote, the host may have rejected the download, the response may not be a supported image, or the URL may have failed Nabu's local-network and size safety checks.
 
 ---
 
@@ -497,7 +497,7 @@ URL: /guides/use-rich-editor
 
 # Use The Rich Editor
 
-Tolaria's rich editor gives you block-based editing while keeping the note as portable Markdown. Use these workflows to move quickly without losing access to the underlying file.
+Nabu's rich editor gives you block-based editing while keeping the note as portable Markdown. Use these workflows to move quickly without losing access to the underlying file.
 
 ## Insert Common Blocks
 
@@ -528,7 +528,7 @@ Collapsed heading content travels with its heading when you copy, cut, delete, o
 
 Headings can hide the content below them until the next heading at the same or higher level. Use the disclosure control beside a heading, or select the heading block and press `Cmd+Enter` on macOS or `Ctrl+Enter` on Windows and Linux.
 
-Collapsing a section changes only the editor presentation. Tolaria does not add private folding syntax to the Markdown file.
+Collapsing a section changes only the editor presentation. Nabu does not add private folding syntax to the Markdown file.
 
 ## Write Code
 
@@ -538,11 +538,11 @@ Choose the language from the code block control to enable syntax highlighting. L
 
 ## Add Callouts
 
-Tolaria renders Obsidian-style callouts and GitHub alert syntax as editable blocks while preserving the Markdown:
+Nabu renders Obsidian-style callouts and GitHub alert syntax as editable blocks while preserving the Markdown:
 
 ```md
 > [!NOTE] Local-first
-> This note stays readable outside Tolaria.
+> This note stays readable outside Nabu.
 ```
 
 Use `+` or `-` after the callout type to choose its initial fold state:
@@ -556,7 +556,7 @@ The callout body remains editable in rich mode. Change the callout type, title, 
 
 ## Highlight Text
 
-Select text and use the formatting toolbar, or press `Cmd+Shift+M` on macOS and `Ctrl+Shift+M` on Windows and Linux. Tolaria saves highlights as `==highlighted text==`.
+Select text and use the formatting toolbar, or press `Cmd+Shift+M` on macOS and `Ctrl+Shift+M` on Windows and Linux. Nabu saves highlights as `==highlighted text==`.
 
 ## Check The Markdown
 
@@ -580,18 +580,18 @@ URL: /guides/use-spreadsheets
 
 # Use Spreadsheets
 
-Tolaria spreadsheets are sheet notes: Markdown files with frontmatter and a CSV-like body that open in a spreadsheet editor when their `Display as` value is `Sheet`.
+Nabu spreadsheets are sheet notes: Markdown files with frontmatter and a CSV-like body that open in a spreadsheet editor when their `Display as` value is `Sheet`.
 
 Use a sheet note when a model needs rows, columns, calculations, or repeated numeric editing. Use a normal note when the main artifact is prose.
 
 ## Create A Sheet
 
-Use the command palette action `New Sheet`, or create/open a note and set its `Display as` to `Sheet` from the Properties panel. `Type` remains separate and can still be `Note`, `Project`, `Responsibility`, or any other Tolaria type.
+Use the command palette action `New Sheet`, or create/open a note and set its `Display as` to `Sheet` from the Properties panel. `Type` remains separate and can still be `Note`, `Project`, `Responsibility`, or any other Nabu type.
 
 When a note is a sheet:
 
 - the YAML frontmatter remains available for type, status, relationships, wikilinks, and custom properties
-- `_display: sheet` tells Tolaria to display the note with the spreadsheet editor
+- `_display: sheet` tells Nabu to display the note with the spreadsheet editor
 - the body is the sheet itself
 - there is no rich-text body around the table
 - the editor switches from the text editor to the spreadsheet editor
@@ -615,7 +615,7 @@ Formulas start with `=`.
 =IF(E6>0, "Up", "Down")
 ```
 
-Tolaria shows inline formula autocomplete while you type. The autocomplete list is built from the implemented function catalog in the bundled IronCalc engine; formula evaluation is still handled by IronCalc.
+Nabu shows inline formula autocomplete while you type. The autocomplete list is built from the implemented function catalog in the bundled IronCalc engine; formula evaluation is still handled by IronCalc.
 
 See [Spreadsheet Formulas](/reference/spreadsheet-functions) for syntax, supported examples, and links to the full IronCalc formula reference.
 
@@ -662,13 +662,13 @@ Project,Owner,Status
 [[sponsorship-pipeline]],[[person/matteo]],Review
 ```
 
-When the cell is not being edited, Tolaria renders the wikilink like other note links. When you edit the cell, the raw `[[wikilink]]` syntax is shown again.
+When the cell is not being edited, Nabu renders the wikilink like other note links. When you edit the cell, the raw `[[wikilink]]` syntax is shown again.
 
 Command-click a wikilink in a sheet cell to open the linked note.
 
 ## Reference Another Note
 
-Formulas can read a cell from another sheet note with Tolaria's wikilink cell syntax:
+Formulas can read a cell from another sheet note with Nabu's wikilink cell syntax:
 
 ```txt
 =[[newsletter-revenue]].B5
@@ -676,7 +676,7 @@ Formulas can read a cell from another sheet note with Tolaria's wikilink cell sy
 =ROUND([[business-plan]].$E$12, 2)
 ```
 
-The part inside `[[...]]` resolves like a normal Tolaria wikilink. The part after the dot is an A1-style cell reference.
+The part inside `[[...]]` resolves like a normal Nabu wikilink. The part after the dot is an A1-style cell reference.
 
 Use absolute markers when copying formulas:
 
@@ -754,7 +754,7 @@ Use the editor toolbar, the command palette, or the shortcut:
 
 ## How It Works
 
-Tolaria builds the outline from the current note's headings. The panel updates as the note changes and can jump to sections in the editor.
+Nabu builds the outline from the current note's headings. The panel updates as the note changes and can jump to sections in the editor.
 
 ## Good Uses
 
@@ -795,4 +795,4 @@ related_to:
 
 ## Keep Links Stable
 
-Prefer clear note titles and filenames. Tolaria's wikilink autocomplete helps you pick the right target while you type.
+Prefer clear note titles and filenames. Nabu's wikilink autocomplete helps you pick the right target while you type.

@@ -214,11 +214,11 @@ mod tests {
 
     #[test]
     fn normalizes_extended_windows_paths_before_file_io() {
-        let path = r"\\?\C:\Users\alex\Documents\Tolaria/Getting Started/untitled-project.md";
+        let path = r"\\?\C:\Users\alex\Documents\Nabu/Getting Started/untitled-project.md";
 
         assert_eq!(
             RawNotePath(path).normalized_for_file_io(),
-            r"\\?\C:\Users\alex\Documents\Tolaria\Getting Started\untitled-project.md"
+            r"\\?\C:\Users\alex\Documents\Nabu\Getting Started\untitled-project.md"
         );
     }
 

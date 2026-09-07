@@ -1,6 +1,6 @@
 # Vaults
 
-A vault is the folder Tolaria reads and writes. The filesystem is the source of truth; the app state and cache are derived from files.
+A vault is the folder Nabu reads and writes. The filesystem is the source of truth; the app state and cache are derived from files.
 
 ## Core Rules
 
@@ -14,19 +14,19 @@ A vault is the folder Tolaria reads and writes. The filesystem is the source of 
 
 Local files keep your notes inspectable. You can open them in another editor, search with command-line tools, back them up with your own system, and version them with Git.
 
-Tolaria should never become the only way to read your data.
+Nabu should never become the only way to read your data.
 
 ## Git Is A Capability
 
 A plain folder of Markdown files can open as a vault. Git-backed vaults unlock history, changes, commits, pull, push, conflict handling, and remote setup.
 
-If a folder is not a Git repository, Tolaria can initialize Git when you explicitly ask it to. It avoids initializing broad personal folders such as Desktop, Documents, or Downloads unless they are clearly dedicated vault folders.
+If a folder is not a Git repository, Nabu can initialize Git when you explicitly ask it to. It avoids initializing broad personal folders such as Desktop, Documents, or Downloads unless they are clearly dedicated vault folders.
 
 ## Multiple Vaults At The Same Time
 
-Tolaria can load multiple registered vaults into one unified graph. Enable this from `Settings` -> `Vaults` -> `Use multiple vaults at the same time`.
+Nabu can load multiple registered vaults into one unified graph. Enable this from `Settings` -> `Vaults` -> `Use multiple vaults at the same time`.
 
-After the option is enabled, open the bottom-left vault menu to include or exclude vaults from the graph. Included vaults appear together in note lists, search, quick open, backlinks, and wikilink navigation. Each note keeps a compact vault badge when Tolaria needs to disambiguate where it lives.
+After the option is enabled, open the bottom-left vault menu to include or exclude vaults from the graph. Included vaults appear together in note lists, search, quick open, backlinks, and wikilink navigation. Each note keeps a compact vault badge when Nabu needs to disambiguate where it lives.
 
 The selected vault still matters. Git status, commits, sync, folder navigation, saved views, and vault repair actions stay scoped to the current repository. Use `Manage vaults` from the vault menu or the Vaults settings section to rename vaults, choose colors, and set the default destination for new notes.
 

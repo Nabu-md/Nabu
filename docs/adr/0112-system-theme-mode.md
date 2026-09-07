@@ -8,13 +8,13 @@ date: 2026-05-05
 
 ## Context
 
-ADR-0081 introduced Tolaria's internal app-owned light and dark theme runtime and deliberately deferred system-follow mode. That kept the first dark-mode release small, but users now need Tolaria to match the operating system appearance automatically, including scheduled macOS light/dark changes.
+ADR-0081 introduced Nabu's internal app-owned light and dark theme runtime and deliberately deferred system-follow mode. That kept the first dark-mode release small, but users now need Nabu to match the operating system appearance automatically, including scheduled macOS light/dark changes.
 
 The previous constraints still apply: themes are app-owned, not vault-authored; the renderer must avoid startup flashes; shadcn/ui, Tailwind variables, editor chrome, and secondary windows must keep sharing the same resolved light/dark contract.
 
 ## Decision
 
-**Tolaria now treats `system` as a persisted theme preference that resolves to the current OS light/dark appearance at runtime.**
+**Nabu now treats `system` as a persisted theme preference that resolves to the current OS light/dark appearance at runtime.**
 
 The selected preference can be `light`, `dark`, or `system`:
 

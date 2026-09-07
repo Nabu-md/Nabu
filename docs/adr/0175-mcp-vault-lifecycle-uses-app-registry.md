@@ -6,7 +6,7 @@ Date: 2026-08-12
 
 ## Context
 
-Vault-neutral MCP clients already resolve mounted workspaces from Tolaria's installation-local `vaults.json`, but they could only operate on registered vaults. Attaching a prepared folder or cloning a repository therefore required GUI automation or direct config edits that did not update a running renderer.
+Vault-neutral MCP clients already resolve mounted workspaces from Nabu's installation-local `vaults.json`, but they could only operate on registered vaults. Attaching a prepared folder or cloning a repository therefore required GUI automation or direct config edits that did not update a running renderer.
 
 ## Decision
 
@@ -15,7 +15,7 @@ Expose `attach_vault` and `clone_vault` as explicit writable MCP tools. Both upd
 - Attach requires an existing readable absolute directory, canonicalizes it, and rejects vaults nested inside one another.
 - Clone uses the system Git configuration, disables interactive prompts, clones into a temporary sibling, and renames it into place only after success.
 - Registry writes are serialized within the MCP process and atomically renamed into the preferred current namespace.
-- A successful registration is added to the long-lived tool service's active path set immediately and broadcasts `vault_registry_changed` to connected Tolaria renderers.
+- A successful registration is added to the long-lived tool service's active path set immediately and broadcasts `vault_registry_changed` to connected Nabu renderers.
 - The renderer reloads registry metadata while preserving its current active vault.
 
 ## Consequences

@@ -19,22 +19,22 @@ describe('release workflow macOS artifact names', () => {
     )
 
     expect(alphaWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Silicon.app.tar.gz',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Silicon.app.tar.gz',
     )
     expect(alphaWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Intel.app.tar.gz',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Intel.app.tar.gz',
     )
     expect(stableWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Silicon.app.tar.gz',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Silicon.app.tar.gz',
     )
     expect(stableWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Intel.app.tar.gz',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Intel.app.tar.gz',
     )
     expect(stableWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Silicon.dmg',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Silicon.dmg',
     )
     expect(stableWorkflow).toContain(
-      'Tolaria_${{ needs.version.outputs.version }}_macOS_Intel.dmg',
+      'Nabu_${{ needs.version.outputs.version }}_macOS_Intel.dmg',
     )
   })
 
@@ -95,35 +95,35 @@ describe('extractStableDownloadTargets', () => {
       extractStableDownloadTargets({
         platforms: {
           'darwin-aarch64': {
-            download_url: 'https://example.com/Tolaria-aarch64.dmg',
+            download_url: 'https://example.com/Nabu-aarch64.dmg',
           },
           'darwin-x86_64': {
-            download_url: 'https://example.com/Tolaria-x64.dmg',
+            download_url: 'https://example.com/Nabu-x64.dmg',
           },
           'linux-x86_64': {
-            download_url: 'https://example.com/Tolaria.AppImage',
+            download_url: 'https://example.com/Nabu.AppImage',
           },
           'windows-x86_64': {
-            url: 'https://example.com/Tolaria-setup.exe',
+            url: 'https://example.com/Nabu-setup.exe',
           },
         },
       }),
     ).toMatchObject({
       'darwin-aarch64': {
         label: 'macOS Apple Silicon',
-        url: 'https://example.com/Tolaria-aarch64.dmg',
+        url: 'https://example.com/Nabu-aarch64.dmg',
       },
       'darwin-x86_64': {
         label: 'macOS Intel',
-        url: 'https://example.com/Tolaria-x64.dmg',
+        url: 'https://example.com/Nabu-x64.dmg',
       },
       'linux-x86_64': {
         label: 'Linux AppImage',
-        url: 'https://example.com/Tolaria.AppImage',
+        url: 'https://example.com/Nabu.AppImage',
       },
       'windows-x86_64': {
         label: 'Windows',
-        url: 'https://example.com/Tolaria-setup.exe',
+        url: 'https://example.com/Nabu-setup.exe',
       },
     })
   })
@@ -133,33 +133,33 @@ describe('buildStableDownloadRedirectPage', () => {
   it('builds a redirect page with platform-specific download links', () => {
     const html = buildStableDownloadRedirectPage({
       'darwin-aarch64': {
-        buttonLabel: 'Download Tolaria for macOS Apple Silicon',
+        buttonLabel: 'Download Nabu for macOS Apple Silicon',
         label: 'macOS Apple Silicon',
-        url: 'https://example.com/Tolaria-aarch64.dmg',
+        url: 'https://example.com/Nabu-aarch64.dmg',
       },
       'darwin-x86_64': {
-        buttonLabel: 'Download Tolaria for Intel Mac',
+        buttonLabel: 'Download Nabu for Intel Mac',
         label: 'macOS Intel',
-        url: 'https://example.com/Tolaria-x64.dmg',
+        url: 'https://example.com/Nabu-x64.dmg',
       },
       'windows-x86_64': {
-        buttonLabel: 'Download Tolaria for Windows',
+        buttonLabel: 'Download Nabu for Windows',
         label: 'Windows',
-        url: 'https://example.com/Tolaria-setup.exe',
+        url: 'https://example.com/Nabu-setup.exe',
       },
     })
 
-    expect(html).toContain('Tolaria Stable Download')
+    expect(html).toContain('Nabu Stable Download')
     expect(html).toContain('DOWNLOAD_TARGETS')
-    expect(html).toContain('Download Tolaria for Windows')
+    expect(html).toContain('Download Nabu for Windows')
     expect(html).toContain('Windows updater bundles are signed')
     expect(html).toContain('Authenticode publisher signing is added when configured')
-    expect(html).toContain('Download Tolaria for macOS Apple Silicon')
-    expect(html).toContain('Download Tolaria for Intel Mac')
+    expect(html).toContain('Download Nabu for macOS Apple Silicon')
+    expect(html).toContain('Download Nabu for Intel Mac')
     expect(html).toContain('hasMultipleMacDownloads')
     expect(html).toContain('Choose the Apple Silicon or Intel Mac download below.')
     expect(html).toContain('requiresWindowsInstallChoice')
-    expect(html).toContain('tolaria-download-frame')
+    expect(html).toContain('nabu-download-frame')
     expect(html).toContain('color-scheme: light dark')
     expect(html).toContain('@media (prefers-color-scheme: dark)')
     expect(html).toContain('background: var(--download-surface-page)')
@@ -168,14 +168,14 @@ describe('buildStableDownloadRedirectPage', () => {
   it('starts platform downloads without navigating away from the download page', () => {
     const html = buildStableDownloadRedirectPage({
       'windows-x86_64': {
-        buttonLabel: 'Download Tolaria for Windows',
+        buttonLabel: 'Download Nabu for Windows',
         label: 'Windows',
-        url: 'https://example.com/Tolaria-setup.exe',
+        url: 'https://example.com/Nabu-setup.exe',
       },
     })
 
-    expect(html).toContain('name="tolaria-download-frame"')
-    expect(html).toContain('target="tolaria-download-frame"')
+    expect(html).toContain('name="nabu-download-frame"')
+    expect(html).toContain('target="nabu-download-frame"')
     expect(html).toContain('sandbox="allow-downloads"')
     expect(html).toContain('startDownload(target)')
     expect(html).toContain('Company-managed devices may require IT approval')
@@ -185,10 +185,10 @@ describe('buildStableDownloadRedirectPage', () => {
   it('builds a fallback page when no stable downloads exist yet', () => {
     const html = buildStableDownloadRedirectPage({})
 
-    expect(html).toContain('Tolaria Stable Download Unavailable')
+    expect(html).toContain('Nabu Stable Download Unavailable')
     expect(html).toContain('View release history')
-    expect(html).toContain('https://tolaria.md/releases/')
-    expect(html).not.toContain('https://refactoringhq.github.io/tolaria/')
+    expect(html).toContain('https://nabu.md/releases/')
+    expect(html).not.toContain('https://refactoringhq.github.io/nabu/')
     expect(html).not.toContain('DOWNLOAD_TARGETS')
   })
 })
@@ -198,7 +198,7 @@ describe('resolveStableDownloadTargets', () => {
     const latestPayload = {
       platforms: {
         'darwin-aarch64': {
-          download_url: 'https://example.com/Tolaria-aarch64.dmg',
+          download_url: 'https://example.com/Nabu-aarch64.dmg',
         },
       },
     }
@@ -207,20 +207,20 @@ describe('resolveStableDownloadTargets', () => {
         prerelease: false,
         assets: [
           {
-            name: 'Tolaria_x64.dmg',
-            browser_download_url: 'https://example.com/Tolaria-x64.dmg',
+            name: 'Nabu_x64.dmg',
+            browser_download_url: 'https://example.com/Nabu-x64.dmg',
           },
           {
-            name: 'Tolaria-setup.exe',
-            browser_download_url: 'https://example.com/Tolaria-setup.exe',
+            name: 'Nabu-setup.exe',
+            browser_download_url: 'https://example.com/Nabu-setup.exe',
           },
           {
-            name: 'Tolaria.AppImage',
-            browser_download_url: 'https://example.com/Tolaria.AppImage',
+            name: 'Nabu.AppImage',
+            browser_download_url: 'https://example.com/Nabu.AppImage',
           },
           {
-            name: 'Tolaria.rpm',
-            browser_download_url: 'https://example.com/Tolaria.rpm',
+            name: 'Nabu.rpm',
+            browser_download_url: 'https://example.com/Nabu.rpm',
           },
         ],
       },
@@ -228,35 +228,35 @@ describe('resolveStableDownloadTargets', () => {
 
     expect(extractStableDownloadTargetsFromReleases(releasesPayload)).toMatchObject({
       'darwin-x86_64': {
-        url: 'https://example.com/Tolaria-x64.dmg',
+        url: 'https://example.com/Nabu-x64.dmg',
       },
       'linux-x86_64': {
-        url: 'https://example.com/Tolaria.AppImage',
+        url: 'https://example.com/Nabu.AppImage',
       },
       'linux-x86_64-rpm': {
         label: 'Linux RPM',
-        url: 'https://example.com/Tolaria.rpm',
+        url: 'https://example.com/Nabu.rpm',
       },
       'windows-x86_64': {
-        url: 'https://example.com/Tolaria-setup.exe',
+        url: 'https://example.com/Nabu-setup.exe',
       },
     })
     expect(resolveStableDownloadTargets(latestPayload, releasesPayload)).toMatchObject({
       'darwin-aarch64': {
-        url: 'https://example.com/Tolaria-aarch64.dmg',
+        url: 'https://example.com/Nabu-aarch64.dmg',
       },
       'darwin-x86_64': {
-        url: 'https://example.com/Tolaria-x64.dmg',
+        url: 'https://example.com/Nabu-x64.dmg',
       },
       'linux-x86_64': {
-        url: 'https://example.com/Tolaria.AppImage',
+        url: 'https://example.com/Nabu.AppImage',
       },
       'linux-x86_64-rpm': {
         label: 'Linux RPM',
-        url: 'https://example.com/Tolaria.rpm',
+        url: 'https://example.com/Nabu.rpm',
       },
       'windows-x86_64': {
-        url: 'https://example.com/Tolaria-setup.exe',
+        url: 'https://example.com/Nabu-setup.exe',
       },
     })
   })
@@ -264,14 +264,14 @@ describe('resolveStableDownloadTargets', () => {
   it('keeps AppImage as the Linux auto-download while exposing RPM manually', () => {
     const html = buildStableDownloadRedirectPage({
       'linux-x86_64': {
-        buttonLabel: 'Download Tolaria AppImage for Linux',
+        buttonLabel: 'Download Nabu AppImage for Linux',
         label: 'Linux AppImage',
-        url: 'https://example.com/Tolaria.AppImage',
+        url: 'https://example.com/Nabu.AppImage',
       },
       'linux-x86_64-rpm': {
-        buttonLabel: 'Download Tolaria RPM for Linux',
+        buttonLabel: 'Download Nabu RPM for Linux',
         label: 'Linux RPM',
-        url: 'https://example.com/Tolaria.rpm',
+        url: 'https://example.com/Nabu.rpm',
       },
     })
 

@@ -57,12 +57,12 @@ describe('useVaultRegistryRefresh', () => {
       vaults: [...registry.vaults, { label: 'Cloned', path: '/cloned/vault', mounted: true }],
     }
 
-    act(() => window.dispatchEvent(new CustomEvent('tolaria:vault-registry-changed')))
+    act(() => window.dispatchEvent(new CustomEvent('nabu:vault-registry-changed')))
     await waitFor(() => expect(result.current.vaults).toHaveLength(2))
     unmount()
 
     expect(removeEventListener).toHaveBeenCalledWith(
-      'tolaria:vault-registry-changed',
+      'nabu:vault-registry-changed',
       expect.any(Function),
     )
   })

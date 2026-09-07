@@ -53,7 +53,7 @@ export interface NoteActionsConfig {
   onInternalVaultWrite?: (path: string) => void
   /** Called after type files or type assignments change, so derived type surfaces can reload. */
   onTypeStateChanged?: () => void | Promise<void>
-  /** Opens generated HTML in the system viewer without loading active content in Tolaria. */
+  /** Opens generated HTML in the system viewer without loading active content in Nabu. */
   onOpenExternalFile?: (path: string) => void
 }
 

@@ -7,7 +7,7 @@ import {
   type RemotePasteImage,
 } from '../utils/remoteImagePaste'
 import { vaultAttachmentAssetUrl } from '../utils/vaultAttachments'
-import { createTolariaCodeBlockOptions } from './codeBlockOptions'
+import { createNabuCodeBlockOptions } from './codeBlockOptions'
 
 type PasteHandlerOptions = {
   plainTextAsMarkdown?: boolean
@@ -200,7 +200,7 @@ function resolveCodeBlockLanguage(language: string): string {
   const normalized = normalizedCodeBlockLanguageToken(language)
   if (!normalized) return ''
 
-  const supportedLanguages = createTolariaCodeBlockOptions().supportedLanguages ?? {}
+  const supportedLanguages = createNabuCodeBlockOptions().supportedLanguages ?? {}
   return Object.entries(supportedLanguages)
     .find(([id, option]) => id === normalized || option.aliases?.includes(normalized))
     ?.[0] ?? normalized

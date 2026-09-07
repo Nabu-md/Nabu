@@ -133,7 +133,7 @@ describe('useDeepLinks', () => {
     })
 
     act(() => {
-      personal.result.current.openDeepLink('tolaria://team/notes/roadmap.md')
+      personal.result.current.openDeepLink('nabu://team/notes/roadmap.md')
     })
 
     await waitFor(() => expect(teamSelectNote).toHaveBeenCalledWith(teamEntry))
@@ -151,7 +151,7 @@ describe('useDeepLinks', () => {
     })
 
     act(() => {
-      result.current.openDeepLink('tolaria://team/notes/roadmap.md')
+      result.current.openDeepLink('nabu://team/notes/roadmap.md')
     })
 
     await waitFor(() => expect(switchVault).toHaveBeenCalledWith(teamVault.path), { timeout: 1_000 })

@@ -10,7 +10,7 @@ date: 2026-04-30
 
 ADR-0016 established opt-in PostHog analytics and Sentry crash reporting, but new feature telemetry now spans file previews, inline image lightbox opens, AI agent session lifecycle events, and All Notes visibility toggles. Instrumenting those flows ad hoc would make it easy to leak vault-specific data such as note paths, filenames, prompt text, or image URLs.
 
-Tolaria needs richer product telemetry for feature behavior while preserving the privacy bar expected from a local-first notes app.
+Nabu needs richer product telemetry for feature behavior while preserving the privacy bar expected from a local-first notes app.
 
 ## Decision
 
@@ -32,4 +32,4 @@ Tolaria needs richer product telemetry for feature behavior while preserving the
 - Telemetry reviews become easier because the allowed product-event surface is centralized.
 - Future product analytics work should start by defining categorical event helpers, not by attaching raw note/file context.
 - Some debugging detail is intentionally sacrificed; deep diagnosis should rely on consented crash reporting and local reproduction rather than richer analytics payloads.
-- Re-evaluate if Tolaria ever needs a broader telemetry taxonomy or stronger compile-time guarantees around event schemas.
+- Re-evaluate if Nabu ever needs a broader telemetry taxonomy or stronger compile-time guarantees around event schemas.

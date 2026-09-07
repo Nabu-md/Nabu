@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { VaultEntry } from '../types'
 
-const STORAGE_KEY = 'tolaria:ai-workspace-window-context:v1'
+const STORAGE_KEY = 'nabu:ai-workspace-window-context:v1'
 
 const makeEntry = (overrides: Partial<VaultEntry> = {}): VaultEntry => ({
   path: '/vault/note.md',

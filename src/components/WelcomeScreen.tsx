@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { OnboardingShell } from './OnboardingShell'
 import { Button } from '@/components/ui/button'
-import tolariaIcon from '@/assets/tolaria-icon.svg'
+import nabuIcon from '@/assets/nabu-icon.svg'
 import { TOLARIA_FIRST_LAUNCH_DOCS_URL } from '@/constants/feedback'
 import { translate, type AppLocale } from '@/lib/i18n'
 import { openExternalUrl } from '@/utils/url'
@@ -290,7 +290,7 @@ function getWelcomeScreenPresentation(
   if (mode === 'welcome') {
     return {
       heroBackground: 'transparent',
-      heroIcon: <img src={tolariaIcon} alt="Tolaria icon" style={BRAND_ICON_STYLE} />,
+      heroIcon: <img src={nabuIcon} alt="Nabu icon" style={BRAND_ICON_STYLE} />,
       openFolderLabel: translate(locale, 'onboarding.welcome.openExisting'),
       subtitle: translate(locale, 'onboarding.welcome.subtitle'),
       templateDescription: isOffline
@@ -304,7 +304,7 @@ function getWelcomeScreenPresentation(
 
   return {
     heroBackground: 'transparent',
-    heroIcon: <img src={tolariaIcon} alt="Tolaria icon" style={BRAND_ICON_STYLE} />,
+    heroIcon: <img src={nabuIcon} alt="Nabu icon" style={BRAND_ICON_STYLE} />,
     openFolderLabel: translate(locale, 'onboarding.welcome.openExisting'),
     subtitle: translate(locale, 'onboarding.welcome.missingSubtitle'),
     templateDescription: isOffline

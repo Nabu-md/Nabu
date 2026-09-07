@@ -24,7 +24,7 @@ after the workspace flag moved from `--cwd` to `--add-dir`.
 
 ## Decision
 
-Tolaria launches app-managed Antigravity sessions with:
+Nabu launches app-managed Antigravity sessions with:
 
 ```text
 agy -p <prompt> --add-dir <vault>
@@ -35,14 +35,14 @@ The permission mode mapping is:
 - Safe: pass `--sandbox`
 - Power User: pass `--dangerously-skip-permissions`
 
-The subprocess `current_dir` remains the active vault path, and Tolaria still
+The subprocess `current_dir` remains the active vault path, and Nabu still
 writes the transient MCP config to `<vault>/.agents/mcp_config.json` before
 launch.
 
 ## Consequences
 
 - Antigravity CLI versions that reject `--cwd`, `--toolPermission*`, or
-  `--sandbox=<value>` can start from the Tolaria AI panel.
+  `--sandbox=<value>` can start from the Nabu AI panel.
 - Safe mode keeps Antigravity sandboxing enabled through the CLI-supported
   boolean flag.
 - Power User uses the CLI-supported bypass flag because Antigravity no longer

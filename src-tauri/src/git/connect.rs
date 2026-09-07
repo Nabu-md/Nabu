@@ -56,7 +56,7 @@ impl RemoteConnection {
 
     fn pushed_history_message(&self) -> String {
         format!(
-            "Remote connected. Tolaria pushed your local commits and is now tracking {}.",
+            "Remote connected. Nabu pushed your local commits and is now tracking {}.",
             self.remote_branch
         )
     }
@@ -125,7 +125,7 @@ fn connection_for_current_branch(vault: &Path) -> Result<Option<RemoteConnection
 fn missing_branch_result() -> GitAddRemoteResult {
     connect_result(
         ConnectStatus::Error,
-        "Tolaria could not determine the current branch for this vault.",
+        "Nabu could not determine the current branch for this vault.",
     )
 }
 
@@ -190,7 +190,7 @@ fn finish_remote_connection(vault: &Path, connection: &RemoteConnection) -> GitA
         return connect_result(
             ConnectStatus::IncompatibleHistory,
             format!(
-                "This repository already has commits on '{}' that are not in this vault. Tolaria will not connect it automatically.",
+                "This repository already has commits on '{}' that are not in this vault. Nabu will not connect it automatically.",
                 connection.branch
             ),
         );

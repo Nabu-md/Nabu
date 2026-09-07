@@ -10,7 +10,7 @@ date: 2026-07-24
 
 ADR-0064 made project-wide Hotspot and Average Code Health a ratcheted release gate. Those scores are calculated from the latest remote CodeScene analysis, so they are valuable repository-level monitors but cannot describe an uncommitted local change. The local pre-push hook can also only read the previous remote analysis until the new commit has reached the repository and CodeScene has analyzed it.
 
-Tolaria pushes directly to `main`, so it has no pull-request boundary where a normal change-set review would run. The written Boy Scout rule already requires file-level before/after reviews, but reviewing files one at a time does not provide one final verdict for the complete commit or task.
+Nabu pushes directly to `main`, so it has no pull-request boundary where a normal change-set review would run. The written Boy Scout rule already requires file-level before/after reviews, but reviewing files one at a time does not provide one final verdict for the complete commit or task.
 
 CodeScene's MCP provides two change-aware safeguards for these boundaries: `pre_commit_code_health_safeguard` reviews modified and staged files, and `analyze_change_set` compares the complete committed change with a base Git reference.
 
@@ -21,7 +21,7 @@ CodeScene's MCP provides two change-aware safeguards for these boundaries: `pre_
 - Continue file-level before/after reviews while editing, preserving the Boy Scout rule.
 - Before every commit, run `pre_commit_code_health_safeguard` for the repository. Its quality gates must pass.
 - Before the final push, run `analyze_change_set` against `origin/main`. Every affected file must be improved or stable, and the overall quality gate must pass.
-- Treat the final change-set analysis as Tolaria's local PR-preflight equivalent.
+- Treat the final change-set analysis as Nabu's local PR-preflight equivalent.
 - Keep the remote Hotspot and Average thresholds as the outer repository gate and trend signal.
 - Prefer the CodeScene MCP. If it is unavailable, use the supported CodeScene CLI equivalent. Do not silently replace change-aware analysis with the previous remote project score.
 

@@ -62,7 +62,7 @@ function restoreGuidanceCommands({
   return [
     {
       id: 'restore-vault-ai-guidance',
-      label: 'Restore Tolaria AI Guidance',
+      label: 'Restore Nabu AI Guidance',
       group: 'Settings',
       keywords: aiAgentKeywords('ai', 'agent', 'guidance', 'restore', 'repair', 'agents', 'antigravity', 'gemini'),
       enabled: true,

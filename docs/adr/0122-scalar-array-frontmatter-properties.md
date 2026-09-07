@@ -6,13 +6,13 @@ Date: 2026-05-15
 
 ## Context
 
-Saved Views filter against `VaultEntry.properties` in the renderer and in the Rust view evaluator. Before this decision, Tolaria preserved custom scalar frontmatter values as properties but dropped multi-element non-wikilink arrays during a full vault scan. That made a view such as `tags / contains / blues` unstable: optimistic renderer state could see a changed array for a while, but reload, view switch, or restart rebuilt the entry without the array-backed property.
+Saved Views filter against `VaultEntry.properties` in the renderer and in the Rust view evaluator. Before this decision, Nabu preserved custom scalar frontmatter values as properties but dropped multi-element non-wikilink arrays during a full vault scan. That made a view such as `tags / contains / blues` unstable: optimistic renderer state could see a changed array for a while, but reload, view switch, or restart rebuilt the entry without the array-backed property.
 
 Relationship arrays already have separate semantics because wikilink-bearing fields are stored in `VaultEntry.relationships`. Plain scalar arrays need to stay queryable as custom properties without being treated as relationship fields.
 
 ## Decision
 
-**Tolaria preserves custom scalar-array frontmatter fields in `VaultEntry.properties`, while wikilink-bearing arrays remain relationships.** Single-item scalar arrays continue to normalize to a scalar value for compatibility; multi-item scalar arrays remain arrays.
+**Nabu preserves custom scalar-array frontmatter fields in `VaultEntry.properties`, while wikilink-bearing arrays remain relationships.** Single-item scalar arrays continue to normalize to a scalar value for compatibility; multi-item scalar arrays remain arrays.
 
 Saved View filters evaluate scalar-array properties with set semantics. `contains` and `any_of` match exact case-insensitive elements, not substrings inside an element. Scalar properties keep their existing case-insensitive text matching behavior.
 

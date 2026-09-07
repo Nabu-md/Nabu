@@ -6,7 +6,7 @@ import { cleanupTauriEventListeners, type TauriUnlisten } from './tauriEventClea
 export const AI_WORKSPACE_WINDOW_LABEL = 'ai-workspace'
 export const AI_WORKSPACE_CONTEXT_UPDATED_EVENT = 'ai-workspace-context-updated'
 
-const AI_WORKSPACE_WINDOW_TITLE = 'Tolaria AI'
+const AI_WORKSPACE_WINDOW_TITLE = 'Nabu AI'
 const APP_ORIGIN_PROTOCOLS = new Set(['http:', 'https:'])
 const CREATE_TIMEOUT_MS = 4_000
 const TRANSPARENT_WINDOW_BACKGROUND: [number, number, number, number] = [0, 0, 0, 0]

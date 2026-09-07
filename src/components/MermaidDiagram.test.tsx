@@ -46,7 +46,7 @@ describe('MermaidDiagram', () => {
       expect(screen.getByTestId('mermaid-diagram-viewport').querySelector('svg')).not.toBeNull()
     })
     expect(mermaidMock.render).toHaveBeenCalledWith(
-      expect.stringMatching(/^tolaria-mermaid-/),
+      expect.stringMatching(/^nabu-mermaid-/),
       'flowchart LR\nA --> B',
       expect.any(HTMLElement),
     )
@@ -244,7 +244,7 @@ describe('MermaidDiagram', () => {
     })
 
     expect(mermaidMock.render).toHaveBeenCalledWith(
-      expect.stringMatching(/^tolaria-mermaid-/),
+      expect.stringMatching(/^nabu-mermaid-/),
       'timeline\n    title Dayflow · 7月7日\n    08&#58;00 : Wake up\n    09&#58;30 : Focus block',
       expect.any(HTMLElement),
     )

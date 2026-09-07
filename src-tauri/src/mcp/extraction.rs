@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 #[cfg(all(desktop, target_os = "linux"))]
 use std::time::{Duration, Instant, SystemTime};
 
-const VERSION_MARKER_FILE: &str = ".tolaria-version";
+const VERSION_MARKER_FILE: &str = ".nabu-version";
 #[cfg(all(desktop, target_os = "linux"))]
 const LOCK_FILE: &str = "mcp-server.lock";
 const STAGING_DIR: &str = "mcp-server.staging";
@@ -41,7 +41,7 @@ pub(crate) fn extract_mcp_server_to_stable_dir(app_version: &str) -> Result<Path
 
 fn stable_mcp_server_dir() -> Result<PathBuf, String> {
     dirs::data_dir()
-        .map(|data_dir| data_dir.join("tolaria").join("mcp-server"))
+        .map(|data_dir| data_dir.join("nabu").join("mcp-server"))
         .ok_or_else(|| "Unable to resolve data directory for stable MCP server path".to_string())
 }
 
@@ -239,7 +239,7 @@ mod tests {
     fn stable_mcp_server_dir_uses_app_data_dir() {
         let expected = dirs::data_dir()
             .expect("data dir should exist")
-            .join("tolaria")
+            .join("nabu")
             .join("mcp-server");
 
         assert_eq!(stable_mcp_server_dir().unwrap(), expected);
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn stable_mcp_server_dir_requires_marker_and_files() {
         let tmp = tempfile::tempdir().unwrap();
-        let stable_dir = tmp.path().join("tolaria").join("mcp-server");
+        let stable_dir = tmp.path().join("nabu").join("mcp-server");
 
         fs::create_dir_all(&stable_dir).unwrap();
         fs::write(stable_dir.join("index.js"), "").unwrap();
@@ -290,7 +290,7 @@ mod tests {
     fn replace_stable_server_dir_swaps_versioned_copy() {
         let tmp = tempfile::tempdir().unwrap();
         let source = create_server_dir(tmp.path());
-        let target = tmp.path().join("tolaria").join("mcp-server");
+        let target = tmp.path().join("nabu").join("mcp-server");
         fs::create_dir_all(&target).unwrap();
         fs::write(target.join("stale.txt"), "old").unwrap();
 

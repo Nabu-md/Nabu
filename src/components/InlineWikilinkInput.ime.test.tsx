@@ -17,7 +17,7 @@ function ControlledComposer({ onDraftChange }: { onDraftChange: (value: string) 
       value={value}
       onChange={handleChange}
       onSend={vi.fn()}
-      placeholder="Ask Tolaria"
+      placeholder="Ask Nabu"
     />
   )
 }
@@ -52,7 +52,7 @@ describe('InlineWikilinkInput Korean IME settlement', () => {
   it('hides the placeholder while composing and restores it after cancellation', () => {
     render(<ControlledComposer onDraftChange={vi.fn()} />)
     const editor = screen.getByTestId('agent-input')
-    const placeholder = screen.getByText('Ask Tolaria')
+    const placeholder = screen.getByText('Ask Nabu')
 
     expect(placeholder).not.toHaveAttribute('hidden')
     fireEvent.compositionStart(editor)
@@ -69,7 +69,7 @@ describe('InlineWikilinkInput Korean IME settlement', () => {
 
     editor.focus()
     fireEvent.compositionStart(editor)
-    expect(screen.getByText('Ask Tolaria')).toHaveAttribute('hidden')
+    expect(screen.getByText('Ask Nabu')).toHaveAttribute('hidden')
     editor.textContent = '안녕하세'
     setSelection(editor, '안녕하세'.length)
     fireEvent.input(editor)
@@ -77,7 +77,7 @@ describe('InlineWikilinkInput Korean IME settlement', () => {
 
     await act(async () => Promise.resolve())
 
-    expect(screen.getByText('Ask Tolaria')).toHaveAttribute('hidden')
+    expect(screen.getByText('Ask Nabu')).toHaveAttribute('hidden')
     expect(onDraftChange).not.toHaveBeenCalled()
     expect(screen.getByTestId('agent-input')).toBe(editor)
 

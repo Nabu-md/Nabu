@@ -36,14 +36,14 @@
   text-align: start;
 }
 
-.tolaria-rich-editor-text-direction-rtl,
-[data-tolaria-text-direction="rtl"],
-[data-tolaria-text-direction="rtl"] :is(blockquote, .bn-inline-content, .tola-callout) {
+.nabu-rich-editor-text-direction-rtl,
+[data-nabu-text-direction="rtl"],
+[data-nabu-text-direction="rtl"] :is(blockquote, .bn-inline-content, .tola-callout) {
   direction: rtl;
 }
 
-[data-tolaria-text-direction="rtl"]:is(blockquote),
-[data-tolaria-text-direction="rtl"] blockquote {
+[data-nabu-text-direction="rtl"]:is(blockquote),
+[data-nabu-text-direction="rtl"] blockquote {
   border-left-width: 0;
   border-inline-start: var(--blockquote-border-left-width, 3px) solid var(--blockquote-border-left-color, var(--border));
   padding-inline-start: var(--blockquote-padding-left, 0.75em);
@@ -65,7 +65,7 @@
 }
 
 .editor__blocknote-container .bn-side-menu button,
-.editor__blocknote-container .tolaria-block-drag-handle {
+.editor__blocknote-container .nabu-block-drag-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -94,9 +94,9 @@
   background: transparent;
 }
 
-.editor__blocknote-container .bn-block-outer.tolaria-rich-editor-block-selected {
-  --tolaria-block-selection-right-outset: 10px;
-  --tolaria-block-selection-top-outset: 2px;
+.editor__blocknote-container .bn-block-outer.nabu-rich-editor-block-selected {
+  --nabu-block-selection-right-outset: 10px;
+  --nabu-block-selection-top-outset: 2px;
 
   caret-color: transparent;
   isolation: isolate;
@@ -104,20 +104,20 @@
   position: relative;
 }
 
-.editor__blocknote-container .bn-block-outer.tolaria-rich-editor-block-selected *,
-.editor__blocknote-container .bn-block.tolaria-rich-editor-block-selected,
-.editor__blocknote-container .bn-block.tolaria-rich-editor-block-selected * {
+.editor__blocknote-container .bn-block-outer.nabu-rich-editor-block-selected *,
+.editor__blocknote-container .bn-block.nabu-rich-editor-block-selected,
+.editor__blocknote-container .bn-block.nabu-rich-editor-block-selected * {
   caret-color: transparent;
 }
 
-.editor__blocknote-container .bn-block-outer.tolaria-rich-editor-block-selected::after {
+.editor__blocknote-container .bn-block-outer.nabu-rich-editor-block-selected::after {
   background: color-mix(in srgb, var(--colors-selection) 82%, transparent);
   border-radius: 6px;
   content: "";
   inset:
-    calc(var(--tolaria-block-selection-top-outset) * -1)
-    calc(var(--tolaria-block-selection-right-outset) * -1)
-    calc(var(--tolaria-block-selection-top-outset) * -1)
+    calc(var(--nabu-block-selection-top-outset) * -1)
+    calc(var(--nabu-block-selection-right-outset) * -1)
+    calc(var(--nabu-block-selection-top-outset) * -1)
     0;
   pointer-events: none;
   position: absolute;
@@ -125,26 +125,26 @@
 }
 
 .editor__blocknote-container
-  .bn-block-outer.tolaria-rich-editor-block-selected:has(> .bn-block > .bn-block-content[data-content-type="paragraph"])::after {
+  .bn-block-outer.nabu-rich-editor-block-selected:has(> .bn-block > .bn-block-content[data-content-type="paragraph"])::after {
   bottom: calc(var(--editor-paragraph-spacing) - 2px);
 }
 
-.editor__blocknote-container .bn-block-outer.tolaria-rich-editor-block-selected:has(hr)::after {
+.editor__blocknote-container .bn-block-outer.nabu-rich-editor-block-selected:has(hr)::after {
   content: none;
 }
 
-.editor__blocknote-container .bn-block-outer.tolaria-rich-editor-block-selected > .bn-block {
+.editor__blocknote-container .bn-block-outer.nabu-rich-editor-block-selected > .bn-block {
   position: relative;
   z-index: 1;
 }
 
-.editor__blocknote-container .bn-block.tolaria-rich-editor-block-selected {
+.editor__blocknote-container .bn-block.nabu-rich-editor-block-selected {
   background: color-mix(in srgb, var(--colors-selection) 82%, transparent);
   border-radius: 6px;
   box-decoration-break: clone;
 }
 
-.editor__blocknote-container .bn-block.tolaria-rich-editor-block-selected:has(hr) {
+.editor__blocknote-container .bn-block.nabu-rich-editor-block-selected:has(hr) {
   background: transparent;
 }
 
@@ -598,7 +598,7 @@
   max-height: calc(100dvh - 32px);
   overflow: hidden;
   padding: 0;
-  zoom: var(--tolaria-overlay-zoom-inverse, 1);
+  zoom: var(--nabu-overlay-zoom-inverse, 1);
 }
 
 .mermaid-diagram__dialog-viewport {
@@ -784,7 +784,7 @@ body.tldraw-whiteboard-fullscreen-open {
   cursor: pointer;
 }
 
-/* Code blocks follow Tolaria's theme instead of BlockNote's fixed dark shell. */
+/* Code blocks follow Nabu's theme instead of BlockNote's fixed dark shell. */
 .editor__blocknote-container .bn-block-content[data-content-type="codeBlock"] {
   background-color: var(--editor-code-block-background) !important;
   border: 1px solid var(--editor-code-block-border);

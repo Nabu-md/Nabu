@@ -1,6 +1,6 @@
-name: Tolaria
+name: Nabu
 options:
-  bundleIdPrefix: club.refactoring.tolaria
+  bundleIdPrefix: club.refactoring.nabu
   deploymentTarget:
     iOS: 14.0
 fileGroups: [../../src]
@@ -10,8 +10,8 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: Tolaria
-      PRODUCT_BUNDLE_IDENTIFIER: club.refactoring.tolaria
+      PRODUCT_NAME: Nabu
+      PRODUCT_BUNDLE_IDENTIFIER: club.refactoring.nabu
 targetTemplates:
   app:
     type: application

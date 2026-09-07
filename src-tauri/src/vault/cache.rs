@@ -963,8 +963,8 @@ mod tests {
     fn test_to_relative_path_normalizes_aliases_and_separators() {
         assert_eq!(
             to_relative_path(
-                "/tmp/tolaria-vault/projects\\active.md",
-                Path::new("/private/tmp/tolaria-vault")
+                "/tmp/nabu-vault/projects\\active.md",
+                Path::new("/private/tmp/nabu-vault")
             ),
             "projects/active.md"
         );

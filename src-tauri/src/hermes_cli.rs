@@ -46,7 +46,7 @@ fn build_hermes_command(
         .arg("chat")
         .arg("--quiet")
         .arg("--source")
-        .arg("tolaria")
+        .arg("nabu")
         .arg("-q")
         .arg(prompt)
         .current_dir(vault_path)
@@ -57,7 +57,7 @@ fn build_hermes_command(
 
 fn format_hermes_error(stderr_output: &str, status: &str) -> String {
     if is_auth_or_setup_error(stderr_output) {
-        return "Hermes Agent is not ready. Run `hermes setup`, choose a model with `hermes model`, then run `hermes doctor` in your terminal before retrying in Tolaria.".into();
+        return "Hermes Agent is not ready. Run `hermes setup`, choose a model with `hermes model`, then run `hermes doctor` in your terminal before retrying in Nabu.".into();
     }
 
     let stderr = stderr_output.trim();
@@ -94,7 +94,7 @@ mod tests {
         AgentStreamRequest {
             message: "Summarize".into(),
             model: None,
-            system_prompt: Some("Use Tolaria conventions".into()),
+            system_prompt: Some("Use Nabu conventions".into()),
             vault_path,
             vault_paths: Vec::new(),
             permission_mode: AiAgentPermissionMode::Safe,
@@ -123,7 +123,7 @@ mod tests {
 
         assert_eq!(
             args,
-            ["chat", "--quiet", "--source", "tolaria", "-q", "Prompt"]
+            ["chat", "--quiet", "--source", "nabu", "-q", "Prompt"]
         );
         assert_eq!(command.get_current_dir(), Some(Path::new("/tmp/vault")));
     }

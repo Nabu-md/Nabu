@@ -222,12 +222,12 @@ describe('aiAgentStreamCallbacks', () => {
     })
 
     callbacks.onText("I'll create the Project note now.")
-    callbacks.onText('Created [[Tolaria Mobile]] as a Project note with a relation to [[frontend]].')
+    callbacks.onText('Created [[Nabu Mobile]] as a Project note with a relation to [[frontend]].')
     callbacks.onText('It covers three tech stack paths.')
     callbacks.onDone()
 
     expect(messages.getMessages()[0].response).toBe(
-      "I'll create the Project note now. Created [[Tolaria Mobile]] as a Project note with a relation to [[frontend]]. It covers three tech stack paths.",
+      "I'll create the Project note now. Created [[Nabu Mobile]] as a Project note with a relation to [[frontend]]. It covers three tech stack paths.",
     )
   })
 
@@ -317,7 +317,7 @@ describe('aiAgentStreamCallbacks', () => {
       fileCallbacksRef: { current: undefined },
     })
 
-    callbacks.onError(`tolaria:i18n-error:${JSON.stringify({
+    callbacks.onError(`nabu:i18n-error:${JSON.stringify({
       key: 'ai.error.pi.emptyOutputWithDiagnostic',
       values: { diagnostic_output: diagnosticOutput },
     })}`)

@@ -22,7 +22,7 @@ fi
 base_url="${base_url:-http://127.0.0.1:${port}}"
 port="$(node -e 'console.log(new URL(process.argv[1]).port || "41741")' "$base_url")"
 
-log_file="${TMPDIR:-/tmp}/tolaria-playwright-smoke-${shard_label}.log"
+log_file="${TMPDIR:-/tmp}/nabu-playwright-smoke-${shard_label}.log"
 playwright_pid=""
 
 cleanup() {

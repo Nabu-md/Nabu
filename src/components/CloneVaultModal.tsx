@@ -207,7 +207,7 @@ function CloneVaultForm(form: CloneVaultFormState) {
       <CloneVaultInputs {...form} />
       <p className="text-xs text-muted-foreground">
         {form.isCloning
-          ? 'Cloning repository… Tolaria will open the vault when git finishes.'
+          ? 'Cloning repository… Nabu will open the vault when git finishes.'
           : 'SSH keys, the git credential manager, `gh auth`, and other system git auth methods all work.'}
       </p>
       {form.cloneError && (
@@ -238,7 +238,7 @@ export function CloneVaultModal({ open, onClose, onVaultCloned }: CloneVaultModa
         <DialogHeader>
           <DialogTitle>Clone Git Repo</DialogTitle>
           <DialogDescription>
-            Clone any remote repository into a local vault folder. Tolaria uses your existing system git
+            Clone any remote repository into a local vault folder. Nabu uses your existing system git
             configuration for authentication.
           </DialogDescription>
         </DialogHeader>

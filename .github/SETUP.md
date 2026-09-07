@@ -16,7 +16,7 @@ Trova l'ID del progetto nella dashboard CodeScene (URL: `https://codescene.io/pr
 
 **VITE_SENTRY_DSN**
 ```
-<frontend Sentry DSN used by shipped Tolaria builds>
+<frontend Sentry DSN used by shipped Nabu builds>
 ```
 
 **SENTRY_DSN**
@@ -26,7 +26,7 @@ Trova l'ID del progetto nella dashboard CodeScene (URL: `https://codescene.io/pr
 
 **VITE_POSTHOG_KEY**
 ```
-<PostHog project API key used by shipped Tolaria builds>
+<PostHog project API key used by shipped Nabu builds>
 ```
 
 **VITE_POSTHOG_HOST**

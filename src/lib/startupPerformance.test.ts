@@ -75,7 +75,7 @@ describe('startup performance telemetry', () => {
     startup.markStartupPhase('app_interactive')
     startup.markStartupPhase('app_interactive')
 
-    expect(performance.getEntriesByName('tolaria:app_interactive', 'mark')).toHaveLength(1)
+    expect(performance.getEntriesByName('nabu:app_interactive', 'mark')).toHaveLength(1)
   })
 
   it('releases deferred startup work when its prerequisite phase arrives', async () => {

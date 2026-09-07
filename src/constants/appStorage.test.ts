@@ -12,7 +12,7 @@ describe('appStorage legacy migration', () => {
     })
   })
 
-  it('copies legacy values to Tolaria keys without overwriting existing values', () => {
+  it('copies legacy values to Nabu keys without overwriting existing values', () => {
     store[LEGACY_APP_STORAGE_KEYS.theme] = 'dark'
     store[LEGACY_APP_STORAGE_KEYS.zoom] = '125'
     store[APP_STORAGE_KEYS.zoom] = '100'
@@ -24,7 +24,7 @@ describe('appStorage legacy migration', () => {
     expect(store[APP_STORAGE_KEYS.legacyMigrationFlag]).toBe('1')
   })
 
-  it('falls back to legacy values when the Tolaria key is absent', () => {
+  it('falls back to legacy values when the Nabu key is absent', () => {
     store[LEGACY_APP_STORAGE_KEYS.viewMode] = 'editor-list'
 
     expect(getAppStorageItem('viewMode')).toBe('editor-list')

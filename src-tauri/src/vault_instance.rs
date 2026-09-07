@@ -2,8 +2,8 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const VAULT_INSTANCE_FLAG: &str = "--tolaria-vault-instance";
-const VAULT_COLOR_FLAG: &str = "--tolaria-vault-color";
+const VAULT_INSTANCE_FLAG: &str = "--nabu-vault-instance";
+const VAULT_COLOR_FLAG: &str = "--nabu-vault-color";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VaultInstanceLaunch {
@@ -113,7 +113,7 @@ pub fn open_vault_in_new_window(
     }
 
     let executable = tauri::process::current_binary(&tauri::Env::default())
-        .map_err(|error| format!("Failed to locate Tolaria executable: {error}"))?;
+        .map_err(|error| format!("Failed to locate Nabu executable: {error}"))?;
     let plan = launch_plan(
         &executable,
         &resolved_vault,
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn parses_vault_path_and_supported_color() {
         let launch = parse_launch_args([
-            "tolaria",
+            "nabu",
             VAULT_INSTANCE_FLAG,
             "/Users/luca/Work Vault",
             VAULT_COLOR_FLAG,
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn ignores_unknown_colors_and_unrelated_launches() {
         let unsupported = parse_launch_args([
-            "tolaria",
+            "nabu",
             VAULT_INSTANCE_FLAG,
             "/tmp/vault",
             VAULT_COLOR_FLAG,
@@ -170,13 +170,13 @@ mod tests {
                 vault_color: None,
             })
         );
-        assert_eq!(parse_launch_args(["tolaria"]), None);
+        assert_eq!(parse_launch_args(["nabu"]), None);
     }
 
     #[test]
     fn packaged_macos_launches_through_launch_services_as_a_new_instance() {
         let plan = launch_plan(
-            Path::new("/Applications/Tolaria.app/Contents/MacOS/Tolaria"),
+            Path::new("/Applications/Nabu.app/Contents/MacOS/Nabu"),
             Path::new("/Users/luca/Work Vault"),
             Some("green"),
             "macos",
@@ -187,7 +187,7 @@ mod tests {
             plan.args,
             [
                 "-n",
-                "/Applications/Tolaria.app",
+                "/Applications/Nabu.app",
                 "--args",
                 VAULT_INSTANCE_FLAG,
                 "/Users/luca/Work Vault",
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn development_launches_the_current_executable_directly() {
-        let executable = Path::new("/repo/target/debug/tolaria");
+        let executable = Path::new("/repo/target/debug/nabu");
         let plan = launch_plan(executable, Path::new("/tmp/vault"), None, "macos");
 
         assert_eq!(plan.program, executable);

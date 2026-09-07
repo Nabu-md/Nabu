@@ -8,7 +8,7 @@ date: 2026-05-01
 
 ## Context
 
-Tolaria notes are durable Markdown files on disk, but the rich editor renders them through BlockNote blocks. Large notes exposed a tempting optimization: show a fast Markdown preview first, then hydrate BlockNote later. In practice, that creates two renderers for the same document, visible flicker, delayed click-time lag, and more places for stale async work to race with the currently selected note.
+Nabu notes are durable Markdown files on disk, but the rich editor renders them through BlockNote blocks. Large notes exposed a tempting optimization: show a fast Markdown preview first, then hydrate BlockNote later. In practice, that creates two renderers for the same document, visible flicker, delayed click-time lag, and more places for stale async work to race with the currently selected note.
 
 The editor must optimize for the product priorities in this order:
 
@@ -19,7 +19,7 @@ The editor must optimize for the product priorities in this order:
 
 ## Decision
 
-**Tolaria keeps a single direct editor surface for Markdown notes and treats editor content swaps as generation-checked, source-content-checked operations.** Fast loading may use raw file-content prefetching and a bounded parsed-block cache, but it must not show a separate preview that later swaps into the editor. Parsed BlockNote blocks are reusable only when their source Markdown exactly matches the content being opened, and background parsing must run only after recent typing/navigation has gone idle.
+**Nabu keeps a single direct editor surface for Markdown notes and treats editor content swaps as generation-checked, source-content-checked operations.** Fast loading may use raw file-content prefetching and a bounded parsed-block cache, but it must not show a separate preview that later swaps into the editor. Parsed BlockNote blocks are reusable only when their source Markdown exactly matches the content being opened, and background parsing must run only after recent typing/navigation has gone idle.
 
 ## Options considered
 
@@ -31,7 +31,7 @@ The editor must optimize for the product priorities in this order:
 ## Consequences
 
 - Async editor work must prove it still matches both the latest swap generation and the latest tab source content before touching BlockNote.
-- Cached raw note content must be validated against disk before it is shown unless it carries the same `modifiedAt` and `fileSize` identity as the current `VaultEntry`, or the content was just authored by Tolaria in the current process.
+- Cached raw note content must be validated against disk before it is shown unless it carries the same `modifiedAt` and `fileSize` identity as the current `VaultEntry`, or the content was just authored by Nabu in the current process.
 - Cached parsed BlockNote blocks must be keyed by vault, path, and exact source content, cloned on read/write, and bounded by entry count plus source byte budget.
 - Background parsed-block warming is allowed only for likely next large Markdown notes after a foreground idle window; active typing, raw mode, and editor mount state must defer it.
 - Dirty local editor content remains authoritative. External filesystem refreshes may replace clean notes, but must not overwrite unsaved local edits.

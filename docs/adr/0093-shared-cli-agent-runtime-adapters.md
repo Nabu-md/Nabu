@@ -8,15 +8,15 @@ date: 2026-04-29
 
 ## Context
 
-Tolaria supports Claude Code, Codex, OpenCode, and Pi as local CLI agents in the AI panel. Each agent has different command-line arguments, configuration shape, and JSON event schema, but the Rust backend had grown repeated runtime plumbing around those differences: request shapes, prompt wrapping, subprocess launch, stdout JSON reading, stderr capture, exit handling, done events, version probing, and Tolaria MCP server path resolution.
+Nabu supports Claude Code, Codex, OpenCode, and Pi as local CLI agents in the AI panel. Each agent has different command-line arguments, configuration shape, and JSON event schema, but the Rust backend had grown repeated runtime plumbing around those differences: request shapes, prompt wrapping, subprocess launch, stdout JSON reading, stderr capture, exit handling, done events, version probing, and Nabu MCP server path resolution.
 
 That duplication made small runtime fixes expensive because they had to be repeated across several adapter files. It also kept Codex-specific command and event mapping inside `ai_agents.rs`, making the top-level module both an orchestrator and a bespoke adapter.
 
 ## Decision
 
-**Tolaria uses `cli_agent_runtime.rs` as the shared runtime scaffold for app-managed CLI agents, while `ai_agents.rs` only normalizes and dispatches requests to per-agent adapter modules.**
+**Nabu uses `cli_agent_runtime.rs` as the shared runtime scaffold for app-managed CLI agents, while `ai_agents.rs` only normalizes and dispatches requests to per-agent adapter modules.**
 
-The shared scaffold owns the common agent request shape, system/user prompt wrapping, JSON-line process lifecycle, normalized error/done handling for `AiAgentStreamEvent` adapters, version probing, and Tolaria MCP server path resolution. Per-agent modules keep the provider-specific pieces: binary discovery candidates, command arguments, transient config shape, authentication error wording, and JSON event mapping.
+The shared scaffold owns the common agent request shape, system/user prompt wrapping, JSON-line process lifecycle, normalized error/done handling for `AiAgentStreamEvent` adapters, version probing, and Nabu MCP server path resolution. Per-agent modules keep the provider-specific pieces: binary discovery candidates, command arguments, transient config shape, authentication error wording, and JSON event mapping.
 
 Codex now lives in `codex_cli.rs`, matching the Claude, OpenCode, and Pi adapter boundary. `ai_agents.rs` remains the Tauri-facing orchestrator that chooses an adapter and maps Claude's legacy event enum into the normalized event stream.
 

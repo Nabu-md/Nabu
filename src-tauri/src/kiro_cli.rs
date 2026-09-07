@@ -72,14 +72,14 @@ fn write_mcp_json(config: KiroMcpConfig<'_>) -> Result<(), String> {
         .entry("mcpServers")
         .or_insert_with(|| serde_json::json!({}));
 
-    let mut server = crate::cli_agent_runtime::tolaria_node_mcp_server(
+    let mut server = crate::cli_agent_runtime::nabu_node_mcp_server(
         config.mcp_server_path,
         config.vault_path,
         config.vault_paths,
         true,
     );
     server["disabled"] = serde_json::json!(false);
-    servers["tolaria"] = server;
+    servers["nabu"] = server;
 
     std::fs::write(
         &config_path,
@@ -197,21 +197,21 @@ mod tests {
         let config_path = dir.path().join(".kiro/settings/mcp.json");
         let content: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&config_path).unwrap()).unwrap();
-        assert_eq!(content["mcpServers"]["tolaria"]["command"], "node");
+        assert_eq!(content["mcpServers"]["nabu"]["command"], "node");
         assert_eq!(
-            content["mcpServers"]["tolaria"]["args"][0],
+            content["mcpServers"]["nabu"]["args"][0],
             "/opt/mcp/index.js"
         );
         assert_eq!(
-            content["mcpServers"]["tolaria"]["env"]["VAULT_PATH"],
+            content["mcpServers"]["nabu"]["env"]["VAULT_PATH"],
             vault_path
         );
         assert_eq!(
-            content["mcpServers"]["tolaria"]["env"]["VAULT_PATHS"],
+            content["mcpServers"]["nabu"]["env"]["VAULT_PATHS"],
             serde_json::json!(serde_json::to_string(&vec![vault_path, "/other/vault"]).unwrap())
         );
         assert_eq!(
-            content["mcpServers"]["tolaria"]["env"]["WS_UI_PORT"],
+            content["mcpServers"]["nabu"]["env"]["WS_UI_PORT"],
             "9711"
         );
     }
@@ -239,7 +239,7 @@ mod tests {
             &std::fs::read_to_string(dir.path().join(".kiro/settings/mcp.json")).unwrap(),
         )
         .unwrap();
-        assert_eq!(content["mcpServers"]["tolaria"]["args"][0], "/new/index.js");
+        assert_eq!(content["mcpServers"]["nabu"]["args"][0], "/new/index.js");
         assert_eq!(content["mcpServers"]["other"]["command"], "python");
     }
 }

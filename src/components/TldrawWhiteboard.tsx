@@ -30,7 +30,7 @@ import { ActionTooltip } from './ui/action-tooltip'
 import { installTldrawTextMeasurementGuard } from './tldrawTextMeasurementGuard'
 
 const EMPTY_TLDRAW_TRANSLATION_URL = 'data:application/json;base64,e30K'
-const TOLARIA_TLDRAW_USER_ID = 'tolaria-whiteboard'
+const TOLARIA_TLDRAW_USER_ID = 'nabu-whiteboard'
 const WHITEBOARD_FULLSCREEN_BODY_CLASS = 'tldraw-whiteboard-fullscreen-open'
 
 function resolveTldrawAssetUrl(assetUrl: string | undefined): string {
@@ -334,13 +334,13 @@ function installWhiteboardRuntimeGuards(editor: Editor, options: WhiteboardRunti
   }
 }
 
-interface TolariaTldrawDialogProps {
+interface NabuTldrawDialogProps {
   dialog: TLUiDialog
   onClose: (id: string) => void
 }
 
 const DIALOG_OPEN_DISMISS_GRACE_MS = 250
-let retainedTolariaTldrawDialogs: TLUiDialog[] = []
+let retainedNabuTldrawDialogs: TLUiDialog[] = []
 
 function useDeferredDialogOpen() {
   const openedAtRef = useRef(0)
@@ -373,17 +373,17 @@ function shouldCloseFromOverlayClick(
   return isOverlayEvent(event) && !dialog.preventBackgroundClose && !mouseDownInsideContent
 }
 
-interface TolariaTldrawDialogContentProps {
+interface NabuTldrawDialogContentProps {
   dialog: TLUiDialog
   mouseDownInsideContentRef: MutableRefObject<boolean>
   onClose: () => void
 }
 
-function TolariaTldrawDialogContent({
+function NabuTldrawDialogContent({
   dialog,
   mouseDownInsideContentRef,
   onClose,
-}: TolariaTldrawDialogContentProps) {
+}: NabuTldrawDialogContentProps) {
   const ModalContent = dialog.component
   const handleClose = () => {
     mouseDownInsideContentRef.current = false
@@ -410,7 +410,7 @@ function TolariaTldrawDialogContent({
   )
 }
 
-const TolariaTldrawDialog = memo(function TolariaTldrawDialog({ dialog, onClose }: TolariaTldrawDialogProps) {
+const NabuTldrawDialog = memo(function NabuTldrawDialog({ dialog, onClose }: NabuTldrawDialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const mouseDownInsideContentRef = useRef(false)
   const { openedAtRef, readyToOpen } = useDeferredDialogOpen()
@@ -453,7 +453,7 @@ const TolariaTldrawDialog = memo(function TolariaTldrawDialog({ dialog, onClose 
         dir="ltr"
         className="tlui-dialog__overlay"
       >
-        <TolariaTldrawDialogContent
+        <NabuTldrawDialogContent
           dialog={dialog}
           mouseDownInsideContentRef={mouseDownInsideContentRef}
           onClose={closeDialogNow}
@@ -463,16 +463,16 @@ const TolariaTldrawDialog = memo(function TolariaTldrawDialog({ dialog, onClose 
   )
 })
 
-function TolariaTldrawDialogs() {
+function NabuTldrawDialogs() {
   const { dialogs, removeDialog } = useDialogs()
-  const requestedDialogs = useValue('tolaria tldraw dialogs', () => dialogs.get(), [dialogs])
+  const requestedDialogs = useValue('nabu tldraw dialogs', () => dialogs.get(), [dialogs])
   const [visibleDialogs, setVisibleDialogs] = useState<TLUiDialog[]>(() =>
-    retainedTolariaTldrawDialogs.length > 0 ? retainedTolariaTldrawDialogs : dialogs.get()
+    retainedNabuTldrawDialogs.length > 0 ? retainedNabuTldrawDialogs : dialogs.get()
   )
 
   const closeVisibleDialog = useCallback((id: string) => {
-    const nextDialogs = retainedTolariaTldrawDialogs.filter((dialog) => dialog.id !== id)
-    retainedTolariaTldrawDialogs = nextDialogs
+    const nextDialogs = retainedNabuTldrawDialogs.filter((dialog) => dialog.id !== id)
+    retainedNabuTldrawDialogs = nextDialogs
     setVisibleDialogs(nextDialogs)
     removeDialog(id)
   }, [removeDialog])
@@ -480,14 +480,14 @@ function TolariaTldrawDialogs() {
   useEffect(() => {
     if (requestedDialogs.length === 0) return
     // tldraw clears the dialog atom while Radix closes the menu; keep the last requested dialog mounted locally.
-    retainedTolariaTldrawDialogs = requestedDialogs
+    retainedNabuTldrawDialogs = requestedDialogs
     queueMicrotask(() => {
       setVisibleDialogs(requestedDialogs)
     })
   }, [requestedDialogs])
 
   return visibleDialogs.map((dialog) => (
-    <TolariaTldrawDialog
+    <NabuTldrawDialog
       key={dialog.id}
       dialog={dialog}
       onClose={closeVisibleDialog}
@@ -560,7 +560,7 @@ export function TldrawWhiteboard({
     setUserPreferences: ignoreTldrawUserPreferencesUpdate,
     userPreferences,
   })
-  const tldrawUiComponents = useMemo(() => ({ Dialogs: TolariaTldrawDialogs }), [])
+  const tldrawUiComponents = useMemo(() => ({ Dialogs: NabuTldrawDialogs }), [])
   const handleTldrawMount = useCallback((editor: Editor) =>
     installWhiteboardRuntimeGuards(editor, {
       onPlatformPermissionDenied: () => { setPermissionDeniedBoardId(boardId) },

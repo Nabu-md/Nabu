@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-const CLAUDE_CODE_ONBOARDING_DISMISSED_STORAGE_NAME = 'tolaria:claude-code-onboarding-dismissed'
+const CLAUDE_CODE_ONBOARDING_DISMISSED_STORAGE_NAME = 'nabu:claude-code-onboarding-dismissed'
 
 function wasDismissed(): boolean {
   try {

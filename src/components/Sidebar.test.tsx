@@ -1157,11 +1157,11 @@ describe('Sidebar', () => {
     })
 
     it('preserves plain square brackets in favorite titles', () => {
-      const bracketedFavorite = { ...favEntry, title: '[26Q2] Tolaria MVP' }
+      const bracketedFavorite = { ...favEntry, title: '[26Q2] Nabu MVP' }
 
       render(<Sidebar entries={[...mockEntries, bracketedFavorite]} selection={defaultSelection} onSelect={() => {}} />)
 
-      expect(screen.getByText('[26Q2] Tolaria MVP')).toBeInTheDocument()
+      expect(screen.getByText('[26Q2] Nabu MVP')).toBeInTheDocument()
     })
 
     it('hides FAVORITES section when no favorites', () => {

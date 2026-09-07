@@ -15,7 +15,7 @@ Local model targets are for tools such as Ollama and LM Studio. They usually nee
 
 API model targets are for hosted providers such as OpenAI, Anthropic, Gemini, OpenRouter, or another OpenAI-compatible endpoint.
 
-Tolaria does not store provider API keys in vault settings. Choose one of the supported key paths:
+Nabu does not store provider API keys in vault settings. Choose one of the supported key paths:
 
 - Save the key locally on this device.
 - Read the key from an environment variable.
@@ -23,7 +23,7 @@ Tolaria does not store provider API keys in vault settings. Choose one of the su
 
 ## Test The Connection
 
-After adding a provider, use the test action in Settings. A successful test means Tolaria reached the endpoint and the model replied.
+After adding a provider, use the test action in Settings. A successful test means Nabu reached the endpoint and the model replied.
 
 ## Select The Target
 

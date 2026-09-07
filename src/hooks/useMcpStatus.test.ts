@@ -87,11 +87,11 @@ async function runMutationScenario({
 }
 
 function standardMcpSnippet() {
-  return JSON.stringify({ mcpServers: { tolaria: { type: 'stdio' } } })
+  return JSON.stringify({ mcpServers: { nabu: { type: 'stdio' } } })
 }
 
 function opencodeMcpSnippet() {
-  return JSON.stringify({ mcp: { tolaria: { command: ['node', 'index.js'], type: 'local' } } })
+  return JSON.stringify({ mcp: { nabu: { command: ['node', 'index.js'], type: 'local' } } })
 }
 
 async function copySnippetInBrowser(kind: 'standard' | 'opencode') {
@@ -169,7 +169,7 @@ describe('useMcpStatus', () => {
       name: 'connects external AI tools for the current vault on demand',
       overrideKey: 'register_mcp_tools' as const,
       overrideValue: 'registered',
-      toastFragment: 'Tolaria external AI tools connected successfully',
+      toastFragment: 'Nabu external AI tools connected successfully',
     },
     {
       action: 'connect' as const,
@@ -189,7 +189,7 @@ describe('useMcpStatus', () => {
       name: 'disconnects external AI tools explicitly',
       overrideKey: 'remove_mcp_tools' as const,
       overrideValue: 'removed',
-      toastFragment: 'Tolaria external AI tools disconnected successfully',
+      toastFragment: 'Nabu external AI tools disconnected successfully',
     },
     {
       action: 'disconnect' as const,
@@ -243,14 +243,14 @@ describe('useMcpStatus', () => {
     const { expectedSnippet, onToast, writeText } = await copySnippetInBrowser('standard')
 
     expect(writeText).toHaveBeenCalledWith(expectedSnippet)
-    expect(onToast).toHaveBeenCalledWith('Tolaria MCP config copied to clipboard')
+    expect(onToast).toHaveBeenCalledWith('Nabu MCP config copied to clipboard')
   })
 
   it('copies the OpenCode MCP config snippet to the clipboard', async () => {
     const { expectedSnippet, onToast, writeText } = await copySnippetInBrowser('opencode')
 
     expect(writeText).toHaveBeenCalledWith(expectedSnippet)
-    expect(onToast).toHaveBeenCalledWith('Tolaria MCP config copied to clipboard')
+    expect(onToast).toHaveBeenCalledWith('Nabu MCP config copied to clipboard')
   })
 
   it('uses the native clipboard command inside the Tauri app', async () => {
@@ -278,6 +278,6 @@ describe('useMcpStatus', () => {
 
     expect(invoke).toHaveBeenCalledWith('copy_text_to_clipboard', { text: snippet })
     expect(writeText).not.toHaveBeenCalled()
-    expect(onToast).toHaveBeenCalledWith('Tolaria MCP config copied to clipboard')
+    expect(onToast).toHaveBeenCalledWith('Nabu MCP config copied to clipboard')
   })
 })

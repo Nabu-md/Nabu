@@ -208,7 +208,7 @@ fn build_config(
         "$schema": "https://opencode.ai/config.json",
         "permission": permission_config(permission_mode),
         "mcp": {
-            "tolaria": {
+            "nabu": {
                 "type": "local",
                 "command": ["node", mcp_server_path],
                 "environment": {
@@ -436,7 +436,7 @@ mod tests {
     }
 
     #[test]
-    fn config_includes_permissions_and_tolaria_mcp_server() {
+    fn config_includes_permissions_and_nabu_mcp_server() {
         if let Ok(config) = build_config(
             "/tmp/vault",
             &[],
@@ -448,10 +448,10 @@ mod tests {
                     json["permission"]["edit"].as_str(),
                     json["permission"]["external_directory"].as_str(),
                     json["permission"]["bash"].as_str(),
-                    json["mcp"]["tolaria"]["type"].as_str(),
-                    json["mcp"]["tolaria"]["command"][0].as_str(),
-                    json["mcp"]["tolaria"]["environment"]["VAULT_PATH"].as_str(),
-                    json["mcp"]["tolaria"]["command"][1]
+                    json["mcp"]["nabu"]["type"].as_str(),
+                    json["mcp"]["nabu"]["command"][0].as_str(),
+                    json["mcp"]["nabu"]["environment"]["VAULT_PATH"].as_str(),
+                    json["mcp"]["nabu"]["command"][1]
                         .as_str()
                         .is_some_and(|path| path.ends_with("index.js")),
                 ),
@@ -466,10 +466,10 @@ mod tests {
                 )
             );
             assert_eq!(
-                json["mcp"]["tolaria"]["environment"]["VAULT_PATHS"],
+                json["mcp"]["nabu"]["environment"]["VAULT_PATHS"],
                 r#"["/tmp/vault"]"#
             );
-            assert!(json["mcp"]["tolaria"]["command"][1]
+            assert!(json["mcp"]["nabu"]["command"][1]
                 .as_str()
                 .unwrap()
                 .ends_with("index.js"));

@@ -15,18 +15,18 @@ ADR-0119 made durable MCP registration vault-neutral, so PR #600 could not be me
 
 ## Decision
 
-On Linux AppImage startup, Tolaria extracts the bundled `mcp-server/` directory to `~/.local/share/tolaria/mcp-server/`. The extracted directory is version-gated by a `.tolaria-version` marker. Extraction runs on first launch or after an app version change, uses a staging directory plus rename, and uses a process lock so concurrent app launches do not write the stable directory at the same time.
+On Linux AppImage startup, Nabu extracts the bundled `mcp-server/` directory to `~/.local/share/nabu/mcp-server/`. The extracted directory is version-gated by a `.nabu-version` marker. Extraction runs on first launch or after an app version change, uses a staging directory plus rename, and uses a process lock so concurrent app launches do not write the stable directory at the same time.
 
 Durable external registration prefers the stable extracted server directory when it is ready. Otherwise it falls back to the packaged resource resolver.
 
-OpenCode is added to durable MCP registration and removal. Tolaria writes an OpenCode-specific entry under the top-level `mcp` key using:
+OpenCode is added to durable MCP registration and removal. Nabu writes an OpenCode-specific entry under the top-level `mcp` key using:
 
 - `type: "local"`
 - `command: [node, index.js]`
 - `enabled: true`
 - `environment.WS_UI_PORT = "9711"`
 
-OpenCode registration remains vault-neutral. It does not write `VAULT_PATH`; the Node MCP server resolves active mounted workspaces from Tolaria state per ADR-0119.
+OpenCode registration remains vault-neutral. It does not write `VAULT_PATH`; the Node MCP server resolves active mounted workspaces from Nabu state per ADR-0119.
 
 ## Consequences
 

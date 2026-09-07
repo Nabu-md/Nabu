@@ -339,7 +339,7 @@ pub fn restore_ai_guidance_files(
 }
 
 /// Seed `AGENTS.md` at vault root if missing or empty (idempotent, per-file).
-/// Also seeds Tolaria-managed root type definitions used by repair/bootstrap flows.
+/// Also seeds Nabu-managed root type definitions used by repair/bootstrap flows.
 pub fn seed_config_files(vault_path: impl AsRef<str>) {
     let vault_path = Path::new(vault_path.as_ref());
     if sync_required_ai_guidance_files(vault_path).unwrap_or(false) {
@@ -501,13 +501,13 @@ mod tests {
     fn assert_preserves_edited_default_agents(run: VaultOperation) {
         let edited_agents = AGENTS_MD.replacen(
             "Store note type in the `type:` frontmatter field.",
-            "`type:` is the preferred type field. Tolaria still understands legacy aliases such as `Is A`.",
+            "`type:` is the preferred type field. Nabu still understands legacy aliases such as `Is A`.",
             1,
         );
         let (_dir, vault) = run_with_agents(run, Some(&edited_agents), None);
 
         let content = read_root_agents(&vault);
-        assert!(content.contains("Tolaria still understands legacy aliases such as `Is A`."));
+        assert!(content.contains("Nabu still understands legacy aliases such as `Is A`."));
         assert!(!content.contains("Store note type in the `type:` frontmatter field."));
     }
 
@@ -543,7 +543,7 @@ mod tests {
 
     fn assert_required_agents_file_seeded(vault: &Path) {
         assert!(vault.join("AGENTS.md").exists());
-        assert!(read_root_agents(vault).contains("Tolaria Vault"));
+        assert!(read_root_agents(vault).contains("Nabu Vault"));
     }
 
     fn assert_required_guidance_shims_seeded(vault: &Path) {
@@ -610,7 +610,7 @@ mod tests {
         write_root_agents(&vault, "");
 
         seed_config_files(vault.to_str().unwrap());
-        assert!(read_root_agents(&vault).contains("Tolaria Vault"));
+        assert!(read_root_agents(&vault).contains("Nabu Vault"));
     }
 
     #[test]
@@ -618,7 +618,7 @@ mod tests {
         let (_dir, vault) = create_vault();
         write_root_agents(
             &vault,
-            "# AGENTS.md — Tolaria Vault\n\n- The first H1 in the body is the note title. Do not add `title:` frontmatter.\n",
+            "# AGENTS.md — Nabu Vault\n\n- The first H1 in the body is the note title. Do not add `title:` frontmatter.\n",
         );
 
         seed_config_files(vault.to_str().unwrap());
@@ -694,7 +694,7 @@ mod tests {
 
         assert!(vault.join("AGENTS.md").exists());
         let root = read_root_agents(&vault);
-        assert!(root.contains("Tolaria Vault"));
+        assert!(root.contains("Nabu Vault"));
         assert_eq!(read_root_claude(&vault), CLAUDE_MD_SHIM);
     }
 

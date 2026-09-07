@@ -9,13 +9,13 @@ supersedes: "0041"
 
 ## Context
 
-ADR-0041 made the vault scanner index all visible files and introduced `fileKind` as `"markdown"`, `"text"`, or `"binary"`. Binary files were deliberately shown as inert entries until Tolaria had a dedicated preview model.
+ADR-0041 made the vault scanner index all visible files and introduced `fileKind` as `"markdown"`, `"text"`, or `"binary"`. Binary files were deliberately shown as inert entries until Nabu had a dedicated preview model.
 
-That made image references visible in folder views, but opening an image still felt outside the normal Tolaria workflow. Users need to inspect screenshots, diagrams, and other image assets while keeping their place in the vault.
+That made image references visible in folder views, but opening an image still felt outside the normal Nabu workflow. Users need to inspect screenshots, diagrams, and other image assets while keeping their place in the vault.
 
 ## Decision
 
-**Tolaria previews supported image files in the editor pane while keeping them as ordinary binary `VaultEntry` files.**
+**Nabu previews supported image files in the editor pane while keeping them as ordinary binary `VaultEntry` files.**
 
 - The scanner keeps the existing `fileKind: "binary"` representation. Image previewability is inferred in the renderer from the file extension, not by introducing a proprietary image document type.
 - Opening a binary entry creates the same single active-tab state used for notes, but with empty content and no `get_note_content` text read.

@@ -13,7 +13,7 @@ describe('rich editor scroll-beyond-last-line space', () => {
 
   it('removes the visual-only space from note PDF exports', () => {
     expect(editorCss).toMatch(
-      /body\.tolaria-note-pdf-exporting \.bn-editor\s*\{[^}]*padding:\s*0 !important/s,
+      /body\.nabu-note-pdf-exporting \.bn-editor\s*\{[^}]*padding:\s*0 !important/s,
     )
   })
 })

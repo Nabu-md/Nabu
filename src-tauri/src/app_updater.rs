@@ -6,11 +6,11 @@ use tauri_plugin_updater::UpdaterExt;
 
 const ALPHA_METADATA_ASSET_NAME: &str = "alpha-latest.json";
 const GITHUB_RELEASES_API_URL: &str =
-    "https://api.github.com/repos/refactoringhq/tolaria/releases?per_page=100";
-const RELEASES_BASE_URL: &str = "https://refactoringhq.github.io/tolaria";
+    "https://api.github.com/repos/refactoringhq/nabu/releases?per_page=100";
+const RELEASES_BASE_URL: &str = "https://refactoringhq.github.io/nabu";
 const POISONED_STABLE_RECOVERY_FLOOR: &str = "2026.8.19";
 const UPDATER_HTTP_TIMEOUT: Duration = Duration::from_secs(5);
-const UPDATER_USER_AGENT: &str = concat!("Tolaria/", env!("CARGO_PKG_VERSION"));
+const UPDATER_USER_AGENT: &str = concat!("Nabu/", env!("CARGO_PKG_VERSION"));
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -349,11 +349,11 @@ mod tests {
     fn release_channel_endpoints_match_expected_paths() {
         assert_eq!(
             ReleaseChannel::Alpha.updater_endpoint().unwrap().as_str(),
-            "https://refactoringhq.github.io/tolaria/alpha/latest.json"
+            "https://refactoringhq.github.io/nabu/alpha/latest.json"
         );
         assert_eq!(
             ReleaseChannel::Stable.updater_endpoint().unwrap().as_str(),
-            "https://refactoringhq.github.io/tolaria/stable/latest.json"
+            "https://refactoringhq.github.io/nabu/stable/latest.json"
         );
     }
 
@@ -363,17 +363,17 @@ mod tests {
             github_alpha_release(
                 "alpha-v2026.5.8-alpha.0007",
                 "2026-05-08T07:00:00Z",
-                "https://github.com/refactoringhq/tolaria/releases/download/alpha-v2026.5.8-alpha.0007/alpha-latest.json",
+                "https://github.com/refactoringhq/nabu/releases/download/alpha-v2026.5.8-alpha.0007/alpha-latest.json",
             ),
             github_alpha_release(
                 "alpha-v2026.5.8-alpha.0017",
                 "2026-05-08T17:00:00Z",
-                "https://github.com/refactoringhq/tolaria/releases/download/alpha-v2026.5.8-alpha.0017/alpha-latest.json",
+                "https://github.com/refactoringhq/nabu/releases/download/alpha-v2026.5.8-alpha.0017/alpha-latest.json",
             ),
             github_alpha_release(
                 "alpha-v2026.5.7-alpha.0099",
                 "2026-05-07T23:00:00Z",
-                "https://github.com/refactoringhq/tolaria/releases/download/alpha-v2026.5.7-alpha.0099/alpha-latest.json",
+                "https://github.com/refactoringhq/nabu/releases/download/alpha-v2026.5.7-alpha.0099/alpha-latest.json",
             ),
         ];
 
@@ -381,7 +381,7 @@ mod tests {
             latest_alpha_release_metadata_url(&releases)
                 .unwrap()
                 .as_str(),
-            "https://github.com/refactoringhq/tolaria/releases/download/alpha-v2026.5.8-alpha.0017/alpha-latest.json"
+            "https://github.com/refactoringhq/nabu/releases/download/alpha-v2026.5.8-alpha.0017/alpha-latest.json"
         );
     }
 

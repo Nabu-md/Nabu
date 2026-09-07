@@ -19,12 +19,12 @@ pub(crate) fn missing_upstream_message(vault: &Path) -> Result<String, String> {
     let branch = branch_label(vault)?;
     if branch == DETACHED_HEAD_BRANCH {
         return Ok(
-            "This vault is in detached HEAD. Check out a branch and configure its upstream before syncing in Tolaria."
+            "This vault is in detached HEAD. Check out a branch and configure its upstream before syncing in Nabu."
                 .to_string(),
         );
     }
     Ok(format!(
-        "No upstream branch configured for '{branch}'. Set a tracking branch with external Git tooling, then sync again in Tolaria."
+        "No upstream branch configured for '{branch}'. Set a tracking branch with external Git tooling, then sync again in Nabu."
     ))
 }
 

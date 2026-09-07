@@ -126,12 +126,12 @@ async function expectCaughtRenderRecoverySuppressed(
   componentStack = '\n    in BlockNoteView\n    in BlockNoteRenderRecoveryBoundary',
 ) {
   await importEntrypoint()
-  window.__tolariaFrontendReady = true
+  window.__nabuFrontendReady = true
 
   rootOptions().onCaughtError?.(error, { componentStack })
 
   expect(mocks.sentryHandler).not.toHaveBeenCalled()
-  expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+  expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
 }
 
 function renderedTree(): ReactNode {
@@ -160,7 +160,7 @@ describe('main entrypoint', () => {
     vi.clearAllMocks()
     document.body.innerHTML = '<div id="root"></div>'
     document.body.className = ''
-    window.__tolariaFrontendReady = false
+    window.__nabuFrontendReady = false
     delete (window as typeof window & { __TAURI__?: unknown }).__TAURI__
     delete (window as typeof window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__
     mocks.isFullscreen.mockReset()
@@ -184,22 +184,22 @@ describe('main entrypoint', () => {
     )
 
     const error = new Error('Maximum update depth exceeded')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
     rootOptions().onCaughtError?.(error, { componentStack: '\n    in App' })
 
     expect(mocks.sentryHandler).toHaveBeenCalledWith(error, { componentStack: '\n    in App' })
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('keeps the fatal overlay for an uncaught React root error', async () => {
     await importEntrypoint()
 
     const error = new Error('Maximum update depth exceeded')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
     rootOptions().onUncaughtError?.(error, { componentStack: '\n    in App' })
 
     expect(mocks.sentryHandler).toHaveBeenCalledWith(error, { componentStack: '\n    in App' })
-    expect(document.getElementById('tolaria-fatal-render-error')).toHaveTextContent('Maximum update depth exceeded')
+    expect(document.getElementById('nabu-fatal-render-error')).toHaveTextContent('Maximum update depth exceeded')
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('reloads and suppresses startup default-export chunk errors before frontend readiness', async () => {
@@ -208,9 +208,9 @@ describe('main entrypoint', () => {
     const error = new TypeError("Cannot read properties of undefined (reading 'default')")
     rootOptions().onUncaughtError?.(error, { componentStack: '' })
 
-    expect(sessionStorage.getItem('tolaria:startup-reload-attempted')).toBe('1')
+    expect(sessionStorage.getItem('nabu:startup-reload-attempted')).toBe('1')
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('suppresses recovered BlockNote maximum update depth errors from Sentry', async () => {
@@ -218,43 +218,43 @@ describe('main entrypoint', () => {
 
     const error = new Error('Maximum update depth exceeded. This can happen when a component repeatedly calls setState.')
     const componentStack = '\n    in BlockNoteView\n    in BlockNoteRenderRecoveryBoundary'
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
 
     rootOptions().onCaughtError?.(error, { componentStack })
 
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('suppresses recovered BlockNote update-depth errors when React omits the recovery-boundary frame', async () => {
     await importEntrypoint()
 
     const error = new Error('Maximum update depth exceeded. This can happen when a component repeatedly calls setState.')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
 
     rootOptions().onCaughtError?.(error, { componentStack: '\n    in BlockNoteView' })
 
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('suppresses recoverable BlockNote update-depth errors from the React root callback', async () => {
     await importEntrypoint()
 
     const error = new Error('Maximum update depth exceeded. This can happen when a component repeatedly calls setState.')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
 
     rootOptions().onRecoverableError?.(error, { componentStack: '\n    in BlockNoteView' })
 
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   }, MAIN_ENTRYPOINT_IMPORT_TIMEOUT_MS)
 
   it('normalizes missing React component stacks before handing errors to Sentry', async () => {
     await importEntrypoint()
 
     const error = new Error('recoverable render error')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
     rootOptions().onRecoverableError?.(error, {})
 
     expect(mocks.sentryHandler).toHaveBeenCalledWith(error, { componentStack: '' })
@@ -324,13 +324,13 @@ describe('main entrypoint', () => {
     await importEntrypoint()
 
     const error = new Error('ResizeObserver loop completed with undelivered notifications.')
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
 
     rootOptions().onRecoverableError?.(error, {})
     rootOptions().onCaughtError?.(error, { componentStack: '\n    in App' })
 
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   })
 
   it('suppresses recovered BlockNote missing-id render errors from Sentry', async () => {
@@ -381,13 +381,13 @@ describe('main entrypoint', () => {
     const { markRecoveredActionTooltipError } = await import('./components/ui/actionTooltipRecovery')
     const error = new Error('tooltip content render failed')
     const componentStack = '\n    in TooltipContent\n    in ActionTooltipBoundary'
-    window.__tolariaFrontendReady = true
+    window.__nabuFrontendReady = true
     markRecoveredActionTooltipError(error)
 
     rootOptions().onCaughtError?.(error, { componentStack })
 
     expect(mocks.sentryHandler).not.toHaveBeenCalled()
-    expect(document.getElementById('tolaria-fatal-render-error')).toBeNull()
+    expect(document.getElementById('nabu-fatal-render-error')).toBeNull()
   })
 
   it('mounts a frontend readiness marker after the app shell', async () => {

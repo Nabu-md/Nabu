@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { ImmediateCreateOptions } from './useNoteCreation'
 
-export const CREATE_NOTE_IN_FOLDER_EVENT = 'tolaria:create-note-in-folder'
+export const CREATE_NOTE_IN_FOLDER_EVENT = 'nabu:create-note-in-folder'
 
 interface CreateNoteInFolderDetail {
   folderPath: string

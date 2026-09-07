@@ -448,9 +448,9 @@ describe('AiWorkspace', () => {
       />,
     )
 
-    expect(screen.getByText('Vault guidance needs attention: Tolaria guidance missing or broken')).toHaveClass('min-w-0')
+    expect(screen.getByText('Vault guidance needs attention: Nabu guidance missing or broken')).toHaveClass('min-w-0')
     expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy()
-    expect(screen.getByText('Vault guidance needs attention: Tolaria guidance missing or broken').parentElement).toHaveClass('border-y')
+    expect(screen.getByText('Vault guidance needs attention: Nabu guidance missing or broken').parentElement).toHaveClass('border-y')
   })
 
   it('does not archive an empty chat', () => {
@@ -762,7 +762,7 @@ describe('AiWorkspace', () => {
   })
 
   it('clamps legacy narrow side-panel widths so the composer remains visible', async () => {
-    localStorage.setItem('tolaria:ai-workspace-side-width', '240')
+    localStorage.setItem('nabu:ai-workspace-side-width', '240')
     render(
       <AiWorkspace
         open

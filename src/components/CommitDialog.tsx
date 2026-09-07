@@ -31,7 +31,7 @@ const getDialogCopy = (commitMode: CommitMode): CommitDialogCopy => {
   if (commitMode === 'local') {
     return {
       title: 'Commit',
-      description: 'This vault has no git remote configured. Tolaria will create a local commit only.',
+      description: 'This vault has no git remote configured. Nabu will create a local commit only.',
       actionLabel: 'Commit',
       shortcutHint: `${submitShortcut} to commit locally`,
     }

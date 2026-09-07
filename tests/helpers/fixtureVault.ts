@@ -9,7 +9,7 @@ const FIXTURE_VAULT = path.resolve('tests/fixtures/test-vault')
 const FIXTURE_VAULT_READY_TIMEOUT = 30_000
 const FIXTURE_VAULT_REMOVE_RETRIES = 10
 const FIXTURE_VAULT_REMOVE_RETRY_DELAY_MS = 100
-const CLAUDE_CODE_ONBOARDING_DISMISSED_KEY = 'tolaria:claude-code-onboarding-dismissed'
+const CLAUDE_CODE_ONBOARDING_DISMISSED_KEY = 'nabu:claude-code-onboarding-dismissed'
 type FixtureCommandArgs = Record<string, unknown> | undefined
 
 interface FixtureVaultPageArgs {
@@ -345,10 +345,10 @@ async function installFixtureVaultInitScript({ page, vaultPath, isGitRepo, folde
       register_mcp_tools: () => null,
       get_mcp_config_snippet: () => JSON.stringify({
         mcpServers: {
-          tolaria: {
+          nabu: {
             type: 'stdio',
             command: 'node',
-            args: ['/fixture/Tolaria/mcp-server/index.js'],
+            args: ['/fixture/Nabu/mcp-server/index.js'],
             env: {
               WS_UI_PORT: '9711',
             },

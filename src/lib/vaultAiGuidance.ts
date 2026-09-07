@@ -84,7 +84,7 @@ function formatGuidanceFileList(names: string[]): string {
 
 function getBrokenGuidanceSummary(status: VaultAiGuidanceStatus): string | null {
   if (isMissingOrBroken(status.agentsState)) {
-    return 'Tolaria guidance missing or broken'
+    return 'Nabu guidance missing or broken'
   }
   if (isMissingOrBroken(status.claudeState)) {
     return 'Claude compatibility shim missing or broken'
@@ -119,7 +119,7 @@ export function getVaultAiGuidanceSummary(status: VaultAiGuidanceStatus): string
   if (brokenSummary) return brokenSummary
   const customSummary = getCustomGuidanceSummary(status)
   if (customSummary) return customSummary
-  return 'Tolaria guidance ready'
+  return 'Nabu guidance ready'
 }
 
 export function buildVaultAiGuidanceRefreshKey(entries: VaultEntry[]): string {

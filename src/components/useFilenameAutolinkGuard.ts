@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { useCreateBlockNote } from '@blocknote/react'
 import { shouldStripAutoLinkedLocalFileMark } from '../utils/editorLinkAutolink'
 
-const FILENAME_AUTOLINK_GUARD_META = 'tolaria-filename-autolink-guard'
+const FILENAME_AUTOLINK_GUARD_META = 'nabu-filename-autolink-guard'
 
 type TiptapLinkMark = {
   attrs?: {

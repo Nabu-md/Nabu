@@ -19,7 +19,7 @@ export function RenameDetectedBanner({ renames, onUpdate, onDismiss }: RenameDet
     <div className="flex items-center gap-3 border-b border-border bg-accent/50 px-4 py-2 text-[13px]">
       <ArrowsClockwise size={16} className="shrink-0 text-accent-foreground" />
       <span className="flex-1 text-foreground">
-        {count} file{count !== 1 ? 's' : ''} renamed outside Tolaria. Update wikilinks?
+        {count} file{count !== 1 ? 's' : ''} renamed outside Nabu. Update wikilinks?
       </span>
       <button type="button"
         className="shrink-0 cursor-pointer rounded-md bg-primary px-3 py-1 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"

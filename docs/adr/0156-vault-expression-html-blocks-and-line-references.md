@@ -8,13 +8,13 @@ date: 2026-07-04
 
 ## Context
 
-Sandboxed HTML blocks are useful for small dashboards, report fragments, and presentation-oriented views, but static HTML forces users to duplicate values that already live in note frontmatter or sheet cells. Tolaria already has a vault-aware reference contract in sheet formulas: `[[note]].A1` reads one grid cell and `[[note]].property.path` reads scalar frontmatter.
+Sandboxed HTML blocks are useful for small dashboards, report fragments, and presentation-oriented views, but static HTML forces users to duplicate values that already live in note frontmatter or sheet cells. Nabu already has a vault-aware reference contract in sheet formulas: `[[note]].A1` reads one grid cell and `[[note]].property.path` reads scalar frontmatter.
 
 Normal Markdown notes also need a coherent way to expose prose lines without interpreting commas as spreadsheet columns. The existing grid address syntax should remain stable, so `[[note]].A1` must keep CSV/sheet semantics even when the target note displays as text.
 
 ## Decision
 
-**Tolaria adds a renderer-owned vault expression layer for sandboxed HTML blocks and a raw body-line reference syntax shared with sheet formulas.**
+**Nabu adds a renderer-owned vault expression layer for sandboxed HTML blocks and a raw body-line reference syntax shared with sheet formulas.**
 
 HTML block source may contain `{{...}}` expressions. The renderer compiles each block into static HTML chunks plus expression ASTs, resolves referenced values from the current note, other note frontmatter, sheet cells, and raw body lines, escapes expression output as text, then passes the assembled HTML through the existing sanitizer and sandboxed iframe pipeline.
 

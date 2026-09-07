@@ -96,12 +96,12 @@ test('explicit markdown links still render and round-trip intentionally', async 
   await openRawMode(page)
 
   const raw = await getRawEditorContent(page)
-  const intentionalLink = '[Tolaria Docs](https://example.com/docs)'
+  const intentionalLink = '[Nabu Docs](https://example.com/docs)'
   await setRawEditorContent(page, `${raw}\n\n${intentionalLink}\n`)
   await page.waitForTimeout(700)
 
   await openBlockNoteMode(page)
-  await expect(page.locator('.bn-editor a[href="https://example.com/docs"]').last()).toContainText('Tolaria Docs')
+  await expect(page.locator('.bn-editor a[href="https://example.com/docs"]').last()).toContainText('Nabu Docs')
 
   await openRawMode(page)
   await expect.poll(() => getRawEditorContent(page)).toContain(intentionalLink)

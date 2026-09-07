@@ -7,7 +7,7 @@ const CREATE_NOTE_TOOL_JSON: &str = r#"{
   "type": "function",
   "function": {
     "name": "create_note",
-    "description": "Create a new markdown note inside the active Tolaria vault without overwriting existing files.",
+    "description": "Create a new markdown note inside the active Nabu vault without overwriting existing files.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -254,7 +254,7 @@ fn active_tool_vault_path<'a>(
     if active_vault_paths(request).any(|active| active == vault_path) {
         Ok(vault_path)
     } else {
-        Err(format!("Vault is not active in Tolaria: {vault_path}"))
+        Err(format!("Vault is not active in Nabu: {vault_path}"))
     }
 }
 
@@ -617,7 +617,7 @@ mod tests {
 
         let error = execute_openai_tool_calls(&request, &response, |_| {}).unwrap_err();
 
-        assert!(error.starts_with("Vault is not active in Tolaria:"));
+        assert!(error.starts_with("Vault is not active in Nabu:"));
         assert!(!inactive.path().join("inactive.md").exists());
     }
 }

@@ -16,11 +16,11 @@
 }
 
 body.mac-chrome {
-  --tolaria-macos-traffic-light-padding: 90px;
+  --nabu-macos-traffic-light-padding: 90px;
 }
 
 body.mac-chrome.mac-chrome-fullscreen {
-  --tolaria-macos-traffic-light-padding: 16px;
+  --nabu-macos-traffic-light-padding: 16px;
 }
 
 .app__sidebar {

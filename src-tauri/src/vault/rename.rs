@@ -889,8 +889,8 @@ mod tests {
     fn test_path_stem_normalizes_tmp_aliases_and_separators() {
         assert_eq!(
             to_path_stem(
-                Path::new("/tmp/tolaria-vault/projects\\weekly-review.md"),
-                Path::new("/private/tmp/tolaria-vault")
+                Path::new("/tmp/nabu-vault/projects\\weekly-review.md"),
+                Path::new("/private/tmp/nabu-vault")
             ),
             "projects/weekly-review"
         );
@@ -1513,7 +1513,7 @@ mod tests {
 
         create_test_file(vault, "note/original.md", "# Original\n");
 
-        let txn_dir = vault.join(".tolaria-rename-txn");
+        let txn_dir = vault.join(".nabu-rename-txn");
         fs::create_dir_all(&txn_dir).unwrap();
 
         let backup_path = txn_dir.join("rename-backup.bak");

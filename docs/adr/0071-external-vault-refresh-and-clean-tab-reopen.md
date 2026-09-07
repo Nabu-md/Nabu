@@ -22,7 +22,7 @@ The fix needed to satisfy a few constraints at once:
 
 **All external vault mutations now reconcile through one shared refresh path that reloads vault-derived state and then conditionally reopens the active note from disk.**
 
-Tolaria now routes post-pull refreshes and AI-agent file modifications through the same `refreshPulledVaultState()` helper.
+Nabu now routes post-pull refreshes and AI-agent file modifications through the same `refreshPulledVaultState()` helper.
 
 That shared path does the following:
 
@@ -45,5 +45,5 @@ That shared path does the following:
 - Clean active notes now converge back to on-disk truth automatically after external updates.
 - Unsaved local edits remain protected from external refreshes, even when the rest of the vault reloads.
 - Folder, saved-view, backlink, and inverse-relationship surfaces stay aligned with the refreshed vault, not just the editor tab.
-- Tolaria now treats "refresh after external mutation" as a first-class synchronization concern rather than a per-feature fix.
+- Nabu now treats "refresh after external mutation" as a first-class synchronization concern rather than a per-feature fix.
 - Re-evaluate if the editor gains a reliable in-place document reset API, because that could remove the need for the close-and-reopen step when the active file itself changed.

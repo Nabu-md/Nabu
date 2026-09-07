@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::Command;
 
 use tempfile::TempDir;
-use tolaria_lib::git::{git_add_remote, git_commit, git_remote_status};
+use nabu_lib::git::{git_add_remote, git_commit, git_remote_status};
 
 fn run_git(path: &Path, args: &[&str]) {
     let output = Command::new("git")

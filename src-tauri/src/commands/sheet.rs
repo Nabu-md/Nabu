@@ -411,7 +411,7 @@ fn link_key(source_path: &str, target: &str) -> String {
 fn workbook_name_from_path(path: &str) -> String {
     path.rsplit(['/', '\\'])
         .next()
-        .unwrap_or("Tolaria Sheet")
+        .unwrap_or("Nabu Sheet")
         .trim_end_matches(".md")
         .to_string()
 }

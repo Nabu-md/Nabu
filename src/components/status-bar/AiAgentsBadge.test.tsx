@@ -156,7 +156,7 @@ describe('AiAgentsBadge', () => {
     })
     openAiAgentsMenu()
 
-    expect(screen.getByTestId('status-ai-guidance-summary')).toHaveTextContent('Tolaria guidance missing or broken')
+    expect(screen.getByTestId('status-ai-guidance-summary')).toHaveTextContent('Nabu guidance missing or broken')
     act(() => {
       fireEvent.click(screen.getByTestId('status-ai-guidance-restore'))
     })

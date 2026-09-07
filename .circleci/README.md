@@ -1,4 +1,4 @@
-# Tolaria CircleCI
+# Nabu CircleCI
 
 `.circleci/config.yml` is the source of truth for validation, cross-platform release builds,
 GitHub Release publication, documentation deployment, and pull-request branch maintenance.
@@ -19,14 +19,14 @@ preferred pre-push path; CircleCI is the authoritative outer loop.
 
 Create three restricted CircleCI contexts.
 
-### `tolaria-ci`
+### `nabu-ci`
 
 | Variable | Purpose |
 | --- | --- |
 | `CODESCENE_PAT` | Read the CodeScene project analysis. |
-| `CODESCENE_PROJECT_ID` | Select the Tolaria CodeScene project. |
+| `CODESCENE_PROJECT_ID` | Select the Nabu CodeScene project. |
 
-### `tolaria-release`
+### `nabu-release`
 
 | Variable | Purpose |
 | --- | --- |
@@ -43,7 +43,7 @@ Create three restricted CircleCI contexts.
 | `VITE_POSTHOG_KEY` | Configure packaged-build analytics. |
 | `VITE_POSTHOG_HOST` | Select the PostHog endpoint. |
 
-### `tolaria-github`
+### `nabu-github`
 
 | Variable | Purpose |
 | --- | --- |
@@ -55,7 +55,7 @@ Optional Windows Authenticode variables are
 `WINDOWS_CODE_SIGNING_TIMESTAMP_URL`. The legacy `WINDOWS_CERTIFICATE*` aliases remain supported.
 
 `GH_TOKEN` should be a fine-grained token or GitHub App installation token restricted to
-`refactoringhq/tolaria`. It needs repository contents and pull-request write access. Keeping it in
+`refactoringhq/nabu`. It needs repository contents and pull-request write access. Keeping it in
 its own context prevents build jobs from receiving GitHub write access and prevents publication
 jobs from receiving signing credentials.
 

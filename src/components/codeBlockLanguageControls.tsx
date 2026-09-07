@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { useCreateBlockNote } from '@blocknote/react'
-import { createTolariaCodeBlockOptions } from './codeBlockOptions'
-import { BLOCK_CONTAINER_SELECTOR } from './tolariaBlockNoteDom'
+import { createNabuCodeBlockOptions } from './codeBlockOptions'
+import { BLOCK_CONTAINER_SELECTOR } from './nabuBlockNoteDom'
 import { useEditorImageRenameSync } from './editorImageRenameSync'
 import { useVaultExpressionContext } from './VaultExpressionContext'
 import {
@@ -31,7 +31,7 @@ const NATIVE_LANGUAGE_CONTROL_SELECTOR =
 const ELEMENT_NODE = 1
 
 const LANGUAGE_OPTIONS = Object.entries(
-  createTolariaCodeBlockOptions().supportedLanguages ?? {},
+  createNabuCodeBlockOptions().supportedLanguages ?? {},
 ).map(([id, language]) => ({ id, name: language.name }))
 
 function liveCodeBlock(editor: CodeBlockLanguageEditor, blockId: string): boolean {

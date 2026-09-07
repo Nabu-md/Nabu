@@ -141,7 +141,7 @@ describe('Editor', () => {
 
     expect(screen.getByTestId('pdf-file-preview')).toHaveAttribute(
       'data',
-      expect.stringMatching(/^asset:\/\/localhost\/%2Fvault%2Fassets%2Freport\.pdf\?tolaria_pdf_preview=/u),
+      expect.stringMatching(/^asset:\/\/localhost\/%2Fvault%2Fassets%2Freport\.pdf\?nabu_pdf_preview=/u),
     )
     expect(screen.queryByTestId('blocknote-view')).not.toBeInTheDocument()
   })

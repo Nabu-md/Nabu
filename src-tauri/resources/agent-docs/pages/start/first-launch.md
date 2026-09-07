@@ -9,7 +9,7 @@ The first launch flow is designed to get you into a real vault quickly without h
 
 ## What You Choose
 
-Tolaria asks whether you want to:
+Nabu asks whether you want to:
 
 - Create or clone the Getting Started vault.
 - Open an existing local vault.
@@ -17,9 +17,9 @@ Tolaria asks whether you want to:
 
 The Getting Started vault is cloned locally and then disconnected from its remote. That keeps the sample safe to edit without accidentally pushing tutorial changes.
 
-## What Tolaria Creates
+## What Nabu Creates
 
-Tolaria stores app-level settings on the local machine. Your notes stay in the vault folder you choose.
+Nabu stores app-level settings on the local machine. Your notes stay in the vault folder you choose.
 
 | Data | Stored in |
 | --- | --- |
@@ -37,4 +37,4 @@ Tolaria stores app-level settings on the local machine. Your notes stay in the v
 
 ## AI Setup Prompt
 
-Tolaria can show an optional AI agents prompt after a vault is open. It checks common local install locations for supported coding agents and gives you setup paths, but you can dismiss it and use Tolaria without AI.
+Nabu can show an optional AI agents prompt after a vault is open. It checks common local install locations for supported coding agents and gives you setup paths, but you can dismiss it and use Nabu without AI.

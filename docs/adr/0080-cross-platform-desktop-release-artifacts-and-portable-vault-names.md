@@ -8,13 +8,13 @@ date: 2026-04-24
 
 ## Context
 
-Tolaria's release pipeline and file validation rules were still biased toward macOS. Alpha/stable releases only produced first-class macOS artifacts, stable download redirects assumed a DMG-only world, and vault file/folder validation allowed names that work on macOS/Linux but break on Windows clones and sync targets.
+Nabu's release pipeline and file validation rules were still biased toward macOS. Alpha/stable releases only produced first-class macOS artifacts, stable download redirects assumed a DMG-only world, and vault file/folder validation allowed names that work on macOS/Linux but break on Windows clones and sync targets.
 
 Shipping Windows as a supported desktop target requires both distribution and data portability to become explicit. A Windows installer is not enough if shared vault content can still produce invalid filenames on that platform, and cross-platform updater manifests must keep Tauri's signed updater artifact separate from the user-facing installer download.
 
 ## Decision
 
-**Tolaria ships first-class macOS, Windows x64, and Linux x64 desktop artifacts, and its vault-facing filename rules are portable across those platforms by default.**
+**Nabu ships first-class macOS, Windows x64, and Linux x64 desktop artifacts, and its vault-facing filename rules are portable across those platforms by default.**
 
 - Alpha and stable release workflows build and publish macOS, Windows x64, and Linux x64 artifacts from the same release tag/version computation.
 - `latest.json` manifests continue to point Tauri updater clients at signed updater artifacts through `url`, while manual installer/download links are exposed separately via platform-specific fields such as `dmg_url` and `download_url`.
@@ -30,7 +30,7 @@ Shipping Windows as a supported desktop target requires both distribution and da
 
 ## Consequences
 
-- Tolaria's release CI now owns packaging and artifact validation on three desktop platforms instead of one.
+- Nabu's release CI now owns packaging and artifact validation on three desktop platforms instead of one.
 - The public stable download page can redirect Windows/Linux users to real installers without special-case manual curation.
-- Vault content created through Tolaria stays portable across macOS, Linux, and Windows, which reduces sync-time surprises and broken clones.
+- Vault content created through Nabu stays portable across macOS, Linux, and Windows, which reduces sync-time surprises and broken clones.
 - Any future platform addition now needs both a release-artifact contract and an explicit portable-filename review instead of piggybacking on macOS assumptions.

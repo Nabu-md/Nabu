@@ -1,6 +1,6 @@
 # Use The Command Palette
 
-The command palette is the fastest way to move around Tolaria.
+The command palette is the fastest way to move around Nabu.
 
 Open it with:
 

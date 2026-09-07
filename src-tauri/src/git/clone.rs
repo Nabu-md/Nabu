@@ -144,12 +144,12 @@ mod tests {
             .output()
             .unwrap();
         StdCommand::new("git")
-            .args(["config", "user.email", "tolaria@app.local"])
+            .args(["config", "user.email", "nabu@app.local"])
             .current_dir(path)
             .output()
             .unwrap();
         StdCommand::new("git")
-            .args(["config", "user.name", "Tolaria App"])
+            .args(["config", "user.name", "Nabu App"])
             .current_dir(path)
             .output()
             .unwrap();

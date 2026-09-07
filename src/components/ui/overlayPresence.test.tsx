@@ -33,8 +33,8 @@ function expectNoPresenceAnimationClasses(element: HTMLElement) {
 
 describe('overlay presence stability', () => {
   beforeEach(() => {
-    document.documentElement.style.removeProperty('--tolaria-overlay-zoom-factor')
-    document.documentElement.style.removeProperty('--tolaria-overlay-zoom-inverse')
+    document.documentElement.style.removeProperty('--nabu-overlay-zoom-factor')
+    document.documentElement.style.removeProperty('--nabu-overlay-zoom-inverse')
   })
 
   it('keeps tooltip content free of Radix presence animation classes', () => {
@@ -59,13 +59,13 @@ describe('overlay presence stability', () => {
       result.current.zoomIn()
     })
 
-    expect(document.documentElement.style.getPropertyValue('--tolaria-overlay-zoom-factor')).toBe(String(110 / 100))
-    expect(document.documentElement.style.getPropertyValue('--tolaria-overlay-zoom-inverse')).toBe(String(100 / 110))
+    expect(document.documentElement.style.getPropertyValue('--nabu-overlay-zoom-factor')).toBe(String(110 / 100))
+    expect(document.documentElement.style.getPropertyValue('--nabu-overlay-zoom-inverse')).toBe(String(100 / 110))
   })
 
   it('keeps tooltip positioning and arrow geometry in the same Radix shell', async () => {
-    document.documentElement.style.setProperty('--tolaria-overlay-zoom-factor', '1.4')
-    document.documentElement.style.setProperty('--tolaria-overlay-zoom-inverse', String(1 / 1.4))
+    document.documentElement.style.setProperty('--nabu-overlay-zoom-factor', '1.4')
+    document.documentElement.style.setProperty('--nabu-overlay-zoom-inverse', String(1 / 1.4))
 
     render(
       <TooltipProvider>
@@ -84,11 +84,11 @@ describe('overlay presence stability', () => {
     await waitFor(() => {
       expect(positionWrapper.style.transform).toContain('translate')
     })
-    expect(positionWrapper).not.toHaveAttribute('data-tolaria-tooltip-position-zoom')
-    expect(positionWrapper.style.getPropertyValue('--tolaria-tooltip-wrapper-zoom')).toBe('')
+    expect(positionWrapper).not.toHaveAttribute('data-nabu-tooltip-position-zoom')
+    expect(positionWrapper.style.getPropertyValue('--nabu-tooltip-wrapper-zoom')).toBe('')
     expect(positionWrapper.style.getPropertyValue('zoom')).toBe('')
-    expect(positionShell.className).not.toContain('[zoom:var(--tolaria-overlay-zoom-inverse,1)]')
-    expect(positionShell.className).not.toContain('[zoom:var(--tolaria-overlay-zoom-factor,1)]')
+    expect(positionShell.className).not.toContain('[zoom:var(--nabu-overlay-zoom-inverse,1)]')
+    expect(positionShell.className).not.toContain('[zoom:var(--nabu-overlay-zoom-factor,1)]')
     expect(document.querySelector('[data-slot="tooltip-visual-scale"]')).not.toBeInTheDocument()
   })
 

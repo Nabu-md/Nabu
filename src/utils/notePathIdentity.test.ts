@@ -28,11 +28,11 @@ describe('notePathIdentity', () => {
   })
 
   it('joins vault paths without changing Windows verbatim roots', () => {
-    const vaultPath = String.raw`\\?\C:\Users\alex\Tolaria`
-    expect(joinVaultPath(vaultPath, 'note.md')).toBe(String.raw`\\?\C:\Users\alex\Tolaria/note.md`)
+    const vaultPath = String.raw`\\?\C:\Users\alex\Nabu`
+    expect(joinVaultPath(vaultPath, 'note.md')).toBe(String.raw`\\?\C:\Users\alex\Nabu/note.md`)
   })
 
   it('extracts filenames from slash or backslash paths', () => {
-    expect(notePathFilename(String.raw`C:\Users\alex\Tolaria\note.md`)).toBe('note.md')
+    expect(notePathFilename(String.raw`C:\Users\alex\Nabu\note.md`)).toBe('note.md')
   })
 })

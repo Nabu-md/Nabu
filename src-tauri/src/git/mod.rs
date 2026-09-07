@@ -74,7 +74,7 @@ pub struct GitCommit {
     pub date: i64,
 }
 
-const DEFAULT_GITIGNORE: &str = "# Tolaria app files (machine-specific, never commit)\n\
+const DEFAULT_GITIGNORE: &str = "# Nabu app files (machine-specific, never commit)\n\
 .laputa/settings.json\n\
 \n\
 # macOS\n\
@@ -1047,7 +1047,7 @@ mod tests {
             .output()
             .unwrap();
         git_command()
-            .args(["config", "gpg.program", "/missing/tolaria-test-gpg"])
+            .args(["config", "gpg.program", "/missing/nabu-test-gpg"])
             .current_dir(&vault)
             .output()
             .unwrap();

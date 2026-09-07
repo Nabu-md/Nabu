@@ -27,12 +27,12 @@ async function openCalloutSubmenu(page: Page) {
   await page.keyboard.press('Enter')
   await page.keyboard.type('/')
   await expect(page.locator('#bn-suggestion-menu')).toBeVisible({ timeout: 5_000 })
-  await expect(page.locator('#tolaria-fatal-render-error')).toHaveCount(0)
+  await expect(page.locator('#nabu-fatal-render-error')).toHaveCount(0)
   await page.keyboard.type('call')
   const calloutItem = page.getByRole('option', { name: /Callout/i })
   await expect(calloutItem).toBeVisible({ timeout: 5_000 })
   await calloutItem.click()
-  const submenu = page.locator('.tolaria-slash-menu__submenu')
+  const submenu = page.locator('.nabu-slash-menu__submenu')
   await expect(submenu).toBeVisible({ timeout: 5_000 })
   return { calloutItem, submenu }
 }
@@ -52,7 +52,7 @@ test('callout slash submenu opens on the right and inserts clean multiline markd
   }
 
   await page.getByRole('menuitem', { name: 'Tip' }).click()
-  const callout = page.locator('.tolaria-callout[data-callout-type="tip"]')
+  const callout = page.locator('.nabu-callout[data-callout-type="tip"]')
   await expect(callout).toBeVisible()
   await expect(callout.locator('button')).toHaveCount(0)
   await expect.poll(async () => callout.evaluate((element) => {
@@ -60,14 +60,14 @@ test('callout slash submenu opens on the right and inserts clean multiline markd
     return style.borderTopWidth === '0px' && style.borderLeftWidth === '0px'
   })).toBe(true)
   await expect.poll(async () => callout.evaluate((element) => {
-    const header = element.querySelector<HTMLElement>('.tolaria-callout__header')
-    const body = element.querySelector<HTMLElement>('.tolaria-callout__body')
+    const header = element.querySelector<HTMLElement>('.nabu-callout__header')
+    const body = element.querySelector<HTMLElement>('.nabu-callout__body')
     if (!header || !body) return false
     return Number.parseFloat(getComputedStyle(header).fontSize)
       > Number.parseFloat(getComputedStyle(body).fontSize)
   })).toBe(true)
 
-  await callout.locator('.tolaria-callout__body').click()
+  await callout.locator('.nabu-callout__body').click()
   await page.keyboard.type('First line')
   await page.keyboard.press('Shift+Enter')
   await page.keyboard.type('Second line')

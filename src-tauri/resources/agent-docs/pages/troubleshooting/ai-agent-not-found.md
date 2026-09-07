@@ -5,12 +5,12 @@ URL: /troubleshooting/ai-agent-not-found
 
 # AI Agent Not Found
 
-Tolaria can only launch local CLI agents that are installed and discoverable.
+Nabu can only launch local CLI agents that are installed and discoverable.
 
 ## Symptoms
 
 - The AI panel says no supported agent is available.
-- Claude Code or another agent works in one shell but not in Tolaria.
+- Claude Code or another agent works in one shell but not in Nabu.
 
 ## Checks
 
@@ -24,4 +24,4 @@ If the command fails, install or repair the agent first.
 
 ## Path Issues
 
-Desktop apps can inherit a different `PATH` from your interactive shell. Tolaria checks common install locations, but shell setup can still vary. Prefer installing CLI tools in standard locations or making them available from your login shell.
+Desktop apps can inherit a different `PATH` from your interactive shell. Nabu checks common install locations, but shell setup can still vary. Prefer installing CLI tools in standard locations or making them available from your login shell.

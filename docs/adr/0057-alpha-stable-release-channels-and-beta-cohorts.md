@@ -9,7 +9,7 @@ superseded_by: "0066"
 
 ## Context
 
-Tolaria's updater and release docs still described a canary branch, a beta updater channel, and a single `latest.json` feed. That no longer matched the desired product model:
+Nabu's updater and release docs still described a canary branch, a beta updater channel, and a single `latest.json` feed. That no longer matched the desired product model:
 
 - `main` should continuously publish **alpha** builds.
 - **Stable** should be promoted manually by pushing `stable-vX.Y.Z` tags.
@@ -21,7 +21,7 @@ This ADR supersedes ADR-0017's canary-branch updater model.
 
 ## Decision
 
-**Tolaria exposes exactly two updater channels: `stable` and `alpha`. Stable is the default feed, while every push to `main` publishes a prerelease alpha build to `alpha/latest.json`, and manually promoted `stable-vX.Y.Z` tags publish stable builds to `stable/latest.json`. Beta audiences are handled in PostHog and are not a third updater channel.**
+**Nabu exposes exactly two updater channels: `stable` and `alpha`. Stable is the default feed, while every push to `main` publishes a prerelease alpha build to `alpha/latest.json`, and manually promoted `stable-vX.Y.Z` tags publish stable builds to `stable/latest.json`. Beta audiences are handled in PostHog and are not a third updater channel.**
 
 ## Options considered
 

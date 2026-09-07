@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const STARTUP_SHELL_FALLBACK_NODE_KEY = '__tolariaStartupShellFallbackNode'
+const STARTUP_SHELL_FALLBACK_NODE_KEY = '__nabuStartupShellFallbackNode'
 
 function indexHtml(): string {
   return readFileSync(`${process.cwd()}/index.html`, 'utf8')
@@ -13,7 +13,7 @@ function inlineScriptsFromIndex(): string[] {
 
 function startupRootContentFromIndex(): string {
   const match = indexHtml().match(
-    /<div id="root">([\s\S]*?)<\/div>\s*<script>[\s\S]*?__tolariaStartupShellFallbackNode/,
+    /<div id="root">([\s\S]*?)<\/div>\s*<script>[\s\S]*?__nabuStartupShellFallbackNode/,
   )
   if (!match) throw new Error('index.html startup shell root was not found')
   return match[1]
@@ -29,21 +29,21 @@ describe('index startup script', () => {
   it('does not ship a visible boot diagnostics element by default', () => {
     const html = indexHtml()
 
-    expect(html).not.toContain('Tolaria boot: HTML parsed')
-    expect(html).not.toContain('<pre id="tolaria-boot-diagnostics"')
+    expect(html).not.toContain('Nabu boot: HTML parsed')
+    expect(html).not.toContain('<pre id="nabu-boot-diagnostics"')
   })
 
   it('ships a static startup shell before the React module loads', () => {
     const rootContent = startupRootContentFromIndex()
 
-    expect(rootContent).toContain('id="tolaria-boot-shell"')
+    expect(rootContent).toContain('id="nabu-boot-shell"')
     expect(rootContent).toContain('class="startup-shell-fallback"')
     expect(rootContent).toContain('aria-hidden="true"')
   })
 
   it('captures the static startup shell markup for the React fallback', () => {
     const captureScript = inlineScriptsFromIndex().find((script) =>
-      script.includes('__tolariaStartupShellFallbackNode'))
+      script.includes('__nabuStartupShellFallbackNode'))
     if (!captureScript) throw new Error('index.html startup shell capture script was not found')
 
     Reflect.deleteProperty(window, STARTUP_SHELL_FALLBACK_NODE_KEY)

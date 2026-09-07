@@ -8,18 +8,18 @@ date: 2026-05-13
 
 ## Context
 
-Tolaria already relies on BlockNote as the rich editor and on a Markdown-first save path, but the rich/raw boundary had started to split that contract across multiple local helpers. Autosave and tab-swap logic serialized rich-editor content in one place, raw-mode entry rebuilt Markdown in another, and raw-mode toggles carried pending content and pending cursor/scroll restore state through separate refs.
+Nabu already relies on BlockNote as the rich editor and on a Markdown-first save path, but the rich/raw boundary had started to split that contract across multiple local helpers. Autosave and tab-swap logic serialized rich-editor content in one place, raw-mode entry rebuilt Markdown in another, and raw-mode toggles carried pending content and pending cursor/scroll restore state through separate refs.
 
 That fragmentation created two drift risks in one of the most correctness-sensitive parts of the app:
 
 - rich-editor Markdown output could diverge across autosave, tab switches, and raw-mode entry, especially around wikilink restoration, durable schema-node serialization, frontmatter preservation, and portable attachment paths
 - raw/rich mode switches could desynchronize pending content from pending position restoration, making stale transition state harder to reason about and harder to harden
 
-Tolaria's editor contract already prioritizes no crashes, no stale overwrites, and minimal per-keystroke work. The rich/raw boundary needs the same single-owner discipline.
+Nabu's editor contract already prioritizes no crashes, no stale overwrites, and minimal per-keystroke work. The rich/raw boundary needs the same single-owner discipline.
 
 ## Decision
 
-**Tolaria centralizes BlockNote-to-Markdown serialization for editor flows in one shared owner and treats raw/rich mode handoff as explicit transition state with a single owner per concern.**
+**Nabu centralizes BlockNote-to-Markdown serialization for editor flows in one shared owner and treats raw/rich mode handoff as explicit transition state with a single owner per concern.**
 
 Specifically:
 
@@ -41,4 +41,4 @@ Specifically:
 - Wikilink restoration, durable editor-node serialization, frontmatter preservation, and portable attachment-path rewriting have one place to evolve.
 - Rich/raw mode toggles become easier to reason about because content transition state and restore transition state each have a single owner.
 - Future editor features that need rich-editor Markdown output or mode-transition bookkeeping should extend these shared owners rather than introducing local one-off refs or serializers.
-- Re-evaluation is warranted if Tolaria adopts a different editor runtime or if rich/raw mode stops being a first-class bidirectional workflow.
+- Re-evaluation is warranted if Nabu adopts a different editor runtime or if rich/raw mode stops being a first-class bidirectional workflow.

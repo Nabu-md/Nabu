@@ -6,7 +6,7 @@ import {
   type RichEditorBlockSelectionEditor,
 } from './richEditorBlockSelectionTypes'
 
-export const TOLARIA_BLOCK_CLIPBOARD_MIME = 'application/x-tolaria-blocknote-blocks+json'
+export const TOLARIA_BLOCK_CLIPBOARD_MIME = 'application/x-nabu-blocknote-blocks+json'
 
 function sanitizeMarkup(markup: string): string {
   return DOMPurify.sanitize(markup)
@@ -61,7 +61,7 @@ export function writeSelectedBlocksToClipboard(
   return true
 }
 
-function parseTolariaClipboardBlocks(clipboardData: ClipboardDataLike): unknown[] {
+function parseNabuClipboardBlocks(clipboardData: ClipboardDataLike): unknown[] {
   const serialized = clipboardData.getData(TOLARIA_BLOCK_CLIPBOARD_MIME)
   if (!serialized) return []
 
@@ -114,7 +114,7 @@ export function parseClipboardBlocks(
   clipboardData: ClipboardDataLike,
 ): unknown[] {
   return firstParsedClipboardBlocks([
-    () => parseTolariaClipboardBlocks(clipboardData),
+    () => parseNabuClipboardBlocks(clipboardData),
     () => parseMarkupClipboardBlocks(editor, clipboardData, 'blocknote/html'),
     () => parseMarkupClipboardBlocks(editor, clipboardData, 'text/html'),
     () => parseMarkdownClipboardBlocks(editor, clipboardData),

@@ -23,7 +23,7 @@ async function installClipboardCapture(page: Page): Promise<void> {
       configurable: true,
       value: {
         writeText: async (text: string) => {
-          ;(window as Window & { __tolariaCopiedText?: string }).__tolariaCopiedText = text
+          ;(window as Window & { __nabuCopiedText?: string }).__nabuCopiedText = text
         },
       },
     })
@@ -31,7 +31,7 @@ async function installClipboardCapture(page: Page): Promise<void> {
 }
 
 async function copiedText(page: Page): Promise<string> {
-  return page.evaluate(() => (window as Window & { __tolariaCopiedText?: string }).__tolariaCopiedText ?? '')
+  return page.evaluate(() => (window as Window & { __nabuCopiedText?: string }).__nabuCopiedText ?? '')
 }
 
 async function openNoteWithQuickOpen(page: Page, title: string, expectedFilename: string): Promise<void> {
@@ -43,7 +43,7 @@ async function openNoteWithQuickOpen(page: Page, title: string, expectedFilename
   await expect(page.getByTestId('breadcrumb-filename-trigger')).toContainText(expectedFilename, { timeout: 5_000 })
 }
 
-test('command palette copies and opens a Tolaria item deep link', async ({ page }) => {
+test('command palette copies and opens a Nabu item deep link', async ({ page }) => {
   await installClipboardCapture(page)
   await openFixtureVaultDesktopHarness(page, tempVaultDir)
 
@@ -52,12 +52,12 @@ test('command palette copies and opens a Tolaria item deep link', async ({ page 
   await executeCommand(page, 'Copy deep link to current item')
 
   const deepLink = await copiedText(page)
-  expect(deepLink).toBe('tolaria://test-vault/project/alpha-project.md')
+  expect(deepLink).toBe('nabu://test-vault/project/alpha-project.md')
 
   await openNoteWithQuickOpen(page, 'Note B', 'note-b')
   await openDeepLink(page, deepLink)
   await expect(page.getByTestId('breadcrumb-filename-trigger')).toContainText('alpha-project', { timeout: 5_000 })
 
-  await openDeepLink(page, 'tolaria://missing-vault/project/alpha-project.md')
+  await openDeepLink(page, 'nabu://missing-vault/project/alpha-project.md')
   await expect(page.getByText('Deep link targets an unknown vault.')).toBeVisible({ timeout: 5_000 })
 })

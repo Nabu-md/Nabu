@@ -205,21 +205,21 @@ vi.mock('./blockNoteSideMenuHoverGuard', () => ({
   useBlockNoteSideMenuHoverGuard: (containerRef: unknown) => state.hoverGuardMock(containerRef),
 }))
 
-vi.mock('./tolariaEditorFormattingConfig', () => ({
-  getTolariaSlashMenuItems: vi.fn(async () => []),
+vi.mock('./nabuEditorFormattingConfig', () => ({
+  getNabuSlashMenuItems: vi.fn(async () => []),
 }))
 
-vi.mock('./tolariaEditorFormatting', () => ({
-  TolariaFormattingToolbar: () => <div data-testid="tolaria-formatting-toolbar" />,
-  TolariaFormattingToolbarController: (props: Record<string, unknown>) => {
+vi.mock('./nabuEditorFormatting', () => ({
+  NabuFormattingToolbar: () => <div data-testid="nabu-formatting-toolbar" />,
+  NabuFormattingToolbarController: (props: Record<string, unknown>) => {
     state.capturedToolbarProps = props
-    return <div data-testid="tolaria-formatting-toolbar-controller" />
+    return <div data-testid="nabu-formatting-toolbar-controller" />
   },
 }))
 
-vi.mock('./tolariaBlockNoteSideMenu', () => ({
-  TolariaCollapsedHeadingsController: () => <div data-testid="tolaria-collapsed-headings-controller" />,
-  TolariaSideMenu: () => <div data-testid="tolaria-side-menu" />,
+vi.mock('./nabuBlockNoteSideMenu', () => ({
+  NabuCollapsedHeadingsController: () => <div data-testid="nabu-collapsed-headings-controller" />,
+  NabuSideMenu: () => <div data-testid="nabu-side-menu" />,
 }))
 
 vi.mock('./useEditorLinkActivation', () => ({

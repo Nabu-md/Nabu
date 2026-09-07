@@ -8,7 +8,7 @@ date: 2026-06-07
 
 ## Context
 
-Tolaria has several Markdown-style conveniences in the rich BlockNote editor:
+Nabu has several Markdown-style conveniences in the rich BlockNote editor:
 typed arrows become ligatures, completed inline math becomes a math node, and
 completed `==highlight==` syntax becomes the durable highlight mark.
 
@@ -22,7 +22,7 @@ slightly different edge-case policy.
 
 ## Decision
 
-**Tolaria routes rich-editor Markdown input transforms through one shared
+**Nabu routes rich-editor Markdown input transforms through one shared
 `beforeinput` execution path.**
 
 `src/components/richEditorInputTransform.ts` owns the common lifecycle,

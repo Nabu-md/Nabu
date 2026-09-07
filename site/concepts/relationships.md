@@ -17,7 +17,7 @@ blocked_by:
   - "[[sync-conflicts]]"
 ```
 
-Tolaria supports default relationship fields out of the box: `belongs_to`, `has`, and `related_to`. It also detects custom relationship fields dynamically when they contain wikilinks.
+Nabu supports default relationship fields out of the box: `belongs_to`, `has`, and `related_to`. It also detects custom relationship fields dynamically when they contain wikilinks.
 
 Default relationships have automatically computed inverses. If a note says it `belongs_to` a project, the project can show that note under its inverse `has` relationship without you writing the reverse link by hand. `related_to` works as a lateral relationship in both directions.
 
@@ -29,4 +29,4 @@ Use body links when the relationship appears naturally in writing. Use frontmatt
 
 ## Backlinks
 
-Tolaria can show incoming links and inverse relationships, making it easier to navigate from a note to the rest of its context.
+Nabu can show incoming links and inverse relationships, making it easier to navigate from a note to the rest of its context.

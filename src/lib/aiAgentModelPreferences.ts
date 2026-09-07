@@ -1,6 +1,6 @@
 import type { AiAgentId } from './aiAgents'
 
-const STORAGE_KEY = 'tolaria:ai-agent-model-preferences:v1'
+const STORAGE_KEY = 'nabu:ai-agent-model-preferences:v1'
 
 type AgentModelPreferences = Partial<Record<AiAgentId, string>>
 

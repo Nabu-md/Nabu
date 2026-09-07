@@ -1,9 +1,9 @@
-export const FRONTEND_READY_EVENT_NAME = 'tolaria:frontend-ready'
-export const STARTUP_RELOAD_ATTEMPT_STORAGE_NAME = 'tolaria:startup-reload-attempted'
+export const FRONTEND_READY_EVENT_NAME = 'nabu:frontend-ready'
+export const STARTUP_RELOAD_ATTEMPT_STORAGE_NAME = 'nabu:startup-reload-attempted'
 
 declare global {
   interface Window {
-    __tolariaFrontendReady?: boolean
+    __nabuFrontendReady?: boolean
   }
 }
 
@@ -53,7 +53,7 @@ export function markFrontendReady(options: FrontendReadyOptions = {}): void {
   const win = options.win ?? window
   const storage = options.storage ?? getSessionStorage(win)
 
-  win.__tolariaFrontendReady = true
+  win.__nabuFrontendReady = true
   removeSessionItem(storage, STARTUP_RELOAD_ATTEMPT_STORAGE_NAME)
   win.dispatchEvent(new Event(FRONTEND_READY_EVENT_NAME))
 }
@@ -86,6 +86,6 @@ function startupReload(configuredReload: (() => void) | undefined, win: Window):
 }
 
 function startupNeedsReload(win: Window, storage: Storage | null): boolean {
-  if (win.__tolariaFrontendReady === true) return false
+  if (win.__nabuFrontendReady === true) return false
   return readSessionItem(storage, STARTUP_RELOAD_ATTEMPT_STORAGE_NAME) !== '1'
 }

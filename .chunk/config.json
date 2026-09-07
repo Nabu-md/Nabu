@@ -116,7 +116,7 @@
   "stopHookMaxAttempts": 2,
   "vcs": {
     "org": "refactoringhq",
-    "repo": "tolaria"
+    "repo": "nabu"
   },
   "orgID": "39f93336-5295-4c6c-845f-e692c1d3f968",
   "environment": {

@@ -175,7 +175,7 @@ export function McpSetupDialog(options: McpSetupDialogProps) {
           data-testid="mcp-setup-scroll-body"
         >
           <p>{t('mcp.setup.runtimeRequirement')}</p>
-          <p>{t('mcp.setup.writeEntryDescription', { entry: 'tolaria' })}</p>
+          <p>{t('mcp.setup.writeEntryDescription', { entry: 'nabu' })}</p>
           <div className="rounded-md border border-border bg-muted/30 px-3 py-3 font-mono text-xs text-foreground">
             <div>~/.claude.json</div>
             <div>~/.claude/mcp.json</div>

@@ -15,9 +15,9 @@ That always-on rename rule turned out to be too rigid. Some users want the H1 to
 
 ## Decision
 
-**Tolaria keeps the editor body as the only title surface, but untitled-note auto-rename from the first H1 becomes an installation-local setting (`initial_h1_auto_rename_enabled`) that defaults to enabled.**
+**Nabu keeps the editor body as the only title surface, but untitled-note auto-rename from the first H1 becomes an installation-local setting (`initial_h1_auto_rename_enabled`) that defaults to enabled.**
 
-When the setting is enabled, untitled notes continue to auto-rename on save as soon as a real H1 title exists. When disabled, Tolaria still treats the H1 as the canonical display title, but it leaves the filename unchanged until the user explicitly renames it through the breadcrumb controls.
+When the setting is enabled, untitled notes continue to auto-rename on save as soon as a real H1 title exists. When disabled, Nabu still treats the H1 as the canonical display title, but it leaves the filename unchanged until the user explicitly renames it through the breadcrumb controls.
 
 ## Options considered
 

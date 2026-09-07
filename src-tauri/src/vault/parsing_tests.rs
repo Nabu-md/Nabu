@@ -55,10 +55,10 @@ fn test_extract_h1_title_with_empty_lines_before() {
 
 #[test]
 fn test_extract_h1_title_preserves_plain_square_brackets() {
-    let content = "# [26Q2] Tolaria MVP\n\nBody.";
+    let content = "# [26Q2] Nabu MVP\n\nBody.";
     assert_eq!(
         extract_h1_title(content),
-        Some("[26Q2] Tolaria MVP".to_string())
+        Some("[26Q2] Nabu MVP".to_string())
     );
 }
 

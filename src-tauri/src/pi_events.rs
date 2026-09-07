@@ -1,6 +1,6 @@
 use crate::ai_agents::AiAgentStreamEvent;
 
-const LOCALIZED_ERROR_PREFIX: &str = "tolaria:i18n-error:";
+const LOCALIZED_ERROR_PREFIX: &str = "nabu:i18n-error:";
 const PI_EMPTY_OUTPUT_KEY: &str = "ai.error.pi.emptyOutput";
 const PI_EMPTY_OUTPUT_WITH_DIAGNOSTIC_KEY: &str = "ai.error.pi.emptyOutputWithDiagnostic";
 

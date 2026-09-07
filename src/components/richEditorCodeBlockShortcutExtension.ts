@@ -1,7 +1,7 @@
 import { createExtension } from '@blocknote/core'
 import { trackEvent } from '../lib/telemetry'
 import { isMac } from '../utils/platform'
-import { createTolariaCodeBlockOptions } from './codeBlockOptions'
+import { createNabuCodeBlockOptions } from './codeBlockOptions'
 import { createCodeBlockLineNumberPlugin } from './codeBlockLineNumbers'
 import {
   consumeKeyboardEvent,
@@ -94,7 +94,7 @@ function plainText(content: unknown): string | null {
 function resolveLanguage(languageName: string): string {
   const normalized = languageName.trim().toLowerCase()
   if (!normalized) return 'text'
-  const languages = createTolariaCodeBlockOptions().supportedLanguages ?? {}
+  const languages = createNabuCodeBlockOptions().supportedLanguages ?? {}
   return Object.entries(languages).find(([id, option]) => (
     id === normalized || option.aliases?.includes(normalized)
   ))?.[0] ?? normalized

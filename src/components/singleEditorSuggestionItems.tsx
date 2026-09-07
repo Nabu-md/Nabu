@@ -23,7 +23,7 @@ import {
 } from '../utils/suggestionEnrichment'
 import type { VaultEntry } from '../types'
 import type { WikilinkSuggestionItem } from './WikilinkSuggestionMenu'
-import { getTolariaSlashMenuItems } from './tolariaEditorFormattingConfig'
+import { getNabuSlashMenuItems } from './nabuEditorFormattingConfig'
 
 const EMOJI_SHORTCODE_RESULT_LIMIT = 80
 const WIKILINK_AUTOCOMPLETE_RESULT_LIMIT = 20
@@ -286,7 +286,7 @@ function useSlashMenuItems(
   return useCallback(async (query: string) => {
     try {
       return guardSuggestionMenuItems(
-        await Promise.resolve(getTolariaSlashMenuItems(editor, query, {
+        await Promise.resolve(getNabuSlashMenuItems(editor, query, {
           calloutTitle: t('editor.slash.callout'),
           calloutTypeTitles: {
             abstract: t('editor.slash.callout.abstract'),

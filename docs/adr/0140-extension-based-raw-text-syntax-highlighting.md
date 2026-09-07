@@ -8,13 +8,13 @@ date: 2026-06-17
 
 ## Context
 
-Tolaria already indexes UTF-8 non-Markdown vault files as `fileKind: "text"` and opens them in the raw CodeMirror editor. Discussion #872 asked for those files to receive syntax highlighting by file extension, especially `.sql`, `.json`, `.py`, and `.yaml`, matching the expectation set by highlighted fenced code blocks in Markdown notes.
+Nabu already indexes UTF-8 non-Markdown vault files as `fileKind: "text"` and opens them in the raw CodeMirror editor. Discussion #872 asked for those files to receive syntax highlighting by file extension, especially `.sql`, `.json`, `.py`, and `.yaml`, matching the expectation set by highlighted fenced code blocks in Markdown notes.
 
 The raw editor previously installed the Markdown language extension for every raw file. That made Markdown notes work, but `.sql`, `.json`, `.py`, and `.yaml` files rendered as effectively plain text or Markdown-shaped text instead of using their own grammars.
 
 ## Decision
 
-Tolaria maps raw editor file extensions to CodeMirror language packages at editor creation time:
+Nabu maps raw editor file extensions to CodeMirror language packages at editor creation time:
 
 - Markdown files keep the existing frontmatter-aware Markdown path.
 - YAML, JSON, Python, SQL, JavaScript, and TypeScript-like files use the official CodeMirror language packages for those grammars.

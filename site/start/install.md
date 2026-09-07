@@ -1,21 +1,21 @@
-# Install Tolaria
+# Install Nabu
 
-Tolaria publishes desktop builds for macOS, Windows, and Linux. macOS is the primary day-to-day development target, with Windows and Linux builds supported through the release pipeline and fixed as platform issues are found.
+Nabu publishes desktop builds for macOS, Windows, and Linux. macOS is the primary day-to-day development target, with Windows and Linux builds supported through the release pipeline and fixed as platform issues are found.
 
 ## Download
 
 Use the latest stable release unless you are intentionally testing pre-release builds:
 
-- <a href="https://tolaria.md/download/" target="_self">Download the latest stable build</a>
-- [Browse all GitHub releases](https://github.com/refactoringhq/tolaria/releases)
-- <a href="https://tolaria.md/releases/" target="_self">Read the release notes</a>
+- <a href="https://nabu.md/download/" target="_self">Download the latest stable build</a>
+- [Browse all GitHub releases](https://github.com/refactoringhq/nabu/releases)
+- <a href="https://nabu.md/releases/" target="_self">Read the release notes</a>
 
 ## Homebrew
 
 On macOS you can install the cask:
 
 ```bash
-brew install --cask tolaria
+brew install --cask nabu
 ```
 
 ## Platform Status
@@ -30,11 +30,11 @@ See [Supported Platforms](/reference/supported-platforms) for the current suppor
 
 ## Managed Windows Devices
 
-Do not disable SmartScreen or Windows Security to install Tolaria. On a managed Windows device, install Tolaria through your normal software approval path if policy blocks unsigned or unknown-publisher installers. After Authenticode provisioning is complete, validate that the downloaded installer has a valid Tolaria publisher signature before installing.
+Do not disable SmartScreen or Windows Security to install Nabu. On a managed Windows device, install Nabu through your normal software approval path if policy blocks unsigned or unknown-publisher installers. After Authenticode provisioning is complete, validate that the downloaded installer has a valid Nabu publisher signature before installing.
 
 ## After Installing
 
-1. Open Tolaria.
+1. Open Nabu.
 2. Choose the Getting Started vault if you want a guided sample.
 3. Or open an existing folder of Markdown files as a vault.
 4. Use the command palette with `Cmd+K` on macOS or `Ctrl+K` on Linux and Windows.

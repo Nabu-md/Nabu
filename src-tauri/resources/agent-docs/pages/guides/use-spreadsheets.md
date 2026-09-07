@@ -5,18 +5,18 @@ URL: /guides/use-spreadsheets
 
 # Use Spreadsheets
 
-Tolaria spreadsheets are sheet notes: Markdown files with frontmatter and a CSV-like body that open in a spreadsheet editor when their `Display as` value is `Sheet`.
+Nabu spreadsheets are sheet notes: Markdown files with frontmatter and a CSV-like body that open in a spreadsheet editor when their `Display as` value is `Sheet`.
 
 Use a sheet note when a model needs rows, columns, calculations, or repeated numeric editing. Use a normal note when the main artifact is prose.
 
 ## Create A Sheet
 
-Use the command palette action `New Sheet`, or create/open a note and set its `Display as` to `Sheet` from the Properties panel. `Type` remains separate and can still be `Note`, `Project`, `Responsibility`, or any other Tolaria type.
+Use the command palette action `New Sheet`, or create/open a note and set its `Display as` to `Sheet` from the Properties panel. `Type` remains separate and can still be `Note`, `Project`, `Responsibility`, or any other Nabu type.
 
 When a note is a sheet:
 
 - the YAML frontmatter remains available for type, status, relationships, wikilinks, and custom properties
-- `_display: sheet` tells Tolaria to display the note with the spreadsheet editor
+- `_display: sheet` tells Nabu to display the note with the spreadsheet editor
 - the body is the sheet itself
 - there is no rich-text body around the table
 - the editor switches from the text editor to the spreadsheet editor
@@ -40,7 +40,7 @@ Formulas start with `=`.
 =IF(E6>0, "Up", "Down")
 ```
 
-Tolaria shows inline formula autocomplete while you type. The autocomplete list is built from the implemented function catalog in the bundled IronCalc engine; formula evaluation is still handled by IronCalc.
+Nabu shows inline formula autocomplete while you type. The autocomplete list is built from the implemented function catalog in the bundled IronCalc engine; formula evaluation is still handled by IronCalc.
 
 See [Spreadsheet Formulas](/reference/spreadsheet-functions) for syntax, supported examples, and links to the full IronCalc formula reference.
 
@@ -87,13 +87,13 @@ Project,Owner,Status
 [[sponsorship-pipeline]],[[person/matteo]],Review
 ```
 
-When the cell is not being edited, Tolaria renders the wikilink like other note links. When you edit the cell, the raw `[[wikilink]]` syntax is shown again.
+When the cell is not being edited, Nabu renders the wikilink like other note links. When you edit the cell, the raw `[[wikilink]]` syntax is shown again.
 
 Command-click a wikilink in a sheet cell to open the linked note.
 
 ## Reference Another Note
 
-Formulas can read a cell from another sheet note with Tolaria's wikilink cell syntax:
+Formulas can read a cell from another sheet note with Nabu's wikilink cell syntax:
 
 ```txt
 =[[newsletter-revenue]].B5
@@ -101,7 +101,7 @@ Formulas can read a cell from another sheet note with Tolaria's wikilink cell sy
 =ROUND([[business-plan]].$E$12, 2)
 ```
 
-The part inside `[[...]]` resolves like a normal Tolaria wikilink. The part after the dot is an A1-style cell reference.
+The part inside `[[...]]` resolves like a normal Nabu wikilink. The part after the dot is an A1-style cell reference.
 
 Use absolute markers when copying formulas:
 

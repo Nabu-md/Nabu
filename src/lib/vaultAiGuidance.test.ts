@@ -85,7 +85,7 @@ describe('vaultAiGuidance helpers', () => {
     })
 
     expect(vaultAiGuidanceNeedsRestore(restoreable)).toBe(true)
-    expect(getVaultAiGuidanceSummary(restoreable)).toBe('Tolaria guidance missing or broken')
+    expect(getVaultAiGuidanceSummary(restoreable)).toBe('Nabu guidance missing or broken')
     expect(vaultAiGuidanceUsesCustomFiles(custom)).toBe(true)
     expect(getVaultAiGuidanceSummary(custom)).toBe('Using custom AGENTS.md')
   })

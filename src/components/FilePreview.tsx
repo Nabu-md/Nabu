@@ -57,7 +57,7 @@ function appendPdfPreviewLoadKey(assetSrc: string, loadKey: string): string {
   const baseSrc = hashIndex === -1 ? assetSrc : assetSrc.slice(0, hashIndex)
   const hash = hashIndex === -1 ? '' : assetSrc.slice(hashIndex)
   const separator = baseSrc.includes('?') ? '&' : '?'
-  return `${baseSrc}${separator}tolaria_pdf_preview=${encodeURIComponent(loadKey)}${hash}`
+  return `${baseSrc}${separator}nabu_pdf_preview=${encodeURIComponent(loadKey)}${hash}`
 }
 
 function filePreviewPath(path: unknown): string | null {
@@ -109,7 +109,7 @@ function fallbackContentForPreviewKind(
     return {
       icon: 'warning',
       title: 'Image preview failed',
-      description: 'Tolaria could not render this image file in the preview.',
+      description: 'Nabu could not render this image file in the preview.',
     }
   }
 
@@ -117,14 +117,14 @@ function fallbackContentForPreviewKind(
     return {
       icon: 'warning',
       title: 'PDF preview failed',
-      description: 'Tolaria could not render this PDF file in the preview.',
+      description: 'Nabu could not render this PDF file in the preview.',
     }
   }
 
   return {
     icon: 'file',
     title: 'Preview unavailable',
-    description: 'Tolaria does not have an in-app preview for this file type.',
+    description: 'Nabu does not have an in-app preview for this file type.',
   }
 }
 

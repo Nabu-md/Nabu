@@ -378,7 +378,7 @@ describe('PulseView', () => {
       )
 
       const header = await screen.findByTestId('pulse-header')
-      expect(header.style.getPropertyValue('--pulse-header-left-padding')).toBe('var(--tolaria-macos-traffic-light-padding, 90px)')
+      expect(header.style.getPropertyValue('--pulse-header-left-padding')).toBe('var(--nabu-macos-traffic-light-padding, 90px)')
     })
   })
 

@@ -3,8 +3,8 @@ import type { NoteListItem } from '../utils/ai-context'
 import type { VaultEntry } from '../types'
 import { createCrossWindowPersistedStore } from './crossWindowPersistedStore'
 
-const STORAGE_KEY = 'tolaria:ai-workspace-window-context:v1'
-const BROADCAST_CHANNEL = 'tolaria-ai-workspace-window-context'
+const STORAGE_KEY = 'nabu:ai-workspace-window-context:v1'
+const BROADCAST_CHANNEL = 'nabu-ai-workspace-window-context'
 
 export interface AiWorkspaceWindowSharedContext extends AiWorkspaceWindowContext {
   activeEntry?: VaultEntry | null

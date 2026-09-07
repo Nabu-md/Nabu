@@ -50,8 +50,8 @@ async function readSlashMenuItemStyles(item: Locator) {
     const shortcut = item.querySelector<HTMLElement>('.mantine-Badge-root')!
     const shortcutLabel = item.querySelector<HTMLElement>('.mantine-Badge-label')!
     const subtitle = item.querySelector<HTMLElement>('.bn-mt-suggestion-menu-item-subtitle')!
-    const regularIcon = item.querySelector<HTMLElement>('.tolaria-slash-menu-icon__regular')!
-    const fillIcon = item.querySelector<HTMLElement>('.tolaria-slash-menu-icon__fill')!
+    const regularIcon = item.querySelector<HTMLElement>('.nabu-slash-menu-icon__regular')!
+    const fillIcon = item.querySelector<HTMLElement>('.nabu-slash-menu-icon__fill')!
     const probe = document.createElement('span')
     probe.style.color = getComputedStyle(document.documentElement)
       .getPropertyValue('--text-muted')
@@ -98,8 +98,8 @@ function expectSimplifiedItemStyles(
 async function readSlashMenuIconOpacities(item: Locator) {
   return item.evaluate((node) => {
     const item = node as HTMLElement
-    const regularIcon = item.querySelector<HTMLElement>('.tolaria-slash-menu-icon__regular')!
-    const fillIcon = item.querySelector<HTMLElement>('.tolaria-slash-menu-icon__fill')!
+    const regularIcon = item.querySelector<HTMLElement>('.nabu-slash-menu-icon__regular')!
+    const fillIcon = item.querySelector<HTMLElement>('.nabu-slash-menu-icon__fill')!
     return {
       fillOpacity: getComputedStyle(fillIcon).opacity,
       regularOpacity: getComputedStyle(regularIcon).opacity,
@@ -124,7 +124,7 @@ test.describe('BlockNote slash menu styling', () => {
     await expect(menu.getByText('Subheadings', { exact: true })).toHaveCount(0)
     await expect(menu.getByText(/^Heading [4-6]$/)).toHaveCount(0)
     const secondItem = menu.locator('.bn-suggestion-menu-item').nth(1)
-    await expect(secondItem.locator('.tolaria-slash-menu-icon')).toBeVisible()
+    await expect(secondItem.locator('.nabu-slash-menu-icon')).toBeVisible()
 
     const itemStyles = await readSlashMenuItemStyles(secondItem)
     expectSimplifiedItemStyles(itemStyles)

@@ -11,7 +11,7 @@ const DIFF_PROMPT_CHAR_LIMIT = 6000
 const SUMMARY_CHAR_LIMIT = 72
 
 const COMMIT_MESSAGE_SYSTEM_PROMPT = [
-  'Draft one concise Git commit message from Tolaria vault changes.',
+  'Draft one concise Git commit message from Nabu vault changes.',
   'Prefer the semantic change over file names when diff excerpts reveal one.',
   'Use imperative mood and keep the summary under 72 characters.',
   'Return only the commit message.',
@@ -166,7 +166,7 @@ function diffSummaryPrompt(files: ModifiedFile[], fallback: string, excerpts: Di
   ))
 
   return [
-    'Draft a Git commit message for these Tolaria vault changes.',
+    'Draft a Git commit message for these Nabu vault changes.',
     'Use the diff excerpts when present; otherwise use the metadata.',
     '',
     `Fallback draft: ${fallback}`,

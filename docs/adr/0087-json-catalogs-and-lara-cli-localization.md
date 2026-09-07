@@ -12,11 +12,11 @@ supersedes:
 
 ADR-0084 established an app-owned localization layer in `src/lib/i18n.ts` with English fallback and hand-maintained TypeScript dictionaries. That was enough for the first localized UI surface, but it does not scale well to a broader locale matrix or machine-assisted translation workflows.
 
-We now want Tolaria to support a wider set of locales and to automate translation updates with Lara CLI while keeping the runtime dependency-light and preserving the existing English fallback behavior.
+We now want Nabu to support a wider set of locales and to automate translation updates with Lara CLI while keeping the runtime dependency-light and preserving the existing English fallback behavior.
 
 ## Decision
 
-Tolaria will keep its app-owned runtime localization layer, but the translation source-of-truth moves to flat JSON catalogs in `src/lib/locales/`.
+Nabu will keep its app-owned runtime localization layer, but the translation source-of-truth moves to flat JSON catalogs in `src/lib/locales/`.
 
 - `src/lib/locales/en.json` is the canonical source catalog.
 - Additional locale files use one JSON file per locale code (for example `zh-CN.json`, `fr-FR.json`).
@@ -28,8 +28,8 @@ Tolaria will keep its app-owned runtime localization layer, but the translation 
 ## Alternatives considered
 
 - **Keep TypeScript dictionaries and point Lara at `.ts` files**: possible, but JSON is the more standard interchange format for translation tooling and keeps diffs simpler for translators and reviewers.
-- **Adopt a full frontend i18n framework now**: rejected because Tolaria already has working locale propagation and fallback behavior, and the immediate need is better content management plus translation automation.
-- **Store translated strings outside the app repo**: rejected because Tolaria's chrome localization should stay versioned with the app code that consumes it.
+- **Adopt a full frontend i18n framework now**: rejected because Nabu already has working locale propagation and fallback behavior, and the immediate need is better content management plus translation automation.
+- **Store translated strings outside the app repo**: rejected because Nabu's chrome localization should stay versioned with the app code that consumes it.
 
 ## Consequences
 

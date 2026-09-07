@@ -43,7 +43,7 @@ fn dispatch_codex_mcp_tool_call_maps_to_tool_events() {
         "item": {
             "id": "item_1",
             "type": "mcp_tool_call",
-            "server": "tolaria",
+            "server": "nabu",
             "tool": "search_notes",
             "arguments": { "query": "meeting", "limit": 5 },
             "status": "in_progress"
@@ -54,7 +54,7 @@ fn dispatch_codex_mcp_tool_call_maps_to_tool_events() {
         "item": {
             "id": "item_1",
             "type": "mcp_tool_call",
-            "server": "tolaria",
+            "server": "nabu",
             "tool": "search_notes",
             "arguments": { "query": "meeting", "limit": 5 },
             "result": [{ "title": "Meeting notes" }],

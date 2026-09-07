@@ -3,7 +3,7 @@ import { translate, type TranslationKey, type TranslationValues } from '../lib/i
 import { fileActionErrorMessage } from './useFileActions'
 
 function localizedErrorPayload(key: TranslationKey, values: TranslationValues): string {
-  return `tolaria:i18n-error:${JSON.stringify({ key, values })}`
+  return `nabu:i18n-error:${JSON.stringify({ key, values })}`
 }
 
 describe('file action error messages', () => {

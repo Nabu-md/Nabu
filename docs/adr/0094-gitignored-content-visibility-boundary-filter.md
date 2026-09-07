@@ -8,19 +8,19 @@ date: 2026-04-29
 
 ## Context
 
-Tolaria's vault scanner now indexes more of the real filesystem so Folder views, search, and reload flows can reflect what is actually in the vault. In Git-backed vaults, that includes generated, local-only, or machine-specific content that users intentionally hide through `.gitignore`.
+Nabu's vault scanner now indexes more of the real filesystem so Folder views, search, and reload flows can reflect what is actually in the vault. In Git-backed vaults, that includes generated, local-only, or machine-specific content that users intentionally hide through `.gitignore`.
 
 Always showing Gitignored files makes Folder lists and search noisy, especially in vaults that contain exports, build artifacts, or personal local scratch files. But removing those files during scanning would make visibility dependent on cache shape, complicate toggling, and blur the distinction between "what exists in the vault" and "what this installation chooses to surface."
 
 ## Decision
 
-**Tolaria keeps the vault scan and cache complete, then applies Gitignored-content visibility at the command boundary before entries, folders, or search results reach React.**
+**Nabu keeps the vault scan and cache complete, then applies Gitignored-content visibility at the command boundary before entries, folders, or search results reach React.**
 
 - `hide_gitignored_files` is an installation-local app setting and defaults to `true`.
-- Visibility checks use batched `git check-ignore --no-index --stdin` so Tolaria follows normal Git ignore and negation semantics as closely as practical.
+- Visibility checks use batched `git check-ignore --no-index --stdin` so Nabu follows normal Git ignore and negation semantics as closely as practical.
 - `list_vault`, `reload_vault`, `list_vault_folders`, and keyword search all apply the same filter when the setting is enabled.
 - Toggling the setting reloads the current vault surfaces instead of rebuilding a different cache format.
-- If a vault has no `.gitignore`, or Gitignored visibility is turned off, Tolaria shows the full scanned result.
+- If a vault has no `.gitignore`, or Gitignored visibility is turned off, Nabu shows the full scanned result.
 
 ## Options considered
 

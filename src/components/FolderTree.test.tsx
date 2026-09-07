@@ -689,7 +689,7 @@ describe('FolderTree', () => {
 
     const dataTransfer = {
       dropEffect: 'none',
-      getData: vi.fn((type: string) => type === 'application/x-tolaria-note-path' ? '/vault/alpha.md' : ''),
+      getData: vi.fn((type: string) => type === 'application/x-nabu-note-path' ? '/vault/alpha.md' : ''),
     }
     const row = screen.getByTestId('folder-row:projects')
 
@@ -710,7 +710,7 @@ describe('FolderTree', () => {
 
     const dataTransfer = {
       dropEffect: 'none',
-      getData: vi.fn((type: string) => type === 'application/x-tolaria-note-path' ? '/vault/projects/alpha.md' : ''),
+      getData: vi.fn((type: string) => type === 'application/x-nabu-note-path' ? '/vault/projects/alpha.md' : ''),
     }
 
     fireEvent.drop(screen.getByTestId('folder-row:'), { dataTransfer })
