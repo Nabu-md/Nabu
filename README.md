@@ -1,150 +1,192 @@
-![Latest stable](https://img.shields.io/github/v/release/refactoringhq/nabu?display_name=tag) [![Codecov](https://codecov.io/gh/refactoringhq/nabu/graph/badge.svg?branch=main)](https://codecov.io/gh/refactoringhq/nabu) [![CodeScene Hotspot Code Health](https://codescene.io/projects/76865/status-badges/hotspot-code-health)](https://codescene.io/projects/76865) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/fa3cdc28aefa460591c74aa262530708)](https://app.codacy.com/gh/refactoringhq/nabu/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+# Nabu
 
-# 💧 Nabu
+**The local-first, privacy-first knowledge base built in pure Rust.**
 
-Nabu is a desktop app for macOS, Windows, and Linux for managing **markdown knowledge bases**. People use it for a variety of use cases:
+Nabu is a Markdown-native desktop knowledge base for thinkers who demand speed, sovereignty, and polish. Write in clean Markdown. Think with interactive canvases, live backlinks, and a relationship graph. Everything runs **on your machine** — no cloud, no telemetry, no network calls unless you explicitly make them.
 
-* Operate second brains and personal knowledge
-* Organize company docs as context for AI
-* Store OpenClaw/assistants memory and procedures
+Built on a single Rust core (`nabu-core`) with a Dioxus 0.6 frontend compiled to WebAssembly and wrapped in Tauri v2 for native desktop performance. Zero JavaScript. Zero Electron. One codebase, one language, one source of truth.
 
-Personally, I use it to **run my life** (hey 👋 [Luca here](http://x.com/lucaronin)). I have a massive workspace of 10,000+ notes, which are the result of my [Refactoring](https://refactoring.fm/) work + a ton of personal journaling and *second braining*.
+---
 
-<img width="1000" height="656" alt="1776506856823-CleanShot_2026-04-18_at_12 06 57_2x" src="https://github.com/user-attachments/assets/8aeafb0a-b236-43c2-a083-ec111f903c38" />
+## Quick Start
 
-## Sponsors
+Download a prebuilt DMG from the [GitHub Releases](https://github.com/Nabu/Nabu/releases) page:
 
-Nabu is supported by a small panel of tools that help keep the project healthy, tested, and ready for AI-assisted development. I use these tools every day.
+| Platform | Architecture | Build |
+|----------|--------------|-------|
+| macOS 13+ | Apple Silicon (arm64) | `Nabu-<version>-aarch64.dmg` |
+| macOS 13+ | Intel (x86_64) | `Nabu-<version>-x86_64.dmg` |
+| Windows 10+ | x86_64 | `Nabu-<version>-x64.msi` |
+| Linux | x86_64 | `Nabu-<version>-x86_64.AppImage` |
 
-<table>
-  <tr>
-    <td align="center" width="25%">
-      <a href="https://codacy.com/nabu?utm_source=nabu&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/codacy-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/codacy-dark.svg" alt="Codacy" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://codescene.com/?utm_source=nabu&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/codescene-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/codescene-dark.svg" alt="CodeScene" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://circleci.com/?utm_source=nabu&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/circleci-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/circleci-dark.svg" alt="CircleCI" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://getunblocked.com/?utm_source=nabu&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/unblocked-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/nabu/main/site/public/landing/sponsors/unblocked-dark.svg" alt="Unblocked" height="32">
-        </picture>
-      </a>
-    </td>
-  </tr>
-</table>
+> A universal binary DMG is also published when both macOS architectures are built.
 
-## Walkthroughs
+---
 
-You can find some Loom walkthroughs below — they are short and to the point:
-- [How I Organize My Own Nabu Workspace](https://www.loom.com/share/bb3aaffa238b4be0bd62e4464bca2528)
-- [My Inbox Workflow](https://www.loom.com/share/dffda263317b4fa8b47b59cdf9330571)
-- [How I Save Web Resources to Nabu](https://www.loom.com/share/8a3c1776f801402ebbf4d7b0f31e9882)
+## Why Nabu
 
-## Principles
+| | Nabu |
+|---|---|
+| **Privacy** | All processing is local. Your notes never leave your machine unless you tell them to. |
+| **Speed** | Native performance via Rust + WebAssembly. Startup in ~400ms, search in <10ms. |
+| **Portability** | Plain Markdown on disk. No proprietary formats. Open your vault in any editor. |
+| **Extensibility** | Capability platform with a plugin foundation. Extend Nabu with Rust plugins. |
+| **Resilience** | Automatic version history, crash recovery, and undo/redo on every note. |
 
-- 📑 **Files-first** — Your notes are plain markdown files. They're portable, work with any editor, and require no export step. Your data belongs to you, not to any app.
-- 🔌 **Git-first** — Every vault is a git repository. You get full version history, the ability to use any git remote, and zero dependency on Nabu servers.
-- 🛜 **Offline-first, zero lock-in** — No accounts, no subscriptions, no cloud dependencies. Your vault works completely offline and always will. If you stop using Nabu, you lose nothing.
-- 🔬 **Open source** — Nabu is free and open source. I built this for [myself](https://x.com/lucaronin) and for sharing it with others.
-- 📋 **Standards-based** — Notes are markdown files with YAML frontmatter. No proprietary formats, no locked-in data. Everything works with standard tools if you decide to move away from Nabu.
-- 🔍 **Types as lenses, not schemas** — Types in Nabu are navigation aids, not enforcement mechanisms. There's no required fields, no validation, just helpful categories for finding notes.
-- 🪄**AI-first but not AI-only** — A vault of files works very well with AI agents, but you are free to use whatever you want. We support Claude Code, Codex CLI, and Gemini CLI setup paths, but you can edit the vault with any AI you want. We provide an AGENTS file for your agents to figure out.
-- ⌨️ **Keyboard-first** — Nabu is designed for power-users who want to use keyboard as much as possible. A lot of how we designed the Editor and the Command Palette is based on this.
-- 💪 **Built from real use** — Nabu was created for manage my personal vault of 10,000+ notes, and I use it every day. Every feature exists because it solved a real problem.
+---
 
-## Installation
+## Core Features
 
-### Homebrew
+### Knowledge Management
+- **Setup wizard** — first-launch flow to create or open a vault with native folder pickers
+- **Recursive file tree** — reactive navigation with context menus, keyboard shortcuts, and command palette
+- **Markdown editor** — live preview with task-checkbox support, toggle blocks, tables, and wiki-links (`[[Note]]`)
+- **Tag parsing** — real-time extraction from frontmatter with tag-based filtering
+- **Full-text search** — in-memory index with relevance ranking and backlink discovery
+- **Relationship graph** — interactive canvas visualization of your vault's link structure
+- **Template management** — frontmatter templates with variable substitution (`{{title}}`, `{{date}}`, `{{time}}`)
+- **Theme engine** — reactive dark/light/system modes persisted to settings
 
-Install via Homebrew on macOS:
+### Capture & Ingestion
+- **Clipboard capture** — automatically ingest from system clipboard
+- **Screenshot ingestion** — capture and embed images directly
+- **File drop** — drag-and-drop files into the editor
+- **Folder watch** — monitor directories for new content
+- **Dictation pill** — floating scratchpad for voice input via Whisper.cpp
 
-```batch
-brew install --cask nabu
+### Version Control & Recovery
+- **Snapshot history** — immutable version snapshots for every save, browseable with diff view
+- **Restore & duplicate** — restore any past version or duplicate to a new path
+- **Session recovery** — workspace state persisted and restored across launches
+- **Crash detection** — `.running` marker detects unclean shutdowns and offers recovery
+- **Undo/Redo** — full history stack with per-operation reversibility
+
+### Capability Platform
+- **Plugin foundation** — manifest-based plugin system with permissions, dependencies, and feature contracts
+- **Process supervision** — managed subprocess lifecycle with health checks and restart policies
+- **Synchronization** — provider-agnostic sync folder/status models with conflict detection
+- **Diagnostics pipeline** — streaming diagnostics (lsp, linters, custom providers) to the editor
+- **Live event bus** — unified `EventBus` with pub/sub, bridged to the frontend in real-time
+- **Capability registry** — runtime enable/disable/list of platform capabilities over IPC
+- **Health & metrics** — live service health reporting and runtime metrics exposed over IPC
+- **Graceful shutdown** — coordinated teardown persists index and vault graph before exit
+
+### Native Integrations
+- **macOS Vision OCR** — automatic text extraction from images
+- **PDF annotation** — dedicated viewer with highlight-to-note conversion
+- **Whisper.cpp dictation** — local speech-to-text with configurable model sizes
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    src-tauri/ (Tauri v2)                  │
+│  ── IPC commands ──────── 60+ Tauri invoke handlers     │
+│  ── Event bridge ──────── EventBus → frontend (nabu-event)  │
+└────────┬─────────────────────────────────────────────────┘
+         │ WASM / cdylib
+┌────────┴─────────────────────────────────────────────────┐
+│                    crates/nabu-ui/ (Dioxus 0.6)          │
+│  ── CSR frontend ──── Compiled to WASM, no JS runtime    │
+│  ── Reactive state ── Dioxus signals + event subscriptions│
+└────────┬─────────────────────────────────────────────────┘
+         │ Rust calls
+┌────────┴─────────────────────────────────────────────────┐
+│                    crates/nabu-core/ (Rust core)          │
+│                                                         │
+│  Capture Engine ──▶ Worker Pool ──▶ Processing Pipeline │
+│                                                         │
+│  Storage Manager (KnowledgeObjects + Sidecar cache)     │
+│  Indexer (full-text + backlinks)                        │
+│  VaultGraph (adjacency model for relationship canvas)  │
+│  EventBus (unified pub/sub across all services)         │
+│                                                         │
+│  Capability Platform: Plugin Manager, Process          │
+│  Supervisor, Sync Layer, Diagnostics Platform           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Download from releases
+### Data Flow
 
-Download the [latest release here](https://refactoringhq.github.io/nabu/download/) for macOS, Windows, or Linux. Windows installers are Authenticode-signed; company-managed devices may still require IT approval of the Nabu publisher before first install.
+```
+Capture (clipboard, file, folder)
+    │
+    ▼
+CaptureEngine → WorkQueue → WorkerPool
+    │
+    ▼
+Processing Pipeline (Harper, OCR, transformers)
+    │
+    ▼
+StorageManager (writes .md + .json sidecar)
+    │
+    ▼
+EventBus publishes ITEM_STORED
+    ├─▶ Indexer (full-text index)
+    └─▶ VaultGraph (relationship graph)
+```
 
-## Getting started
+### Building from Source
 
-When you open Nabu for the first time you get the chance of cloning the [getting started vault](https://github.com/refactoringhq/nabu-getting-started) — which gives you a walkthrough of the whole app.
+#### Prerequisites
+- Rust 1.75+ (stable)
+- Tauri CLI v2 (`cargo install tauri-cli`)
+- System dependencies: `libwebkit2gtk-dev`, `libssl-dev`, `pkg-config` (Linux)
+- Node.js 20+ (CSS pipeline only — no Node runtime in the app)
 
-The public user docs live in [`site/`](site/) and are published to GitHub Pages. Start with [Install Nabu](site/start/install.md), then [First Launch](site/start/first-launch.md).
-
-## Open source and local setup
-
-Nabu is open source and built with Tauri, React, and TypeScript. If you want to run or contribute to the app locally, here is [how to get started](https://github.com/refactoringhq/nabu/blob/main/docs/GETTING-STARTED.md). You can also find the gist below 👇
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 8+
-- Rust stable
-- macOS or Linux for development
-
-#### Linux system dependencies
-
-Tauri 2 on Linux requires WebKit2GTK 4.1 and GTK 3:
-
-- Arch / Manjaro:
-  ```bash
-  sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl \
-    appmenu-gtk-module libappindicator-gtk3 librsvg
-  ```
-- Debian / Ubuntu (22.04+):
-  ```bash
-  sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
-    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev \
-    libsoup-3.0-dev patchelf
-  ```
-- Fedora 38+:
-  ```bash
-  sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file \
-    libappindicator-gtk3-devel librsvg2-devel
-  ```
-
-The bundled MCP server still spawns the system `node` binary at runtime on Linux, so install Node from your distro package manager if you want the external AI tooling flow.
-
-### Quick start
+#### Development
 
 ```bash
-pnpm install
-pnpm dev
+# Terminal 1 — Tailwind CSS watch
+npm install
+npm run css:watch
+
+# Terminal 2 — Tauri dev server (hot-reloads UI changes)
+cargo tauri dev
 ```
 
-Open `http://localhost:5173` for the browser-based mock mode, or run the native desktop app with:
+#### Production Build
 
 ```bash
-pnpm tauri dev
+cargo tauri build
 ```
 
-## Tech Docs
+Output: `src-tauri/target/release/bundle/` — signed DMG (macOS), MSI (Windows), AppImage (Linux).
 
-- 📐 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — System design, tech stack, data flow
-- 🧩 [ABSTRACTIONS.md](docs/ABSTRACTIONS.md) — Core abstractions and models
-- 🚀 [GETTING-STARTED.md](docs/GETTING-STARTED.md) — How to navigate the codebase
-- 📚 [ADRs](docs/adr) — Architecture Decision Records
+#### Compile Check (CI)
+
+```bash
+# Check the Rust core
+cargo check --workspace
+
+# Check the Dioxus frontend (standalone workspace)
+cd crates/nabu-ui
+cargo check
+```
+
+---
+
+
+## Documentation
+
+| Resource | Description |
+|----------|-------------|
+| `AGENTS.md` | Agent guidelines and architecture notes |
+| `docs/` | Architecture decision records and design documents |
+| `crates/nabu-core/src/` | Rust doc comments (run `cargo doc` for full API reference) |
+
+---
+
+## Community
+
+- **Issues:** [GitHub Issues](https://github.com/Nabu/Nabu/issues) — bug reports and feature requests
+- **Discussions:** [GitHub Discussions](https://github.com/Nabu/Nabu/discussions) — Q&A and community chat
+- **Contributing:** See `CONTRIBUTING.md`
+
+---
+
 
 ## Built with open source
 
@@ -172,3 +214,7 @@ If you believe you have found a security issue, please report it privately as de
 ## License
 
 Nabu is licensed under AGPL-3.0-or-later. The Nabu name and logo remain covered by the project’s trademark policy.
+
+---
+
+*The name "Nabu" is inspired by the ancient Mesopotamian deity of writing and knowledge. This project is not affiliated with any commercial entity.*

@@ -7,7 +7,7 @@ Thanks for being here! Nabu is still early, and every bug report, idea, and cont
 To keep things clean:
 
 - 🐛 Bugs → GitHub Issues
-- 💡 Feature requests / ideas → Canny • <https://nabu.canny.io/>
+
 
 If you have a feature idea, please check Canny first and upvote it if it already exists.
 
@@ -26,8 +26,6 @@ A few things to keep in mind before opening one:
 - Include a short explanation of the problem and your solution
 - Follow the dev process described in Nabu’s `AGENTS.md` (tests, code health, etc.)
 - Avoid bundling unrelated refactors into the same PR
-
-If you want to contribute a feature, the best place to start is here: <https://nabu.canny.io/>
 
 ## 📋 What makes a good bug report
 
