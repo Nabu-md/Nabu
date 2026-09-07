@@ -1,4 +1,4 @@
-import { Article, ArrowsClockwise as RefreshCw, Cube, GitBranch, ListChecks, Palette, Robot as Bot, ShieldCheck, type IconProps } from '@phosphor-icons/react'
+import { Article, ArrowsClockwise as RefreshCw, Cube, GitBranch, Info, ListChecks, Palette, Robot as Bot, ShieldCheck, type IconProps } from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
 import type { TranslationKey } from '../lib/i18n'
 import { Button } from './ui/button'
@@ -24,6 +24,7 @@ export function SettingsBodyNav({ t }: SettingsBodyNavProps) {
     { id: SETTINGS_SECTION_IDS.ai, label: t('settings.aiAgents.title'), Icon: Bot },
     { id: SETTINGS_SECTION_IDS.workflow, label: t('settings.workflow.title'), Icon: ListChecks },
     { id: SETTINGS_SECTION_IDS.privacy, label: t('settings.privacy.title'), Icon: ShieldCheck },
+    { id: SETTINGS_SECTION_IDS.about, label: t('settings.about.title'), Icon: Info },
   ]
 
   return (

@@ -395,6 +395,7 @@
   "settings.privacy.crashReportingDescription": "Send anonymous error reports",
   "settings.privacy.analytics": "Usage analytics",
   "settings.privacy.analyticsDescription": "Share anonymous usage patterns",
+  "settings.about.title": "About",
   "settings.footerShortcut": "⌘, to open settings",
   "settings.cancel": "Cancel",
   "settings.save": "Save",

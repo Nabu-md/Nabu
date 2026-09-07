@@ -7,4 +7,5 @@ export const SETTINGS_SECTION_IDS = {
   ai: 'settings-section-ai',
   workflow: 'settings-section-workflow',
   privacy: 'settings-section-privacy',
+  about: 'settings-section-about',
 } as const

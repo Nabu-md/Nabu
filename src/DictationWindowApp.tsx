@@ -40,7 +40,7 @@ export function DictationWindowApp() {
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-3">
-        <DictationPill opacity={1} forceVisible fluidVoice={dictation} />
+        <DictationPill vaultPath={null} opacity={1} fluidVoice={dictation} />
       </div>
     </div>
   )

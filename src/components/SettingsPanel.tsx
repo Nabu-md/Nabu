@@ -54,6 +54,7 @@ import {
   SettingsSwitchRow,
 } from './SettingsControls'
 import { SettingsFooter } from './SettingsFooter'
+import { AboutSection } from './AboutSection'
 import { VaultContentSettingsSection } from './VaultContentSettingsSection'
 import { WorkspaceSettingsSection } from './WorkspaceSettingsSection'
 import {
@@ -622,6 +623,7 @@ function SettingsBody(props: SettingsBodyProps) {
         <SettingsSyncAndAppearanceSections {...props} />
         <SettingsContentSections {...props} />
         <SettingsAgentWorkflowSections {...props} />
+        <AboutSection t={props.t} />
       </div>
     </div>
   )

@@ -146,6 +146,24 @@ pnpm tauri dev
 - 🚀 [GETTING-STARTED.md](docs/GETTING-STARTED.md) — How to navigate the codebase
 - 📚 [ADRs](docs/adr) — Architecture Decision Records
 
+## Built with open source
+
+Nabu stands on the shoulders of these projects. Full transparency, full credit.
+
+| Project | License | What it does |
+|---|---|---|
+| [anydoc](https://crates.io/crates/anydoc) | MIT | Document-to-Markdown conversion (PDF, DOCX, PPTX, XLSX, ODT, RTF, EPUB, CSV) |
+| [Harper](https://github.com/automattic/harper) | Apache-2.0 | Offline English grammar checking |
+| [FluidVoice](https://github.com/altic-dev/FluidVoice) | GPLv3 | On-device macOS dictation (Parakeet, Whisper, Nemotron, Apple Speech models) — separate-process integration via Apple Events/clipboard |
+| Tauri | Apache-2.0 | Desktop app framework |
+| React | MIT | UI library |
+| BlockNote | MPL-2.0 | Rich text editor |
+| Tailwind CSS | MIT | Styling engine |
+| shadcn/ui | MIT | UI component patterns |
+| vis-network | Apache-2.0 | Graph view visualization |
+
+Additional Rust/frontend dependency licenses are enumerated in [NOTICE.md](NOTICE.md).
+
 ## Security
 
 If you believe you have found a security issue, please report it privately as described in [SECURITY.md](./SECURITY.md).
