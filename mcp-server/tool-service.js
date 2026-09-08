@@ -6,6 +6,9 @@ import {
   searchNotes as searchVaultNotes,
   updateNote as updateVaultNote,
 } from './vault.js'
+import { findMarkdownFiles } from './vault.js'
+import { rankNotesBySimilarity } from './semantic-search.js'
+import { evaluateSheet } from './sheet-eval.js'
 import { requireVaultPaths } from './vault-path.js'
 import { readAgentInstructions, vaultContextWithInstructions } from './agent-instructions.js'
 import { applyTemplate, listTemplates } from './templates.js'
@@ -78,6 +81,29 @@ export function createMcpToolService({
     }
 
     return results.slice(0, requestedLimit)
+  }
+
+  async function searchNotesSemantic(args = {}) {
+    if (typeof args.query !== 'string' || !args.query.trim()) {
+      throw new Error('query is required')
+    }
+
+    const limit = Number.isFinite(args.limit) && args.limit > 0 ? args.limit : 10
+    const candidates = []
+    for (const vaultPath of activeVaultPaths()) {
+      const files = await findMarkdownFiles(vaultPath)
+      for (const filePath of files) {
+        const content = await readNoteFileContent(filePath)
+        if (content === null) continue
+        candidates.push(buildSemanticCandidate(vaultPath, filePath, content))
+      }
+    }
+
+    const ranked = rankNotesBySimilarity(args.query, candidates, { limit })
+    return ranked.map((result) => {
+      const { candidate, content, ...rest } = result
+      return withVaultMetadata(rest, candidate.vaultPath)
+    })
   }
 
   async function vaultContext(args = {}) {
@@ -262,12 +288,61 @@ export function createMcpToolService({
     throw new Error(`Note path is ambiguous across active vaults. Pass vaultPath for ${notePath}.`)
   }
 
+  async function evaluateSheetWithFormulas(args = {}) {
+    return evaluateSheet({
+      csvContent: args.csvContent,
+      cellOverrides: args.cellOverrides,
+    })
+  }
+
+  async function fetchWebPage(args = {}) {
+    const url = typeof args.url === 'string' ? args.url.trim() : ''
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error('url must be an absolute http(s) URL')
+    }
+
+    let timeoutHandle
+    try {
+      const response = await fetch(url, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(WEB_FETCH_TIMEOUT_MS),
+      })
+      const html = await response.text()
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+      if (typeof args.format === 'string' && args.format === 'html') {
+        return {
+          url: response.url || url,
+          status: response.status,
+          format: 'html',
+          content: html,
+        }
+      }
+      return {
+        url: response.url || url,
+        status: response.status,
+        format: 'text',
+        content: htmlToText(html),
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new Error(`Request timed out after ${Math.round(WEB_FETCH_TIMEOUT_MS / 1000)}s: ${url}`)
+      }
+      throw error instanceof Error ? error : new Error(String(error))
+    } finally {
+      clearTimeout(timeoutHandle)
+    }
+  }
+
   return {
     activeVaultPaths,
     appendToNote,
     attachVault,
     cloneVault,
     createNote,
+    evaluateSheetWithFormulas,
+    fetchWebPage,
     highlightEditor,
     listNoteTemplates,
     listVaults,
@@ -278,6 +353,7 @@ export function createMcpToolService({
     requestedVaultPath,
     resolveUiPath,
     searchNotes,
+    searchNotesSemantic,
     setFilter,
     askClarifyingQuestion,
     readVaultAgentsMd,
@@ -343,4 +419,64 @@ function createNoteContent(args = {}) {
 function noteContent(args = {}) {
   if (typeof args.content === 'string' && args.content.length > 0) return args.content
   throw new Error('content is required')
+}
+
+const WEB_FETCH_TIMEOUT_MS = 20_000
+const WEB_FETCH_MAX_BYTES = 1_500_000
+
+async function readNoteFileContent(filePath) {
+  const { readFile } = await import('node:fs/promises')
+  try {
+    return await readFile(filePath, 'utf-8')
+  } catch {
+    return null
+  }
+}
+
+function buildSemanticCandidate(vaultPath, filePath, content) {
+  const relativePath = path.relative(vaultPath, filePath)
+  const filename = path.basename(filePath, '.md')
+  const h1Match = content.match(/^#\s+(.+)$/m)
+  const titleMatch = content.match(/^title:\s*(.+)$/m)
+  return {
+    candidate: { vaultPath },
+    path: relativePath,
+    title: (titleMatch ? titleMatch[1].trim() : '')
+      || (h1Match ? h1Match[1].trim() : '')
+      || filename,
+    content,
+  }
+}
+
+const HTML_BLOCK_TAGS = [
+  'address', 'article', 'aside', 'blockquote', 'details', 'dialog', 'dd',
+  'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'li',
+  'main', 'nav', 'ol', 'p', 'pre', 'section', 'table', 'tbody', 'td',
+  'tfoot', 'th', 'thead', 'tr', 'ul',
+]
+const SCRIPT_STYLE_BLOCK_RE = /<(?:script|style|noscript|template)\b[^>]*>[\s\S]*?<\/(?:script|style|noscript|template)>/gi
+
+function htmlToText(html) {
+  return html
+    .replace(SCRIPT_STYLE_BLOCK_RE, ' ')
+    .replace(/<\!--[\s\S]*?-->/g, ' ')
+    .replace(new RegExp(`</?(?:${HTML_BLOCK_TAGS.join('|')})\\b[^>]*>`, 'gi'), '\n')
+    .replace(/<br\b[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 4000)
+    .join('\n')
+    .slice(0, WEB_FETCH_MAX_BYTES)
 }

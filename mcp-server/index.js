@@ -6,6 +6,9 @@
  * app-managed agent's own Safe / Power User permission profile:
  *
  *   - search_notes: full-text search across vault notes
+ *   - search_notes_semantic: embedding-based similarity search over vault notes
+ *   - web_fetch: fetch a web page as text or HTML (deep research scraping)
+ *   - evaluate_sheet: evaluate CSV + formulas through an IronCalc engine
  *   - get_vault_context: vault structure overview (types, note count, folders)
  *   - get_note: parsed frontmatter + content (convenience over raw cat)
  *   - create_note: create a new markdown note without overwriting existing files
@@ -237,6 +240,45 @@ const TOOLS = [
         vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
       },
       required: ['path', 'content'],
+    },
+  },
+  {
+    name: 'search_notes_semantic',
+    description: 'Semantic search across vault notes using embedding similarity. Finds conceptually and morphologically related content that keyword search misses — use it for conceptual queries, and fall back to search_notes for exact keyword matches.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The semantic query to search for' },
+        limit: { type: 'number', description: 'Maximum results (default: 10)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'web_fetch',
+    description: 'Fetch a web page and return its content as extracted text (default) or raw HTML. Use for deep research and source gathering instead of shelling out to curl. Read-only; follows redirects; 20s timeout.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'The absolute http(s) URL to fetch' },
+        format: { type: 'string', enum: ['text', 'html'], description: 'Output format (default: text)' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'evaluate_sheet',
+    description: 'Evaluate a spreadsheet with formulas. Parses CSV or markdown table content, applies cell overrides with formulas (including IronCalc financial functions like NPV, IRR, PMT, SUMIF, VLOOKUP), and returns the evaluated cell grid.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        csvContent: { type: 'string', description: 'CSV or markdown table content' },
+        cellOverrides: { type: 'object', description: 'Cell address => value or formula mapping, e.g. {"B2": "=SUM(B1:B1)"}' },
+      },
+      required: ['csvContent'],
     },
   },
   {
@@ -506,8 +548,29 @@ function handleAskClarifyingQuestion(args = {}) {
   return { content: [{ type: 'text', text: JSON.stringify(toolService.askClarifyingQuestion(args), null, 2) }] }
 }
 
+async function handleSearchNotesSemantic(args) {
+  const results = await toolService.searchNotesSemantic(args)
+  const text = results.length === 0
+    ? 'No semantically matching notes found. Try search_notes for exact keyword matches.'
+    : results.map(r => `**${r.title}** (${r.vaultLabel} / ${r.path}) [score ${r.score.toFixed(3)}]\n${r.snippet}`).join('\n\n')
+  return { content: [{ type: 'text', text }] }
+}
+
+async function handleWebFetch(args) {
+  const result = await toolService.fetchWebPage(args)
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+}
+
+async function handleEvaluateSheet(args = {}) {
+  const result = await toolService.evaluateSheetWithFormulas(args)
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+}
+
 const TOOL_HANDLERS = new Map([
   ['search_notes', handleSearchNotes],
+  ['search_notes_semantic', handleSearchNotesSemantic],
+  ['web_fetch', handleWebFetch],
+  ['evaluate_sheet', handleEvaluateSheet],
   ['get_vault_context', handleVaultContext],
   ['list_vaults', handleListVaults],
   ['attach_vault', handleAttachVault],
