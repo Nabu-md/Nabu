@@ -413,6 +413,8 @@ macro_rules! app_invoke_handler {
             commands::resolve_sheet_external_formula_inputs,
             commands::evaluate_sheet_with_formulas,
             commands::search_notes_semantic,
+            commands::create_report,
+            commands::crunch_financials,
             commands::list_views,
             commands::save_view_cmd,
             commands::delete_view_cmd,

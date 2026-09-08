@@ -264,7 +264,7 @@ pub fn write_research_report_note(
     })
 }
 
-fn write_research_report_note_in_root(
+pub(crate) fn write_research_report_note_in_root(
     vault_root: &Path,
     query: &str,
     report: &str,

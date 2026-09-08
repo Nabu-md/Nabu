@@ -93,7 +93,7 @@ pub async fn evaluate_sheet_with_formulas(
         .map_err(|e| format!("Task panicked: {e}"))?
 }
 
-fn evaluate_sheet_with_formulas_sync(
+pub(crate) fn evaluate_sheet_with_formulas_sync(
     request: EvaluateSheetRequest,
 ) -> Result<EvaluateSheetResponse, String> {
     if request.csv_content.trim().is_empty() {
