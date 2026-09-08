@@ -25,6 +25,17 @@ function normalizePromptOptions(
   return typeof options === 'string' ? { vaultContext: options } : options ?? {}
 }
 
+function miniAppBuilderInstructions(): string {
+  return [
+    'Mini App Builder mode is active. Your job is to build, iterate, and test Nabu mini-apps.',
+    'Mini-apps live in `.apps/{id}/` inside the vault: a `manifest.json` plus static HTML/CSS/JS files.',
+    'The manifest is JSON with `id`, `name`, `entrypoint_url`, `width`, `height`, `resizable`, and `allow_vault_access`.',
+    'Set `allow_vault_access: true` only when the app must read or write notes; the vault MCP relay then exposes search_notes, get_note, create_note, update_note, append_to_note, open_note, and refresh_vault to the app over postMessage.',
+    'Scaffold common patterns when they fit: dashboards (CSV/notes + Chart.js in an inline script), structured forms that write to notes, custom editors for a note type, and visualizers of note relationships.',
+    'After writing files, call open_mini_app_window to test the app live, then use search_notes/read tools to inspect what it produced and iterate.',
+  ].join('\n')
+}
+
 function permissionModeInstructions(
   mode: AiAgentPermissionMode = 'safe',
   agent?: AiAgentId,
@@ -35,6 +46,10 @@ function permissionModeInstructions(
     }
 
     return `Power User mode is active. Local shell commands are available for this vault where the selected CLI agent supports them. Keep commands scoped to the active vault, avoid destructive commands unless explicitly requested, and do not expose note content unnecessarily.`
+  }
+
+  if (mode === 'mini_app_builder') {
+    return `Mini App Builder mode is active. Local shell commands are available for this vault where the selected CLI agent supports them, in addition to the mini-app scaffolding workflow described below.\n\n${miniAppBuilderInstructions()}`
   }
 
   return `Vault Safe mode is active. Do not use shell, terminal, Bash, Python/Node script execution, git, or command-line tools. If the user asks whether shell commands are available, say they are not available in Vault Safe. Use file/search/edit tools and Nabu MCP tools instead.`
@@ -87,7 +102,7 @@ Be concise and helpful. When you've completed a task, briefly summarize what you
 
 export function buildAgentSystemPrompt(options?: string | AgentSystemPromptOptions): string {
   const { vaultContext, agentDocsPath, permissionMode, agent, vaultPaths } = normalizePromptOptions(options)
-  const canUseShell = permissionMode === 'power_user' && agent !== 'pi'
+  const canUseShell = (permissionMode === 'power_user' || permissionMode === 'mini_app_builder') && agent !== 'pi'
   const prompt = [
     AGENT_SYSTEM_PREAMBLE,
     vaultScopeInstructions(vaultPaths),

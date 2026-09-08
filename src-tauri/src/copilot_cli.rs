@@ -105,6 +105,8 @@ fn append_permission_args(args: &mut Vec<String>, permission_mode: AiAgentPermis
         AiAgentPermissionMode::PowerUser => args.push("--allow-all-tools".into()),
         // Deep research needs network access for scraping, same as Power User.
         AiAgentPermissionMode::DeepResearch => args.push("--allow-all-tools".into()),
+        // Mini-app building writes .apps/ files and runs local tooling.
+        AiAgentPermissionMode::MiniAppBuilder => args.push("--allow-all-tools".into()),
     }
 }
 

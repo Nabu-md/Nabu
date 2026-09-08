@@ -41,6 +41,9 @@ fn apply_permission_flags(
         AiAgentPermissionMode::DeepResearch => {
             command.arg("--dangerously-skip-permissions");
         }
+        AiAgentPermissionMode::MiniAppBuilder => {
+            command.arg("--dangerously-skip-permissions");
+        }
     }
 }
 

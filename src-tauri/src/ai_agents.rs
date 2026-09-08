@@ -25,6 +25,7 @@ pub enum AiAgentPermissionMode {
     Safe,
     PowerUser,
     DeepResearch,
+    MiniAppBuilder,
 }
 
 #[derive(Debug, Clone, Serialize)]

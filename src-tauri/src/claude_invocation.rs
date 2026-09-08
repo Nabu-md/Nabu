@@ -4,6 +4,9 @@ use crate::cli_agent_runtime::AgentStreamRequest;
 
 const CLAUDE_SAFE_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS";
 const CLAUDE_POWER_USER_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
+// Mini-app building needs the full shell surface to write .apps/{id} files
+// and iterate; it shares the Power User tool policy.
+const CLAUDE_MINI_APP_BUILDER_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
 // Deep research is built around web scraping, so Bash (curl/wget) is always
 // available regardless of the caller's permission mode.
 const CLAUDE_RESEARCH_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
@@ -371,6 +374,7 @@ fn agent_tools(permission_mode: AiAgentPermissionMode) -> &'static str {
         // Deep research prompts need the same web-scraping surface as the
         // dedicated deep research runner.
         AiAgentPermissionMode::DeepResearch => CLAUDE_RESEARCH_AGENT_TOOLS,
+        AiAgentPermissionMode::MiniAppBuilder => CLAUDE_MINI_APP_BUILDER_AGENT_TOOLS,
     }
 }
 
@@ -379,6 +383,7 @@ fn preapproved_agent_tools(permission_mode: AiAgentPermissionMode) -> Option<&'s
         AiAgentPermissionMode::Safe => None,
         AiAgentPermissionMode::PowerUser => Some("Bash"),
         AiAgentPermissionMode::DeepResearch => Some(CLAUDE_RESEARCH_PREAPPROVED_TOOLS),
+        AiAgentPermissionMode::MiniAppBuilder => Some("Bash"),
     }
 }
 
@@ -387,6 +392,7 @@ fn disallowed_agent_tools_compat(permission_mode: AiAgentPermissionMode) -> &'st
         AiAgentPermissionMode::Safe => CLAUDE_SAFE_DISALLOWED_TOOLS_COMPAT,
         AiAgentPermissionMode::PowerUser => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
         AiAgentPermissionMode::DeepResearch => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
+        AiAgentPermissionMode::MiniAppBuilder => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
     }
 }
 

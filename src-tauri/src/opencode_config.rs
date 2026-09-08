@@ -227,6 +227,7 @@ fn permission_config(permission_mode: AiAgentPermissionMode) -> serde_json::Valu
         AiAgentPermissionMode::Safe => "deny",
         AiAgentPermissionMode::PowerUser => "allow",
         AiAgentPermissionMode::DeepResearch => "allow",
+        AiAgentPermissionMode::MiniAppBuilder => "allow",
     };
 
     serde_json::json!({

@@ -54,6 +54,7 @@ import { useGettingStartedClone } from './hooks/useGettingStartedClone'
 import { useNetworkStatus } from './hooks/useNetworkStatus'
 import { useAppNavigation } from './hooks/useAppNavigation'
 import { useAiActivity } from './hooks/useAiActivity'
+import { publishClarifyingForm } from './utils/clarifyingFormBridge'
 import { useBulkActions } from './hooks/useBulkActions'
 import { useDeleteActions } from './hooks/useDeleteActions'
 import { useFolderActions } from './hooks/useFolderActions'
@@ -887,6 +888,9 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     },
     onVaultChanged: (path) => { void handlePulledVaultUpdate(path ? [path] : [], resolvedPath) },
   })
+  useEffect(() => {
+    if (aiActivity.clarifyingForm) publishClarifyingForm(aiActivity.clarifyingForm)
+  }, [aiActivity.clarifyingForm])
 
   const handleInitializeProperties = useCallback((path: string) => {
     void initializeNoteProperties(notes.handleUpdateFrontmatter, path).catch((err) => {
