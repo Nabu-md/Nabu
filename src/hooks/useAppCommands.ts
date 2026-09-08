@@ -13,7 +13,7 @@ import { requestAddRemote } from '../utils/addRemoteEvents'
 import type { NoteListFilter } from '../utils/noteListHelpers'
 import type { ViewMode } from './useViewMode'
 import type { ImmediateCreateOptions } from './useNoteCreation'
-import type { NoteListMultiSelectionCommands } from '../components/note-list/multiSelectionCommands'
+import type { NoteListMultiSelectionCommands } from '../utils/multiSelectionCommands'
 import type { GitRepositoryOption } from '../utils/gitRepositories'
 import type { RichEditorBlockTypeDefinition } from '../utils/richEditorBlockTypes'
 

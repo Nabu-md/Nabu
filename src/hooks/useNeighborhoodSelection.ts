@@ -1,7 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { MutableRefObject } from 'react'
 import type { SidebarSelection, VaultEntry } from '../types'
-import type { NoteListFilter } from '../utils/noteListHelpers'
 import { trackEvent } from '../lib/telemetry'
 import {
   focusNoteListContainer,
@@ -32,7 +31,6 @@ interface UseNeighborhoodEntryOptions extends NeighborhoodRefs {
 interface UseSelectionSanitizerOptions extends NeighborhoodRefs {
   effectiveSelection: SidebarSelection
   selection: SidebarSelection
-  setNoteListFilter: (filter: NoteListFilter) => void
   setSelection: (selection: SidebarSelection) => void
 }
 
@@ -85,7 +83,6 @@ export function useSelectionSanitizer({
   neighborhoodHistoryRef,
   selection,
   selectionRef,
-  setNoteListFilter,
   setSelection,
 }: UseSelectionSanitizerOptions): void {
   useEffect(() => {
@@ -99,8 +96,7 @@ export function useSelectionSanitizer({
       neighborhoodHistoryRef.current = []
     }
     setSelection(effectiveSelection)
-    setNoteListFilter('open')
-  }, [effectiveSelection, neighborhoodHistoryRef, selection, setNoteListFilter, setSelection])
+  }, [effectiveSelection, neighborhoodHistoryRef, selection, setSelection])
 }
 
 export function useNeighborhoodHistoryBack({

@@ -6,7 +6,7 @@ import {
   type AppCommandDefinition,
 } from './appCommandCatalog'
 import type { ViewMode } from './useViewMode'
-import type { NoteListMultiSelectionCommands } from '../components/note-list/multiSelectionCommands'
+import type { NoteListMultiSelectionCommands } from '../utils/multiSelectionCommands'
 
 export const APP_COMMAND_EVENT_NAME = 'laputa:dispatch-command'
 

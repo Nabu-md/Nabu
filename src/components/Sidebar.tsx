@@ -10,7 +10,6 @@ import {
   FavoritesSection,
   type SidebarSectionProps,
   SidebarTitleBar,
-  SidebarTopNav,
   TypesSection,
   ViewsSection,
 } from './sidebar/SidebarSections'
@@ -24,6 +23,7 @@ import type { AppLocale } from '../lib/i18n'
 import type { FolderFileActions } from '../hooks/useFileActions'
 import type { AllNotesFileVisibility } from '../utils/allNotesFileVisibility'
 import { isTypeSectionVisible } from '../utils/typeVisibility'
+import type { SortConfig } from '../utils/noteListHelpers'
 
 interface SidebarProps {
   entries: VaultEntry[]
@@ -58,8 +58,6 @@ interface SidebarProps {
   onMoveNoteToFolder?: (notePath: string, folderPath: string) => Promise<unknown> | unknown
   vaultRootPath?: string
   workspaceOrder?: readonly string[]
-  showInbox?: boolean
-  inboxCount?: number
   allNotesFileVisibility?: AllNotesFileVisibility
   pluralizeTypeLabels?: boolean
   locale?: AppLocale
@@ -69,10 +67,28 @@ interface SidebarProps {
   canGoBack?: boolean
   canGoForward?: boolean
   loading?: boolean
+  search?: string
+  onSearchChange?: (value: string) => void
+  listSort?: SortConfig | null
+  onSortChange?: (sort: SortConfig) => void
+  typeEntryMapOverride?: Record<string, VaultEntry>
+  fileExplorerActions?: {
+    onEnterNeighborhood?: (entry: VaultEntry) => void
+    onOpenInNewWindow?: (entry: VaultEntry) => void
+    onRenameFilename?: (path: string, newFilenameStem: string) => void
+    onArchivePaths?: (paths: string[]) => void
+    onDeletePaths?: (paths: string[]) => void
+    onExportPdf?: (entry: VaultEntry) => void
+    onToggleFavorite?: (path: string) => void
+    onToggleOrganized?: (path: string) => void
+    onRevealFile?: (path: string) => void
+    onCopyFilePath?: (path: string) => void
+    canCopyGitUrl?: (entry: VaultEntry) => boolean
+    onCopyGitUrl?: (entry: VaultEntry) => void
+  }
 }
 
-interface SidebarNavigationProps
-  extends Pick<
+type SidebarNavigationProps = Pick<
   SidebarProps,
   | 'entries'
   | 'selection'
@@ -97,14 +113,18 @@ interface SidebarNavigationProps
   | 'onMoveNoteToFolder'
   | 'vaultRootPath'
   | 'workspaceOrder'
-  | 'showInbox'
-  | 'inboxCount'
+  | 'search'
+  | 'onSearchChange'
+  | 'listSort'
+  | 'onSortChange'
+  | 'fileExplorerActions'
   | 'onCreateNewType'
+  | 'onSelectNote'
   | 'locale'
   | 'loading'
-> {
-  activeCount: number
-  archivedCount: number
+> & {
+  activeCount?: number
+  archivedCount?: number
   groupCollapsed: ReturnType<typeof useSidebarCollapsed>['collapsed']
   toggleGroup: ReturnType<typeof useSidebarCollapsed>['toggle']
   visibleSections: ReturnType<typeof useSidebarSections>['visibleSections']
@@ -185,10 +205,17 @@ type SidebarFoldersNavigationProps = Pick<
   | 'onCanDropNoteOnFolder'
   | 'onMoveNoteToFolder'
   | 'vaultRootPath'
+  | 'search'
+  | 'listSort'
+  | 'fileExplorerActions'
   | 'groupCollapsed'
   | 'toggleGroup'
   | 'locale'
->
+> & {
+  entries: VaultEntry[]
+  onSelectNote?: (entry: VaultEntry) => void
+  typeEntryMap?: Record<string, VaultEntry>
+}
 
 function SidebarFavoritesNavigation(options: SidebarFavoritesNavigationProps) {
   const {
@@ -347,6 +374,12 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
     groupCollapsed,
     toggleGroup,
     locale,
+    entries,
+    onSelectNote,
+    search,
+    listSort,
+    typeEntryMap,
+    fileExplorerActions,
   } = options
   if (loading) {
     return (
@@ -362,6 +395,8 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   return (
     <FolderTree
       folders={folders ?? []}
+      entries={entries}
+      onSelectNote={onSelectNote}
       selection={selection}
       onSelect={onSelect}
       onCreateFolder={onCreateFolder}
@@ -377,41 +412,40 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
       locale={locale}
       onToggle={() => toggleGroup('folders')}
       vaultRootPath={vaultRootPath}
+      search={search}
+      listSort={listSort}
+      typeEntryMap={typeEntryMap}
+      onEnterNeighborhood={fileExplorerActions?.onEnterNeighborhood}
+      onOpenInNewWindow={fileExplorerActions?.onOpenInNewWindow}
+      onRenameFilename={fileExplorerActions?.onRenameFilename}
+      onArchivePaths={fileExplorerActions?.onArchivePaths}
+      onDeletePaths={fileExplorerActions?.onDeletePaths}
+      onExportPdf={fileExplorerActions?.onExportPdf}
+      onToggleFavorite={fileExplorerActions?.onToggleFavorite}
+      onToggleOrganized={fileExplorerActions?.onToggleOrganized}
+      onRevealFile={fileExplorerActions?.onRevealFile}
+      onCopyFilePath={fileExplorerActions?.onCopyFilePath}
+      canCopyGitUrl={fileExplorerActions?.canCopyGitUrl}
+      onCopyGitUrl={fileExplorerActions?.onCopyGitUrl}
     />
   )
 }
 
-function SidebarTopNavigation(props: SidebarNavigationProps) {
-  return (
-    <>
-      <SidebarTopNav
-        selection={props.selection}
-        onSelect={props.onSelect}
-        showInbox={props.showInbox ?? true}
-        inboxCount={props.inboxCount ?? 0}
-        activeCount={props.activeCount}
-        archivedCount={props.archivedCount}
-        locale={props.locale ?? 'en'}
-        loading={props.loading ?? false}
-      />
-      {(props.loading || props.entries.some((entry) => entry.favorite && !entry.archived)) && (
-        <SidebarFavoritesNavigation
-          loading={props.loading}
-          entries={props.entries}
-          selection={props.selection}
-          onSelect={props.onSelect}
-          onSelectFavorite={props.onSelectFavorite}
-          onReorderFavorites={props.onReorderFavorites}
-          groupCollapsed={props.groupCollapsed}
-          toggleGroup={props.toggleGroup}
-          locale={props.locale}
-        />
-      )}
-    </>
-  )
+function favoritesNavigationProps(props: SidebarNavigationProps) {
+  return {
+    loading: props.loading,
+    entries: props.entries,
+    selection: props.selection,
+    onSelect: props.onSelect,
+    onSelectFavorite: props.onSelectFavorite,
+    onReorderFavorites: props.onReorderFavorites,
+    groupCollapsed: props.groupCollapsed,
+    toggleGroup: props.toggleGroup,
+    locale: props.locale,
+  }
 }
 
-function SidebarViewAndTypeNavigation(props: SidebarNavigationProps) {
+function SidebarViewAndTypeNavigation(props: SidebarNavigationProps & { runtime?: ReturnType<typeof useSidebarRuntime> }) {
   const views = props.views ?? []
   const hasViews = props.loading || views.length > 0 || !!props.onCreateView
 
@@ -457,10 +491,12 @@ function SidebarViewAndTypeNavigation(props: SidebarNavigationProps) {
   )
 }
 
-function SidebarNavigation(props: SidebarNavigationProps) {
+function SidebarNavigation(props: SidebarNavigationProps & { runtime?: ReturnType<typeof useSidebarRuntime> }) {
+  const hasFavorites = props.loading || props.entries.some((entry) => entry.favorite && !entry.archived)
+  const runtime = props.runtime
   return (
     <nav className="flex-1 overflow-y-auto">
-      <SidebarTopNavigation {...props} />
+      {hasFavorites && <SidebarFavoritesNavigation {...favoritesNavigationProps(props)} />}
       <SidebarViewAndTypeNavigation {...props} />
       <SidebarFoldersNavigation
         loading={props.loading}
@@ -480,6 +516,12 @@ function SidebarNavigation(props: SidebarNavigationProps) {
         groupCollapsed={props.groupCollapsed}
         toggleGroup={props.toggleGroup}
         locale={props.locale}
+        entries={props.entries}
+        onSelectNote={props.onSelectFavorite ?? props.onSelectNote}
+        search={props.search}
+        listSort={props.listSort}
+        typeEntryMap={runtime?.typeEntryMap ?? {}}
+        fileExplorerActions={props.fileExplorerActions}
       />
     </nav>
   )
@@ -611,6 +653,7 @@ function SidebarRuntimeNavigation({
 }) {
   return (
     <SidebarNavigation
+      runtime={runtime}
       entries={props.entries}
       selection={props.selection}
       onSelect={props.onSelect}
@@ -634,13 +677,14 @@ function SidebarRuntimeNavigation({
       onMoveNoteToFolder={props.onMoveNoteToFolder}
       vaultRootPath={props.vaultRootPath}
       workspaceOrder={props.workspaceOrder}
-      showInbox={props.showInbox}
-      inboxCount={props.inboxCount}
+      search={props.search}
+      onSearchChange={props.onSearchChange}
+      listSort={props.listSort}
+      onSortChange={props.onSortChange}
+      fileExplorerActions={props.fileExplorerActions}
       locale={props.locale}
       loading={props.loading}
       onCreateNewType={props.onCreateNewType}
-      activeCount={runtime.activeCount}
-      archivedCount={runtime.archivedCount}
       groupCollapsed={runtime.groupCollapsed}
       toggleGroup={runtime.toggleGroup}
       visibleSections={runtime.visibleSections}
@@ -700,6 +744,10 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         onGoForward={props.onGoForward}
         canGoBack={props.canGoBack}
         canGoForward={props.canGoForward}
+        search={props.search}
+        onSearchChange={props.onSearchChange}
+        listSort={props.listSort}
+        onSortChange={props.onSortChange}
       />
       <SidebarRuntimeNavigation props={props} runtime={runtime} />
       <SidebarInteractionOverlays locale={locale} runtime={runtime} />

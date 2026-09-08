@@ -1,15 +1,18 @@
 import { closestCenter, DndContext, type DragEndEvent, type useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, ArrowRight, Palette, PencilSimple, Plus, SidebarSimple, Trash } from '@phosphor-icons/react'
-import type { CSSProperties, ReactNode, Ref } from 'react'
+import { ArrowLeft, ArrowRight, MagnifyingGlass, Palette, PencilSimple, Plus, SidebarSimple, Trash, X } from '@phosphor-icons/react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { APP_COMMAND_IDS, getAppCommandShortcutDisplay } from '../../hooks/appCommandCatalog'
 import { useDragRegion } from '../../hooks/useDragRegion'
 import { type AppLocale, translate } from '../../lib/i18n'
 import type { SidebarSelection, VaultEntry, ViewDefinition, ViewFile } from '../../types'
 import { MACOS_TRAFFIC_LIGHT_SAFE_PADDING } from '../../utils/platform'
+import type { SortConfig } from '../../utils/noteListHelpers'
+import { SortDropdown } from '../SortDropdown'
 import { viewIdentityKey, viewSelectionForView } from '../../utils/viewIdentity'
 import { getContextMenuPositionStyle } from '../contextMenuPosition'
 import { isSelectionActive } from '../SidebarParts'
@@ -20,7 +23,6 @@ import { computeReorder } from './sidebarHooks'
 import { SIDEBAR_SECTION_CONTENT_PADDING_BOTTOM } from './sidebarStyles'
 
 export { FavoritesSection } from './FavoritesSection'
-export { SidebarTopNav } from './SidebarTopNav'
 export { type SidebarSectionProps, TypesSection } from './SidebarTypesSection'
 
 const SIDEBAR_TITLE_BAR_ACTION_CLASSNAME =
@@ -221,6 +223,10 @@ export const SidebarTitleBar = ({
   onGoForward,
   canGoBack = false,
   canGoForward = false,
+  search,
+  onSearchChange,
+  listSort,
+  onSortChange,
 }: {
   locale?: AppLocale
   onCollapse?: () => void
@@ -228,11 +234,27 @@ export const SidebarTitleBar = ({
   onGoForward?: () => void
   canGoBack?: boolean
   canGoForward?: boolean
+  search?: string
+  onSearchChange?: (value: string) => void
+  listSort?: SortConfig | null
+  onSortChange?: (sort: SortConfig) => void
 }) => {
   const { dragRegionRef } = useDragRegion<HTMLDivElement>()
   const collapseLabel = translate(locale, 'sidebar.action.collapse')
   const backLabel = translate(locale, 'command.navigation.goBack')
   const forwardLabel = translate(locale, 'command.navigation.goForward')
+  const [searchVisible, setSearchVisible] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (searchVisible) searchInputRef.current?.focus()
+  }, [searchVisible])
+  const handleToggleSearch = () => {
+    if (searchVisible) onSearchChange?.('')
+    setSearchVisible((current) => !current)
+  }
+  const handleSortSelect = (option: SortConfig['option'], direction: SortConfig['direction']) => {
+    onSortChange?.({ option, direction })
+  }
 
   return (
     <div
@@ -243,7 +265,7 @@ export const SidebarTitleBar = ({
         padding: '0 8px',
         paddingLeft: SIDEBAR_TITLE_BAR_LEFT_PADDING,
         cursor: 'default',
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
       }}
     >
       <div className="flex items-center gap-5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
@@ -273,6 +295,55 @@ export const SidebarTitleBar = ({
           </SidebarTitleBarAction>
         )}
       </div>
+      {(onSearchChange || onSortChange) && (
+        <div className="flex items-center gap-1.5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+          {onSortChange && listSort && (
+            <SortDropdown
+              groupLabel="__sidebar__"
+              current={listSort.option}
+              direction={listSort.direction}
+              locale={locale}
+              onChange={(_groupLabel, option, direction) => handleSortSelect(option, direction)}
+            />
+          )}
+          {onSearchChange && (
+            <>
+              {searchVisible && (
+                <div className="relative" data-testid="sidebar-titlebar-search">
+                  <Input
+                    ref={searchInputRef}
+                    value={search ?? ''}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') handleToggleSearch()
+                    }}
+                    placeholder={translate(locale, 'noteList.searchPlaceholder')}
+                    className="h-7 w-36 text-[12px]"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute inset-y-1 right-0 !h-5 !w-5 !min-w-0 !rounded !p-0 !text-muted-foreground hover:!bg-accent hover:!text-foreground [&_svg]:!size-3"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={handleToggleSearch}
+                    title={translate(locale, 'noteList.clearSearch')}
+                    aria-label={translate(locale, 'noteList.clearSearch')}
+                  >
+                    <X size={10} />
+                  </Button>
+                </div>
+              )}
+              <SidebarTitleBarAction
+                label={translate(locale, 'noteList.searchAction')}
+                onClick={handleToggleSearch}
+              >
+                <MagnifyingGlass size={16} weight="regular" />
+              </SidebarTitleBarAction>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

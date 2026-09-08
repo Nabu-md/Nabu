@@ -217,7 +217,6 @@ function FileTreeRow({
   entry,
   depth,
   isSelected,
-  typeEntryMap,
   handlers,
   keyboardNav,
   rowKey,
@@ -226,8 +225,7 @@ function FileTreeRow({
   entry: VaultEntry
   depth: number
   isSelected: boolean
-  typeEntryMap: Record<string, VaultEntry>
-  handlers: FileRowHandlers
+  handlers: WithNoteContextMenu
   keyboardNav: TreeKeyboardNav & { syncRowOrder?: (keys: string[]) => void }
   rowKey: string
   rowOrderRef: { current: string[] }
@@ -308,7 +306,6 @@ function FolderFiles({
   depth,
   entriesByFolder,
   selection,
-  typeEntryMap,
   handlers,
   keyboardNav,
   rowOrderRef,
@@ -332,7 +329,6 @@ function FolderFiles({
           entry={entry}
           depth={depth + 1}
           isSelected={selection.kind === 'entity' && selection.entry.path === entry.path}
-          typeEntryMap={typeEntryMap}
           handlers={handlers}
           keyboardNav={keyboardNav}
           rowKey={`file:${entry.path}`}
@@ -727,7 +723,7 @@ function ExplorerFolderRow(options: {
             selectTextOnFocus={true}
             submitOnBlur={true}
             testId="rename-folder-input"
-            onCancel={onCancelCreateFolder}
+            onCancel={() => onCancelCreateFolder?.()}
             onSubmit={(nextName) => onRenameFolder(node.path, nextName)}
           />
         </div>

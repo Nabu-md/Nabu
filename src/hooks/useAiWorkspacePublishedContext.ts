@@ -64,7 +64,6 @@ function usePublishedNoteList({
 
 export function useAiWorkspacePublishedContext(options: UseAiWorkspacePublishedContextParams) {
   const { activeTab, allNotesFileVisibility, context, effectiveSelection, entries, inboxPeriod, tabs, views } = options
-  const inboxCount = useMemo(() => filterInboxEntries(entries, inboxPeriod).length, [entries, inboxPeriod])
 
   const noteList = usePublishedNoteList({
     allNotesFileVisibility,
@@ -89,7 +88,6 @@ export function useAiWorkspacePublishedContext(options: UseAiWorkspacePublishedC
   }, [activeTab?.content, activeTab?.entry, context, entries, noteList, noteListFilter, tabs])
 
   return {
-    inboxCount,
     noteList,
     noteListFilter,
   }
