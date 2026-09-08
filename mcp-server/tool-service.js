@@ -26,6 +26,8 @@ export function createMcpToolService({
   emitUiAction = () => {},
   attachVault: attachVaultOperation,
   cloneVault: cloneVaultOperation,
+  /** Optional ({ vaultPath, query, limit }) => Promise<{ results } | null>. */
+  relaySemanticSearch = null,
 } = {}) {
   const sessionVaultPaths = []
 
@@ -89,21 +91,43 @@ export function createMcpToolService({
     }
 
     const limit = Number.isFinite(args.limit) && args.limit > 0 ? args.limit : 10
-    const candidates = []
-    for (const vaultPath of activeVaultPaths()) {
+    const roots = activeVaultPaths()
+    const results = []
+
+    // Prefer the app relay (fastembed BGE embeddings via Tauri) when the
+    // desktop frontend is connected; fall back to the local hashed-trigram
+    // embedder for standalone runs (tests, external MCP clients).
+    for (const vaultPath of roots) {
+      let relayed = null
+      if (relaySemanticSearch) {
+        try {
+          relayed = await relaySemanticSearch({ vaultPath, query: args.query, limit })
+        } catch {
+          relayed = null
+        }
+      }
+      if (relayed && Array.isArray(relayed.results)) {
+        for (const result of relayed.results) {
+          results.push({ score: 0, snippet: '', ...result, ...withVaultMetadata({}, vaultPath) })
+        }
+        continue
+      }
       const files = await findMarkdownFiles(vaultPath)
+      const candidates = []
       for (const filePath of files) {
         const content = await readNoteFileContent(filePath)
         if (content === null) continue
         candidates.push(buildSemanticCandidate(vaultPath, filePath, content))
       }
+      const ranked = rankNotesBySimilarity(args.query, candidates, { limit })
+      for (const result of ranked) {
+        const { candidate, content, ...rest } = result
+        results.push(withVaultMetadata(rest, candidate.vaultPath))
+      }
     }
 
-    const ranked = rankNotesBySimilarity(args.query, candidates, { limit })
-    return ranked.map((result) => {
-      const { candidate, content, ...rest } = result
-      return withVaultMetadata(rest, candidate.vaultPath)
-    })
+    results.sort((left, right) => right.score - left.score)
+    return results.slice(0, limit)
   }
 
   async function vaultContext(args = {}) {

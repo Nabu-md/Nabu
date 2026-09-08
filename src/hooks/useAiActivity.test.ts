@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+
+const { invokeMock, isTauriMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn(),
+  isTauriMock: vi.fn(),
+}))
+vi.mock('@tauri-apps/api/core', () => ({ invoke: invokeMock }))
+vi.mock('../mock-tauri', () => ({ isTauri: isTauriMock }))
+
 import { useAiActivity } from './useAiActivity'
 
 class MockWebSocket {
@@ -20,6 +28,10 @@ beforeEach(() => {
   MockWebSocket.latest = null
   vi.stubGlobal('WebSocket', MockWebSocket)
   vi.useFakeTimers()
+  invokeMock.mockReset()
+  invokeMock.mockResolvedValue(undefined)
+  isTauriMock.mockReset()
+  isTauriMock.mockReturnValue(true)
 })
 
 afterEach(() => {
@@ -173,5 +185,78 @@ describe('useAiActivity', () => {
     act(() => { firstWs?.onclose?.() })
     act(() => { vi.advanceTimersByTime(3000) })
     expect(MockWebSocket.latest).not.toBe(firstWs)
+  })
+
+  describe('tool_request relay', () => {
+    function renderRelayHook() {
+      return renderHook(() => useAiActivity())
+    }
+
+    function sendToolRequest(data: Record<string, unknown>) {
+      return sendWsMessage({ type: 'tool_request', action: 'search_notes_semantic', id: 'relay-1', ...data })
+    }
+
+    it('invokes the Tauri command and responds with results', async () => {
+      invokeMock.mockResolvedValue({ results: [{ path: 'a.md', score: 0.9 }], elapsedMs: 12 })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendToolRequest({ vaultPath: '/vault', query: 'financing', limit: 5 })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('search_notes_semantic', {
+        request: { query: 'financing', vaultPath: '/vault', limit: 5, hideGitignoredFiles: false },
+      })
+      expect(sent).toHaveLength(1)
+      const response = JSON.parse(sent[0])
+      expect(response.type).toBe('tool_response')
+      expect(response.id).toBe('relay-1')
+      expect(response.result).toEqual({ results: [{ path: 'a.md', score: 0.9 }], elapsedMs: 12 })
+    })
+
+    it('responds with an error when required fields are missing', async () => {
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendToolRequest({ query: 'no vault path' })
+      })
+
+      expect(invokeMock).not.toHaveBeenCalled()
+      const response = JSON.parse(sent[0])
+      expect(response.error).toContain('vaultPath')
+    })
+
+    it('responds with an error when not running inside Tauri', async () => {
+      isTauriMock.mockReturnValue(false)
+      invokeMock.mockClear()
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendToolRequest({ vaultPath: '/vault', query: 'x' })
+      })
+
+      expect(invokeMock).not.toHaveBeenCalled()
+      const response = JSON.parse(sent[0])
+      expect(response.error).toContain('Tauri unavailable')
+    })
+
+    it('ignores tool requests for unsupported actions', async () => {
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendWsMessage({ type: 'tool_request', action: 'delete_everything', id: 'relay-2' })
+      })
+
+      expect(invokeMock).not.toHaveBeenCalled()
+      expect(sent).toHaveLength(0)
+    })
   })
 })

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { invoke } from '@tauri-apps/api/core'
+import { isTauri } from '../mock-tauri'
 import { trackEvent } from '../lib/telemetry'
 
 export type HighlightElement = 'editor' | 'tab' | 'properties' | 'notelist' | null
@@ -37,6 +39,89 @@ const RECONNECT_DELAY_MS = 3000
 type UiActionMessage = Record<string, unknown> & {
   action: string
   type: 'ui_action'
+}
+
+/** Tools the frontend will execute on behalf of the MCP server via Tauri. */
+const RELAYED_TOOLS = new Set(['search_notes_semantic'])
+
+interface RelayedToolRequest {
+  type: 'tool_request'
+  action: string
+  id: string
+  vaultPath?: unknown
+  query?: unknown
+  limit?: unknown
+}
+
+function parseToolRequest(event: MessageEvent): RelayedToolRequest | null {
+  try {
+    const data = JSON.parse(String(event.data))
+    if (
+      isRecord(data)
+      && data.type === 'tool_request'
+      && typeof data.action === 'string'
+      && typeof data.id === 'string'
+      && RELAYED_TOOLS.has(data.action)
+    ) {
+      return data as RelayedToolRequest
+    }
+  } catch {
+    // Malformed JSON — not a tool request.
+  }
+  return null
+}
+
+function relayPayloadString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+function relayPayloadLimit(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined
+}
+
+/**
+ * Execute a relayed MCP tool request through the matching Tauri command and
+ * send a `tool_response` back over the same socket. Errors are reported as
+ * `tool_response` errors so the MCP server can fall back to local search.
+ */
+async function handleToolRequest(
+  request: RelayedToolRequest,
+  socket: WebSocket,
+): Promise<void> {
+  const respond = (payload: Record<string, unknown>): void => {
+    if (socket.readyState !== WebSocket.OPEN) return
+    socket.send(JSON.stringify({ type: 'tool_response', id: request.id, ...payload }))
+  }
+
+  try {
+    if (!isTauri()) {
+      respond({ error: 'Tauri unavailable' })
+      return
+    }
+    if (request.action === 'search_notes_semantic') {
+      const vaultPath = relayPayloadString(request.vaultPath)
+      const query = relayPayloadString(request.query)
+      if (!vaultPath || !query) {
+        respond({ error: 'vaultPath and query are required' })
+        return
+      }
+      const result = await invoke<unknown>('search_notes_semantic', {
+        request: {
+          query,
+          vaultPath,
+          limit: relayPayloadLimit(request.limit) ?? 10,
+          hideGitignoredFiles: false,
+        },
+      })
+      respond({ result })
+      return
+    }
+    respond({ error: `Unsupported relayed tool: ${request.action}` })
+  } catch (error) {
+    respond({ error: error instanceof Error ? error.message : String(error) })
+  }
 }
 type StringPayloadAction = 'open_note' | 'open_tab' | 'set_filter'
 type StringPayloadCallback = 'onOpenNote' | 'onOpenTab' | 'onSetFilter'
@@ -217,7 +302,15 @@ function useUiActionSocket(handleMessage: (event: MessageEvent) => void, clearHi
       if (!mounted) return
       try {
         ws = new WebSocket(WS_UI_URL)
-        ws.onmessage = handleMessage
+        ws.onmessage = (event: MessageEvent) => {
+          // MCP → app relay: execute the tool via Tauri and answer in-place.
+          const toolRequest = parseToolRequest(event)
+          if (toolRequest && ws && ws.readyState === WebSocket.OPEN) {
+            void handleToolRequest(toolRequest, ws)
+            return
+          }
+          handleMessage(event)
+        }
         ws.onclose = () => {
           if (mounted) reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS)
         }

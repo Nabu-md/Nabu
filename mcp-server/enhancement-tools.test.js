@@ -21,12 +21,13 @@ afterEach(async () => {
   await rm(tmpDir, { recursive: true, force: true })
 })
 
-function makeService({ emittedActions = [] } = {}) {
+function makeService({ emittedActions = [], relaySemanticSearch } = {}) {
   return createMcpToolService({
     resolveVaultPaths: () => [vault],
     emitUiAction: (action, payload) => {
       emittedActions.push({ action, payload })
     },
+    relaySemanticSearch,
   })
 }
 
@@ -60,6 +61,63 @@ describe('search_notes_semantic', () => {
     const service = makeService()
     const results = await service.searchNotesSemantic({ query: 'revenue', limit: 1 })
     assert.ok(results.length <= 1)
+  })
+})
+
+describe('search_notes_semantic relay', () => {
+  it('uses relayed results when the app responds', async () => {
+    const relayCalls = []
+    const service = makeService({
+      relaySemanticSearch: async ({ vaultPath, query, limit }) => {
+        relayCalls.push({ vaultPath, query, limit })
+        return {
+          results: [
+            { path: 'note/financing.md', title: 'Vehicle Financing', snippet: 'Lease costs', score: 0.81 },
+          ],
+        }
+      },
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'car lease costs', limit: 3 })
+
+    assert.equal(relayCalls.length, 1)
+    assert.equal(relayCalls[0].vaultPath, vault)
+    assert.equal(relayCalls[0].query, 'car lease costs')
+    assert.equal(results.length, 1)
+    assert.equal(results[0].path, 'note/financing.md')
+    assert.equal(results[0].vaultLabel, 'Enhancement Vault')
+    assert.equal(typeof results[0].score, 'number')
+  })
+
+  it('falls back to the local embedder when the relay is unavailable', async () => {
+    const service = makeService({
+      relaySemanticSearch: async () => null,
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'subscription revenue growth', limit: 5 })
+
+    assert.ok(results.length >= 1)
+    assert.equal(results[0].path, 'note/quarterly-review.md')
+  })
+
+  it('falls back when the relay errors', async () => {
+    const service = makeService({
+      relaySemanticSearch: async () => {
+        throw new Error('UI bridge disconnected')
+      },
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'revenue', limit: 5 })
+    assert.ok(results.length >= 1)
+  })
+
+  it('falls back per vault when the relay returns a non-array payload', async () => {
+    const service = makeService({
+      relaySemanticSearch: async () => ({ results: 'not-an-array' }),
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'milk', limit: 5 })
+    assert.ok(results.some((result) => result.path === 'note/random.md'))
   })
 })
 

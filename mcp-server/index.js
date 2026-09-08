@@ -68,8 +68,10 @@ function connectUiBridge() {
       }
       console.error(`[mcp] Connected to UI bridge at ${WS_UI_URL}`)
     })
+    ws.on('message', handleUiSocketMessage)
     ws.on('close', () => {
       if (uiSocket === ws) uiSocket = null
+      failPendingRelayRequests('UI bridge disconnected')
       scheduleUiReconnect()
     })
     ws.on('error', () => {
@@ -120,7 +122,89 @@ function broadcastUiAction(action, payload) {
   uiSocket.send(JSON.stringify({ type: 'ui_action', action, ...payload }))
 }
 
-const toolService = createMcpToolService({ emitUiAction: broadcastUiAction, attachVault, cloneVault })
+// --- UI relay: request/response round-trips through the frontend ---
+//
+// The frontend (useAiActivity) answers `tool_request` messages by invoking
+// the matching Tauri command and replying with a `tool_response`. Used for
+// tools that need app-native capabilities (e.g. fastembed-backed semantic
+// search) that cannot live in the standalone MCP server process.
+
+const RELAY_TIMEOUT_MS = 10_000
+const SEMANTIC_SEARCH_RELAY_TIMEOUT_MS = 120_000 // first call downloads the model
+let relayRequestCounter = 0
+/** @type {Map<string, { resolve: Function, reject: Function, timer: NodeJS.Timeout }>} */
+const pendingRelayRequests = new Map()
+
+function handleUiSocketMessage(raw) {
+  let msg
+  try {
+    msg = JSON.parse(String(raw))
+  } catch {
+    return
+  }
+  if (!msg || msg.type !== 'tool_response' || typeof msg.id !== 'string') return
+  const pending = pendingRelayRequests.get(msg.id)
+  if (!pending) return
+  pendingRelayRequests.delete(msg.id)
+  clearTimeout(pending.timer)
+  if (msg.error) pending.reject(new Error(String(msg.error)))
+  else pending.resolve(msg.result ?? null)
+}
+
+function failPendingRelayRequests(reason) {
+  for (const [id, pending] of pendingRelayRequests) {
+    clearTimeout(pending.timer)
+    pending.reject(new Error(reason))
+    pendingRelayRequests.delete(id)
+  }
+}
+
+function requestUiRelay(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    if (!uiSocket || uiSocket.readyState !== WebSocket.OPEN) {
+      reject(new Error('UI bridge not connected'))
+      return
+    }
+    relayRequestCounter += 1
+    const id = `relay-${Date.now().toString(36)}-${relayRequestCounter}`
+    const timeoutMs = action === 'search_notes_semantic'
+      ? SEMANTIC_SEARCH_RELAY_TIMEOUT_MS
+      : RELAY_TIMEOUT_MS
+    const timer = setTimeout(() => {
+      pendingRelayRequests.delete(id)
+      reject(new Error(`UI relay timed out for ${action} after ${timeoutMs}ms`))
+    }, timeoutMs)
+    pendingRelayRequests.set(id, { resolve, reject, timer })
+    try {
+      uiSocket.send(JSON.stringify({ type: 'tool_request', action, id, ...payload }))
+    } catch (err) {
+      clearTimeout(timer)
+      pendingRelayRequests.delete(id)
+      reject(err)
+    }
+  })
+}
+
+/**
+ * Ask the desktop app to run its fastembed-backed semantic search for one
+ * vault. Resolves `{ results }` on success, or null when the app relay is
+ * unavailable so the caller can fall back to the local embedder.
+ */
+async function relaySemanticSearch({ vaultPath, query, limit }) {
+  try {
+    return await requestUiRelay('search_notes_semantic', { vaultPath, query, limit })
+  } catch (err) {
+    console.error(`[mcp] semantic search relay unavailable: ${err.message}`)
+    return null
+  }
+}
+
+const toolService = createMcpToolService({
+  emitUiAction: broadcastUiAction,
+  attachVault,
+  cloneVault,
+  relaySemanticSearch,
+})
 
 const TOOLS = [
   {
