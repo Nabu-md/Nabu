@@ -312,7 +312,7 @@ fn research_report_slug(query: &str) -> String {
         .collect::<String>()
         .split('-')
         .filter(|part| !part.is_empty())
-        .take(6)
+        .take(3)
         .collect::<Vec<_>>()
         .join("-");
     if slug.is_empty() {

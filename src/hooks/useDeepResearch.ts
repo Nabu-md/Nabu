@@ -12,6 +12,8 @@ export interface DeepResearchSource {
   title: string
   url: string
   excerpt: string
+  /** 0–100 relevance score assigned by the research agent (null when absent). */
+  relevanceScore: number | null
 }
 
 export interface DeepResearchIteration {
@@ -25,6 +27,8 @@ export interface DeepResearchState {
   sources: DeepResearchSource[]
   interimSummaries: string[]
   report: string | null
+  /** Vault-relative path when the finished report was persisted as a note. */
+  reportNotePath: string | null
   error: string | null
   sessionId: string | null
 }
@@ -35,6 +39,7 @@ export const INITIAL_DEEP_RESEARCH_STATE: DeepResearchState = {
   sources: [],
   interimSummaries: [],
   report: null,
+  reportNotePath: null,
   error: null,
   sessionId: null,
 }
@@ -54,9 +59,10 @@ export type DeepResearchEvent =
   | { kind: 'IterationStart'; iteration: number; goal: string }
   | { kind: 'ToolStart'; tool_name: string; tool_id: string }
   | { kind: 'ToolDone'; tool_id: string; output?: string }
-  | { kind: 'SourceAdded'; title: string; url: string; excerpt: string }
+  | { kind: 'SourceAdded'; title: string; url: string; excerpt: string; relevance_score?: number | null }
   | { kind: 'InterimSummary'; iteration: number; text: string }
   | { kind: 'Result'; report: string }
+  | { kind: 'ReportWritten'; note_path: string }
   | { kind: 'Error'; message: string }
   | { kind: 'Done' }
 
@@ -65,6 +71,7 @@ export interface DeepResearchCallbacks {
   onSourceAdded?: (source: DeepResearchSource) => void
   onInterimSummary?: (iteration: number, text: string) => void
   onResult?: (report: string) => void
+  onReportWritten?: (notePath: string) => void
   onError?: (message: string) => void
   onDone?: () => void
 }
@@ -77,13 +84,21 @@ function mockDeepResearchResponse(query: string, callbacks: DeepResearchCallback
         onIterationStart?.(event.iteration, event.goal)
         return
       case 'SourceAdded':
-        onSourceAdded?.({ title: event.title, url: event.url, excerpt: event.excerpt })
+        onSourceAdded?.({
+          title: event.title,
+          url: event.url,
+          excerpt: event.excerpt,
+          relevanceScore: typeof event.relevance_score === 'number' ? event.relevance_score : null,
+        })
         return
       case 'InterimSummary':
         onInterimSummary?.(event.iteration, event.text)
         return
       case 'Result':
         onResult?.(event.report)
+        return
+      case 'ReportWritten':
+        onReportWritten?.(event.note_path)
         return
       case 'Error':
         onError?.(event.message)
@@ -107,6 +122,7 @@ function mockDeepResearchResponse(query: string, callbacks: DeepResearchCallback
     { kind: 'InterimSummary', iteration: 1, text: `[mock] Gathered ${query} overview from 2 sources. Identifying gaps…` },
     { kind: 'IterationStart', iteration: 2, goal: `Fill gaps for "${query}" with additional sources.` },
     { kind: 'Result', report: `# Research Report: ${query}\n\n[mock deep research] This is a simulated report produced in browser mode. In the desktop app the Claude CLI performs real multi-step research with web scraping.\n\n## Key findings\n- Finding one about ${query}\n- Finding two about ${query}\n\n## Sources\n- https://en.wikipedia.org\n- https://news.example.com` },
+    { kind: 'ReportWritten', note_path: `Research Reports/${query.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}-mock.md` },
     { kind: 'Done' },
   ]
 
@@ -124,13 +140,21 @@ function handleDeepResearchEvent(event: DeepResearchEvent, callbacks: DeepResear
       callbacks.onIterationStart?.(event.iteration, event.goal)
       return
     case 'SourceAdded':
-      callbacks.onSourceAdded?.({ title: event.title, url: event.url, excerpt: event.excerpt })
+      callbacks.onSourceAdded?.({
+        title: event.title,
+        url: event.url,
+        excerpt: event.excerpt,
+        relevanceScore: typeof event.relevance_score === 'number' ? event.relevance_score : null,
+      })
       return
     case 'InterimSummary':
       callbacks.onInterimSummary?.(event.iteration, event.text)
       return
     case 'Result':
       callbacks.onResult?.(event.report)
+      return
+    case 'ReportWritten':
+      callbacks.onReportWritten?.(event.note_path)
       return
     case 'Error':
       callbacks.onError?.(event.message)
@@ -242,6 +266,7 @@ export function useDeepResearch() {
       sources: [],
       interimSummaries: [],
       report: null,
+      reportNotePath: null,
       error: null,
       sessionId: null,
     })
@@ -267,6 +292,9 @@ export function useDeepResearch() {
       },
       onResult: (report) => {
         setState((current) => ({ ...current, report }))
+      },
+      onReportWritten: (notePath) => {
+        setState((current) => ({ ...current, reportNotePath: notePath }))
       },
       onError: (message) => {
         setState((current) => ({ ...current, error: message, status: 'error' }))

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CaretRight, CheckCircle, Globe, MagnifyingGlass, StopCircle } from '@phosphor-icons/react'
+import type React from 'react'
+import { CaretRight, CheckCircle, Globe, MagnifyingGlass, Notebook, StopCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -23,6 +24,7 @@ interface DeepResearchPanelProps {
   vaultPaths?: string[]
   permissionMode?: AiAgentPermissionMode
   model?: string
+  onOpenNote?: (path: string) => void
 }
 
 const MIN_DEPTH = 1
@@ -39,6 +41,7 @@ export function DeepResearchPanel({
   vaultPaths,
   permissionMode = 'safe',
   model,
+  onOpenNote,
 }: DeepResearchPanelProps) {
   const [query, setQuery] = useState('')
   const [depth, setDepth] = useState(3)
@@ -76,6 +79,24 @@ export function DeepResearchPanel({
     reset()
     setQuery('')
     setDepth(3)
+  }
+
+  // Highest-relevance sources first; unscored sources keep arrival order after them.
+  const sortedSources = React.useMemo(() => {
+    const scored = state.sources
+      .map((source, index) => ({ source, index }))
+      .filter(({ source }) => source.relevanceScore !== null)
+    const unscored = state.sources
+      .map((source, index) => ({ source, index }))
+      .filter(({ source }) => source.relevanceScore === null)
+    scored.sort((a, b) => (b.source.relevanceScore ?? 0) - (a.source.relevanceScore ?? 0))
+    return [...scored, ...unscored].map(({ source }) => source)
+  }, [state.sources])
+
+  const handleOpenReportNote = () => {
+    if (!state.reportNotePath) return
+    trackEvent('deep_research_report_note_opened')
+    onOpenNote?.(state.reportNotePath)
   }
 
   return (
@@ -194,7 +215,7 @@ export function DeepResearchPanel({
               Sources ({state.sources.length})
             </h3>
             <ul className="space-y-0.5" data-testid="deep-research-sources">
-              {state.sources.map((source, index) => (
+              {sortedSources.map((source, index) => (
                 <li key={`${source.url}-${index}`}>
                   <button
                     type="button"
@@ -205,6 +226,15 @@ export function DeepResearchPanel({
                   >
                     <Globe size={13} className="shrink-0 text-muted-foreground" aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{source.title}</span>
+                    {source.relevanceScore !== null && (
+                      <span
+                        className="shrink-0 rounded-full bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        title={`Relevance ${source.relevanceScore}/100`}
+                        data-testid={`deep-research-source-score-${index}`}
+                      >
+                        {source.relevanceScore}
+                      </span>
+                    )}
                     <span className="shrink-0 text-[11px] text-muted-foreground">open</span>
                   </button>
                 </li>
@@ -236,6 +266,28 @@ export function DeepResearchPanel({
             <div className="rounded-lg border border-border p-4">
               <MarkdownContent content={state.report} />
             </div>
+            {state.reportNotePath && (
+              <div
+                className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-[var(--hover)] px-3 py-2"
+                data-testid="deep-research-report-note"
+              >
+                <Notebook size={14} className="shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground" title={state.reportNotePath}>
+                  Saved to {state.reportNotePath}
+                </span>
+                {onOpenNote && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={handleOpenReportNote}
+                    data-testid="deep-research-report-note-open"
+                  >
+                    Open note
+                  </Button>
+                )}
+              </div>
+            )}
           </section>
         )}
 

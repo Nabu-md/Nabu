@@ -752,6 +752,7 @@ function SideAiWorkspaceLayout({
             vaultPaths={workspace.vaultPaths}
             permissionMode="deep_research"
             model={model.activeConversation?.modelId ?? undefined}
+            onOpenNote={onOpenNote}
           />
         ) : (
           <ConversationSessions
@@ -1050,6 +1051,7 @@ function AiWorkspaceLayout({
           vaultPaths={workspace.vaultPaths}
           permissionMode="deep_research"
           model={model.activeConversation?.modelId ?? undefined}
+          onOpenNote={workspace.onOpenNote}
         />
       ) : (
         <div className="flex min-w-0 flex-1 flex-col">

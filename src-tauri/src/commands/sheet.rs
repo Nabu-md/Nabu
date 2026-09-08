@@ -115,6 +115,7 @@ fn evaluate_sheet_with_formulas_sync(
     let mut model = Model::new_empty("Nabu Sheet", "en", &timezone, "en")?;
     let mut external_inputs = HashMap::new();
     let mut unresolved_external_cells = HashSet::new();
+    let mut formula_cells = HashSet::new();
 
     // Populate the model from the parsed CSV rows, resolving [[note]].A1-style
     // external references through the shared resolver.
@@ -144,8 +145,11 @@ fn evaluate_sheet_with_formulas_sync(
                 SHEET_INDEX,
                 row_index as i32 + 1,
                 column_index as i32 + 1,
-                model_input,
+                model_input.clone(),
             )?;
+            if model_input.trim_start().starts_with('=') {
+                formula_cells.insert(address);
+            }
         }
     }
 
@@ -162,6 +166,9 @@ fn evaluate_sheet_with_formulas_sync(
             continue;
         }
         override_addresses.insert(address.clone());
+        if value.trim_start().starts_with('=') {
+            formula_cells.insert(address.clone());
+        }
         model.set_user_input(SHEET_INDEX, row as i32, column as i32, value)?;
     }
 
@@ -179,10 +186,14 @@ fn evaluate_sheet_with_formulas_sync(
             let content = model
                 .get_localized_cell_content(SHEET_INDEX, row_number, column_number)
                 .unwrap_or_default();
-            cells.insert(
-                address,
-                external_cell_formula_literal(&model, row_number, column_number, &content),
-            );
+            if formula_cells.contains(&address) {
+                let formatted = model
+                    .get_formatted_cell_value(SHEET_INDEX, row_number, column_number)
+                    .unwrap_or(content.clone());
+                cells.insert(address, normalized_numeric_formula_literal(&formatted).unwrap_or(formatted));
+            } else {
+                cells.insert(address, content);
+            }
         }
     }
     for address in &override_addresses {
@@ -192,10 +203,17 @@ fn evaluate_sheet_with_formulas_sync(
         let content = model
             .get_localized_cell_content(SHEET_INDEX, row as i32, column as i32)
             .unwrap_or_default();
-        cells.insert(
-            address.clone(),
-            external_cell_formula_literal(&model, row as i32, column as i32, &content),
-        );
+        if formula_cells.contains(address) {
+            let formatted = model
+                .get_formatted_cell_value(SHEET_INDEX, row as i32, column as i32)
+                .unwrap_or(content.clone());
+            cells.insert(
+                address.clone(),
+                normalized_numeric_formula_literal(&formatted).unwrap_or(formatted),
+            );
+        } else {
+            cells.insert(address.clone(), content);
+        }
     }
 
     Ok(EvaluateSheetResponse { cells, warnings })
@@ -879,7 +897,7 @@ mod tests {
 
     #[test]
     fn evaluate_sheet_applies_formula_overrides() {
-        let overrides = HashMap::from([("D2".to_string(), "=NPV(0.1,B2:B3)".to_string())]);
+        let overrides = HashMap::from([("D2".to_string(), "=NPV(0.1,A2:A3)".to_string())]);
         let response = evaluate_sheet_with_formulas_sync(evaluate_request(
             "Amount\n1000\n2000",
             overrides,
