@@ -7,6 +7,7 @@ import type { AiTarget } from '../lib/aiTargets'
 import type { AppLocale } from '../lib/i18n'
 import type { NoteListItem } from '../utils/ai-context'
 import type { VaultEntry } from '../types'
+import { trackEvent } from '../lib/telemetry'
 import { useAiConversations, type ConversationRecord } from '../hooks/useAiConversations'
 import { useAiPanelController, type AiPanelController } from './useAiPanelController'
 import { useAiPanelPromptQueue } from './useAiPanelPromptQueue'
@@ -63,6 +64,9 @@ interface AiPanelViewProps {
   onMessageHistoryScrollStateChange?: (scrolled: boolean) => void
   targetId?: string
   vaultPath?: string
+  vaultPaths?: string[]
+  /** Deep research runs inline in this same chat surface when true. */
+  researchMode?: boolean
 }
 
 function readinessFromReadyFlag(ready: boolean | undefined): AiAgentReadiness {
@@ -184,6 +188,7 @@ export function AiPanelView(options: AiPanelViewProps) {
     onMessageHistoryScrollStateChange,
     targetId,
     vaultPath,
+    researchMode,
   } = options
   const view = resolveAiPanelViewModel({
     defaultAiAgent: providedDefaultAiAgent,
@@ -232,13 +237,27 @@ export function AiPanelView(options: AiPanelViewProps) {
         },
         [handleSend, isActive, onSendPrompt],
       )
-      const threads = useAiThreadsIntegration({
-        vaultPath: vaultPath ?? null,
-        messages: agent.messages,
-        isActive,
-        onClearConversation: handleNewChat,
-      })
-      const clarifyingForm = useClarifyingForm(interactive)
+  const threads = useAiThreadsIntegration({
+    vaultPath: vaultPath ?? null,
+    messages: agent.messages,
+    isActive,
+    onClearConversation: handleNewChat,
+  })
+  const clarifyingForm = useClarifyingForm(interactive)
+  // Deep research is a mode, not a separate panel: the normal chat composer
+  // stays, and prompts run through the same conversation. The backend routes
+  // on the deep_research permission mode; we only track the research start
+  // here for analytics from the new location.
+  const handleResearchComposerSend = useCallback(
+    (text: string, references: Parameters<typeof handleSend>[1]) => {
+      if (!text.trim() || isActive) return
+      onSendPrompt?.(text)
+      trackEvent('deep_research_started')
+      handleSend(`Deep research request: ${text}`, references)
+    },
+    [handleSend, isActive, onSendPrompt],
+  )
+  const composerSend = researchMode ? handleResearchComposerSend : handleComposerSend
 
       const panelBody = (
         <>
@@ -279,7 +298,7 @@ export function AiPanelView(options: AiPanelViewProps) {
             isActive={isActive}
             controls={composerControls}
             onChange={setInput}
-            onSend={handleComposerSend}
+            onSend={composerSend}
             onStop={handleStop}
             onUnsupportedAiPaste={onUnsupportedAiPaste}
           />

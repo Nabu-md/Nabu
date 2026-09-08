@@ -52,6 +52,22 @@ fn test_settings_json_roundtrip() {
         dictation_enabled: Some(true),
         dictation_position: Some("bottom-left".to_string()),
         dictation_opacity: Some(0.7),
+        dictation_backend: Some("fluidvoice".to_string()),
+        fluidvoice_model: Some("parakeet".to_string()),
+        grammar_check_enabled: Some(true),
+        ocr_enabled: Some(true),
+        document_conversion_enabled: Some(true),
+        sidebar_opacity: Some(0.8),
+        sidebar_blur_radius: Some(8.0),
+        editor_opacity: Some(0.85),
+        editor_blur_radius: Some(12.0),
+        ai_panel_opacity: Some(0.9),
+        ai_panel_blur_radius: Some(4.0),
+        window_opacity: Some(0.95),
+        window_blur_radius: Some(20.0),
+        editor_font_family: Some("JetBrains Mono".to_string()),
+        ai_chat_font_family: Some("Inter".to_string()),
+        sidebar_font_family: Some("Inter".to_string()),
         all_notes_show_pdfs: Some(true),
         all_notes_show_images: Some(true),
         all_notes_show_unsupported: Some(false),
@@ -59,6 +75,44 @@ fn test_settings_json_roundtrip() {
     let json = serde_json::to_string(&settings).unwrap();
     let parsed: Settings = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed, settings);
+}
+
+#[test]
+fn test_transparency_values_are_normalized() {
+    let loaded = save_and_reload(Settings {
+        sidebar_opacity: Some(1.5),
+        sidebar_blur_radius: Some(-4.0),
+        editor_opacity: Some(f64::NAN),
+        editor_blur_radius: Some(50.0),
+        ai_panel_opacity: Some(0.5),
+        ai_panel_blur_radius: Some(30.0),
+        window_opacity: Some(0.25),
+        window_blur_radius: Some(12.0),
+        ..Default::default()
+    });
+    assert_eq!(loaded.sidebar_opacity, None);
+    assert_eq!(loaded.sidebar_blur_radius, None);
+    assert_eq!(loaded.editor_opacity, None);
+    assert_eq!(loaded.editor_blur_radius, Some(20.0));
+    assert_eq!(loaded.ai_panel_opacity, Some(0.5));
+    assert_eq!(loaded.ai_panel_blur_radius, Some(20.0));
+    assert_eq!(loaded.window_opacity, Some(0.25));
+    assert_eq!(loaded.window_blur_radius, Some(12.0));
+}
+
+#[test]
+fn test_invalid_dictation_backend_is_filtered() {
+    let loaded = save_and_reload(Settings {
+        dictation_backend: Some("siri".to_string()),
+        ..Default::default()
+    });
+    assert!(loaded.dictation_backend.is_none());
+
+    let valid = save_and_reload(Settings {
+        dictation_backend: Some("fluidvoice".to_string()),
+        ..Default::default()
+    });
+    assert_eq!(valid.dictation_backend.as_deref(), Some("fluidvoice"));
 }
 
 #[test]

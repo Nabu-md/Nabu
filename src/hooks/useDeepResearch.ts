@@ -77,7 +77,7 @@ export interface DeepResearchCallbacks {
 }
 
 function mockDeepResearchResponse(query: string, callbacks: DeepResearchCallbacks): void {
-  const { onIterationStart, onSourceAdded, onInterimSummary, onResult, onError, onDone } = callbacks
+  const { onIterationStart, onSourceAdded, onInterimSummary, onResult, onReportWritten, onError, onDone } = callbacks
   const deliver = (event: DeepResearchEvent) => {
     switch (event.kind) {
       case 'IterationStart':

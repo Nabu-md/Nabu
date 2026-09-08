@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react'
-import { ChatText, Plus, Trash } from '@phosphor-icons/react'
+import { Clock, Plus, Trash } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate, type AppLocale } from '../lib/i18n'
@@ -82,7 +82,7 @@ export const AiConversationThreads = memo(function AiConversationThreads({
           title={translate(locale, 'ai.threads.expand')}
           data-testid="ai-threads-expand"
         >
-          <ChatText size={14} />
+          <Clock size={14} />
         </Button>
       </div>
     )
@@ -122,7 +122,7 @@ export const AiConversationThreads = memo(function AiConversationThreads({
               title={translate(locale, 'ai.threads.collapse')}
               data-testid="ai-threads-collapse"
             >
-              <ChatText size={14} />
+              <Clock size={14} />
             </Button>
           )}
         </div>

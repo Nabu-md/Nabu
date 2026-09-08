@@ -21,7 +21,6 @@ import { NEW_AI_CHAT_EVENT } from '../utils/aiPromptBridge'
 import type { GenerateAiConversationTitleRequest } from '../utils/aiConversationTitle'
 import { cloneAiWorkspaceSessionUntilMessage } from '../lib/aiWorkspaceSessionStore'
 import { AiPanelView } from './AiPanel'
-import { DeepResearchPanel } from './DeepResearchPanel'
 import { GuidanceWarning, WorkspaceHeader } from './AiWorkspaceChrome'
 import { WorkspaceResizeHandles } from './AiWorkspaceResizeHandles'
 import { AiTargetModelPicker } from './AiAgentModelPicker'
@@ -180,6 +179,8 @@ type ConversationSessionProps = {
   onVaultChanged?: () => void
   openTabs?: VaultEntry[]
   readyFallbackTargetId: string
+  /** When true, the session's permission mode is forced to deep_research so prompts run the research loop in-chat. */
+  researchMode: boolean
   target: AiTarget
   modelCatalog: AiAgentModelCatalog
   modelCatalogReady: boolean
@@ -268,6 +269,8 @@ interface ConversationSessionContext {
   noteList?: NoteListItem[]
   noteListFilter?: { type: string | null; query: string }
   openTabs?: VaultEntry[]
+  vaultPath: string
+  vaultPaths?: string[]
 }
 
 function activeContextForSession({
@@ -278,14 +281,18 @@ function activeContextForSession({
   noteList,
   noteListFilter,
   openTabs,
+  vaultPath,
+  vaultPaths,
 }: Pick<
   ConversationSessionProps,
-  'active' | 'activeEntry' | 'activeNoteContent' | 'entries' | 'noteList' | 'noteListFilter' | 'openTabs'
+  'active' | 'activeEntry' | 'activeNoteContent' | 'entries' | 'noteList' | 'noteListFilter' | 'openTabs' | 'vaultPath' | 'vaultPaths'
 >): ConversationSessionContext {
   if (!active) {
     return {
       activeEntry: null,
       activeNoteContent: null,
+      vaultPath,
+      vaultPaths,
     }
   }
 
@@ -296,6 +303,8 @@ function activeContextForSession({
     noteList,
     noteListFilter,
     openTabs,
+    vaultPath,
+    vaultPaths,
   }
 }
 
@@ -422,6 +431,7 @@ interface ConversationSessionViewProps {
   onRestoreVaultAiGuidance?: () => void
   onSelectTarget: (targetId: string) => void
   onUnsupportedAiPaste?: (message: string) => void
+  researchMode: boolean
   target: AiTarget
   targetReadiness: { readiness: AiAgentReadiness; ready: boolean }
   vaultAiGuidanceStatus?: VaultAiGuidanceStatus
@@ -448,6 +458,7 @@ function ConversationSessionView(options: ConversationSessionViewProps) {
     onRestoreVaultAiGuidance,
     onSelectTarget,
     onUnsupportedAiPaste,
+    researchMode,
     target,
     targetReadiness,
     vaultAiGuidanceStatus,
@@ -491,6 +502,9 @@ function ConversationSessionView(options: ConversationSessionViewProps) {
           showLeftBorder={false}
           surface={mode === 'side' ? 'sidebar' : 'default'}
           targetId={target.id}
+          vaultPath={context.vaultPath}
+          vaultPaths={context.vaultPaths}
+          researchMode={researchMode}
         />
       </div>
     </div>
@@ -533,6 +547,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     onVaultChanged,
     openTabs,
     readyFallbackTargetId,
+    researchMode,
     target,
     vaultAiGuidanceStatus,
     vaultPath,
@@ -546,6 +561,8 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     noteList,
     noteListFilter,
     openTabs,
+    vaultPath,
+    vaultPaths,
   })
   const targetReadiness = resolveAiTargetReadiness(target, aiAgentsStatus, {
     readyFallbackTargetId,
@@ -646,6 +663,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
       onRestoreVaultAiGuidance={onRestoreVaultAiGuidance}
       onSelectTarget={onSelectTarget}
       onUnsupportedAiPaste={onUnsupportedAiPaste}
+      researchMode={researchMode}
       target={target}
       targetReadiness={targetReadiness}
       vaultAiGuidanceStatus={vaultAiGuidanceStatus}
@@ -746,21 +764,12 @@ function SideAiWorkspaceLayout({
           separated={headerSeparated}
           statuses={model.statuses}
         />
-        {researchMode ? (
-          <DeepResearchPanel
-            vaultPath={workspace.vaultPath}
-            vaultPaths={workspace.vaultPaths}
-            permissionMode="deep_research"
-            model={model.activeConversation?.modelId ?? undefined}
-            onOpenNote={onOpenNote}
-          />
-        ) : (
-          <ConversationSessions
-            model={model}
-            workspace={workspace}
-            onMessageHistoryScrollStateChange={setHeaderSeparated}
-          />
-        )}
+        <ConversationSessions
+          model={model}
+          researchMode={researchMode}
+          workspace={workspace}
+          onMessageHistoryScrollStateChange={setHeaderSeparated}
+        />
       </div>
     </aside>
   )
@@ -1045,29 +1054,21 @@ function AiWorkspaceLayout({
         statuses={model.statuses}
       />
       {!model.sidebarCollapsed && <ResizeHandle onResize={sizing.onSidebarResize} />}
-      {researchMode ? (
-        <DeepResearchPanel
-          vaultPath={workspace.vaultPath}
-          vaultPaths={workspace.vaultPaths}
-          permissionMode="deep_research"
-          model={model.activeConversation?.modelId ?? undefined}
-          onOpenNote={workspace.onOpenNote}
-        />
-      ) : (
-        <div className="flex min-w-0 flex-1 flex-col">
-          <ConversationSessions model={model} workspace={workspace} />
-        </div>
-      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ConversationSessions model={model} researchMode={researchMode} workspace={workspace} />
+      </div>
     </section>
   )
 }
 
 function ConversationSessions({
   model,
+  researchMode,
   onMessageHistoryScrollStateChange,
   workspace,
 }: {
   model: AiWorkspaceModel
+  researchMode: boolean
   onMessageHistoryScrollStateChange?: (scrolled: boolean) => void
   workspace: ResolvedAiWorkspaceProps
 }) {
@@ -1113,6 +1114,7 @@ function ConversationSessions({
             onVaultChanged={workspace.onVaultChanged}
             openTabs={workspace.openTabs}
             readyFallbackTargetId={model.fallbackTarget.id}
+            researchMode={researchMode}
             target={target}
             vaultAiGuidanceStatus={workspace.vaultAiGuidanceStatus}
             vaultPath={workspace.vaultPath}

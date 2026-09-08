@@ -152,6 +152,32 @@ export interface Settings {
   dictation_enabled?: boolean | null
   dictation_position?: 'bottom-right' | 'bottom-left' | null
   dictation_opacity?: number | null
+  /** Dictation speech engine. null = auto (FluidVoice when installed, else Web Speech). */
+  dictation_backend?: 'web_speech' | 'fluidvoice' | null
+  /** Preferred FluidVoice speech model, persisted across reloads. */
+  fluidvoice_model?: string | null
+  /** Harper grammar checking for the editor. */
+  grammar_check_enabled?: boolean | null
+  /** OCR text extraction from images/PDFs. */
+  ocr_enabled?: boolean | null
+  /** Anydoc document conversion (docx etc. to markdown). */
+  document_conversion_enabled?: boolean | null
+  /** Frosted-glass panel transparency (0–1); null = opaque default. */
+  sidebar_opacity?: number | null
+  /** Backdrop blur radius in px for the sidebar (0–20). */
+  sidebar_blur_radius?: number | null
+  editor_opacity?: number | null
+  editor_blur_radius?: number | null
+  ai_panel_opacity?: number | null
+  ai_panel_blur_radius?: number | null
+  /** Warp-style window-level opacity (0–1); null = fully opaque. */
+  window_opacity?: number | null
+  /** Window-level native blur radius hint (0–20, macOS). */
+  window_blur_radius?: number | null
+  /** Optional font family overrides per surface. */
+  editor_font_family?: string | null
+  ai_chat_font_family?: string | null
+  sidebar_font_family?: string | null
 }
 
 export interface AiWorkspaceConversationSetting {

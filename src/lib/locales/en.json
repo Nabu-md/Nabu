@@ -1099,8 +1099,8 @@
   "graph.empty": "No notes to graph yet",
   "ai.threads.title": "Chats",
   "ai.threads.newChat": "New chat",
-  "ai.threads.collapse": "Collapse chat list",
-  "ai.threads.expand": "Expand chat list",
+  "ai.threads.collapse": "Hide chat history",
+  "ai.threads.expand": "Chat history",
   "ai.threads.delete": "Delete chat",
   "ai.threads.empty": "No saved chats yet. Send a message to start one."
 }

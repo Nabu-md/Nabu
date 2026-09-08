@@ -126,6 +126,22 @@ pub struct Settings {
     pub dictation_enabled: Option<bool>,
     pub dictation_position: Option<String>,
     pub dictation_opacity: Option<f64>,
+    pub dictation_backend: Option<String>,
+    pub fluidvoice_model: Option<String>,
+    pub grammar_check_enabled: Option<bool>,
+    pub ocr_enabled: Option<bool>,
+    pub document_conversion_enabled: Option<bool>,
+    pub sidebar_opacity: Option<f64>,
+    pub sidebar_blur_radius: Option<f64>,
+    pub editor_opacity: Option<f64>,
+    pub editor_blur_radius: Option<f64>,
+    pub ai_panel_opacity: Option<f64>,
+    pub ai_panel_blur_radius: Option<f64>,
+    pub window_opacity: Option<f64>,
+    pub window_blur_radius: Option<f64>,
+    pub editor_font_family: Option<String>,
+    pub ai_chat_font_family: Option<String>,
+    pub sidebar_font_family: Option<String>,
 }
 
 fn normalize_optional_string(value: Option<String>) -> Option<String> {
@@ -259,7 +275,41 @@ fn normalize_settings(settings: Settings) -> Settings {
         multi_workspace_enabled: settings.multi_workspace_enabled,
         dictation_enabled: settings.dictation_enabled,
         dictation_position: normalize_optional_string(settings.dictation_position),
-        dictation_opacity: settings.dictation_opacity.filter(|opacity| opacity.is_finite() && (0.0..=1.0).contains(opacity)),
+        dictation_opacity: normalize_opacity(settings.dictation_opacity),
+        dictation_backend: normalize_dictation_backend(settings.dictation_backend.as_deref()),
+        fluidvoice_model: normalize_optional_string(settings.fluidvoice_model),
+        grammar_check_enabled: settings.grammar_check_enabled,
+        ocr_enabled: settings.ocr_enabled,
+        document_conversion_enabled: settings.document_conversion_enabled,
+        sidebar_opacity: normalize_opacity(settings.sidebar_opacity),
+        sidebar_blur_radius: normalize_blur_radius(settings.sidebar_blur_radius),
+        editor_opacity: normalize_opacity(settings.editor_opacity),
+        editor_blur_radius: normalize_blur_radius(settings.editor_blur_radius),
+        ai_panel_opacity: normalize_opacity(settings.ai_panel_opacity),
+        ai_panel_blur_radius: normalize_blur_radius(settings.ai_panel_blur_radius),
+        window_opacity: normalize_opacity(settings.window_opacity),
+        window_blur_radius: normalize_blur_radius(settings.window_blur_radius),
+        editor_font_family: normalize_optional_string(settings.editor_font_family),
+        ai_chat_font_family: normalize_optional_string(settings.ai_chat_font_family),
+        sidebar_font_family: normalize_optional_string(settings.sidebar_font_family),
+    }
+}
+
+fn normalize_opacity(value: Option<f64>) -> Option<f64> {
+    value.filter(|opacity| opacity.is_finite() && (0.0..=1.0).contains(opacity))
+}
+
+fn normalize_blur_radius(value: Option<f64>) -> Option<f64> {
+    value
+        .filter(|radius| radius.is_finite() && *radius >= 0.0)
+        .map(|radius| radius.min(20.0))
+}
+
+fn normalize_dictation_backend(value: Option<&str>) -> Option<String> {
+    match value {
+        Some("web_speech") => Some("web_speech".to_string()),
+        Some("fluidvoice") => Some("fluidvoice".to_string()),
+        _ => None,
     }
 }
 
