@@ -1,14 +1,12 @@
 import { useMemo } from 'react'
-import type { SidebarSelection, VaultEntry, ViewFile } from '../types'
-import type { AllNotesFileVisibility } from './allNotesFileVisibility'
-import { filterEntries as filterVaultEntries, getSortComparator, type SortConfig } from '../utils/noteListHelpers'
-import { filterByQuery } from '../utils/changeEntries'
+import type { VaultEntry } from '../../types'
+import { getSortComparator, type SortConfig } from '../../utils/noteListHelpers'
 
 /** Entries grouped by their parent folder path ('' = vault root). */
 export type EntriesByFolder = Map<string, VaultEntry[]>
 
 function folderPathOf(entryPath: string): string {
-  const normalized = entryPath.replaceAll('\\\\', '/')
+  const normalized = entryPath.replaceAll('\\', '/')
   const lastSlash = normalized.lastIndexOf('/')
   return lastSlash <= 0 ? '' : normalized.slice(0, lastSlash)
 }
@@ -25,7 +23,7 @@ export function indexEntriesByFolder(entries: VaultEntry[]): EntriesByFolder {
   return byFolder
 }
 
-/** Sort direction: title ascending, dates descending, matching NoteList defaults. */
+/** Sort entries for the tree: null sort falls back to modified-descending. */
 export function sortVaultEntriesForTree(entries: VaultEntry[], sort: SortConfig | null): VaultEntry[] {
   if (!sort) {
     return [...entries].sort((a, b) => (b.modifiedAt ?? b.createdAt ?? 0) - (a.modifiedAt ?? a.createdAt ?? 0))
@@ -33,55 +31,21 @@ export function sortVaultEntriesForTree(entries: VaultEntry[], sort: SortConfig 
   return [...entries].sort(getSortComparator(sort.option, sort.direction))
 }
 
-/** When the selection is a view/type/folder, the tree keeps those sections expanded. */
-export function selectionTargets(selection: SidebarSelection): string[] {
-  switch (selection.kind) {
-    case 'folder':
-      return [`folder:${selection.rootPath ?? ''}::${selection.path}`]
-    case 'sectionGroup':
-      return [`type:${selection.type}`]
-    case 'view':
-      return [`view:${selection.filename}`]
-    default:
-      return []
-  }
+/** Substring filter over titles; empty query returns everything. */
+export function filterEntriesByTitle(entries: VaultEntry[], query: string): VaultEntry[] {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return entries
+  return entries.filter((entry) => entry.title.toLowerCase().includes(needle))
 }
 
-export interface TreeExplorerData {
-  entriesByFolder: EntriesByFolder
-  sortedEntries: VaultEntry[]
-}
-
-/** Build memoized inputs for the explorer tree. */
+/** Memoized explorer inputs: folder-indexed, sorted, search-filtered entries. */
 export function useTreeExplorerData(
   entries: VaultEntry[],
-  selection: SidebarSelection,
   sort: SortConfig | null,
   search: string,
-  views: ViewFile[] | undefined,
-  allNotesFileVisibility: AllNotesFileVisibility | undefined,
-): TreeExplorerData {
+): EntriesByFolder {
   return useMemo(() => {
-    let scoped: VaultEntry[] = entries
-    // Type/view selections scope the tree to the matching entries so their
-    // contents render inline under the section headers.
-    if (selection.kind === 'view') {
-      scoped = filterVaultEntries(entries, selection, { views, allNotesFileVisibility })
-    }
-    const sorted = sortVaultEntriesForTree(scoped, sort)
-    return {
-      entriesByFolder: indexEntriesByFolder(sorted),
-      sortedEntries: filterByQuery(sorted, search.trim().toLowerCase()),
-    }
-  }, [allNotesFileVisibility, entries, search, selection, sort, views])
-}
-
-export const TREE_FOLDER_KEY_PREFIX = {
-  folder: 'folder:',
-  type: 'type:',
-  view: 'view:',
-} as const
-
-export function folderKey(rootPath: string | undefined, path: string): string {
-  return `${TREE_FOLDER_KEY_PREFIX.folder}${rootPath ?? ''}::${path}`
+    const filtered = filterEntriesByTitle(entries, search)
+    return indexEntriesByFolder(sortVaultEntriesForTree(filtered, sort))
+  }, [entries, search, sort])
 }
