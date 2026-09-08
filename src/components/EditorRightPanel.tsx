@@ -80,7 +80,7 @@ type AiPanelSectionProps = Pick<
 }
 
 function AiPanelSection(options: AiPanelSectionProps) {
-  const { controller, defaultAiAgent = DEFAULT_AI_AGENT, defaultAiAgentReadiness, defaultAiAgentReady = true, defaultAiTarget, entries, inspectorEntry, inspectorWidth, locale, onOpenNote, onToggleAIChat, onUnsupportedAiPaste } = options
+  const { controller, defaultAiAgent = DEFAULT_AI_AGENT, defaultAiAgentReadiness, defaultAiAgentReady = true, defaultAiTarget, entries, inspectorEntry, inspectorWidth, locale, onOpenNote, onToggleAIChat, onUnsupportedAiPaste, vaultPath } = options
   return (
     <div className="shrink-0 flex flex-col min-h-0" style={{ width: inspectorWidth, minWidth: 240, height: '100%' }}>
       <AiPanelView
@@ -95,6 +95,7 @@ function AiPanelSection(options: AiPanelSectionProps) {
         locale={locale}
         activeEntry={inspectorEntry}
         entries={entries}
+        vaultPath={vaultPath}
       />
     </div>
   )

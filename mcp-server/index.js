@@ -277,6 +277,92 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: 'list_templates',
+    description: 'List the note templates saved in the active vault (vault/templates/*.md). Before creating a note, check this for an applicable template.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+    },
+  },
+  {
+    name: 'use_template',
+    description: 'Apply a saved vault template (see list_templates) with {{placeholder|default}} parameter substitution and create the resulting note. Does not overwrite existing notes.',
+    annotations: LOCAL_CREATE_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Template name (filename stem under vault/templates/).' },
+        path: { type: 'string', description: 'Relative path for the new note inside the vault, ending in .md. Defaults to templates/{name}.new.md.' },
+        params: { type: 'object', description: 'Template parameter values, e.g. {"project_name": "Acme"}. Values fill {{project_name}} tags; tags with a default like {{project_name|My Project}} keep the default when omitted.' },
+        title: { type: 'string', description: 'Shortcut for params.title.' },
+        type: { type: 'string', description: 'Shortcut for params.type.' },
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'read_agents_md',
+    description: 'Read the vault-specific agent instructions (.ai/agents.md, falling back to AGENTS.md). Read this before making vault-specific assumptions or asking the user questions.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+    },
+  },
+  {
+    name: 'read_vault_map',
+    description: 'Read the persisted .ai/vault.map knowledge map (note types, folders, key notes, conventions). Returns null when the map has not been generated yet; use refresh_vault_map to generate it.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+    },
+  },
+  {
+    name: 'refresh_vault_map',
+    description: 'Regenerate .ai/vault.map from the current vault contents and return it. Consult the map before asking the user questions about vault organization.',
+    annotations: LOCAL_UPDATE_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+    },
+  },
+  {
+    name: 'read_soul',
+    description: 'Read .ai/soul.md — the running memory of the user for this vault (preferences, working style, recurring goals, past decisions).',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+    },
+  },
+  {
+    name: 'update_soul',
+    description: 'Append a dated entry to .ai/soul.md so future agents remember durable user preferences, decisions, or goals. Keep entries short and factual.',
+    annotations: LOCAL_CREATE_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        content: { type: 'string', description: 'One-sentence memory entry, e.g. "Prefers bullet summaries over prose".' },
+        category: { type: 'string', description: 'Optional category tag, e.g. preferences, workflow, decisions.' },
+        vaultPath: { type: 'string', description: 'Optional target vault root when multiple vaults are active.' },
+      },
+      required: ['content'],
+    },
+  },
 ]
 
 async function handleSearchNotes(args) {
@@ -356,6 +442,40 @@ function handleRefreshVault(args) {
   return { content: [{ type: 'text', text: 'Vault refresh triggered' }] }
 }
 
+async function handleListTemplates(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.listNoteTemplates(args), null, 2) }] }
+}
+
+async function handleUseTemplate(args = {}) {
+  const note = await toolService.useNoteTemplate(args)
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(note, null, 2),
+    }],
+  }
+}
+
+async function handleReadAgentsMd(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.readVaultAgentsMd(args), null, 2) }] }
+}
+
+async function handleReadVaultMap(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.readVaultMapFile(args), null, 2) }] }
+}
+
+async function handleRefreshVaultMap(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.regenerateVaultMap(args), null, 2) }] }
+}
+
+async function handleReadSoul(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.readVaultSoul(args), null, 2) }] }
+}
+
+async function handleUpdateSoul(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(await toolService.writeVaultSoul(args), null, 2) }] }
+}
+
 const TOOL_HANDLERS = new Map([
   ['search_notes', handleSearchNotes],
   ['get_vault_context', handleVaultContext],
@@ -369,6 +489,13 @@ const TOOL_HANDLERS = new Map([
   ['open_note', handleOpenNote],
   ['highlight_editor', handleHighlightEditor],
   ['refresh_vault', handleRefreshVault],
+  ['list_templates', handleListTemplates],
+  ['use_template', handleUseTemplate],
+  ['read_agents_md', handleReadAgentsMd],
+  ['read_vault_map', handleReadVaultMap],
+  ['refresh_vault_map', handleRefreshVaultMap],
+  ['read_soul', handleReadSoul],
+  ['update_soul', handleUpdateSoul],
 ])
 
 function callToolHandler(name, args) {

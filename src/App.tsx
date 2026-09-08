@@ -16,8 +16,10 @@ import { AppAiWorkspaceSurface } from './components/AppAiWorkspaceSurface'
 import { AiWorkspaceFloatingButton } from './components/AiWorkspaceFloatingButton'
 import { AiWorkspaceWindowApp } from './components/AiWorkspaceWindowApp'
 import { MiniAppWindowApp } from './components/MiniAppWindowApp'
+import { DictationWindowApp } from './DictationWindowApp'
 import { MiniAppsLauncher } from './components/MiniAppsLauncher'
 import { DictationPill } from './components/DictationPill'
+import { useFluidVoiceDictation } from './hooks/useFluidVoiceDictation'
 import { SettingsPanel } from './components/SettingsPanel'
 import { CloneVaultModal } from './components/CloneVaultModal'
 import { FeedbackDialog } from './components/FeedbackDialog'
@@ -89,6 +91,7 @@ import { refreshNoteWindowVaultChanges } from './utils/noteWindowVaultRefresh'
 import { viewMatchesSelection } from './utils/viewIdentity'
 import { isAiWorkspaceWindow, isNoteWindow, getNoteWindowParams, type NoteWindowParams } from './utils/windowMode'
 import { isMiniAppWindow } from './utils/miniAppWindow'
+import { isDictationWindow } from './utils/windowMode'
 import { GitSetupDialog } from './components/GitRequiredModal'
 import { RenameDetectedBanner } from './components/RenameDetectedBanner'
 import { openNoteListPropertiesPicker } from './components/note-list/noteListPropertiesEvents'
@@ -169,7 +172,9 @@ function App() {
   const noteWindowParams = useMemo(() => isNoteWindow() ? getNoteWindowParams() : null, [])
   const aiWorkspaceWindow = useMemo(() => isAiWorkspaceWindow(), [])
   const miniAppWindow = useMemo(() => isMiniAppWindow(), [])
+  const dictationWindow = useMemo(() => isDictationWindow(), [])
 
+  if (dictationWindow) return <DictationWindowApp />
   if (miniAppWindow) return <MiniAppWindowApp />
   if (aiWorkspaceWindow) return <AiWorkspaceWindowApp />
 
@@ -178,6 +183,7 @@ function App() {
 
 function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | null }) {
   const aiWorkspaceWindow = false
+  const fluidVoice = useFluidVoiceDictation()
   const [selection, setSelection] = useState<SidebarSelection>(DEFAULT_SELECTION)
   const [noteListFilter, setNoteListFilter] = useState<NoteListFilter>('open')
   const [pendingNoteListPdfExportPath, setPendingNoteListPdfExportPath] = useState<string | null>(null)
@@ -1879,6 +1885,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
               enabled={settings.dictation_enabled ?? true}
               position={settings.dictation_position ?? 'bottom-right'}
               opacity={settings.dictation_opacity ?? 0.85}
+              fluidVoice={fluidVoice}
             />
           </>
         )}

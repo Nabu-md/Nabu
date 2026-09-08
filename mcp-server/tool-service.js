@@ -8,6 +8,14 @@ import {
 } from './vault.js'
 import { requireVaultPaths } from './vault-path.js'
 import { readAgentInstructions, vaultContextWithInstructions } from './agent-instructions.js'
+import { applyTemplate, listTemplates } from './templates.js'
+import {
+  readAgentsMd,
+  readSoul,
+  readVaultMap,
+  refreshVaultMap,
+  updateSoul,
+} from './agent-memory.js'
 
 export function createMcpToolService({
   resolveVaultPaths = () => requireVaultPaths(),
@@ -128,6 +136,61 @@ export function createMcpToolService({
     return { vaultPath, notePath }
   }
 
+  function templatesVaultPath(args = {}) {
+    const requested = requestedVaultPath(args)
+    if (requested) return requested
+    const roots = activeVaultPaths()
+    if (roots.length === 1) return roots[0]
+    throw new Error('Multiple vaults are active. Pass vaultPath for template operations.')
+  }
+
+  async function listNoteTemplates(args = {}) {
+    return listTemplates(templatesVaultPath(args))
+  }
+
+  async function useNoteTemplate(args = {}) {
+    const vaultPath = templatesVaultPath(args)
+    const note = await applyTemplate(vaultPath, args)
+    const targetPath = resolveUiPath({ ...args, path: note.path, vaultPath })
+    emitUiAction('vault_changed', { path: targetPath })
+    emitUiAction('open_tab', { path: targetPath })
+    return { path: note.path, absolutePath: note.absolutePath, vaultPath }
+  }
+
+  function memoryVaultPath(args = {}) {
+    const requested = requestedVaultPath(args)
+    if (requested) return requested
+    const roots = activeVaultPaths()
+    if (roots.length === 1) return roots[0]
+    throw new Error('Multiple vaults are active. Pass vaultPath for agent memory operations.')
+  }
+
+  async function readVaultAgentsMd(args = {}) {
+    return readAgentsMd(memoryVaultPath(args))
+  }
+
+  async function readVaultSoul(args = {}) {
+    return readSoul(memoryVaultPath(args))
+  }
+
+  async function writeVaultSoul(args = {}) {
+    const vaultPath = memoryVaultPath(args)
+    const result = await updateSoul(vaultPath, args)
+    emitUiAction('vault_changed', { path: path.join(vaultPath, result.path) })
+    return result
+  }
+
+  async function readVaultMapFile(args = {}) {
+    return readVaultMap(memoryVaultPath(args))
+  }
+
+  async function regenerateVaultMap(args = {}) {
+    const vaultPath = memoryVaultPath(args)
+    const result = await refreshVaultMap(vaultPath)
+    emitUiAction('vault_changed', { path: path.join(vaultPath, result.path) })
+    return result
+  }
+
   function openNoteAsTab(args = {}) {
     const targetPath = resolveUiPath(args)
     emitUiAction('vault_changed', { path: targetPath })
@@ -195,6 +258,7 @@ export function createMcpToolService({
     cloneVault,
     createNote,
     highlightEditor,
+    listNoteTemplates,
     listVaults,
     openNoteAsTab,
     openNoteInEditor,
@@ -204,7 +268,13 @@ export function createMcpToolService({
     resolveUiPath,
     searchNotes,
     setFilter,
+    readVaultAgentsMd,
+    readVaultSoul,
+    writeVaultSoul,
+    readVaultMapFile,
+    regenerateVaultMap,
     updateNote,
+    useNoteTemplate,
     vaultContext,
   }
 }
