@@ -418,6 +418,8 @@ macro_rules! app_invoke_handler {
             mini_apps::save_mini_app_config,
             mini_apps::delete_mini_app,
             mini_apps::open_mini_app_devtools,
+            mini_apps::mcp_tool_call,
+            mini_apps::list_mini_app_cron_jobs,
             vault_watcher::start_vault_watcher,
             vault_watcher::stop_vault_watcher
         ]

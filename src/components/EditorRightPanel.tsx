@@ -75,6 +75,7 @@ type AiPanelSectionProps = Pick<
   | 'onOpenNote'
   | 'onToggleAIChat'
   | 'onUnsupportedAiPaste'
+  | 'vaultPath'
 > & {
   controller: AiPanelController
 }

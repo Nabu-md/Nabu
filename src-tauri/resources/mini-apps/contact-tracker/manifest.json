@@ -1,0 +1,10 @@
+{
+  "id": "contact-tracker",
+  "name": "Contact Tracker",
+  "icon": null,
+  "entrypoint_url": "index.html",
+  "width": 760,
+  "height": 560,
+  "resizable": true,
+  "allow_vault_access": true
+}

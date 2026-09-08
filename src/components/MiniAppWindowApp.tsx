@@ -36,10 +36,42 @@ function postMiniAppContext(
         note_path: params?.notePath ?? null,
         note_title: params?.noteTitle ?? null,
         vault_path: params?.vaultPath ?? null,
+        extra: params?.context ?? null,
       },
     },
     '*',
   )
+}
+
+interface MiniAppMcpCallMessage {
+  type: 'mini-app-mcp-call'
+  id: string
+  method: string
+  params: Record<string, unknown>
+}
+
+function isMiniAppMcpCallMessage(payload: unknown): payload is MiniAppMcpCallMessage {
+  if (typeof payload !== 'object' || payload === null) return false
+  const candidate = payload as Partial<MiniAppMcpCallMessage>
+  return (
+    candidate.type === 'mini-app-mcp-call'
+    && typeof candidate.id === 'string'
+    && typeof candidate.method === 'string'
+    && typeof candidate.params === 'object'
+    && candidate.params !== null
+  )
+}
+
+async function runMiniAppMcpCall(
+  message: MiniAppMcpCallMessage,
+  vaultPath: string | null,
+): Promise<unknown> {
+  if (!vaultPath) throw new Error('Vault access is unavailable without an open vault')
+  return invoke('mcp_tool_call', {
+    tool: message.method,
+    args: message.params,
+    vaultPath,
+  })
 }
 
 async function closeMiniAppWindow(): Promise<void> {
@@ -125,20 +157,40 @@ export function MiniAppWindowApp() {
   }, [params])
 
   // Mini-apps run in a sandboxed iframe (a different window), so the packaged
-  // context is delivered via postMessage both on load and on request.
+  // context is delivered via postMessage both on load and on request. When the
+  // app declares `allow_vault_access: true`, MCP tool calls are relayed to the
+  // Rust backend over invoke and the result is posted back to the iframe.
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')
       if (!frame?.contentWindow) return
       if (event.source !== frame.contentWindow) return
       const payload = event.data as { type?: string; request_id?: string } | null
       if (payload?.type === 'mini-app-request-vault-data') {
         postMiniAppContext(frame.contentWindow, params, payload.request_id ?? '')
+        return
+      }
+      if (!config?.allow_vault_access || !isMiniAppMcpCallMessage(payload)) return
+      try {
+        const result = await runMiniAppMcpCall(payload, vaultPath)
+        frame.contentWindow.postMessage(
+          { type: 'mini-app-mcp-response', id: payload.id, result },
+          '*',
+        )
+      } catch (error) {
+        frame.contentWindow.postMessage(
+          {
+            type: 'mini-app-mcp-response',
+            id: payload.id,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          '*',
+        )
       }
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [params])
+  }, [config?.allow_vault_access, params, vaultPath])
 
   const handleFrameLoad = () => {
     const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')

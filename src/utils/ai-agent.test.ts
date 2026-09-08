@@ -62,4 +62,21 @@ describe('buildAgentSystemPrompt', () => {
     expect(prompt).toContain('[[')
     expect(prompt).toMatch(/wikilink/i)
   })
+
+  it('mentions templates, agent memory, and the vault map tools', () => {
+    const prompt = buildAgentSystemPrompt()
+    expect(prompt).toContain('list_templates()')
+    expect(prompt).toContain('use_template(name, params)')
+    expect(prompt).toContain('read_agents_md()')
+    expect(prompt).toContain('read_vault_map()')
+    expect(prompt).toContain('update_soul()')
+  })
+
+  it('describes the mini app builder workflow in mini_app_builder mode', () => {
+    const prompt = buildAgentSystemPrompt({ permissionMode: 'mini_app_builder' })
+    expect(prompt).toContain('Mini App Builder mode is active')
+    expect(prompt).toContain('.apps/{id}/')
+    expect(prompt).toContain('allow_vault_access')
+    expect(prompt).not.toContain('Vault Safe mode is active')
+  })
 })

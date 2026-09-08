@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Mutex;
 use tauri::http::{header, Method, Request, Response, StatusCode};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use crate::search;
 
 const MINI_APPS_DIR: &str = ".apps";
 const BUNDLED_MINI_APPS_DIR: &str = "mini-apps";
@@ -40,6 +41,22 @@ pub struct MiniApp {
     pub resizable: bool,
     #[serde(default)]
     pub allow_vault_access: bool,
+    #[serde(default)]
+    pub cron_jobs: Vec<MiniAppCronJob>,
+}
+
+/// A scheduled task declared in a mini-app manifest. Only meaningful for apps
+/// with `allow_vault_access: true`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct MiniAppCronJob {
+    /// Five-field cron expression in the app's local timezone, e.g. "0 8 * * 1-5".
+    pub schedule: String,
+    /// Task identifier passed to the mini-app when the schedule fires.
+    pub task: String,
+    /// Optional note path the task writes to.
+    #[serde(default)]
+    pub target_note: Option<String>,
 }
 
 /// Context packaged with a mini-app launch. Passed to the new window via URL
@@ -279,6 +296,62 @@ pub fn save_mini_app_config(
     Ok(())
 }
 
+/// A registered mini-app cron job resolved to its owning app and vault.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct MiniAppCronRegistration {
+    pub app_id: String,
+    pub app_name: String,
+    pub vault_path: String,
+    pub schedule: String,
+    pub task: String,
+    pub target_note: Option<String>,
+    pub allow_vault_access: bool,
+}
+
+/// Lists every cron job declared by installed mini-apps across registered
+/// vaults (plus bundled sample apps). Jobs for apps without
+/// `allow_vault_access` are skipped: scheduled vault access is gated on the
+/// same permission as interactive vault access.
+#[tauri::command]
+pub fn list_mini_app_cron_jobs(app_handle: tauri::AppHandle) -> Result<Vec<MiniAppCronRegistration>, String> {
+    let mut registrations = Vec::new();
+    for root in app_root_dirs(&app_handle) {
+        let Ok(entries) = std::fs::read_dir(&root) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let app_dir = entry.path();
+            if !app_dir.is_dir() {
+                continue;
+            }
+            let Some(app) = read_manifest(&app_dir) else {
+                continue;
+            };
+            if !app.allow_vault_access || app.cron_jobs.is_empty() {
+                continue;
+            }
+            let vault_path = app_dir
+                .parent()
+                .and_then(Path::parent)
+                .map(|vault_root| vault_root.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            for job in &app.cron_jobs {
+                registrations.push(MiniAppCronRegistration {
+                    app_id: app.id.clone(),
+                    app_name: app.name.clone(),
+                    vault_path: vault_path.clone(),
+                    schedule: job.schedule.clone(),
+                    task: job.task.clone(),
+                    target_note: job.target_note.clone(),
+                    allow_vault_access: app.allow_vault_access,
+                });
+            }
+        }
+    }
+    Ok(registrations)
+}
+
 /// Opens the devtools window for a mini-app window (debug builds).
 #[tauri::command]
 pub fn open_mini_app_devtools(app_handle: tauri::AppHandle, label: String) -> Result<(), String> {
@@ -313,6 +386,171 @@ pub fn delete_mini_app(app_handle: tauri::AppHandle, id: String) -> Result<(), S
         return Err(format!("Mini-app '{id}' is not installed in any vault"));
     }
     Ok(())
+}
+
+// ── Vault MCP relay (allow_vault_access) ────────────────────────────────────
+
+/// MCP tools a mini-app may call when `allow_vault_access: true`.
+/// Vault-lifecycle tools (list_vaults, attach_vault, clone_vault) stay
+/// reserved for AI agents and are never exposed to mini-apps.
+const MINI_APP_ALLOWED_MCP_TOOLS: [&str; 7] = [
+    "search_notes",
+    "get_note",
+    "create_note",
+    "update_note",
+    "append_to_note",
+    "open_note",
+    "refresh_vault",
+];
+
+fn is_mini_app_allowed_tool(tool: &str) -> bool {
+    MINI_APP_ALLOWED_MCP_TOOLS.contains(&tool)
+}
+
+fn note_path_for_tool(args: &serde_json::Value) -> Option<String> {
+    args.get("path")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+}
+
+/// Resolve a note path for a mini-app tool call. Relative paths are anchored
+/// to the mini-app's vault; absolute paths must stay inside that vault. The
+/// target file may not exist yet (create_note), so the nearest existing
+/// ancestor is canonicalized and the remaining segments rejoined.
+fn resolve_relay_note_path(vault_path: &Path, args: &serde_json::Value) -> Option<PathBuf> {
+    let raw_path = note_path_for_tool(args)?;
+    let requested = PathBuf::from(&raw_path);
+    let joined = if requested.is_absolute() {
+        requested
+    } else {
+        vault_path.join(requested)
+    };
+    let canonical_vault = vault_path.canonicalize().ok()?;
+    let (canonical_ancestor, tail) = canonical_ancestor_of(&joined)?;
+    if !canonical_ancestor.starts_with(&canonical_vault) {
+        return None;
+    }
+    Some(tail.into_iter().fold(canonical_ancestor, |current, segment| current.join(segment)))
+}
+
+fn canonical_ancestor_of(path: &Path) -> Option<(PathBuf, Vec<std::ffi::OsString>)> {
+    let mut current = path;
+    let mut tail = Vec::new();
+    loop {
+        if current.exists() {
+            let canonical = current.canonicalize().ok()?;
+            tail.reverse();
+            return Some((canonical, tail));
+        }
+        tail.push(current.file_name()?.to_os_string());
+        current = current.parent()?;
+    }
+}
+
+/// Execute one MCP tool call on behalf of a mini-app with
+/// `allow_vault_access: true`. All communication stays inside the app's vault
+/// boundary; lifecycle tools are rejected.
+#[tauri::command]
+pub fn mcp_tool_call(
+    tool: String,
+    args: serde_json::Value,
+    vault_path: String,
+) -> Result<serde_json::Value, String> {
+    if !is_mini_app_allowed_tool(&tool) {
+        return Err(format!("Tool '{tool}' is not available to mini-apps"));
+    }
+
+    let vault_path = PathBuf::from(vault_path.trim());
+    if vault_path.as_os_str().is_empty() || !vault_path.is_dir() {
+        return Err("A valid vault path is required".into());
+    }
+    let vault_root = vault_path
+        .canonicalize()
+        .map_err(|error| format!("Vault path is unavailable: {error}"))?;
+
+    match tool.as_str() {
+        "search_notes" => {
+            let query = args
+                .get("query")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let limit = args
+                .get("limit")
+                .and_then(serde_json::Value::as_u64)
+                .map(|limit| limit.min(50) as usize)
+                .unwrap_or(10);
+            let response = search::search_vault(
+                vault_root.to_string_lossy().as_ref(),
+                &query,
+                "keyword",
+                limit,
+            )?;
+            Ok(serde_json::to_value(response.results).unwrap_or_else(|_| serde_json::json!([])))
+        }
+        "get_note" => {
+            let note_path = resolve_relay_note_path(&vault_root, &args)
+                .ok_or("Invalid note path")?;
+            let content = std::fs::read_to_string(&note_path)
+                .map_err(|error| format!("Failed to read note: {error}"))?;
+            Ok(serde_json::json!({
+                "path": note_path_for_tool(&args).unwrap_or_default(),
+                "content": content,
+            }))
+        }
+        "create_note" | "update_note" | "append_to_note" => {
+            let content = args
+                .get("content")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let note_path = resolve_relay_note_path(&vault_root, &args)
+                .ok_or("Invalid note path")?;
+            if !note_path.extension().is_some_and(|ext| ext == "md") {
+                return Err("Mini-app notes must be markdown files ending in .md".into());
+            }
+            match tool.as_str() {
+                "create_note" => {
+                    if note_path.exists() {
+                        return Err("Note already exists".into());
+                    }
+                    if let Some(parent) = note_path.parent() {
+                        std::fs::create_dir_all(parent)
+                            .map_err(|error| format!("Failed to create note folder: {error}"))?;
+                    }
+                    std::fs::write(&note_path, &content)
+                        .map_err(|error| format!("Failed to create note: {error}"))?;
+                }
+                "update_note" => {
+                    if !note_path.is_file() {
+                        return Err("Note does not exist; use create_note".into());
+                    }
+                    std::fs::write(&note_path, &content)
+                        .map_err(|error| format!("Failed to update note: {error}"))?;
+                }
+                "append_to_note" => {
+                    use std::io::Write;
+                    if !note_path.is_file() {
+                        return Err("Note does not exist; use create_note".into());
+                    }
+                    let mut file = std::fs::OpenOptions::new()
+                        .append(true)
+                        .open(&note_path)
+                        .map_err(|error| format!("Failed to open note: {error}"))?;
+                    file.write_all(content.as_bytes())
+                        .map_err(|error| format!("Failed to append to note: {error}"))?;
+                }
+                _ => unreachable!("tool was validated by the allowlist"),
+            }
+            Ok(serde_json::json!({ "path": note_path_for_tool(&args).unwrap_or_default(), "ok": true }))
+        }
+        "open_note" | "refresh_vault" => {
+            // UI signals only: the mini-app shell surfaces them via Tauri
+            // events so the main window can react without direct access.
+            Ok(serde_json::json!({ "ok": true }))
+        }
+        _ => Err(format!("Tool '{tool}' is not available to mini-apps")),
+    }
 }
 
 // ── URI protocol handler ────────────────────────────────────────────────────
@@ -556,6 +794,150 @@ mod tests {
             vault_apps_dir(Path::new("/tmp/vault")),
             PathBuf::from("/tmp/vault/.apps")
         );
+    }
+
+    #[test]
+    fn relay_allowlist_blocks_lifecycle_tools_and_allows_vault_tools() {
+        for tool in MINI_APP_ALLOWED_MCP_TOOLS {
+            assert!(is_mini_app_allowed_tool(tool));
+        }
+        for tool in ["list_vaults", "attach_vault", "clone_vault", "shell", "exec"] {
+            assert!(!is_mini_app_allowed_tool(tool));
+        }
+    }
+
+    #[test]
+    fn mcp_tool_call_rejects_disallowed_tools() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let error = mcp_tool_call(
+            "attach_vault".into(),
+            serde_json::json!({}),
+            dir.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(error.contains("not available to mini-apps"));
+    }
+
+    #[test]
+    fn mcp_tool_call_rejects_missing_vault() {
+        let error = mcp_tool_call(
+            "search_notes".into(),
+            serde_json::json!({ "query": "x" }),
+            "/nonexistent/vault/path".into(),
+        )
+        .unwrap_err();
+        assert!(error.contains("vault path is required"));
+    }
+
+    #[test]
+    fn mcp_tool_call_searches_inside_the_vault() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::write(dir.path().join("alpha.md"), "# Alpha\n\nneedle").unwrap();
+
+        let results = mcp_tool_call(
+            "search_notes".into(),
+            serde_json::json!({ "query": "needle" }),
+            dir.path().to_string_lossy().into_owned(),
+        )
+        .unwrap();
+
+        assert_eq!(results.as_array().map(Vec::len), Some(1));
+    }
+
+    #[test]
+    fn mcp_tool_call_note_roundtrip_stays_inside_vault() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let vault = dir.path().to_string_lossy().into_owned();
+
+        mcp_tool_call(
+            "create_note".into(),
+            serde_json::json!({ "path": "data/contacts.md", "content": "# Contacts\n" }),
+            vault.clone(),
+        )
+        .unwrap();
+        assert!(dir.path().join("data/contacts.md").is_file());
+
+        let read = mcp_tool_call(
+            "get_note".into(),
+            serde_json::json!({ "path": "data/contacts.md" }),
+            vault.clone(),
+        )
+        .unwrap();
+        assert_eq!(read["content"], "# Contacts\n");
+
+        mcp_tool_call(
+            "append_to_note".into(),
+            serde_json::json!({ "path": "data/contacts.md", "content": "Row\n" }),
+            vault.clone(),
+        )
+        .unwrap();
+        let updated = mcp_tool_call(
+            "get_note".into(),
+            serde_json::json!({ "path": "data/contacts.md" }),
+            vault.clone(),
+        )
+        .unwrap();
+        assert_eq!(updated["content"], "# Contacts\nRow\n");
+
+        mcp_tool_call(
+            "update_note".into(),
+            serde_json::json!({ "path": "data/contacts.md", "content": "# Replaced\n" }),
+            vault,
+        )
+        .unwrap();
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("data/contacts.md")).unwrap(),
+            "# Replaced\n"
+        );
+    }
+
+    #[test]
+    fn mcp_tool_call_rejects_paths_outside_the_vault() {
+        let vault = tempfile::TempDir::new().unwrap();
+        let outside = tempfile::TempDir::new().unwrap();
+        let outside_note = outside.path().join("outside.md");
+        std::fs::write(&outside_note, "# Outside\n").unwrap();
+
+        let relative_escape = mcp_tool_call(
+            "get_note".into(),
+            serde_json::json!({ "path": "../outside.md" }),
+            vault.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(relative_escape.contains("Invalid note path"));
+
+        let absolute_escape = mcp_tool_call(
+            "get_note".into(),
+            serde_json::json!({ "path": outside_note.to_string_lossy() }),
+            vault.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(absolute_escape.contains("Invalid note path"));
+    }
+
+    #[test]
+    fn mcp_tool_call_rejects_non_markdown_writes() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let error = mcp_tool_call(
+            "create_note".into(),
+            serde_json::json!({ "path": "payload.txt", "content": "x" }),
+            dir.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(error.contains("markdown"));
+    }
+
+    #[test]
+    fn mcp_tool_call_create_note_rejects_existing_note() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::write(dir.path().join("exists.md"), "# Exists\n").unwrap();
+        let error = mcp_tool_call(
+            "create_note".into(),
+            serde_json::json!({ "path": "exists.md", "content": "# New\n" }),
+            dir.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(error.contains("already exists"));
     }
 
     #[test]

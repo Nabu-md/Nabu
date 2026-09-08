@@ -18,11 +18,14 @@ describe('aiAgentPermissionMode', () => {
     expect(normalizeAiAgentPermissionMode('safe')).toBe('safe')
     expect(normalizeAiAgentPermissionMode('power_user')).toBe('power_user')
     expect(normalizeAiAgentPermissionMode('deep_research')).toBe('deep_research')
+    expect(normalizeAiAgentPermissionMode('mini_app_builder')).toBe('mini_app_builder')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.short).toBe('Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.control).toBe('Vault Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.power_user.short).toBe('Power User')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.deep_research.short).toBe('Deep Research')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.deep_research.control).toBe('Deep Research')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.mini_app_builder.short).toBe('Mini App Builder')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.mini_app_builder.control).toBe('Mini App Builder')
   })
 
   it('formats a local transcript marker for mode changes', () => {

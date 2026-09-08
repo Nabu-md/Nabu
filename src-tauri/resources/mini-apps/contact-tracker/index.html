@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contact Tracker</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: CanvasText;
+        background: Canvas;
+        padding: 16px;
+      }
+      h1 { margin: 0 0 4px; font-size: 18px; }
+      p.status { margin: 0 0 12px; font-size: 12px; opacity: 0.65; min-height: 15px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent); }
+      th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
+      td[contenteditable]:focus { outline: 2px solid color-mix(in srgb, CanvasText 40%, transparent); outline-offset: -2px; }
+      .toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+      input#filter { flex: 1; padding: 6px 10px; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: CanvasText; font-size: 13px; }
+      button {
+        font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+        border: 1px solid color-mix(in srgb, CanvasText 30%, transparent);
+        background: color-mix(in srgb, CanvasText 8%, transparent);
+        color: CanvasText;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .empty { padding: 24px 0; text-align: center; opacity: 0.6; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Contact Tracker</h1>
+    <p class="status" id="status">Loading…</p>
+    <div class="toolbar">
+      <input id="filter" type="search" placeholder="Filter contacts…" aria-label="Filter contacts" />
+      <button id="add" type="button">Add contact</button>
+      <button id="save" type="button" disabled>Save to note</button>
+    </div>
+    <table aria-label="Contacts">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Company</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No contacts yet — click “Add contact”.</div>
+    <script>
+      // Live data integration example: reads Contacts/contacts.md from the
+      // vault over the postMessage MCP relay and writes edits back with
+      // update_note. Requires `allow_vault_access: true` in the manifest.
+      const NOTE_PATH = 'Contacts/contacts.md'
+      const CONTACT_PATTERN = /^\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|$/
+
+      let rows = []
+      let dirty = false
+
+      const status = document.getElementById('status')
+      const rowsEl = document.getElementById('rows')
+      const emptyEl = document.getElementById('empty')
+      const filterEl = document.getElementById('filter')
+      const saveBtn = document.getElementById('save')
+      const addBtn = document.getElementById('add')
+
+      let callSeq = 0
+      const pendingCalls = new Map()
+
+      function callMcp(method, params) {
+        return new Promise((resolve, reject) => {
+          const id = `call-${++callSeq}`
+          pendingCalls.set(id, { resolve, reject })
+          window.parent.postMessage({ type: 'mini-app-mcp-call', id, method, params }, '*')
+          setTimeout(() => {
+            if (pendingCalls.has(id)) {
+              pendingCalls.delete(id)
+              reject(new Error(`${method} timed out`))
+            }
+          }, 10000)
+        })
+      }
+
+      window.addEventListener('message', (event) => {
+        const payload = event.data
+        if (!payload || payload.type !== 'mini-app-mcp-response') return
+        const pending = pendingCalls.get(payload.id)
+        if (!pending) return
+        pendingCalls.delete(payload.id)
+        if (payload.error) pending.reject(new Error(payload.error))
+        else pending.resolve(payload.result)
+      })
+
+      function parseContacts(content) {
+        return content
+          .split('\n')
+          .map((line) => CONTACT_PATTERN.exec(line.trim()))
+          .filter((match) => match !== null && match[1].trim().toLowerCase() !== 'name')
+          .map((match) => ({
+            name: match[1].trim(),
+            email: match[2].trim(),
+            company: match[3].trim(),
+          }))
+      }
+
+      function serializeContacts() {
+        return [
+          '# Contacts',
+          '',
+          '| Name | Email | Company |',
+          '| --- | --- | --- |',
+          ...rows.map((row) => `| ${row.name} | ${row.email} | ${row.company} |`),
+          '',
+        ].join('\n')
+      }
+
+      function render() {
+        const query = filterEl.value.trim().toLowerCase()
+        rowsEl.textContent = ''
+        const visible = rows.filter((row) =>
+          !query || `${row.name} ${row.email} ${row.company}`.toLowerCase().includes(query))
+        for (const row of visible) {
+          const tr = document.createElement('tr')
+          for (const key of ['name', 'email', 'company']) {
+            const td = document.createElement('td')
+            td.contentEditable = 'true'
+            td.spellcheck = false
+            td.textContent = row[key]
+            td.addEventListener('input', () => {
+              row[key] = td.textContent.trim()
+              markDirty()
+            })
+            tr.appendChild(td)
+          }
+          rowsEl.appendChild(tr)
+        }
+        emptyEl.hidden = visible.length > 0
+      }
+
+      function markDirty() {
+        dirty = true
+        saveBtn.disabled = false
+      }
+
+      function setStatus(text) {
+        status.textContent = text
+      }
+
+      async function load() {
+        try {
+          const result = await callMcp('get_note', { path: NOTE_PATH })
+          rows = parseContacts(String(result?.content ?? ''))
+          dirty = false
+          saveBtn.disabled = true
+          setStatus(`Loaded ${rows.length} contact(s) from ${NOTE_PATH}`)
+        } catch (error) {
+          rows = []
+          setStatus(`No contacts note found (${error.message}). Click “Add contact” to create it.`)
+        }
+        render()
+      }
+
+      async function save() {
+        saveBtn.disabled = true
+        try {
+          const content = serializeContacts()
+          const method = dirty ? 'update_note' : 'update_note'
+          try {
+            await callMcp(method, { path: NOTE_PATH, content })
+          } catch (error) {
+            if (!/does not exist/i.test(error.message)) throw error
+            await callMcp('create_note', { path: NOTE_PATH, content })
+          }
+          dirty = false
+          saveBtn.disabled = true
+          setStatus(`Saved ${rows.length} contact(s) to ${NOTE_PATH}`)
+          await callMcp('refresh_vault', {})
+        } catch (error) {
+          saveBtn.disabled = false
+          setStatus(`Save failed: ${error.message}`)
+        }
+      }
+
+      addBtn.addEventListener('click', () => {
+        rows.push({ name: 'New contact', email: '', company: '' })
+        markDirty()
+        render()
+        const last = rowsEl.lastElementChild
+        last?.querySelector('td')?.focus()
+      })
+      saveBtn.addEventListener('click', () => void save())
+      filterEl.addEventListener('input', render)
+
+      load()
+    </script>
+  </body>
+</html>
