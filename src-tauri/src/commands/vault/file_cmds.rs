@@ -250,6 +250,90 @@ pub fn create_note_content(
     })
 }
 
+/// Persist a deep-research report into the active vault under
+/// `Research Reports/` as a timestamped markdown note. Never overwrites an
+/// existing note; returns the vault-relative note path.
+#[tauri::command]
+pub fn write_research_report_note(
+    vault_path: PathBuf,
+    query: String,
+    report: String,
+) -> Result<String, String> {
+    with_requested_root_path(&vault_path, |root| {
+        write_research_report_note_in_root(Path::new(root), &query, &report)
+    })
+}
+
+fn write_research_report_note_in_root(
+    vault_root: &Path,
+    query: &str,
+    report: &str,
+) -> Result<String, String> {
+    const REPORT_DIR: &str = "Research Reports";
+
+    if report.trim().is_empty() {
+        return Err("Report content is empty".to_string());
+    }
+
+    let slug = research_report_slug(query);
+    let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let base_stem = format!("{slug}-{date}");
+    let directory = vault_root.join(REPORT_DIR);
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("Failed to create {REPORT_DIR}/: {error}"))?;
+
+    let mut path = directory.join(format!("{base_stem}.md"));
+    let mut attempt = 1;
+    while path.exists() {
+        attempt += 1;
+        path = directory.join(format!("{base_stem}-{attempt}.md"));
+    }
+
+    let title = research_report_title(query);
+    let content = format!(
+        "---\ntitle: \"{title}\"\ntype: Research Report\ncreated: {}\n---\n\n# {title}\n\n{report}\n",
+        chrono::Utc::now().to_rfc3339(),
+    );
+    std::fs::write(&path, content)
+        .map_err(|error| format!("Failed to write report note: {error}"))?;
+
+    Ok(path
+        .strip_prefix(vault_root)
+        .map(|relative| relative.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path.to_string_lossy().into_owned()))
+}
+
+fn research_report_slug(query: &str) -> String {
+    let slug = query
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .take(6)
+        .collect::<Vec<_>>()
+        .join("-");
+    if slug.is_empty() {
+        "research-report".to_string()
+    } else {
+        slug
+    }
+}
+
+fn research_report_title(query: &str) -> String {
+    let cleaned = query.trim().split_whitespace().collect::<Vec<_>>().join(" ");
+    if cleaned.is_empty() {
+        return "Research Report".to_string();
+    }
+    let mut title: String = cleaned.chars().take(80).collect();
+    if title.len() < cleaned.len() {
+        title.push('…');
+    }
+    title.replace('"', "'")
+}
+
 #[tauri::command]
 pub fn delete_note(path: PathBuf) -> Result<String, String> {
     with_validated_path(
@@ -429,6 +513,38 @@ mod tests {
 
     fn note_path(dir: &TempDir, name: &str) -> PathBuf {
         dir.path().join(name)
+    }
+
+    #[test]
+    fn research_report_note_uses_timestamped_files_and_never_overwrites() {
+        let dir = TempDir::new().unwrap();
+
+        let first =
+            write_research_report_note_in_root(dir.path(), "climate impact", "# Findings").unwrap();
+        let second =
+            write_research_report_note_in_root(dir.path(), "climate impact", "# Second").unwrap();
+
+        assert!(first.starts_with("Research Reports/climate-impact-"));
+        assert!(first.ends_with(".md"));
+        assert_ne!(first, second);
+        let content = fs::read_to_string(dir.path().join(&first)).unwrap();
+        assert!(content.contains("type: Research Report"));
+        assert!(content.contains("# Findings"));
+    }
+
+    #[test]
+    fn research_report_note_rejects_empty_report() {
+        let dir = TempDir::new().unwrap();
+        assert!(write_research_report_note_in_root(dir.path(), "query", "   ").is_err());
+    }
+
+    #[test]
+    fn research_report_slug_and_title_are_bounded() {
+        assert_eq!(research_report_slug("Impact of Climate Change on Agriculture!"), "impact-of-climate");
+        assert_eq!(research_report_slug("   "), "research-report");
+        assert_eq!(research_report_title("  short   query  "), "short query");
+        let long = research_report_title(&"word ".repeat(40));
+        assert!(long.chars().count() <= 81);
     }
 
     #[tokio::test]

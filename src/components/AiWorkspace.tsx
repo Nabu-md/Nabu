@@ -137,7 +137,7 @@ function PermissionPicker({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side={side} className="min-w-[180px]">
-        {(['safe', 'power_user', 'deep_research'] as const).map((mode) => (
+        {(['safe', 'power_user', 'deep_research', 'rag'] as const).map((mode) => (
           <DropdownMenuItem key={mode} onSelect={() => onChange(mode)}>
             {aiAgentPermissionModeLabels(mode, locale).control}
           </DropdownMenuItem>

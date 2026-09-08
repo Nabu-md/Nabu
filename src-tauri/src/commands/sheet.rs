@@ -57,6 +57,171 @@ pub async fn resolve_sheet_external_formula_inputs(
         .map_err(|e| format!("Task panicked: {e}"))?
 }
 
+/// Agent-facing sheet evaluation: import CSV (or markdown table) content,
+/// apply cell overrides (values or IronCalc formulas), resolve wikilink
+/// external references, evaluate the workbook, and return the full evaluated
+/// grid plus warnings (cycle detections, unresolved references, bad cells).
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluateSheetRequest {
+    pub csv_content: String,
+    #[serde(default)]
+    pub cell_overrides: HashMap<String, String>,
+    #[serde(default)]
+    pub dependencies: Vec<SheetDependencyContent>,
+    #[serde(default)]
+    pub links: Vec<SheetExternalReferenceLink>,
+    pub max_depth: Option<usize>,
+    pub timezone: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluateSheetResponse {
+    /// Cell address (e.g. "A1", "B2") => evaluated/formatted cell content.
+    pub cells: HashMap<String, String>,
+    /// Cycle detections, unresolved external references, and invalid overrides.
+    pub warnings: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn evaluate_sheet_with_formulas(
+    request: EvaluateSheetRequest,
+) -> Result<EvaluateSheetResponse, String> {
+    tokio::task::spawn_blocking(move || evaluate_sheet_with_formulas_sync(request))
+        .await
+        .map_err(|e| format!("Task panicked: {e}"))?
+}
+
+fn evaluate_sheet_with_formulas_sync(
+    request: EvaluateSheetRequest,
+) -> Result<EvaluateSheetResponse, String> {
+    if request.csv_content.trim().is_empty() {
+        return Err("csvContent is required".to_string());
+    }
+
+    let timezone = request.timezone.unwrap_or_else(|| "UTC".to_string());
+    let mut resolver = ExternalFormulaResolver::new(ResolveSheetExternalFormulaInputsRequest {
+        content: request.csv_content.clone(),
+        current_path: EVALUATION_CURRENT_PATH.into(),
+        dependencies: request.dependencies,
+        links: request.links,
+        max_depth: request.max_depth,
+        timezone: Some(timezone.clone()),
+    });
+
+    let mut warnings = Vec::new();
+    let rows = parse_sheet_rows(&request.csv_content);
+    let mut model = Model::new_empty("Nabu Sheet", "en", &timezone, "en")?;
+    let mut external_inputs = HashMap::new();
+    let mut unresolved_external_cells = HashSet::new();
+
+    // Populate the model from the parsed CSV rows, resolving [[note]].A1-style
+    // external references through the shared resolver.
+    for (row_index, row) in rows.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate() {
+            let source = parse_sheet_markdown_cell_value(value);
+            if source.is_empty() {
+                continue;
+            }
+            let address = cell_address(row_index + 1, column_index + 1);
+            let model_input = match resolver
+                .resolve_external_formula_input(&source, EVALUATION_CURRENT_PATH, &mut ResolveStack::new(EVALUATION_CURRENT_PATH))?
+            {
+                Some(evaluated) => {
+                    external_inputs.insert(address.clone(), evaluated.clone());
+                    evaluated
+                }
+                None => {
+                    if is_external_formula_input(&source) {
+                        unresolved_external_cells.insert(address.clone());
+                        warnings.push(format!("Unresolved external reference in {address}: {source}"));
+                    }
+                    source
+                }
+            };
+            model.set_user_input(
+                SHEET_INDEX,
+                row_index as i32 + 1,
+                column_index as i32 + 1,
+                model_input,
+            )?;
+        }
+    }
+
+    // Apply explicit cell overrides (values or formulas) after the CSV body so
+    // agents can compute derived cells on top of imported data.
+    let mut override_addresses = HashSet::new();
+    for (address, value) in &request.cell_overrides {
+        let Some((row, column)) = parse_override_address(address) else {
+            warnings.push(format!("Ignored invalid cell address: {address}"));
+            continue;
+        };
+        let value = parse_sheet_markdown_cell_value(value);
+        if value.is_empty() {
+            continue;
+        }
+        override_addresses.insert(address.clone());
+        model.set_user_input(SHEET_INDEX, row as i32, column as i32, value)?;
+    }
+
+    model.evaluate();
+
+    let mut cells = HashMap::new();
+    for (row_index, row) in rows.iter().enumerate() {
+        for (column_index, _value) in row.iter().enumerate() {
+            let row_number = row_index as i32 + 1;
+            let column_number = column_index as i32 + 1;
+            let address = cell_address(row_index + 1, column_index + 1);
+            if unresolved_external_cells.contains(&address) {
+                continue;
+            }
+            let content = model
+                .get_localized_cell_content(SHEET_INDEX, row_number, column_number)
+                .unwrap_or_default();
+            cells.insert(
+                address,
+                external_cell_formula_literal(&model, row_number, column_number, &content),
+            );
+        }
+    }
+    for address in &override_addresses {
+        let Some((row, column)) = parse_override_address(address) else {
+            continue;
+        };
+        let content = model
+            .get_localized_cell_content(SHEET_INDEX, row as i32, column as i32)
+            .unwrap_or_default();
+        cells.insert(
+            address.clone(),
+            external_cell_formula_literal(&model, row as i32, column as i32, &content),
+        );
+    }
+
+    Ok(EvaluateSheetResponse { cells, warnings })
+}
+
+/// Sentinel path used as the "current sheet" inside the shared external
+/// formula resolver when evaluating agent-supplied CSV content.
+const EVALUATION_CURRENT_PATH: &str = "/__nabu_evaluate_sheet__/sheet.md";
+
+fn parse_override_address(address: &str) -> Option<(usize, usize)> {
+    let trimmed = address.trim();
+    let split = trimmed
+        .find(|ch: char| ch.is_ascii_digit())
+        .filter(|split| *split > 0)?;
+    let (letters, digits) = trimmed.split_at(split);
+    if digits.is_empty() || !digits.chars().all(|ch| ch.is_ascii_digit()) {
+        return None;
+    }
+    let row = digits.parse::<usize>().ok()?;
+    let column = column_index_from_name(letters)?;
+    if row == 0 {
+        return None;
+    }
+    Some((row, column))
+}
+
 fn resolve_sheet_external_formula_inputs_sync(
     request: ResolveSheetExternalFormulaInputsRequest,
 ) -> Result<ResolveSheetExternalFormulaInputsResponse, String> {
@@ -675,5 +840,125 @@ mod tests {
         .unwrap();
 
         assert!(response.inputs.is_empty());
+    }
+
+    fn evaluate_request(
+        csv: &str,
+        overrides: HashMap<String, String>,
+        dependencies: Vec<SheetDependencyContent>,
+        links: Vec<SheetExternalReferenceLink>,
+    ) -> EvaluateSheetRequest {
+        EvaluateSheetRequest {
+            csv_content: csv.to_string(),
+            cell_overrides: overrides,
+            dependencies,
+            links,
+            max_depth: Some(4),
+            timezone: Some("UTC".to_string()),
+        }
+    }
+
+    #[test]
+    fn evaluate_sheet_returns_evaluated_grid() {
+        let response = evaluate_sheet_with_formulas_sync(evaluate_request(
+            "Item,Amount\nAlpha,1000\nBeta,2000\nTotal,=SUM(B2:B3)",
+            HashMap::new(),
+            Vec::new(),
+            Vec::new(),
+        ))
+        .unwrap();
+
+        assert_eq!(response.cells.get("A1").map(String::as_str), Some("Item"));
+        assert_eq!(response.cells.get("B2").map(String::as_str), Some("1000"));
+        assert!(response
+            .cells
+            .get("B4")
+            .is_some_and(|value| value.contains("3000")));
+        assert!(response.warnings.is_empty());
+    }
+
+    #[test]
+    fn evaluate_sheet_applies_formula_overrides() {
+        let overrides = HashMap::from([("D2".to_string(), "=NPV(0.1,B2:B3)".to_string())]);
+        let response = evaluate_sheet_with_formulas_sync(evaluate_request(
+            "Amount\n1000\n2000",
+            overrides,
+            Vec::new(),
+            Vec::new(),
+        ))
+        .unwrap();
+
+        assert!(response
+            .cells
+            .get("D2")
+            .is_some_and(|value| value.contains("2,561.98") || value.contains("2561.98")));
+    }
+
+    #[test]
+    fn evaluate_sheet_warns_on_invalid_override_addresses() {
+        let overrides = HashMap::from([("nope".to_string(), "=1+1".to_string())]);
+        let response = evaluate_sheet_with_formulas_sync(evaluate_request(
+            "A,B\n1,2",
+            overrides,
+            Vec::new(),
+            Vec::new(),
+        ))
+        .unwrap();
+
+        assert_eq!(response.warnings.len(), 1);
+        assert!(response.warnings[0].contains("invalid cell address"));
+    }
+
+    #[test]
+    fn evaluate_sheet_resolves_wikilink_dependencies() {
+        let dependencies = vec![dependency("/vault/b.md", "40")];
+        let links = vec![link(EVALUATION_CURRENT_PATH, "b", "/vault/b.md")];
+        let response = evaluate_sheet_with_formulas_sync(evaluate_request(
+            "Total\n=[[b]].A1+5",
+            HashMap::new(),
+            dependencies,
+            links,
+        ))
+        .unwrap();
+
+        assert!(response
+            .cells
+            .get("A2")
+            .is_some_and(|value| value.contains("45")));
+    }
+
+    #[test]
+    fn evaluate_sheet_warns_on_unresolved_external_references() {
+        let response = evaluate_sheet_with_formulas_sync(evaluate_request(
+            "Total\n=[[missing]].A1+5",
+            HashMap::new(),
+            Vec::new(),
+            Vec::new(),
+        ))
+        .unwrap();
+
+        assert!(response
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Unresolved external reference")));
+    }
+
+    #[test]
+    fn evaluate_sheet_rejects_empty_content() {
+        assert!(evaluate_sheet_with_formulas_sync(evaluate_request(
+            "   ",
+            HashMap::new(),
+            Vec::new(),
+            Vec::new(),
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn parse_override_address_parses_letters_and_digits() {
+        assert_eq!(parse_override_address("B2"), Some((2, 2)));
+        assert_eq!(parse_override_address("AA10"), Some((10, 27)));
+        assert_eq!(parse_override_address("invalid"), None);
+        assert_eq!(parse_override_address("1B"), None);
     }
 }

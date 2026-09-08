@@ -356,7 +356,7 @@ function AiPermissionModeToggle({
         aria-label={t('ai.permission.modeAria')}
         data-testid="ai-permission-mode-toggle"
       >
-        {(['safe', 'power_user', 'deep_research'] as const).map((mode) => {
+        {(['safe', 'power_user', 'deep_research', 'rag'] as const).map((mode) => {
           const selected = value === mode
           return (
             <ActionTooltip

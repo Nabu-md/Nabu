@@ -19,6 +19,7 @@ describe('aiAgentPermissionMode', () => {
     expect(normalizeAiAgentPermissionMode('power_user')).toBe('power_user')
     expect(normalizeAiAgentPermissionMode('deep_research')).toBe('deep_research')
     expect(normalizeAiAgentPermissionMode('mini_app_builder')).toBe('mini_app_builder')
+    expect(normalizeAiAgentPermissionMode('rag')).toBe('rag')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.short).toBe('Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.safe.control).toBe('Vault Safe')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.power_user.short).toBe('Power User')
@@ -26,6 +27,8 @@ describe('aiAgentPermissionMode', () => {
     expect(AI_AGENT_PERMISSION_MODE_LABELS.deep_research.control).toBe('Deep Research')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.mini_app_builder.short).toBe('Mini App Builder')
     expect(AI_AGENT_PERMISSION_MODE_LABELS.mini_app_builder.control).toBe('Mini App Builder')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.rag.short).toBe('RAG')
+    expect(AI_AGENT_PERMISSION_MODE_LABELS.rag.control).toBe('Semantic Search')
   })
 
   it('formats a local transcript marker for mode changes', () => {

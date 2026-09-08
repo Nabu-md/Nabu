@@ -52,6 +52,10 @@ function permissionModeInstructions(
     return `Mini App Builder mode is active. Local shell commands are available for this vault where the selected CLI agent supports them, in addition to the mini-app scaffolding workflow described below.\n\n${miniAppBuilderInstructions()}`
   }
 
+  if (mode === 'rag') {
+    return `RAG (Semantic Search) mode is active. Shell, terminal, Bash, Python/Node script execution, git, and command-line tools are not available; use file/search/edit tools and Nabu MCP tools instead.\n\nPrefer the search_notes_semantic MCP tool for retrieval: it finds conceptually and morphologically related notes that keyword matching misses. Use it first for conceptual questions and summaries; fall back to search_notes for exact keyword or title matches.`
+  }
+
   return `Vault Safe mode is active. Do not use shell, terminal, Bash, Python/Node script execution, git, or command-line tools. If the user asks whether shell commands are available, say they are not available in Vault Safe. Use file/search/edit tools and Nabu MCP tools instead.`
 }
 
@@ -89,6 +93,8 @@ function vaultScopeInstructions(vaultPaths?: string[]): string {
   ].join('\n')
 }
 
+const SHEET_INSTRUCTIONS = `For financial analysis and tabular computation, use the evaluate_sheet MCP tool: it imports CSV (or markdown table) data, applies cell formulas (IronCalc semantics, including wikilink-free external references via cell overrides), and returns the evaluated grid. IronCalc supports financial functions (NPV, IRR, XIRR, PMT, PV, FV, RATE), aggregations (SUM, SUMIF, SUMIFS, AVERAGE, COUNTIF), and lookups (VLOOKUP, HLOOKUP, INDEX, MATCH). Pass formulas in cellOverrides, e.g. {"B2": "=SUM(B1:B1)"}.`
+
 const AGENT_SYSTEM_PREAMBLE = `You are working inside Nabu, a local-first Markdown knowledge base.
 
 Notes are Markdown files with YAML frontmatter. Organization is primarily expressed through H1 titles, types, properties, wikilinks, and relationships, not folder structure.
@@ -109,6 +115,7 @@ export function buildAgentSystemPrompt(options?: string | AgentSystemPromptOptio
   const canUseShell = (permissionMode === 'power_user' || permissionMode === 'mini_app_builder') && agent !== 'pi'
   const prompt = [
     AGENT_SYSTEM_PREAMBLE,
+    SHEET_INSTRUCTIONS,
     vaultScopeInstructions(vaultPaths),
     agentDocsInstructions(agentDocsPath, canUseShell),
     permissionModeInstructions(permissionMode, agent),
