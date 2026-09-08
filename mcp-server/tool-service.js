@@ -6,9 +6,6 @@ import {
   searchNotes as searchVaultNotes,
   updateNote as updateVaultNote,
 } from './vault.js'
-import { findMarkdownFiles } from './vault.js'
-import { rankNotesBySimilarity } from './semantic-search.js'
-import { evaluateSheet } from './sheet-eval.js'
 import { requireVaultPaths } from './vault-path.js'
 import { readAgentInstructions, vaultContextWithInstructions } from './agent-instructions.js'
 import { applyTemplate, listTemplates } from './templates.js'
@@ -26,8 +23,13 @@ export function createMcpToolService({
   emitUiAction = () => {},
   attachVault: attachVaultOperation,
   cloneVault: cloneVaultOperation,
-  /** Optional ({ vaultPath, query, limit }) => Promise<{ results } | null>. */
-  relaySemanticSearch = null,
+  /**
+   * Required relay to the desktop app over the ws-bridge:
+   * ({ action, payload }) => Promise<result>. Backed by Tauri commands
+   * (fastembed semantic search, IronCalc sheet evaluation, report
+   * generation). Errors propagate — there is no local fallback.
+   */
+  relayToolCall,
 } = {}) {
   const sessionVaultPaths = []
 
@@ -94,35 +96,13 @@ export function createMcpToolService({
     const roots = activeVaultPaths()
     const results = []
 
-    // Prefer the app relay (fastembed BGE embeddings via Tauri) when the
-    // desktop frontend is connected; fall back to the local hashed-trigram
-    // embedder for standalone runs (tests, external MCP clients).
+    // Fastembed-backed ranking runs in the desktop app (Tauri command);
+    // the MCP server has no local embedding fallback.
     for (const vaultPath of roots) {
-      let relayed = null
-      if (relaySemanticSearch) {
-        try {
-          relayed = await relaySemanticSearch({ vaultPath, query: args.query, limit })
-        } catch {
-          relayed = null
-        }
-      }
-      if (relayed && Array.isArray(relayed.results)) {
-        for (const result of relayed.results) {
-          results.push({ score: 0, snippet: '', ...result, ...withVaultMetadata({}, vaultPath) })
-        }
-        continue
-      }
-      const files = await findMarkdownFiles(vaultPath)
-      const candidates = []
-      for (const filePath of files) {
-        const content = await readNoteFileContent(filePath)
-        if (content === null) continue
-        candidates.push(buildSemanticCandidate(vaultPath, filePath, content))
-      }
-      const ranked = rankNotesBySimilarity(args.query, candidates, { limit })
-      for (const result of ranked) {
-        const { candidate, content, ...rest } = result
-        results.push(withVaultMetadata(rest, candidate.vaultPath))
+      const relayed = await relayToolCall('search_notes_semantic', { vaultPath, query: args.query, limit })
+      const relayResults = relayed && Array.isArray(relayed.results) ? relayed.results : []
+      for (const result of relayResults) {
+        results.push({ score: 0, snippet: '', ...result, ...withVaultMetadata({}, vaultPath) })
       }
     }
 
@@ -312,10 +292,59 @@ export function createMcpToolService({
     throw new Error(`Note path is ambiguous across active vaults. Pass vaultPath for ${notePath}.`)
   }
 
+  /** Shared shape checks for the sheet-evaluation relay tools. */
+  function validateSheetArgs(args) {
+    if (typeof args.csvContent !== 'string' || !args.csvContent.trim()) {
+      throw new Error('csvContent is required')
+    }
+  }
+
   async function evaluateSheetWithFormulas(args = {}) {
-    return evaluateSheet({
+    validateSheetArgs(args)
+    return relayToolCall('evaluate_sheet_with_formulas', {
       csvContent: args.csvContent,
-      cellOverrides: args.cellOverrides,
+      cellOverrides: args.cellOverrides ?? {},
+      dependencies: args.dependencies ?? [],
+      links: args.links ?? [],
+      maxDepth: args.maxDepth ?? null,
+      timezone: args.timezone ?? null,
+    })
+  }
+
+  async function createReport(args = {}) {
+    validateSheetArgs(args)
+    const vaultPath = args.vaultPath ?? (activeVaultPaths().length === 1 ? activeVaultPaths()[0] : undefined)
+    if (!vaultPath) {
+      throw new Error('vaultPath is required when multiple vaults are active')
+    }
+    return relayToolCall('create_report', {
+      csvContent: args.csvContent,
+      cellOverrides: args.cellOverrides ?? {},
+      dependencies: args.dependencies ?? [],
+      links: args.links ?? [],
+      maxDepth: args.maxDepth ?? null,
+      timezone: args.timezone ?? null,
+      title: args.title ?? null,
+      vaultPath,
+    })
+  }
+
+  async function crunchFinancials(args = {}) {
+    validateSheetArgs(args)
+    const vaultPath = args.vaultPath ?? (activeVaultPaths().length === 1 ? activeVaultPaths()[0] : undefined)
+    if (args.saveNote && !vaultPath) {
+      throw new Error('vaultPath is required when saveNote is true')
+    }
+    return relayToolCall('crunch_financials', {
+      csvContent: args.csvContent,
+      cellOverrides: args.cellOverrides ?? {},
+      dependencies: args.dependencies ?? [],
+      links: args.links ?? [],
+      maxDepth: args.maxDepth ?? null,
+      timezone: args.timezone ?? null,
+      title: args.title ?? null,
+      vaultPath: vaultPath ?? null,
+      saveNote: Boolean(args.saveNote),
     })
   }
 
@@ -365,6 +394,8 @@ export function createMcpToolService({
     attachVault,
     cloneVault,
     createNote,
+    createReport,
+    crunchFinancials,
     evaluateSheetWithFormulas,
     fetchWebPage,
     highlightEditor,
@@ -447,30 +478,6 @@ function noteContent(args = {}) {
 
 const WEB_FETCH_TIMEOUT_MS = 20_000
 const WEB_FETCH_MAX_BYTES = 1_500_000
-
-async function readNoteFileContent(filePath) {
-  const { readFile } = await import('node:fs/promises')
-  try {
-    return await readFile(filePath, 'utf-8')
-  } catch {
-    return null
-  }
-}
-
-function buildSemanticCandidate(vaultPath, filePath, content) {
-  const relativePath = path.relative(vaultPath, filePath)
-  const filename = path.basename(filePath, '.md')
-  const h1Match = content.match(/^#\s+(.+)$/m)
-  const titleMatch = content.match(/^title:\s*(.+)$/m)
-  return {
-    candidate: { vaultPath },
-    path: relativePath,
-    title: (titleMatch ? titleMatch[1].trim() : '')
-      || (h1Match ? h1Match[1].trim() : '')
-      || filename,
-    content,
-  }
-}
 
 const HTML_BLOCK_TAGS = [
   'address', 'article', 'aside', 'blockquote', 'details', 'dialog', 'dd',

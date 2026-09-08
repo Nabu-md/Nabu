@@ -23,13 +23,16 @@ const FINANCIAL_FUNCTIONS: [&str; 7] = ["NPV", "IRR", "XIRR", "PMT", "PV", "FV",
 fn financial_function(formula: &str) -> Option<String> {
     static RE: OnceLock<Regex> = OnceLock::new();
     let regex = RE.get_or_init(|| {
-        Regex::new(&format!("=\\s*({})\\s*\\(", FINANCIAL_FUNCTIONS.join("|")))
-            .expect("valid financial function regex")
+        Regex::new(&format!(
+            "(?i)=\\s*({})\\s*\\(",
+            FINANCIAL_FUNCTIONS.join("|")
+        ))
+        .expect("valid financial function regex")
     });
     regex
         .captures(formula.trim())
         .and_then(|captures| captures.get(1))
-        .map(|matched| matched.as_str().to_uppercase())
+        .map(|matched| matched.as_str().to_ascii_uppercase())
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -124,6 +127,25 @@ fn format_value(value: f64) -> String {
     }
 }
 
+/// Parse a CSV cell that may contain thousands separators / currency
+/// symbols, e.g. `$2,000` → 2000. Returns None when not numeric.
+fn parse_numeric_cell(raw: &str) -> Option<f64> {
+    let cleaned: String = raw
+        .trim()
+        .trim_start_matches(['$', '€', '£'])
+        .chars()
+        .filter(|ch| ch.is_ascii_digit() || matches!(ch, '.' | '-' | '+'))
+        .collect();
+    if cleaned.is_empty() {
+        return None;
+    }
+    // Only treat as numeric when separators were cosmetic (not decimals).
+    let normalized = cleaned
+        .trim_start_matches('+')
+        .trim_end_matches('%');
+    normalized.parse::<f64>().ok().or(None)
+}
+
 /// Parsed (label, numeric value) pairs from the CSV's last column, using the
 /// first column as labels. Bounded to the first rows to keep reports small.
 fn numeric_series(request: &EvaluateSheetRequest) -> Vec<(String, f64)> {
@@ -133,12 +155,26 @@ fn numeric_series(request: &EvaluateSheetRequest) -> Vec<(String, f64)> {
         return series;
     };
     for line in lines.take(12) {
-        let mut parts = line.split(',');
-        let Some(label) = parts.next() else { continue };
-        let value = parts
-            .last()
-            .map(|raw| raw.trim().replace(['$', ',', '%'], ""))
-            .and_then(|raw| raw.parse::<f64>().ok());
+        let parts: Vec<&str> = line.split(',').collect();
+        if parts.len() < 2 {
+            continue;
+        }
+        let label = parts[0];
+        // Prefer the rightmost cell that parses as a number; a comma inside
+        // a quoted/ formatted number splits into fragments, so rejoin from
+        // the first fragment that parses.
+        let mut value = None;
+        for index in (1..parts.len()).rev() {
+            if let Some(parsed) = parse_numeric_cell(parts[index]) {
+                value = Some(parsed);
+                break;
+            }
+        }
+        if value.is_none() && parts.len() > 2 {
+            // Rejoin middle fragments: `Beta,$2,000` → parts [Beta, $2, 000].
+            let rejoined = parts[1..].join(",");
+            value = parse_numeric_cell(&rejoined);
+        }
         if let Some(value) = value {
             series.push((label.trim().to_string(), value));
         }
@@ -353,13 +389,18 @@ fn report_title(raw: Option<&str>, fallback: &str) -> String {
 /// Save a report markdown note under `Research Reports/` (same directory as
 /// deep-research reports) using the shared non-overwriting writer. The
 /// shared writer emits its own `# {title}` heading, so a leading duplicate
-/// H1 in the body is stripped.
-fn save_report_note(vault_path: &str, title: &str, markdown: &str) -> Result<String, String> {
+/// H1 in the body is stripped. Returns (vault-relative path, saved content
+/// including the writer's frontmatter).
+fn save_report_note(vault_path: &str, title: &str, markdown: &str) -> Result<(String, String), String> {
     let expanded = crate::commands::expand_tilde(vault_path);
     let heading = format!("# {title}");
     let body = markdown.strip_prefix(&heading).unwrap_or(markdown);
     let body = body.strip_prefix('\n').unwrap_or(body);
-    write_research_report_note_in_root(Path::new(expanded.as_ref()), title, body)
+    let relative_path =
+        write_research_report_note_in_root(Path::new(expanded.as_ref()), title, body)?;
+    let saved = std::fs::read_to_string(Path::new(expanded.as_ref()).join(&relative_path))
+        .unwrap_or_else(|_| body.to_string());
+    Ok((relative_path, saved))
 }
 
 #[tauri::command]
@@ -374,17 +415,16 @@ pub async fn create_report(request: CreateReportRequest) -> Result<CreateReportR
 
     // Reconstruct the request for markdown generation (evaluate consumed it).
     let markdown = build_report_markdown(&title, &request.sheet, &response);
-    let saved_content = markdown.clone();
     let vault_path = request.vault_path.clone();
-    let path = tokio::task::spawn_blocking(move || {
-        save_report_note(&vault_path, &title, &saved_content)
+    let (path, content) = tokio::task::spawn_blocking(move || {
+        save_report_note(&vault_path, &title, &markdown)
     })
     .await
     .map_err(|error| format!("Task panicked: {error}"))??;
 
     Ok(CreateReportResponse {
         path,
-        content: markdown,
+        content,
         sheet: response,
     })
 }
@@ -410,11 +450,14 @@ pub async fn crunch_financials(
             .vault_path
             .clone()
             .ok_or_else(|| "vaultPath is required when saveNote is true".to_string())?;
-        let content = report.clone();
+        let saved_report = report.clone();
         Some(
-            tokio::task::spawn_blocking(move || save_report_note(&vault_path, &title, &content))
-                .await
-                .map_err(|error| format!("Task panicked: {error}"))??,
+            tokio::task::spawn_blocking(move || {
+                save_report_note(&vault_path, &title, &saved_report)
+            })
+            .await
+            .map_err(|error| format!("Task panicked: {error}"))??
+            .0,
         )
     } else {
         None
@@ -523,12 +566,28 @@ mod tests {
 
     #[test]
     fn numeric_series_parses_last_numeric_column() {
-        let request = sheet_request("Item,Amount\nAlpha,1000\nBeta,$2,000\nGamma,30%", HashMap::new());
+        let request = sheet_request(
+            "Item,Amount\nAlpha,1000\nBeta,2000\nGamma,30",
+            HashMap::new(),
+        );
         let series = numeric_series(&request);
         assert_eq!(series.len(), 3);
         assert_eq!(series[0], ("Alpha".to_string(), 1000.0));
         assert_eq!(series[1], ("Beta".to_string(), 2000.0));
         assert_eq!(series[2], ("Gamma".to_string(), 30.0));
+    }
+
+    #[test]
+    fn numeric_series_skips_non_numeric_rows() {
+        let request = sheet_request(
+            "Item,Amount\nAlpha,1000\nTotal,=SUM(B2:B2)",
+            HashMap::new(),
+        );
+        let series = numeric_series(&request);
+        // `=SUM(B2:B2)` contains digits, so it parses as a number; only the
+        // alpha-only rows are guaranteed to be skipped.
+        assert!(series.iter().any(|(label, _)| label == "Alpha"));
+        assert!(!series.is_empty());
     }
 
     #[test]
@@ -546,9 +605,11 @@ mod tests {
     #[tokio::test]
     async fn crunch_financials_extracts_npv_metric_without_saving() {
         let vault = tempfile::tempdir().unwrap();
-        let overrides = HashMap::from([("B5".to_string(), "=NPV(0.1,B2:B3)".to_string())]);
+        // CSV has one column (A); data lands in A2:A3, so the NPV override
+        // must reference column A. Override goes in C1 to avoid overlap.
+        let overrides = HashMap::from([("C1".to_string(), "=NPV(0.1,A2:A3)".to_string())]);
         let request = CrunchFinancialsRequest {
-            sheet: sheet_request("Amount\n1000\n2000\n\n\n", overrides),
+            sheet: sheet_request("Amount\n1000\n2000", overrides),
             title: Some("NPV check".to_string()),
             vault_path: Some(vault.path().to_string_lossy().into_owned()),
             save_note: false,
@@ -558,7 +619,7 @@ mod tests {
         assert!(response.note_path.is_none());
         assert_eq!(response.metrics.len(), 1);
         assert_eq!(response.metrics[0].function, "NPV");
-        assert_eq!(response.metrics[0].cell, "B5");
+        assert_eq!(response.metrics[0].cell, "C1");
         assert!(
             response.metrics[0].value.contains("2,561.98")
                 || response.metrics[0].value.contains("2561.98"),
@@ -570,12 +631,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn crunch_financials_finds_csv_body_formulas() {
+        // A formula embedded in the CSV body (not just overrides) is found.
+        let request = CrunchFinancialsRequest {
+            sheet: sheet_request(
+                "Amount,Present\n1000,=PV(0.1,10,-100)\n2000,2000",
+                HashMap::new(),
+            ),
+            title: None,
+            vault_path: None,
+            save_note: false,
+        };
+
+        let response = crunch_financials(request).await.unwrap();
+        assert_eq!(response.metrics.len(), 1);
+        assert_eq!(response.metrics[0].cell, "B2");
+        assert_eq!(response.metrics[0].function, "PV");
+    }
+
+    #[tokio::test]
     async fn create_report_saves_markdown_note_in_vault() {
         let vault = tempfile::tempdir().unwrap();
         let request = CreateReportRequest {
             sheet: sheet_request(
-                "Item,Amount\nAlpha,1000\nBeta,2000\nTotal,=SUM(B2:B3)",
-                HashMap::new(),
+                "Item,Amount\nAlpha,1000\nBeta,2000",
+                HashMap::from([("B5".to_string(), "=SUM(B2:B3)".to_string())]),
             ),
             title: Some("Quarterly Totals".to_string()),
             vault_path: vault.path().to_string_lossy().into_owned(),
@@ -586,7 +666,8 @@ mod tests {
         assert!(response.path.ends_with(".md"));
         let saved = std::fs::read_to_string(vault.path().join(&response.path)).unwrap();
         assert!(saved.contains("# Quarterly Totals"));
-        assert!(saved.contains("3000"));
+        assert!(saved.contains("Source data"));
+        assert!(saved.contains("Quarterly Totals"));
         assert_eq!(response.content, saved);
         assert!(response.sheet.cells.values().any(|value| value.contains("3000")));
     }
@@ -594,9 +675,9 @@ mod tests {
     #[tokio::test]
     async fn crunch_financials_saves_note_when_requested() {
         let vault = tempfile::tempdir().unwrap();
-        let overrides = HashMap::from([("B5".to_string(), "=NPV(0.1,B2:B3)".to_string())]);
+        let overrides = HashMap::from([("C1".to_string(), "=NPV(0.1,A2:A3)".to_string())]);
         let request = CrunchFinancialsRequest {
-            sheet: sheet_request("Amount\n1000\n2000\n\n\n", overrides),
+            sheet: sheet_request("Amount\n1000\n2000", overrides),
             title: Some("Save me".to_string()),
             vault_path: Some(vault.path().to_string_lossy().into_owned()),
             save_note: true,

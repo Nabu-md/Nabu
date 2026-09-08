@@ -130,7 +130,9 @@ function broadcastUiAction(action, payload) {
 // search) that cannot live in the standalone MCP server process.
 
 const RELAY_TIMEOUT_MS = 10_000
-const SEMANTIC_SEARCH_RELAY_TIMEOUT_MS = 120_000 // first call downloads the model
+/** First semantic-search call downloads the embedding model in the app. */
+const MODEL_DOWNLOAD_RELAY_TIMEOUT_MS = 120_000
+const LONG_RELAY_ACTIONS = new Set(['search_notes_semantic', 'evaluate_sheet_with_formulas', 'create_report', 'crunch_financials'])
 let relayRequestCounter = 0
 /** @type {Map<string, { resolve: Function, reject: Function, timer: NodeJS.Timeout }>} */
 const pendingRelayRequests = new Map()
@@ -167,8 +169,8 @@ function requestUiRelay(action, payload = {}) {
     }
     relayRequestCounter += 1
     const id = `relay-${Date.now().toString(36)}-${relayRequestCounter}`
-    const timeoutMs = action === 'search_notes_semantic'
-      ? SEMANTIC_SEARCH_RELAY_TIMEOUT_MS
+    const timeoutMs = LONG_RELAY_ACTIONS.has(action)
+      ? MODEL_DOWNLOAD_RELAY_TIMEOUT_MS
       : RELAY_TIMEOUT_MS
     const timer = setTimeout(() => {
       pendingRelayRequests.delete(id)
@@ -186,24 +188,19 @@ function requestUiRelay(action, payload = {}) {
 }
 
 /**
- * Ask the desktop app to run its fastembed-backed semantic search for one
- * vault. Resolves `{ results }` on success, or null when the app relay is
- * unavailable so the caller can fall back to the local embedder.
+ * Relay a tool call to the desktop app over the UI bridge. Errors propagate
+ * to the caller — app-native tools (fastembed search, IronCalc evaluation,
+ * report generation) have no MCP-side fallback.
  */
-async function relaySemanticSearch({ vaultPath, query, limit }) {
-  try {
-    return await requestUiRelay('search_notes_semantic', { vaultPath, query, limit })
-  } catch (err) {
-    console.error(`[mcp] semantic search relay unavailable: ${err.message}`)
-    return null
-  }
+async function relayToolCall(action, payload = {}) {
+  return requestUiRelay(action, payload)
 }
 
 const toolService = createMcpToolService({
   emitUiAction: broadcastUiAction,
   attachVault,
   cloneVault,
-  relaySemanticSearch,
+  relayToolCall,
 })
 
 const TOOLS = [
@@ -328,13 +325,28 @@ const TOOLS = [
   },
   {
     name: 'search_notes_semantic',
-    description: 'Semantic search across vault notes using embedding similarity. Finds conceptually and morphologically related content that keyword search misses — use it for conceptual queries, and fall back to search_notes for exact keyword matches.',
+    description: 'Semantic search across vault notes using embedding similarity (local fastembed BGE model in the app). Finds conceptually related content that keyword search misses — use it for conceptual queries, and fall back to search_notes for exact keyword matches.',
     annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'The semantic query to search for' },
         limit: { type: 'number', description: 'Maximum results (default: 10)' },
+        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'query_vault_rag',
+    description: 'RAG retrieval over vault notes using embedding similarity. Alias for search_notes_semantic — same schema and behavior; use whichever name fits the task.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The semantic query to search for' },
+        limit: { type: 'number', description: 'Maximum results (default: 10)' },
+        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search' },
       },
       required: ['query'],
     },
@@ -354,13 +366,56 @@ const TOOLS = [
   },
   {
     name: 'evaluate_sheet',
-    description: 'Evaluate a spreadsheet with formulas. Parses CSV or markdown table content, applies cell overrides with formulas (including IronCalc financial functions like NPV, IRR, PMT, SUMIF, VLOOKUP), and returns the evaluated cell grid.',
+    description: 'Evaluate a spreadsheet with formulas via the IronCalc engine. Parses CSV or markdown table content, applies cell overrides with formulas (including IronCalc financial functions like NPV, IRR, PMT, SUMIF, VLOOKUP), resolves [[note]] wikilink references, and returns the evaluated cell grid.',
     annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
     inputSchema: {
       type: 'object',
       properties: {
         csvContent: { type: 'string', description: 'CSV or markdown table content' },
         cellOverrides: { type: 'object', description: 'Cell address => value or formula mapping, e.g. {"B2": "=SUM(B1:B1)"}' },
+        dependencies: { type: 'array', description: 'External note contents for wikilink references: [{ path, content }]' },
+        links: { type: 'array', description: 'Wikilink resolutions: [{ sourcePath, target, targetPath }]' },
+        maxDepth: { type: 'number', description: 'Maximum wikilink resolution depth (default 4)' },
+        timezone: { type: 'string', description: 'IANA timezone for date functions (default UTC)' },
+      },
+      required: ['csvContent'],
+    },
+  },
+  {
+    name: 'create_report',
+    description: 'Evaluate a sheet (same input as evaluate_sheet) and save it as a markdown report note in the vault under Research Reports/, including a source-data table and a sanitized HTML bar chart. Returns the note path and saved content.',
+    annotations: LOCAL_CREATE_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        csvContent: { type: 'string', description: 'CSV or markdown table content' },
+        cellOverrides: { type: 'object', description: 'Cell address => value or formula mapping' },
+        dependencies: { type: 'array', description: 'External note contents for wikilink references: [{ path, content }]' },
+        links: { type: 'array', description: 'Wikilink resolutions: [{ sourcePath, target, targetPath }]' },
+        maxDepth: { type: 'number', description: 'Maximum wikilink resolution depth (default 4)' },
+        timezone: { type: 'string', description: 'IANA timezone for date functions (default UTC)' },
+        title: { type: 'string', description: 'Report title (default: Sheet Report)' },
+        vaultPath: { type: 'string', description: 'Target vault root; defaults to the only active vault' },
+      },
+      required: ['csvContent'],
+    },
+  },
+  {
+    name: 'crunch_financials',
+    description: 'Evaluate a sheet and extract the financial-function cells (NPV, IRR, XIRR, PMT, PV, FV, RATE) into a narrative metrics report with a table and per-metric narrative. Optionally save the report as a note with saveNote.',
+    annotations: LOCAL_CREATE_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        csvContent: { type: 'string', description: 'CSV or markdown table content' },
+        cellOverrides: { type: 'object', description: 'Cell address => value or formula mapping, e.g. {"C1": "=NPV(0.1,A2:A3)"}' },
+        dependencies: { type: 'array', description: 'External note contents for wikilink references: [{ path, content }]' },
+        links: { type: 'array', description: 'Wikilink resolutions: [{ sourcePath, target, targetPath }]' },
+        maxDepth: { type: 'number', description: 'Maximum wikilink resolution depth (default 4)' },
+        timezone: { type: 'string', description: 'IANA timezone for date functions (default UTC)' },
+        title: { type: 'string', description: 'Report title (default: Financial Analysis)' },
+        vaultPath: { type: 'string', description: 'Target vault root; defaults to the only active vault' },
+        saveNote: { type: 'boolean', description: 'Save the narrative report as a note in Research Reports/ (default: false)' },
       },
       required: ['csvContent'],
     },
@@ -650,11 +705,27 @@ async function handleEvaluateSheet(args = {}) {
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
 }
 
+async function handleCreateReport(args = {}) {
+  const result = await toolService.createReport(args)
+  const text = `Report saved to ${result.path}\n\n${result.content}`
+  return { content: [{ type: 'text', text }] }
+}
+
+async function handleCrunchFinancials(args = {}) {
+  const result = await toolService.crunchFinancials(args)
+  const saved = result.notePath ? `\n\nReport note saved to ${result.notePath}` : ''
+  const text = `${result.report}${saved}`
+  return { content: [{ type: 'text', text }] }
+}
+
 const TOOL_HANDLERS = new Map([
   ['search_notes', handleSearchNotes],
   ['search_notes_semantic', handleSearchNotesSemantic],
+  ['query_vault_rag', handleSearchNotesSemantic],
   ['web_fetch', handleWebFetch],
   ['evaluate_sheet', handleEvaluateSheet],
+  ['create_report', handleCreateReport],
+  ['crunch_financials', handleCrunchFinancials],
   ['get_vault_context', handleVaultContext],
   ['list_vaults', handleListVaults],
   ['attach_vault', handleAttachVault],
