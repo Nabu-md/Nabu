@@ -42,7 +42,12 @@ type UiActionMessage = Record<string, unknown> & {
 }
 
 /** Tools the frontend will execute on behalf of the MCP server via Tauri. */
-const RELAYED_TOOLS = new Set(['search_notes_semantic'])
+const RELAYED_TOOLS = new Set([
+  'search_notes_semantic',
+  'evaluate_sheet_with_formulas',
+  'create_report',
+  'crunch_financials',
+])
 
 interface RelayedToolRequest {
   type: 'tool_request'
@@ -51,6 +56,83 @@ interface RelayedToolRequest {
   vaultPath?: unknown
   query?: unknown
   limit?: unknown
+  [key: string]: unknown
+}
+
+interface SheetRelayPayload {
+  csvContent?: unknown
+  cellOverrides?: unknown
+  dependencies?: unknown
+  links?: unknown
+  maxDepth?: unknown
+  timezone?: unknown
+  title?: unknown
+  vaultPath?: unknown
+  saveNote?: unknown
+}
+
+function relayPayloadString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+function relayPayloadLimit(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined
+}
+
+function relayPayloadStringOrUndefined(value: unknown): string | undefined {
+  return relayPayloadString(value) ?? undefined
+}
+
+function relayPayloadOverrides(value: unknown): Record<string, string> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  const overrides: Record<string, string> = {}
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof entry === 'string') overrides[key] = entry
+  }
+  return overrides
+}
+
+function relayPayloadDependencies(value: unknown): Array<{ path: string; content: string }> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const record = entry as Record<string, unknown>
+    const path = relayPayloadString(record.path)
+    const content = typeof record.content === 'string' ? record.content : null
+    return path && content !== null ? [{ path, content }] : []
+  })
+}
+
+function relayPayloadLinks(
+  value: unknown,
+): Array<{ sourcePath: string; target: string; targetPath: string }> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const record = entry as Record<string, unknown>
+    const sourcePath = relayPayloadString(record.sourcePath)
+    const target = relayPayloadString(record.target)
+    const targetPath = relayPayloadString(record.targetPath)
+    return sourcePath && target && targetPath ? [{ sourcePath, target, targetPath }] : []
+  })
+}
+
+function relayPayloadBoolean(value: unknown): boolean {
+  return value === true
+}
+
+/** Build the Tauri `EvaluateSheetRequest` payload from a relay request. */
+function sheetRelayRequest(request: SheetRelayPayload) {
+  return {
+    csvContent: relayPayloadString(request.csvContent) ?? '',
+    cellOverrides: relayPayloadOverrides(request.cellOverrides),
+    dependencies: relayPayloadDependencies(request.dependencies),
+    links: relayPayloadLinks(request.links),
+    maxDepth: relayPayloadLimit(request.maxDepth) ?? null,
+    timezone: relayPayloadStringOrUndefined(request.timezone) ?? null,
+  }
 }
 
 function parseToolRequest(event: MessageEvent): RelayedToolRequest | null {
@@ -71,20 +153,10 @@ function parseToolRequest(event: MessageEvent): RelayedToolRequest | null {
   return null
 }
 
-function relayPayloadString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null
-}
-
-function relayPayloadLimit(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? Math.floor(value)
-    : undefined
-}
-
 /**
  * Execute a relayed MCP tool request through the matching Tauri command and
  * send a `tool_response` back over the same socket. Errors are reported as
- * `tool_response` errors so the MCP server can fall back to local search.
+ * `tool_response` errors so the MCP server can surface them to the agent.
  */
 async function handleToolRequest(
   request: RelayedToolRequest,
@@ -113,6 +185,47 @@ async function handleToolRequest(
           vaultPath,
           limit: relayPayloadLimit(request.limit) ?? 10,
           hideGitignoredFiles: false,
+        },
+      })
+      respond({ result })
+      return
+    }
+    if (request.action === 'evaluate_sheet_with_formulas') {
+      const result = await invoke<unknown>('evaluate_sheet_with_formulas', {
+        request: sheetRelayRequest(request),
+      })
+      respond({ result })
+      return
+    }
+    if (request.action === 'create_report') {
+      const vaultPath = relayPayloadString(request.vaultPath)
+      if (!vaultPath) {
+        respond({ error: 'vaultPath is required' })
+        return
+      }
+      const result = await invoke<unknown>('create_report', {
+        request: {
+          ...sheetRelayRequest(request),
+          title: relayPayloadStringOrUndefined(request.title) ?? null,
+          vaultPath,
+        },
+      })
+      respond({ result })
+      return
+    }
+    if (request.action === 'crunch_financials') {
+      const vaultPath = relayPayloadString(request.vaultPath)
+      const saveNote = relayPayloadBoolean(request.saveNote)
+      if (saveNote && !vaultPath) {
+        respond({ error: 'vaultPath is required when saveNote is true' })
+        return
+      }
+      const result = await invoke<unknown>('crunch_financials', {
+        request: {
+          ...sheetRelayRequest(request),
+          title: relayPayloadStringOrUndefined(request.title) ?? null,
+          vaultPath: vaultPath ?? null,
+          saveNote,
         },
       })
       respond({ result })

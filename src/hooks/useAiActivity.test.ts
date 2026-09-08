@@ -258,5 +258,101 @@ describe('useAiActivity', () => {
       expect(invokeMock).not.toHaveBeenCalled()
       expect(sent).toHaveLength(0)
     })
+
+    it('relays evaluate_sheet_with_formulas with the full request shape', async () => {
+      invokeMock.mockResolvedValue({ cells: { B4: '3000' }, warnings: [] })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendWsMessage({
+          type: 'tool_request',
+          action: 'evaluate_sheet_with_formulas',
+          id: 'relay-3',
+          csvContent: 'Item,Amount\nAlpha,1000\nBeta,2000',
+          cellOverrides: { B4: '=SUM(B2:B3)' },
+          dependencies: [{ path: '/vault/b.md', content: '40' }],
+          links: [{ sourcePath: '/vault/a.md', target: 'b', targetPath: '/vault/b.md' }],
+          maxDepth: 4,
+          timezone: 'UTC',
+        })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('evaluate_sheet_with_formulas', {
+        request: {
+          csvContent: 'Item,Amount\nAlpha,1000\nBeta,2000',
+          cellOverrides: { B4: '=SUM(B2:B3)' },
+          dependencies: [{ path: '/vault/b.md', content: '40' }],
+          links: [{ sourcePath: '/vault/a.md', target: 'b', targetPath: '/vault/b.md' }],
+          maxDepth: 4,
+          timezone: 'UTC',
+        },
+      })
+      const response = JSON.parse(sent[0])
+      expect(response.result).toEqual({ cells: { B4: '3000' }, warnings: [] })
+    })
+
+    it('relays create_report with title and vaultPath', async () => {
+      invokeMock.mockResolvedValue({ path: 'Research Reports/r.md', content: '# R', sheet: { cells: {}, warnings: [] } })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendWsMessage({
+          type: 'tool_request',
+          action: 'create_report',
+          id: 'relay-4',
+          csvContent: 'A,B\n1,2',
+          title: 'My Report',
+          vaultPath: '/vault',
+        })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('create_report', {
+        request: expect.objectContaining({ title: 'My Report', vaultPath: '/vault' }),
+      })
+      const response = JSON.parse(sent[0])
+      expect(response.result.path).toBe('Research Reports/r.md')
+    })
+
+    it('relays crunch_financials with saveNote and guards missing vaultPath', async () => {
+      invokeMock.mockResolvedValue({ cells: {}, metrics: [], report: '# FA', notePath: null, warnings: [] })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendWsMessage({
+          type: 'tool_request',
+          action: 'crunch_financials',
+          id: 'relay-5',
+          csvContent: 'A\n1',
+          vaultPath: '/vault',
+          saveNote: true,
+        })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('crunch_financials', {
+        request: expect.objectContaining({ vaultPath: '/vault', saveNote: true }),
+      })
+
+      // saveNote without vaultPath is rejected before invoking.
+      invokeMock.mockClear()
+      sent.length = 0
+      await act(async () => {
+        sendWsMessage({
+          type: 'tool_request',
+          action: 'crunch_financials',
+          id: 'relay-6',
+          csvContent: 'A\n1',
+          saveNote: true,
+        })
+      })
+      expect(invokeMock).not.toHaveBeenCalled()
+      const errorResponse = JSON.parse(sent[0])
+      expect(errorResponse.error).toContain('vaultPath is required')
+    })
   })
 })

@@ -53,7 +53,7 @@ function permissionModeInstructions(
   }
 
   if (mode === 'rag') {
-    return `RAG (Semantic Search) mode is active. Shell, terminal, Bash, Python/Node script execution, git, and command-line tools are not available; use file/search/edit tools and Nabu MCP tools instead.\n\nPrefer the search_notes_semantic MCP tool for retrieval: it finds conceptually and morphologically related notes that keyword matching misses. Use it first for conceptual questions and summaries; fall back to search_notes for exact keyword or title matches.`
+    return `RAG (Semantic Search) mode is active. Shell, terminal, Bash, Python/Node script execution, git, and command-line tools are not available; use file/search/edit tools and Nabu MCP tools instead.\n\nPrefer the search_notes_semantic MCP tool (or its alias query_vault_rag — both use the same local embedding model) for retrieval: it finds conceptually related notes that keyword matching misses. Use it first for conceptual questions and summaries; fall back to search_notes for exact keyword or title matches.\n\nTo ground an answer in retrieved notes, run search_notes_semantic/query_vault_rag first, then get_note on the top hits before composing the response.`
   }
 
   return `Vault Safe mode is active. Do not use shell, terminal, Bash, Python/Node script execution, git, or command-line tools. If the user asks whether shell commands are available, say they are not available in Vault Safe. Use file/search/edit tools and Nabu MCP tools instead.`
@@ -93,7 +93,11 @@ function vaultScopeInstructions(vaultPaths?: string[]): string {
   ].join('\n')
 }
 
-const SHEET_INSTRUCTIONS = `For financial analysis and tabular computation, use the evaluate_sheet MCP tool: it imports CSV (or markdown table) data, applies cell formulas (IronCalc semantics, including wikilink-free external references via cell overrides), and returns the evaluated grid. IronCalc supports financial functions (NPV, IRR, XIRR, PMT, PV, FV, RATE), aggregations (SUM, SUMIF, SUMIFS, AVERAGE, COUNTIF), and lookups (VLOOKUP, HLOOKUP, INDEX, MATCH). Pass formulas in cellOverrides, e.g. {"B2": "=SUM(B1:B1)"}.`
+const SHEET_INSTRUCTIONS = `For financial analysis and tabular computation, use the evaluate_sheet MCP tool: it imports CSV (or markdown table) data, applies cell formulas (IronCalc semantics, including [[note]] wikilink references via dependencies/links), and returns the evaluated grid. IronCalc supports financial functions (NPV, IRR, XIRR, PMT, PV, FV, RATE), aggregations (SUM, SUMIF, SUMIFS, AVERAGE, COUNTIF), and lookups (VLOOKUP, HLOOKUP, INDEX, MATCH). Pass formulas in cellOverrides, e.g. {"B2": "=SUM(B1:B1)"}.
+
+When the user wants a shareable deliverable, use create_report: it evaluates the sheet and saves a markdown report note (source-data table plus a sanitized HTML bar chart) under Research Reports/ in the vault, returning the note path.
+
+When the task is specifically financial metrics, use crunch_financials instead: it evaluates the sheet, extracts every cell whose formula uses NPV, IRR, XIRR, PMT, PV, FV, or RATE, and returns a narrative metrics report; pass saveNote=true (with vaultPath) to persist it as a note.`
 
 const AGENT_SYSTEM_PREAMBLE = `You are working inside Nabu, a local-first Markdown knowledge base.
 
