@@ -34,7 +34,12 @@ const MAX_LIMIT: usize = 50;
 #[serde(rename_all = "camelCase")]
 pub struct SemanticSearchRequest {
     pub query: String,
-    pub vault_path: String,
+    /// Single-vault form (kept for compatibility); merged into `vault_paths`.
+    pub vault_path: Option<String>,
+    /// Search these vaults in one call and re-rank results globally.
+    /// Takes precedence over `vault_path` when non-empty.
+    #[serde(default)]
+    pub vault_paths: Vec<String>,
     pub limit: Option<usize>,
     #[serde(default)]
     pub hide_gitignored_files: bool,
@@ -48,6 +53,8 @@ pub struct SemanticSearchResult {
     pub snippet: String,
     /// Cosine similarity in `[0, 1]`.
     pub score: f32,
+    /// Absolute vault root the note belongs to (multi-vault searches).
+    pub vault_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -321,9 +328,9 @@ fn embedded_vault_notes(
 
 fn truncate_query(query: &str) -> String {
     query.trim().chars().take(512).collect()
-}
-
-/// Core synchronous search implementation, shared by the Tauri command and tests.
+}/// Core synchronous search implementation, shared by the Tauri command and tests.
+/// Accepts one or more vaults; results are re-ranked globally and each result
+/// carries its vault root.
 pub fn run_semantic_search(request: SemanticSearchRequest) -> Result<SemanticSearchResponse, String> {
     let start = Instant::now();
     let query = truncate_query(&request.query);
@@ -331,9 +338,27 @@ pub fn run_semantic_search(request: SemanticSearchRequest) -> Result<SemanticSea
         return Err("query is required".to_string());
     }
 
-    let vault_dir = PathBuf::from(&request.vault_path);
-    if !vault_dir.is_dir() {
-        return Err(format!("Vault path is not a directory: {}", request.vault_path));
+    let mut vault_paths = request
+        .vault_paths
+        .iter()
+        .map(|path| path.trim().to_string())
+        .filter(|path| !path.is_empty())
+        .collect::<Vec<_>>();
+    if vault_paths.is_empty() {
+        if let Some(single) = request.vault_path.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+            vault_paths.push(single.to_string());
+        }
+    }
+    if vault_paths.is_empty() {
+        return Err("vaultPath or vaultPaths is required".to_string());
+    }
+    vault_paths.sort();
+    vault_paths.dedup();
+
+    for vault_path in &vault_paths {
+        if !Path::new(vault_path).is_dir() {
+            return Err(format!("Vault path is not a directory: {vault_path}"));
+        }
     }
 
     let limit = request
@@ -348,31 +373,35 @@ pub fn run_semantic_search(request: SemanticSearchRequest) -> Result<SemanticSea
         .next()
         .ok_or_else(|| "Embedding failed: no output for query".to_string())?;
 
-    let note_vectors = embedded_vault_notes(cached, &vault_dir)?;
-    let mut results: Vec<SemanticSearchResult> = note_vectors
-        .iter()
-        .map(|note| SemanticSearchResult {
-            path: note.relative_path.clone(),
-            title: note.title.clone(),
-            snippet: String::new(),
-            score: (cosine_similarity(&query_vector, &note.body)
+    // Score every vault's notes against the single query embedding.
+    let mut results: Vec<SemanticSearchResult> = Vec::new();
+    for vault_path in &vault_paths {
+        let vault_dir = PathBuf::from(vault_path);
+        let note_vectors = embedded_vault_notes(cached, &vault_dir)?;
+        for note in &note_vectors {
+            let score = (cosine_similarity(&query_vector, &note.body)
                 + TITLE_BOOST * cosine_similarity(&query_vector, &note.title_vec))
-            .clamp(0.0, 1.0),
-        })
-        .filter(|result| result.score > 0.01)
-        .collect();
+                .clamp(0.0, 1.0);
+            if score <= 0.01 {
+                continue;
+            }
+            results.push(SemanticSearchResult {
+                path: note.relative_path.clone(),
+                title: note.title.clone(),
+                snippet: String::new(),
+                score,
+                vault_path: vault_path.clone(),
+            });
+        }
+    }
 
     // Fill snippets only for the top hits so large vaults stay cheap.
     results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(limit);
-    let notes_for_snippets = load_vault_notes(&vault_dir);
-    let content_by_path: HashMap<&str, &str> = notes_for_snippets
-        .iter()
-        .map(|note| (note.relative_path.as_str(), note.content.as_str()))
-        .collect();
     for result in &mut results {
-        if let Some(content) = content_by_path.get(result.path.as_str()) {
-            result.snippet = snippet_for(content);
+        let note_path = PathBuf::from(&result.vault_path).join(&result.path);
+        if let Ok(content) = std::fs::read_to_string(&note_path) {
+            result.snippet = snippet_for(&content);
         }
     }
 
@@ -422,26 +451,59 @@ mod tests {
         assert_eq!(notes[0].title, "Alpha");
     }
 
+    fn request_for(query: &str, vault_paths: Vec<String>) -> SemanticSearchRequest {
+        SemanticSearchRequest {
+            query: query.to_string(),
+            vault_path: None,
+            vault_paths,
+            limit: None,
+            hide_gitignored_files: false,
+        }
+    }
+
     #[test]
     fn run_semantic_search_rejects_bad_input() {
         let vault = tempfile::tempdir().unwrap();
-        let error = run_semantic_search(SemanticSearchRequest {
-            query: "   ".to_string(),
-            vault_path: vault.path().to_string_lossy().into_owned(),
-            limit: None,
-            hide_gitignored_files: false,
-        })
+        let error = run_semantic_search(request_for(
+            "   ",
+            vec![vault.path().to_string_lossy().into_owned()],
+        ))
         .unwrap_err();
         assert!(error.contains("query is required"));
 
-        let error = run_semantic_search(SemanticSearchRequest {
-            query: "anything".to_string(),
-            vault_path: "/definitely/not/a/real/vault".to_string(),
-            limit: None,
-            hide_gitignored_files: false,
-        })
+        let error = run_semantic_search(request_for(
+            "anything",
+            vec!["/definitely/not/a/real/vault".to_string()],
+        ))
         .unwrap_err();
         assert!(error.contains("not a directory"));
+
+        let error = run_semantic_search(request_for("anything", Vec::new())).unwrap_err();
+        assert!(error.contains("vaultPath or vaultPaths is required"));
+    }
+
+    #[test]
+    fn single_vault_path_still_accepted() {
+        let vault = tempfile::tempdir().unwrap();
+        write_note(vault.path(), "a.md", "# A\nsolar panel efficiency");
+        let request = SemanticSearchRequest {
+            query: "solar panels".to_string(),
+            vault_path: Some(vault.path().to_string_lossy().into_owned()),
+            vault_paths: Vec::new(),
+            limit: None,
+            hide_gitignored_files: false,
+        };
+        // The model may be unavailable in CI; a missing model surfaces as an
+        // embedding error, while a bad vault list surfaces as a usage error.
+        match run_semantic_search(request) {
+            Ok(response) => {
+                assert!(!response.results.is_empty());
+                assert!(response.results[0]
+                    .vault_path
+                    .starts_with(vault.path().to_string_lossy().as_ref()));
+            }
+            Err(error) => assert!(error.contains("Embedding") || error.contains("embedding")),
+        }
     }
 
     #[test]

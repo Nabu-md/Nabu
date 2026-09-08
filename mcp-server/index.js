@@ -27,6 +27,7 @@ import {
 import WebSocket from 'ws'
 import { createMcpToolService } from './tool-service.js'
 import { attachVault, cloneVault } from './vault-lifecycle.js'
+import { formatRetrievalResults } from './semantic-search-format.js'
 
 const WS_UI_PORT = parseInt(process.env.WS_UI_PORT || '9711', 10)
 const WS_UI_URL = `ws://localhost:${WS_UI_PORT}`
@@ -325,28 +326,28 @@ const TOOLS = [
   },
   {
     name: 'search_notes_semantic',
-    description: 'Semantic search across vault notes using embedding similarity (local fastembed BGE model in the app). Finds conceptually related content that keyword search misses — use it for conceptual queries, and fall back to search_notes for exact keyword matches.',
+    description: 'Semantic search across vault notes using embedding similarity (local fastembed BGE model in the app). Searches all active vaults in one call and re-ranks results globally; results include the vault path each note came from. Finds conceptually related content that keyword search misses — use it for conceptual queries, and fall back to search_notes for exact keyword matches.',
     annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'The semantic query to search for' },
         limit: { type: 'number', description: 'Maximum results (default: 10)' },
-        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search' },
+        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search to a single vault' },
       },
       required: ['query'],
     },
   },
   {
     name: 'query_vault_rag',
-    description: 'RAG retrieval over vault notes using embedding similarity. Alias for search_notes_semantic — same schema and behavior; use whichever name fits the task.',
+    description: 'RAG retrieval over vault notes using embedding similarity across all active vaults. Alias for search_notes_semantic — same schema and behavior; use whichever name fits the task.',
     annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'The semantic query to search for' },
         limit: { type: 'number', description: 'Maximum results (default: 10)' },
-        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search' },
+        vaultPath: { type: 'string', description: 'Optional vault root to restrict the search to a single vault' },
       },
       required: ['query'],
     },
@@ -574,9 +575,13 @@ const TOOLS = [
 
 async function handleSearchNotes(args) {
   const results = await toolService.searchNotes(args)
-  const text = results.length === 0
-    ? 'No matching notes found.'
-    : results.map(r => `**${r.title}** (${r.vaultLabel} / ${r.path})\n${r.snippet}`).join('\n\n')
+  const vaultCount = typeof args.vaultPath === 'string' && args.vaultPath.trim()
+    ? 1
+    : toolService.activeVaultPaths().length
+  const text = formatRetrievalResults(results, {
+    vaultCount,
+    emptyMessage: 'No matching notes found.',
+  })
   return { content: [{ type: 'text', text }] }
 }
 
@@ -689,9 +694,13 @@ function handleAskClarifyingQuestion(args = {}) {
 
 async function handleSearchNotesSemantic(args) {
   const results = await toolService.searchNotesSemantic(args)
-  const text = results.length === 0
-    ? 'No semantically matching notes found. Try search_notes for exact keyword matches.'
-    : results.map(r => `**${r.title}** (${r.vaultLabel} / ${r.path}) [score ${r.score.toFixed(3)}]\n${r.snippet}`).join('\n\n')
+  const vaultCount = typeof args.vaultPath === 'string' && args.vaultPath.trim()
+    ? 1
+    : toolService.activeVaultPaths().length
+  const text = formatRetrievalResults(results, {
+    vaultCount,
+    emptyMessage: 'No semantically matching notes found. Try search_notes for exact keyword matches.',
+  })
   return { content: [{ type: 'text', text }] }
 }
 

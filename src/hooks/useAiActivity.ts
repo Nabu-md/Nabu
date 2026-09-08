@@ -123,6 +123,13 @@ function relayPayloadBoolean(value: unknown): boolean {
   return value === true
 }
 
+function relayPayloadVaultPaths(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => relayPayloadString(entry))
+    .filter((entry): entry is string => entry !== null)
+}
+
 /** Build the Tauri `EvaluateSheetRequest` payload from a relay request. */
 function sheetRelayRequest(request: SheetRelayPayload) {
   return {
@@ -173,16 +180,18 @@ async function handleToolRequest(
       return
     }
     if (request.action === 'search_notes_semantic') {
+      const vaultPaths = relayPayloadVaultPaths(request.vaultPaths)
       const vaultPath = relayPayloadString(request.vaultPath)
       const query = relayPayloadString(request.query)
-      if (!vaultPath || !query) {
-        respond({ error: 'vaultPath and query are required' })
+      if ((vaultPaths.length === 0 && !vaultPath) || !query) {
+        respond({ error: 'query and vaultPath or vaultPaths are required' })
         return
       }
       const result = await invoke<unknown>('search_notes_semantic', {
         request: {
           query,
-          vaultPath,
+          vaultPath: vaultPath ?? null,
+          vaultPaths,
           limit: relayPayloadLimit(request.limit) ?? 10,
           hideGitignoredFiles: false,
         },

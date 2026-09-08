@@ -197,7 +197,7 @@ describe('useAiActivity', () => {
     }
 
     it('invokes the Tauri command and responds with results', async () => {
-      invokeMock.mockResolvedValue({ results: [{ path: 'a.md', score: 0.9 }], elapsedMs: 12 })
+      invokeMock.mockResolvedValue({ results: [{ path: 'a.md', score: 0.9, vaultPath: '/vault' }], elapsedMs: 12 })
       renderRelayHook()
       const sent: string[] = []
       MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
@@ -207,13 +207,57 @@ describe('useAiActivity', () => {
       })
 
       expect(invokeMock).toHaveBeenCalledWith('search_notes_semantic', {
-        request: { query: 'financing', vaultPath: '/vault', limit: 5, hideGitignoredFiles: false },
+        request: {
+          query: 'financing',
+          vaultPath: '/vault',
+          vaultPaths: [],
+          limit: 5,
+          hideGitignoredFiles: false,
+        },
       })
       expect(sent).toHaveLength(1)
       const response = JSON.parse(sent[0])
       expect(response.type).toBe('tool_response')
       expect(response.id).toBe('relay-1')
-      expect(response.result).toEqual({ results: [{ path: 'a.md', score: 0.9 }], elapsedMs: 12 })
+      expect(response.result).toEqual({ results: [{ path: 'a.md', score: 0.9, vaultPath: '/vault' }], elapsedMs: 12 })
+    })
+
+    it('passes vaultPaths through for single-call multi-vault search', async () => {
+      invokeMock.mockResolvedValue({ results: [], elapsedMs: 3 })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendToolRequest({ vaultPaths: ['/vault-a', '/vault-b'], query: 'financing' })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('search_notes_semantic', {
+        request: {
+          query: 'financing',
+          vaultPath: null,
+          vaultPaths: ['/vault-a', '/vault-b'],
+          limit: 10,
+          hideGitignoredFiles: false,
+        },
+      })
+      expect(sent).toHaveLength(1)
+      expect(JSON.parse(sent[0]).result).toEqual({ results: [], elapsedMs: 3 })
+    })
+
+    it('filters non-string entries out of vaultPaths', async () => {
+      invokeMock.mockResolvedValue({ results: [], elapsedMs: 3 })
+      renderRelayHook()
+      const sent: string[] = []
+      MockWebSocket.latest!.send = (raw: string) => { sent.push(raw) }
+
+      await act(async () => {
+        sendToolRequest({ vaultPaths: ['/vault-a', 42, null, ''], query: 'q' })
+      })
+
+      expect(invokeMock).toHaveBeenCalledWith('search_notes_semantic', {
+        request: expect.objectContaining({ vaultPaths: ['/vault-a'] }),
+      })
     })
 
     it('responds with an error when required fields are missing', async () => {

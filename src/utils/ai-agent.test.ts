@@ -79,4 +79,21 @@ describe('buildAgentSystemPrompt', () => {
     expect(prompt).toContain('allow_vault_access')
     expect(prompt).not.toContain('Vault Safe mode is active')
   })
+
+  it('tells RAG-mode agents to cite the source vault for retrieved notes', () => {
+    const prompt = buildAgentSystemPrompt({ permissionMode: 'rag' })
+
+    expect(prompt).toContain('RAG (Semantic Search) mode is active')
+    expect(prompt).toMatch(/Cite the source vault by name/) 
+    expect(prompt).toContain('Vault: <label>')
+    expect(prompt).toContain('query_vault_rag')
+  })
+
+  it('does not add vault-citation instructions outside RAG mode', () => {
+    const safePrompt = buildAgentSystemPrompt({ permissionMode: 'safe' })
+    const powerPrompt = buildAgentSystemPrompt({ agent: 'codex', permissionMode: 'power_user' })
+
+    expect(safePrompt).not.toMatch(/Cite the source vault by name/)
+    expect(powerPrompt).not.toMatch(/Cite the source vault by name/)
+  })
 })

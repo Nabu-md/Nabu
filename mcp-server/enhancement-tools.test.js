@@ -45,21 +45,21 @@ async function writeNote(relativePath, content) {
 }
 
 describe('search_notes_semantic (relay to Tauri fastembed)', () => {
-  it('delegates to the relay and decorates results with vault metadata', async () => {
+  it('makes one relayed call with all active vaults and decorates results', async () => {
     const { service, relayCalls } = makeService({
       relayResult: {
         results: [
-          { path: 'note/financing.md', title: 'Vehicle Financing', snippet: 'Lease costs', score: 0.81 },
-          { path: 'note/leasing.md', title: 'Leasing Guide', snippet: 'Monthly payments', score: 0.64 },
+          { path: 'note/financing.md', title: 'Vehicle Financing', snippet: 'Lease costs', score: 0.81, vaultPath: vault },
+          { path: 'note/leasing.md', title: 'Leasing Guide', snippet: 'Monthly payments', score: 0.64, vaultPath: vault },
         ],
       },
     })
 
     const results = await service.searchNotesSemantic({ query: 'car lease costs', limit: 5 })
 
-    assert.equal(relayCalls.length, 1)
+    assert.equal(relayCalls.length, 1, 'one relay call for all vaults')
     assert.equal(relayCalls[0].action, 'search_notes_semantic')
-    assert.equal(relayCalls[0].payload.vaultPath, vault)
+    assert.deepEqual(relayCalls[0].payload.vaultPaths, [vault])
     assert.equal(relayCalls[0].payload.query, 'car lease costs')
     assert.equal(relayCalls[0].payload.limit, 5)
     assert.equal(results.length, 2)
@@ -68,12 +68,40 @@ describe('search_notes_semantic (relay to Tauri fastembed)', () => {
     assert.equal(typeof results[0].score, 'number')
   })
 
+  it('keeps the per-result vaultPath the app assigned (multi-vault ranking)', async () => {
+    const otherVault = path.join(tmpDir, 'Second Vault')
+    const { service } = makeService({
+      relayResult: {
+        results: [
+          { path: 'a.md', title: 'A', snippet: '', score: 0.9, vaultPath: otherVault },
+          { path: 'b.md', title: 'B', snippet: '', score: 0.2, vaultPath: vault },
+        ],
+      },
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'anything' })
+    assert.equal(results[0].vaultPath, otherVault)
+    assert.equal(results[0].vaultLabel, 'Second Vault')
+    assert.equal(results[1].vaultPath, vault)
+  })
+
+  it('falls back to the first active vault when the app omits vaultPath', async () => {
+    const { service } = makeService({
+      relayResult: {
+        results: [{ path: 'legacy.md', title: 'Legacy', snippet: '', score: 0.5 }],
+      },
+    })
+
+    const results = await service.searchNotesSemantic({ query: 'anything' })
+    assert.equal(results[0].vaultPath, vault)
+  })
+
   it('sorts relayed results by score descending', async () => {
     const { service } = makeService({
       relayResult: {
         results: [
-          { path: 'a.md', title: 'A', snippet: '', score: 0.2 },
-          { path: 'b.md', title: 'B', snippet: '', score: 0.9 },
+          { path: 'a.md', title: 'A', snippet: '', score: 0.2, vaultPath: vault },
+          { path: 'b.md', title: 'B', snippet: '', score: 0.9, vaultPath: vault },
         ],
       },
     })

@@ -94,20 +94,27 @@ export function createMcpToolService({
 
     const limit = Number.isFinite(args.limit) && args.limit > 0 ? args.limit : 10
     const roots = activeVaultPaths()
-    const results = []
 
-    // Fastembed-backed ranking runs in the desktop app (Tauri command);
+    // One relayed call for all vaults: the app re-ranks globally across
+    // vaults with a single query embedding and tags each result with its
+    // vault path. Fastembed ranking runs in the desktop app (Tauri command);
     // the MCP server has no local embedding fallback.
-    for (const vaultPath of roots) {
-      const relayed = await relayToolCall('search_notes_semantic', { vaultPath, query: args.query, limit })
-      const relayResults = relayed && Array.isArray(relayed.results) ? relayed.results : []
-      for (const result of relayResults) {
-        results.push({ score: 0, snippet: '', ...result, ...withVaultMetadata({}, vaultPath) })
-      }
-    }
-
-    results.sort((left, right) => right.score - left.score)
-    return results.slice(0, limit)
+    const relayed = await relayToolCall('search_notes_semantic', {
+      vaultPaths: roots,
+      query: args.query,
+      limit,
+    })
+    const relayResults = relayed && Array.isArray(relayed.results) ? relayed.results : []
+    const decorated = relayResults.map((result) => {
+      // The app tags each result with its vault root; fall back to the first
+      // active vault for older app builds that omit it.
+      const vaultPath = typeof result.vaultPath === 'string' && result.vaultPath
+        ? result.vaultPath
+        : (roots[0] ?? '')
+      return { score: 0, snippet: '', ...result, ...withVaultMetadata({}, vaultPath) }
+    })
+    decorated.sort((left, right) => right.score - left.score)
+    return decorated.slice(0, limit)
   }
 
   async function vaultContext(args = {}) {
