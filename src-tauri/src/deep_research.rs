@@ -7,6 +7,8 @@ const DEFAULT_DEPTH: u32 = 3;
 const FINAL_REPORT_OPEN_TAG: &str = "<final-report>";
 const FINAL_REPORT_CLOSE_TAG: &str = "</final-report>";
 const MAX_INTERIM_SUMMARY_CHARS: usize = 600;
+const DEFAULT_REPORT_NOTE_PATH: &str = "Research Reports";
+const RESEARCH_NOTES_FILENAME: &str = "NOTES.md";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DeepResearchRequest {
@@ -61,6 +63,8 @@ pub enum DeepResearchEvent {
         title: String,
         url: String,
         excerpt: String,
+        /// 0-1 trust/quality estimate used by the frontend to sort sources.
+        relevance_score: f64,
     },
     InterimSummary {
         iteration: u32,
@@ -69,18 +73,33 @@ pub enum DeepResearchEvent {
     Result {
         report: String,
     },
+    /// The final report was persisted into the vault as a markdown note.
+    ReportWritten {
+        path: String,
+    },
     Error {
         message: String,
     },
     Done,
 }
 
+/// Structured research methodology folded into the system prompt (question
+/// decomposition → search planning → per-question sourcing → cross-reference
+/// → synthesis). The multi-iteration loop stays; each iteration now follows
+/// this pipeline instead of free-form scraping.
 fn research_system_prompt(query: &str) -> String {
     format!(
         "You are a research agent. Your goal is to thoroughly research '{query}'.\n\
-         Use web scraping tools (Bash with curl, WebFetch, Read) to gather information from multiple sources.\n\
-         After each tool call, decide if you need more sources or if you have enough to synthesize a final report.\n\
-         Write your findings to NOTES.md in the vault as you go.\n\
+         Use web scraping tools (Bash with curl/wget, the web_fetch MCP tool, WebFetch, Read) to gather information from multiple sources.\n\
+         \n\
+         Follow this structured research pipeline:\n\
+         1. Decompose the research query into 2-4 focused sub-questions.\n\
+         2. Generate a search plan per sub-question (search terms, likely source types).\n\
+         3. Gather sources per sub-question; prefer primary and authoritative sources.\n\
+         4. Cross-reference findings across sources; note agreements and contradictions.\n\
+         5. Synthesize the final report from the cross-referenced findings.\n\
+         \n\
+         Write your findings to {RESEARCH_NOTES_FILENAME} in the vault as you go.\n\
          At the very end of your final response, output your final report wrapped in <final-report> tags."
     )
 }
@@ -148,6 +167,54 @@ fn source_title_from_url(url: &str) -> String {
         .to_string()
 }
 
+/// Highest-trust domains get 1.0; unknown hosts get a neutral 0.5 baseline.
+fn url_domain_trust(url: &str) -> f64 {
+    let host = source_title_from_url(url)
+        .to_ascii_lowercase()
+        .trim_start_matches("www.")
+        .to_string();
+    if host.is_empty() {
+        return 0.5;
+    }
+    for suffix in [
+        ".gov",
+        ".edu",
+        ".int",
+        ".mil",
+        ".europa.eu",
+        ".un.org",
+        ".who.int",
+        ".worldbank.org",
+        ".oecd.org",
+        ".arxiv.org",
+        ".nature.com",
+        ".science.org",
+    ] {
+        if host == suffix.trim_start_matches('.') || host.ends_with(suffix) {
+            return 1.0;
+        }
+    }
+    match host.as_str() {
+        "en.wikipedia.org" | "wikipedia.org" => 0.9,
+        "reuters.com" | "apnews.com" | "bbc.com" | "bbc.co.uk" | "npr.org" | "theguardian.com"
+        | "ft.com" | "economist.com" | "bloomberg.com" | "nature.com" => 0.85,
+        "nytimes.com" | "washingtonpost.com" | "wsj.com" | "cnbc.com" | "forbes.com"
+        | "theatlantic.com" | "wired.com" | "arstechnica.com" => 0.75,
+        "medium.com" | "substack.com" | "blogspot.com" | "wordpress.com" | "quora.com"
+        | "reddit.com" => 0.3,
+        _ => 0.5,
+    }
+}
+
+/// Relevance score (0-1) for a scraped source: domain trust scaled up by
+/// excerpt quality (how URL-dense and information-rich the tool input is).
+fn source_relevance_score(url: &str, excerpt: &str) -> f64 {
+    let trust = url_domain_trust(url);
+    let quality = (excerpt.trim().chars().count() as f64 / 140.0).clamp(0.0, 1.0);
+    let url_depth_bonus = if url.matches('/').count() > 3 { 0.05 } else { 0.0 };
+    (trust * 0.7 + quality * 0.3 + url_depth_bonus).clamp(0.0, 1.0)
+}
+
 fn truncate_excerpt(text: &str, max_chars: usize) -> String {
     if text.chars().count() <= max_chars {
         return text.to_string();
@@ -172,6 +239,74 @@ fn agent_cli_label(agent: AiAgentId) -> &'static str {
 
 type SharedResearchRunner<F> =
     fn(crate::cli_agent_runtime::AgentStreamRequest, F) -> Result<String, String>;
+
+/// Persist a final research report into the vault as a markdown note under
+/// `Research Reports/`, using `create_note` semantics (never overwrites; falls
+/// back to timestamped filenames on collision). Returns the vault-relative
+/// note path on success.
+fn write_report_note(vault_path: &str, query: &str, report: &str) -> Result<String, String> {
+    if vault_path.trim().is_empty() {
+        return Err("A vault path is required to save the report".to_string());
+    }
+
+    let slug = report_note_slug(query);
+    let base_stem = format!("{}-{}", slug, chrono::Utc::now().format("%Y-%m-%d"));
+    let directory = std::path::Path::new(vault_path).join(DEFAULT_REPORT_NOTE_PATH);
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("Failed to create {DEFAULT_REPORT_NOTE_PATH}/: {error}"))?;
+
+    let mut path = directory.join(format!("{base_stem}.md"));
+    let mut attempt = 1;
+    while path.exists() {
+        attempt += 1;
+        path = directory.join(format!("{base_stem}-{attempt}.md"));
+    }
+
+    let frontmatter_title = report_note_title(query);
+    let content = format!(
+        "---\ntitle: \"{frontmatter_title}\"\ntype: Research Report\ncreated: {}\n---\n\n# {frontmatter_title}\n\n{report}\n",
+        chrono::Utc::now().to_rfc3339(),
+    );
+    std::fs::write(&path, content)
+        .map_err(|error| format!("Failed to write report note: {error}"))?;
+
+    let relative = path
+        .strip_prefix(vault_path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path.to_string_lossy().into_owned());
+    Ok(relative)
+}
+
+fn report_note_title(query: &str) -> String {
+    let cleaned = query.trim().split_whitespace().collect::<Vec<_>>().join(" ");
+    if cleaned.is_empty() {
+        return "Research Report".to_string();
+    }
+    let mut title: String = cleaned.chars().take(80).collect();
+    if title.len() < cleaned.len() {
+        title.push('…');
+    }
+    title.replace('"', "'")
+}
+
+fn report_note_slug(query: &str) -> String {
+    let slug: String = query
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .take(6)
+        .collect::<Vec<_>>()
+        .join("-");
+    if slug.is_empty() {
+        "research-report".to_string()
+    } else {
+        slug
+    }
+}
 
 /// Shared-runtime CLI runners (everything except Claude Code). Each agent CLI
 /// exposes the same `run_agent_stream(AgentStreamRequest, FnMut(AiAgentStreamEvent))`
@@ -261,10 +396,13 @@ where
                         });
                         if let Some(input) = input.as_deref() {
                             if let Some(url) = url_from_tool_input(input) {
+                                let excerpt = truncate_excerpt(input, 140);
+                                let relevance_score = source_relevance_score(&url, &excerpt);
                                 emit(DeepResearchEvent::SourceAdded {
                                     title: source_title_from_url(&url),
                                     url,
-                                    excerpt: truncate_excerpt(input, 140),
+                                    excerpt,
+                                    relevance_score,
                                 });
                             }
                         }
@@ -302,10 +440,13 @@ where
                             });
                             if let Some(input) = input.as_deref() {
                                 if let Some(url) = url_from_tool_input(input) {
+                                    let excerpt = truncate_excerpt(input, 140);
+                                    let relevance_score = source_relevance_score(&url, &excerpt);
                                     emit(DeepResearchEvent::SourceAdded {
                                         title: source_title_from_url(&url),
                                         url,
-                                        excerpt: truncate_excerpt(input, 140),
+                                        excerpt,
+                                        relevance_score,
                                     });
                                 }
                             }
@@ -337,7 +478,22 @@ where
         }
 
         if let Some(report) = extract_final_report(&iteration_text) {
-            emit(DeepResearchEvent::Result { report });
+            emit(DeepResearchEvent::Result {
+                report: report.clone(),
+            });
+            // Reports are first-class notes: persist the final report into the
+            // vault so the user can read, link, and PDF-export it. A failed
+            // write must not fail the research run itself.
+            match write_report_note(&request.vault_path, &query, &report) {
+                Ok(note_path) => {
+                    emit(DeepResearchEvent::ReportWritten { path: note_path });
+                }
+                Err(error) => {
+                    emit(DeepResearchEvent::Error {
+                        message: format!("Failed to save report as a note: {error}"),
+                    });
+                }
+            }
             emit(DeepResearchEvent::Done);
             return Ok(session_id);
         }
@@ -360,7 +516,19 @@ where
             } else {
                 iteration_text.trim().to_string()
             };
-            emit(DeepResearchEvent::Result { report: fallback });
+            emit(DeepResearchEvent::Result {
+                report: fallback.clone(),
+            });
+            match write_report_note(&request.vault_path, &query, &fallback) {
+                Ok(note_path) => {
+                    emit(DeepResearchEvent::ReportWritten { path: note_path });
+                }
+                Err(error) => {
+                    emit(DeepResearchEvent::Error {
+                        message: format!("Failed to save report as a note: {error}"),
+                    });
+                }
+            }
             emit(DeepResearchEvent::Done);
             return Ok(session_id);
         }
@@ -446,6 +614,53 @@ mod tests {
         assert!(later.contains("Iteration 3 of 3"));
         assert!(later.contains("some findings"));
         assert!(later.contains("final report"));
+    }
+
+    #[test]
+    fn source_relevance_score_orders_domains_sensibly() {
+        let gov = source_relevance_score("https://www.cdc.gov/flu/overview", "curl -s https://www.cdc.gov/flu/overview");
+        let blog = source_relevance_score("https://medium.com/some-post", "curl -s https://medium.com/some-post");
+        let unknown = source_relevance_score("https://unknown-example.org/a", "curl");
+
+        assert!(gov > 0.7, "government domains should score high: {gov}");
+        assert!(blog < 0.5, "low-trust platforms should score low: {blog}");
+        assert!(unknown >= 0.3 && unknown <= 0.7, "unknown hosts stay neutral: {unknown}");
+    }
+
+    #[test]
+    fn report_note_slug_is_clean_and_bounded() {
+        assert_eq!(report_note_slug("Impact of Climate Change on Agriculture!"), "impact-of-climate");
+        assert_eq!(report_note_slug("   "), "research-report");
+    }
+
+    #[test]
+    fn report_note_title_is_trimmed_and_bounded() {
+        assert_eq!(report_note_title("  short   query  "), "short query");
+        let long = report_note_title(&"word ".repeat(40));
+        assert!(long.chars().count() <= 81);
+    }
+
+    #[test]
+    fn write_report_note_creates_timestamped_markdown() {
+        let vault = tempfile::tempdir().unwrap();
+        let vault_path = vault.path().to_string_lossy().into_owned();
+
+        let relative = write_report_note(&vault_path, "climate impact", "# Findings\n\nBody").unwrap();
+
+        assert!(relative.starts_with("Research Reports/climate-impact-"));
+        assert!(relative.ends_with(".md"));
+        let content = std::fs::read_to_string(vault.path().join(&relative)).unwrap();
+        assert!(content.contains("type: Research Report"));
+        assert!(content.contains("# Findings"));
+
+        // A second write must not overwrite the first note.
+        let second = write_report_note(&vault_path, "climate impact", "# Second").unwrap();
+        assert_ne!(relative, second);
+    }
+
+    #[test]
+    fn write_report_note_requires_vault_path() {
+        assert!(write_report_note("  ", "query", "report").is_err());
     }
 
     #[test]

@@ -32,16 +32,12 @@ fn apply_permission_flags(
     permission_mode: AiAgentPermissionMode,
 ) {
     match permission_mode {
-        AiAgentPermissionMode::Safe => {
+        AiAgentPermissionMode::Safe | AiAgentPermissionMode::Rag => {
             command.arg("--sandbox");
         }
-        AiAgentPermissionMode::PowerUser => {
-            command.arg("--dangerously-skip-permissions");
-        }
-        AiAgentPermissionMode::DeepResearch => {
-            command.arg("--dangerously-skip-permissions");
-        }
-        AiAgentPermissionMode::MiniAppBuilder => {
+        AiAgentPermissionMode::PowerUser
+        | AiAgentPermissionMode::DeepResearch
+        | AiAgentPermissionMode::MiniAppBuilder => {
             command.arg("--dangerously-skip-permissions");
         }
     }

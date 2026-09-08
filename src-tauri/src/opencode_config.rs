@@ -224,10 +224,10 @@ fn build_config(
 
 fn permission_config(permission_mode: AiAgentPermissionMode) -> serde_json::Value {
     let bash_permission = match permission_mode {
-        AiAgentPermissionMode::Safe => "deny",
-        AiAgentPermissionMode::PowerUser => "allow",
-        AiAgentPermissionMode::DeepResearch => "allow",
-        AiAgentPermissionMode::MiniAppBuilder => "allow",
+        AiAgentPermissionMode::Safe | AiAgentPermissionMode::Rag => "deny",
+        AiAgentPermissionMode::PowerUser
+        | AiAgentPermissionMode::DeepResearch
+        | AiAgentPermissionMode::MiniAppBuilder => "allow",
     };
 
     serde_json::json!({

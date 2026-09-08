@@ -10,6 +10,9 @@ const CLAUDE_MINI_APP_BUILDER_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glo
 // Deep research is built around web scraping, so Bash (curl/wget) is always
 // available regardless of the caller's permission mode.
 const CLAUDE_RESEARCH_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash";
+// RAG mode keeps the Safe file surface (no shell) and leans on the Nabu MCP
+// `search_notes_semantic` tool for retrieval.
+const CLAUDE_RAG_AGENT_TOOLS: &str = "Read,Edit,MultiEdit,Write,Glob,Grep,LS";
 const CLAUDE_RESEARCH_PREAPPROVED_TOOLS: &str = "Bash(curl:*),Bash(wget:*)";
 const CLAUDE_CHAT_DISALLOWED_TOOLS_COMPAT: &str =
     "Bash,Glob,Grep,Read,Edit,Write,NotebookEdit,WebFetch,WebSearch,TodoWrite,Task,MultiEdit,LS";
@@ -375,6 +378,7 @@ fn agent_tools(permission_mode: AiAgentPermissionMode) -> &'static str {
         // dedicated deep research runner.
         AiAgentPermissionMode::DeepResearch => CLAUDE_RESEARCH_AGENT_TOOLS,
         AiAgentPermissionMode::MiniAppBuilder => CLAUDE_MINI_APP_BUILDER_AGENT_TOOLS,
+        AiAgentPermissionMode::Rag => CLAUDE_RAG_AGENT_TOOLS,
     }
 }
 
@@ -384,6 +388,7 @@ fn preapproved_agent_tools(permission_mode: AiAgentPermissionMode) -> Option<&'s
         AiAgentPermissionMode::PowerUser => Some("Bash"),
         AiAgentPermissionMode::DeepResearch => Some(CLAUDE_RESEARCH_PREAPPROVED_TOOLS),
         AiAgentPermissionMode::MiniAppBuilder => Some("Bash"),
+        AiAgentPermissionMode::Rag => None,
     }
 }
 
@@ -393,6 +398,7 @@ fn disallowed_agent_tools_compat(permission_mode: AiAgentPermissionMode) -> &'st
         AiAgentPermissionMode::PowerUser => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
         AiAgentPermissionMode::DeepResearch => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
         AiAgentPermissionMode::MiniAppBuilder => CLAUDE_POWER_USER_DISALLOWED_TOOLS_COMPAT,
+        AiAgentPermissionMode::Rag => CLAUDE_SAFE_DISALLOWED_TOOLS_COMPAT,
     }
 }
 

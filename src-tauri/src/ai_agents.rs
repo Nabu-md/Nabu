@@ -26,6 +26,9 @@ pub enum AiAgentPermissionMode {
     PowerUser,
     DeepResearch,
     MiniAppBuilder,
+    /// Retrieval-augmented mode: same conservative file surface as Safe,
+    /// but the agent is instructed to lean on `search_notes_semantic`.
+    Rag,
 }
 
 #[derive(Debug, Clone, Serialize)]

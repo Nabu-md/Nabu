@@ -97,7 +97,7 @@ fn build_copilot_args(spec: &CopilotCommandSpec) -> Vec<String> {
 
 fn append_permission_args(args: &mut Vec<String>, permission_mode: AiAgentPermissionMode) {
     match permission_mode {
-        AiAgentPermissionMode::Safe => {
+        AiAgentPermissionMode::Safe | AiAgentPermissionMode::Rag => {
             args.push("--available-tools=write,nabu".into());
             args.push("--allow-tool=write,nabu".into());
             args.push("--deny-tool=shell".into());

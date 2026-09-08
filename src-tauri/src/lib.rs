@@ -547,6 +547,9 @@ pub fn run_research_cli() -> Result<(), String> {
         DeepResearchEvent::Result { report } => {
             println!("\n══════════ RESEARCH REPORT ══════════\n{report}\n");
         }
+        DeepResearchEvent::ReportWritten { path } => {
+            println!("report saved as note: {path}");
+        }
         DeepResearchEvent::Error { message } => {
             eprintln!("error: {message}");
         }
