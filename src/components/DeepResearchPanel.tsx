@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import type React from 'react'
+import { useMemo, useState } from 'react'
 import { CaretRight, CheckCircle, Globe, MagnifyingGlass, Notebook, StopCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,7 +81,7 @@ export function DeepResearchPanel({
   }
 
   // Highest-relevance sources first; unscored sources keep arrival order after them.
-  const sortedSources = React.useMemo(() => {
+  const sortedSources = useMemo(() => {
     const scored = state.sources
       .map((source, index) => ({ source, index }))
       .filter(({ source }) => source.relevanceScore !== null)
