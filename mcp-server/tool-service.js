@@ -16,6 +16,7 @@ import {
   refreshVaultMap,
   updateSoul,
 } from './agent-memory.js'
+import { buildClarifyingForm } from './clarifying-questions.js'
 
 export function createMcpToolService({
   resolveVaultPaths = () => requireVaultPaths(),
@@ -191,6 +192,16 @@ export function createMcpToolService({
     return result
   }
 
+  function askClarifyingQuestion(args = {}) {
+    const form = buildClarifyingForm(args)
+    emitUiAction('ask_clarifying_question', { form })
+    return {
+      status: 'presented',
+      form_id: form.id,
+      instruction: 'The form is rendered in the chat panel. The user answer will arrive as the next user message; do not guess an answer yourself.',
+    }
+  }
+
   function openNoteAsTab(args = {}) {
     const targetPath = resolveUiPath(args)
     emitUiAction('vault_changed', { path: targetPath })
@@ -268,6 +279,7 @@ export function createMcpToolService({
     resolveUiPath,
     searchNotes,
     setFilter,
+    askClarifyingQuestion,
     readVaultAgentsMd,
     readVaultSoul,
     writeVaultSoul,

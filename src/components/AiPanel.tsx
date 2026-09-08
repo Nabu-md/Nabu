@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { AiClarifyingForm } from './AiClarifyingForm'
 import { AiPanelComposer, AiPanelHeader, AiPanelMessageHistory } from './AiPanelChrome'
 import { AiConversationThreads } from './AiConversationThreads'
 import { DEFAULT_AI_AGENT, getAiAgentDefinition, type AiAgentId, type AiAgentReadiness } from '../lib/aiAgents'
@@ -10,6 +11,7 @@ import { useAiConversations, type ConversationRecord } from '../hooks/useAiConve
 import { useAiPanelController, type AiPanelController } from './useAiPanelController'
 import { useAiPanelPromptQueue } from './useAiPanelPromptQueue'
 import { useAiPanelFocus } from './useAiPanelFocus'
+import { useClarifyingForm } from './useClarifyingForm'
 import type { AiAgentMessage } from '../hooks/useCliAiAgent'
 import { resumeEditorFocus, useInspectorFocusBoundary } from '../hooks/editorFocusOwnership'
 
@@ -236,6 +238,7 @@ export function AiPanelView(options: AiPanelViewProps) {
         isActive,
         onClearConversation: handleNewChat,
       })
+      const clarifyingForm = useClarifyingForm(interactive)
 
       const panelBody = (
         <>
@@ -265,6 +268,7 @@ export function AiPanelView(options: AiPanelViewProps) {
             onScrollStateChange={onMessageHistoryScrollStateChange}
             hasContext={hasContext}
           />
+          {clarifyingForm && <AiClarifyingForm form={clarifyingForm} locale={locale} />}
           <AiPanelComposer
             entries={entries ?? []}
             agentLabel={view.agentLabel}

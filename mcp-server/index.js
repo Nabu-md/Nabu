@@ -363,6 +363,32 @@ const TOOLS = [
       required: ['content'],
     },
   },
+  {
+    name: 'ask_clarifying_question',
+    description: 'When the user request is ambiguous, present a structured clarification form in the chat panel instead of asking a free-text question. The user picks an option (or types a custom answer); the answer arrives as the next user message, then continue. Only available in deep_research, rag, and mini_app_builder modes.',
+    annotations: LOCAL_READ_ONLY_TOOL_ANNOTATIONS,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'The question to ask, e.g. "What kind of project structure?"' },
+        options: {
+          type: 'array',
+          description: '2-3 suggested answers. The UI always adds a custom input as the last option.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string', description: 'Short answer label, e.g. "Software project (repo, CI/CD, tests)"' },
+              description: { type: 'string', description: 'Optional one-line detail shown under the label.' },
+            },
+            required: ['label'],
+          },
+        },
+        mode: { type: 'string', description: 'The active permission mode (deep_research, rag, or mini_app_builder).' },
+        rememberKey: { type: 'string', description: 'Optional key to remember the user choice for future sessions (stored in .ai/vault.map).' },
+      },
+      required: ['question', 'options'],
+    },
+  },
 ]
 
 async function handleSearchNotes(args) {
@@ -476,6 +502,10 @@ async function handleUpdateSoul(args = {}) {
   return { content: [{ type: 'text', text: JSON.stringify(await toolService.writeVaultSoul(args), null, 2) }] }
 }
 
+function handleAskClarifyingQuestion(args = {}) {
+  return { content: [{ type: 'text', text: JSON.stringify(toolService.askClarifyingQuestion(args), null, 2) }] }
+}
+
 const TOOL_HANDLERS = new Map([
   ['search_notes', handleSearchNotes],
   ['get_vault_context', handleVaultContext],
@@ -496,6 +526,7 @@ const TOOL_HANDLERS = new Map([
   ['refresh_vault_map', handleRefreshVaultMap],
   ['read_soul', handleReadSoul],
   ['update_soul', handleUpdateSoul],
+  ['ask_clarifying_question', handleAskClarifyingQuestion],
 ])
 
 function callToolHandler(name, args) {

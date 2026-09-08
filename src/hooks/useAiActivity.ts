@@ -3,9 +3,23 @@ import { trackEvent } from '../lib/telemetry'
 
 export type HighlightElement = 'editor' | 'tab' | 'properties' | 'notelist' | null
 
+export interface ClarifyingQuestionForm {
+  id: string
+  question: string
+  mode: string | null
+  options: Array<{
+    id: string
+    label: string
+    description?: string
+  }>
+  allow_custom: boolean
+  remember_key: string | null
+}
+
 export interface AiActivity {
   highlightElement: HighlightElement
   highlightPath: string | null
+  clarifyingForm: ClarifyingQuestionForm | null
 }
 
 export interface AiActivityCallbacks {
@@ -54,6 +68,35 @@ function useLatestAiActivityCallbacks(callbacks?: AiActivityCallbacks) {
   const callbacksRef = useRef(callbacks)
   useEffect(() => { callbacksRef.current = callbacks })
   return callbacksRef
+}
+
+function parseClarifyingForm(value: unknown): ClarifyingQuestionForm | null {
+  if (!isRecord(value)) return null
+  const id = optionalString(value.id)
+  const question = optionalString(value.question)
+  if (!id || !question) return null
+  const rawOptions = Array.isArray(value.options) ? value.options : []
+  const options = rawOptions
+    .map((option) => {
+      if (!isRecord(option)) return null
+      const label = optionalString(option.label)
+      if (!label) return null
+      return {
+        id: optionalString(option.id) ?? label,
+        label,
+        description: optionalString(option.description),
+      }
+    })
+    .filter((option) => option !== null)
+  if (options.length === 0) return null
+  return {
+    id,
+    question,
+    mode: optionalString(value.mode) ?? null,
+    options,
+    allow_custom: value.allow_custom !== false,
+    remember_key: optionalString(value.remember_key) ?? null,
+  }
 }
 
 function useAiHighlightState() {
@@ -116,10 +159,18 @@ function dispatchVaultRegistryChanged(
   window.dispatchEvent(new CustomEvent('nabu:vault-registry-changed', { detail: { path } }))
 }
 
+function dispatchClarifyingQuestion(
+  message: UiActionMessage,
+  setClarifyingForm: (form: ClarifyingQuestionForm | null) => void,
+): void {
+  setClarifyingForm(parseClarifyingForm(message.form))
+}
+
 function dispatchUiActionMessage(
   message: UiActionMessage,
   callbacksRef: ReturnType<typeof useLatestAiActivityCallbacks>,
   showHighlight: (message: UiActionMessage) => void,
+  setClarifyingForm: (form: ClarifyingQuestionForm | null) => void,
 ): void {
   if (message.action === 'highlight') {
     showHighlight(message)
@@ -133,6 +184,10 @@ function dispatchUiActionMessage(
     dispatchVaultRegistryChanged(message, callbacksRef)
     return
   }
+  if (message.action === 'ask_clarifying_question') {
+    dispatchClarifyingQuestion(message, setClarifyingForm)
+    return
+  }
   if (!isStringPayloadAction(message.action)) return
 
   const callbackName = STRING_PAYLOAD_CALLBACKS[message.action]
@@ -142,11 +197,14 @@ function dispatchUiActionMessage(
 function useUiActionMessageHandler(
   callbacksRef: ReturnType<typeof useLatestAiActivityCallbacks>,
   showHighlight: (message: UiActionMessage) => void,
+  setClarifyingForm: (form: ClarifyingQuestionForm | null) => void,
 ) {
   return useCallback((event: MessageEvent) => {
     const message = parseUiActionMessage(event)
-    if (message) dispatchUiActionMessage(message, callbacksRef, showHighlight)
-  }, [callbacksRef, showHighlight])
+    if (message) {
+      dispatchUiActionMessage(message, callbacksRef, showHighlight, setClarifyingForm)
+    }
+  }, [callbacksRef, setClarifyingForm, showHighlight])
 }
 
 function useUiActionSocket(handleMessage: (event: MessageEvent) => void, clearHighlightTimer: () => void): void {
@@ -193,9 +251,10 @@ export function useAiActivity(callbacks?: AiActivityCallbacks): AiActivity {
     highlightPath,
     showHighlight,
   } = useAiHighlightState()
-  const handleMessage = useUiActionMessageHandler(callbacksRef, showHighlight)
+  const [clarifyingForm, setClarifyingForm] = useState<ClarifyingQuestionForm | null>(null)
+  const handleMessage = useUiActionMessageHandler(callbacksRef, showHighlight, setClarifyingForm)
 
   useUiActionSocket(handleMessage, clearHighlightTimer)
 
-  return { highlightElement, highlightPath }
+  return { clarifyingForm, highlightElement, highlightPath }
 }
