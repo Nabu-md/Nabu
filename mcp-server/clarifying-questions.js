@@ -7,7 +7,7 @@
  * free-text question. The chosen answer arrives back as the user's next
  * message; the agent resumes from there.
  */
-import { createRandomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 /** Modes in which agents are allowed to present clarification forms. */
 export const CLARIFYING_QUESTION_MODES = ['deep_research', 'rag', 'mini_app_builder']
@@ -55,7 +55,7 @@ export function buildClarifyingForm(args = {}) {
     : null
 
   return {
-    id: createRandomUUID(),
+    id: randomUUID(),
     question,
     mode: mode || null,
     options: normalizedOptions,

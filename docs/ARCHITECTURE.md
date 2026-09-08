@@ -422,6 +422,12 @@ The stdio entrypoint and desktop WebSocket bridge share `mcp-server/tool-service
 | `highlight_editor` / `ui_highlight` | `element, [path]` | Highlight a UI element (editor, tab, properties, notelist) |
 | `ui_set_filter` | `type` | Set the sidebar filter to a specific type |
 | `refresh_vault` | `[path], [vaultPath]` | Trigger a vault rescan after a file change |
+| `list_templates` | `[vaultPath]` | List note templates from the vault's `templates/` folder |
+| `use_template` | `name, [path], [params], [title], [type], [vaultPath]` | Create a note from a template, substituting `{{param\|default}}` placeholders |
+| `read_agents_md` | `[vaultPath]` | Read `.ai/agents.md` (falling back to root `AGENTS.md`) vault instructions |
+| `read_soul` / `update_soul` | `[vaultPath]`, `content, [category], [vaultPath]` | Read / append dated entries to `.ai/soul.md`, the agent's running memory of the user |
+| `read_vault_map` / `refresh_vault_map` | `[vaultPath]` | Read / regenerate `.ai/vault.map`, an AI-readable knowledge map of the vault |
+| `ask_clarifying_question` | `question, options, [mode], [rememberKey]` | Present an interactive clarification form in the chat panel; gated to deep-research, rag, and mini-app-builder modes |
 
 ### Transports
 

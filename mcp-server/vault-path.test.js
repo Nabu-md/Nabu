@@ -12,7 +12,7 @@ test("registry vault paths expand a leading tilde against the configured home", 
 	const configDir = path.join(rootDir, "config");
 	const homeDir = path.join(rootDir, "home");
 	const absoluteVault = path.join(rootDir, "Absolute Vault");
-	const configPath = path.join(configDir, "com.tolaria.app", "vaults.json");
+	const configPath = path.join(configDir, "com.nabu.app", "vaults.json");
 
 	await mkdir(path.dirname(configPath), { recursive: true });
 	await writeFile(

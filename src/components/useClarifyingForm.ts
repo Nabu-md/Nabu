@@ -1,28 +1,31 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import type { ClarifyingQuestionForm } from '../hooks/useAiActivity'
 import {
-  CLARIFYING_FORM_AVAILABLE_EVENT,
-  takeClarifyingForm,
+  getClarifyingFormSnapshot,
+  subscribeClarifyingForm,
 } from '../utils/clarifyingFormBridge'
+
+const EMPTY: ClarifyingQuestionForm | null = null
+
+function subscribe(onChange: () => void): () => void {
+  return subscribeClarifyingForm(onChange)
+}
 
 /**
  * Picks up clarification forms published by the MCP UI bridge
  * (`ask_clarifying_question` ui_action) so the chat panel can render them.
+ * The form is a shared external store: publishing shows it, submitting or
+ * dismissing clears it for every panel instance.
  */
 export function useClarifyingForm(enabled = true): ClarifyingQuestionForm | null {
-  const [form, setForm] = useState<ClarifyingQuestionForm | null>(null)
+  const form = useSyncExternalStore(subscribe, getClarifyingFormSnapshot, () => EMPTY)
+  return enabled ? form : null
+}
 
-  const consume = useCallback(() => {
-    if (!enabled) return
-    setForm(takeClarifyingForm())
-  }, [enabled])
-
-  useEffect(() => {
-    if (!enabled) return
-    consume()
-    window.addEventListener(CLARIFYING_FORM_AVAILABLE_EVENT, consume)
-    return () => window.removeEventListener(CLARIFYING_FORM_AVAILABLE_EVENT, consume)
-  }, [consume, enabled])
-
-  return form
+/** Convenience wrapper so components can dismiss without importing the bridge. */
+export function useDismissClarifyingForm(): () => void {
+  return useCallback(() => {
+    // Imported lazily to keep this hook's surface minimal.
+    void import('../utils/clarifyingFormBridge').then((m) => m.clearClarifyingForm())
+  }, [])
 }

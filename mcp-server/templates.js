@@ -24,7 +24,7 @@ export async function listTemplates(vaultPath) {
   const dir = templatesDir(vaultPath)
   let entries
   try {
-    entries = await readdir(dir)
+    entries = await readdir(dir, { withFileTypes: true })
   } catch (error) {
     if (error?.code === 'ENOENT') return []
     throw error

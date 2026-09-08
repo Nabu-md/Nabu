@@ -200,6 +200,7 @@ export function EditorRightPanel(options: EditorRightPanelProps) {
       onOpenNote={onOpenNote}
       onToggleAIChat={onToggleAIChat}
       onUnsupportedAiPaste={onUnsupportedAiPaste}
+      vaultPath={vaultPath}
     />
     )
   }
