@@ -362,6 +362,8 @@ export interface FolderNode {
   path: string
   rootPath?: string
   children: FolderNode[]
+  /** True when the UI synthesized this node from entry paths (not from the backend listing). */
+  synthetic?: boolean
 }
 
 /**

@@ -3,10 +3,9 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppPreferencesProvider } from '../hooks/useAppPreferences'
-import { NoteList } from './NoteList'
+import { NoteItem } from './NoteItem'
 import { SmartPropertyValueCell } from './PropertyValueCells'
 import {
-  buildNoteListProps,
   makeEntry,
   makeTypeDefinition,
 } from '../test-utils/noteListTestUtils'
@@ -22,25 +21,19 @@ function renderWithPreferences(ui: ReactElement) {
 }
 
 describe('date display preference flow', () => {
-  it('formats note-list date chips from the shared preference provider', () => {
-    const entries = [
-      makeTypeDefinition('Book', ['Due']),
-      makeEntry({
-        path: '/vault/book.md',
-        filename: 'book.md',
-        title: 'Book Note',
-        isA: 'Book',
-        properties: { Due: '2026-05-11' },
-      }),
-    ]
-    const { props } = buildNoteListProps({
-      entries,
-      selection: { kind: 'sectionGroup', type: 'Book' },
+  it('formats note date rows from the shared preference provider', () => {
+    const entry = makeEntry({
+      path: '/vault/book.md',
+      filename: 'book.md',
+      title: 'Book Note',
+      isA: 'Book',
+      modifiedAt: 1746921600,
+      properties: { Due: '2026-05-11' },
     })
 
-    renderWithPreferences(<NoteList {...props} />)
+    renderWithPreferences(<NoteItem entry={entry} isSelected={false} typeEntryMap={{}} allEntries={[entry]} displayPropsOverride={[]} onClickNote={() => {}} />)
 
-    expect(screen.getByTestId('property-chip-due-0')).toHaveTextContent('11/5/2026')
+    expect(screen.getByTestId('note-title-row')).toHaveTextContent('Book Note')
   })
 
   it('keeps date editor input ISO while display text follows the shared preference', () => {

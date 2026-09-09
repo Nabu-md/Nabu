@@ -2,8 +2,6 @@ import { useState, type ComponentProps } from 'react'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { FolderTree } from './FolderTree'
-import { FOLDER_ROW_SINGLE_CLICK_DELAY_MS } from './folder-tree/useFolderRowInteractions'
-import { FOLDER_ROW_NESTING_INDENT, getFolderConnectorLeft } from './folder-tree/folderTreeLayout'
 import { CREATE_NOTE_IN_FOLDER_EVENT } from '../hooks/noteCreationRequests'
 import type { FolderNode, SidebarSelection } from '../types'
 
@@ -135,7 +133,6 @@ describe('FolderTree', () => {
   })
 
   it('lets the vault root collapse and expand from the row', () => {
-    vi.useFakeTimers()
     render(
       <FolderTree
         folders={mockFolders}
@@ -146,30 +143,18 @@ describe('FolderTree', () => {
     )
 
     fireEvent.click(screen.getByTestId('folder-row:'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
     expect(screen.queryByText('projects')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('folder-row:'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
     expect(screen.getByText('projects')).toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it('expands children when clicking a folder row', () => {
-    vi.useFakeTimers()
     render(<FolderTree folders={mockFolders} selection={defaultSelection} onSelect={vi.fn()} />)
     expect(screen.queryByText('laputa')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('folder-row:projects'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
     expect(screen.getByText('laputa')).toBeInTheDocument()
     expect(screen.getByText('portfolio')).toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it('calls onSelect with folder kind when clicking a folder row', () => {
@@ -195,7 +180,6 @@ describe('FolderTree', () => {
   })
 
   it('expands children when single-clicking a folder row with children', () => {
-    vi.useFakeTimers()
     function FolderTreeHarness() {
       const [selection, setSelection] = useState<SidebarSelection>(defaultSelection)
       return <FolderTree folders={mockFolders} selection={selection} onSelect={setSelection} />
@@ -204,20 +188,13 @@ describe('FolderTree', () => {
     render(<FolderTreeHarness />)
 
     fireEvent.click(screen.getByTestId('folder-row:projects'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
 
     expect(screen.getByText('laputa')).toBeInTheDocument()
     expect(screen.getByText('portfolio')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('folder-row:projects'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
 
     expect(screen.queryByText('laputa')).not.toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it('collapses section when clicking the FOLDERS header', () => {
@@ -390,17 +367,15 @@ describe('FolderTree', () => {
   it('does not render folder-level disclosure buttons', () => {
     render(<FolderTree folders={mockFolders} selection={defaultSelection} onSelect={vi.fn()} />)
 
-    const leafRowContainer = screen.getByTestId('folder-row:areas').parentElement
-    const parentRowContainer = screen.getByTestId('folder-row:projects').parentElement
+    const leafRow = screen.getByTestId('folder-row:areas')
+    const parentRow = screen.getByTestId('folder-row:projects')
 
-    expect(leafRowContainer).not.toBeNull()
-    expect(parentRowContainer).not.toBeNull()
-    expect(within(leafRowContainer as HTMLElement).queryAllByRole('button')).toHaveLength(1)
-    expect(within(parentRowContainer as HTMLElement).queryAllByRole('button')).toHaveLength(1)
+    expect(within(leafRow).queryAllByRole('button')).toHaveLength(1)
+    expect(within(parentRow).queryAllByRole('button')).toHaveLength(1)
     expect(screen.queryByLabelText('Expand projects')).not.toBeInTheDocument()
   })
 
-  it('aligns nested folders with the parent folder name and centers connectors on parent icons', () => {
+  it('aligns nested folders with increasing indent per depth', () => {
     render(
       <FolderTree
         folders={mockFolders}
@@ -410,9 +385,8 @@ describe('FolderTree', () => {
       />,
     )
 
-    expect(screen.getByTestId('folder-row:').parentElement).toHaveStyle({ paddingLeft: '0px' })
-    expect(screen.getByTestId('folder-row:projects').parentElement).toHaveStyle({ paddingLeft: `${FOLDER_ROW_NESTING_INDENT}px` })
-    expect(screen.getByTestId('folder-connector:')).toHaveStyle({ left: `${getFolderConnectorLeft(0)}px` })
+    expect(screen.getByTestId('folder-row:')).toHaveStyle({ paddingLeft: '8px' })
+    expect(screen.getByTestId('folder-row:projects')).toHaveStyle({ paddingLeft: '20px' })
   })
 
   it('shows the rename input when a folder is being renamed', () => {
@@ -430,7 +404,6 @@ describe('FolderTree', () => {
   })
 
   it('keeps folder toggling healthy after cancelling rename', () => {
-    vi.useFakeTimers()
     const onCancelRenameFolder = vi.fn()
     const { rerender } = render(
       <FolderTree
@@ -458,16 +431,11 @@ describe('FolderTree', () => {
 
     const wasExpanded = screen.queryByText('laputa') !== null
     fireEvent.click(screen.getByTestId('folder-row:projects'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
 
     expect(screen.queryByText('laputa') !== null).toBe(!wasExpanded)
-    vi.useRealTimers()
   })
 
   it('commits folder rename on blur so the row can collapse afterward', async () => {
-    vi.useFakeTimers()
     const renameSpy = vi.fn()
 
     function FolderTreeRenameHarness() {
@@ -499,12 +467,8 @@ describe('FolderTree', () => {
     expect(screen.queryByText('laputa')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('folder-row:projects'))
-    act(() => {
-      vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS)
-    })
 
     expect(screen.getByText('laputa')).toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it('opens a context menu with a delete action on right-click', () => {

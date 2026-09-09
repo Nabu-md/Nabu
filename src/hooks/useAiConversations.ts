@@ -72,7 +72,7 @@ export function useAiConversations({ vaultPath, enabled = true }: UseAiConversat
     setLoading(true)
     try {
       const list = await conversationInvoke<ConversationRecord[]>('list_conversations', { vaultPath })
-      setConversations(list)
+      setConversations(Array.isArray(list) ? list : [])
       loadedVaultRef.current = vaultPath
     } catch (error) {
       console.warn('Failed to list conversations:', error)

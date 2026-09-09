@@ -218,10 +218,10 @@ const mockEntries: VaultEntry[] = [
 const defaultSelection: SidebarSelection = { kind: 'filter', filter: 'all' }
 
 describe('Sidebar', () => {
-  it('renders top nav items (All Notes)', () => {
+  it('renders the sidebar without a top nav (note browsing lives in the folder tree)', () => {
     render(<Sidebar entries={[]} selection={defaultSelection} onSelect={() => {}} />)
-    expect(screen.getByText('All Notes')).toBeInTheDocument()
-    expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('sidebar-top-nav')).not.toBeInTheDocument()
+    expect(screen.queryByText('Inbox')).not.toBeInTheDocument()
   })
 
   it('renders section group headers only for types present in entries', () => {
@@ -626,15 +626,14 @@ describe('Sidebar', () => {
       expect(screen.getByText('Topics')).toBeInTheDocument()
     })
 
-    it('does not affect All Notes or other sidebar filters when sections are hidden', () => {
+    it('does not render top-nav pills when sections are hidden', () => {
       const entries: VaultEntry[] = [
         ...mockEntries,
         makeTypeEntry('Project', false),
         makeTypeEntry('Person', false),
       ]
       render(<Sidebar entries={entries} selection={defaultSelection} onSelect={() => {}} />)
-      expect(screen.getByText('All Notes')).toBeInTheDocument()
-      expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('sidebar-top-nav')).not.toBeInTheDocument()
     })
 
     it('renders a "Customize sections" button', () => {
@@ -974,34 +973,9 @@ describe('Sidebar', () => {
     expect(mondaySections).toHaveLength(1)
   })
 
-  it('renders Inbox as the first item in the top nav', () => {
-    render(<Sidebar entries={[]} selection={defaultSelection} onSelect={() => {}} inboxCount={5} />)
-    const topNav = screen.getByTestId('sidebar-top-nav')
-    const items = topNav.children
-    expect(items[0].textContent).toContain('Inbox')
-    expect(items[1].textContent).toContain('All Notes')
-  })
 
-  it('displays inbox count badge', () => {
-    render(<Sidebar entries={[]} selection={defaultSelection} onSelect={() => {}} inboxCount={12} />)
-    expect(screen.getByText('12')).toBeInTheDocument()
-  })
 
-  it('calls onSelect with inbox filter when clicking Inbox', () => {
-    const onSelect = vi.fn()
-    render(<Sidebar entries={[]} selection={defaultSelection} onSelect={onSelect} inboxCount={3} />)
-    fireEvent.click(screen.getByText('Inbox'))
-    expect(onSelect).toHaveBeenCalledWith({ kind: 'filter', filter: 'inbox' })
-  })
-
-  it('hides Inbox when explicit organization is disabled', () => {
-    render(<Sidebar entries={[]} selection={defaultSelection} onSelect={() => {}} showInbox={false} inboxCount={3} />)
-    expect(screen.queryByText('Inbox')).not.toBeInTheDocument()
-    const topNav = screen.getByTestId('sidebar-top-nav')
-    expect(topNav.children[0].textContent).toContain('All Notes')
-  })
-
-  it('excludes attachments-folder markdown from top-nav note totals', () => {
+  it('renders attachment files inside the folder tree without top-nav totals', () => {
     const entries: VaultEntry[] = [
       {
         path: '/vault/note/real-note.md',
@@ -1017,70 +991,11 @@ describe('Sidebar', () => {
         sidebarLabel: null, template: null, sort: null, view: null,
         outgoingLinks: [], properties: {},
       },
-      {
-        path: '/vault/attachments/reference.md',
-        filename: 'reference.md',
-        title: 'Attachment Markdown',
-        isA: 'Note',
-        aliases: [], belongsTo: [], relatedTo: [],
-        status: null, owner: null, cadence: null,
-        archived: false,
-        modifiedAt: 1700000000, createdAt: null,
-        fileSize: 220, snippet: '', wordCount: 50,
-        relationships: {}, icon: null, color: null, order: null,
-        sidebarLabel: null, template: null, sort: null, view: null,
-        outgoingLinks: [], properties: {},
-      },
-      {
-        path: '/vault/attachments/nested/archive.md',
-        filename: 'archive.md',
-        title: 'Attachment Archive',
-        isA: 'Note',
-        aliases: [], belongsTo: [], relatedTo: [],
-        status: null, owner: null, cadence: null,
-        archived: true,
-        modifiedAt: 1700000000, createdAt: null,
-        fileSize: 180, snippet: '', wordCount: 25,
-        relationships: {}, icon: null, color: null, order: null,
-        sidebarLabel: null, template: null, sort: null, view: null,
-        outgoingLinks: [], properties: {},
-      },
-      {
-        path: '/vault/archive/real-archive.md',
-        filename: 'real-archive.md',
-        title: 'Real Archive',
-        isA: 'Note',
-        aliases: [], belongsTo: [], relatedTo: [],
-        status: null, owner: null, cadence: null,
-        archived: true,
-        modifiedAt: 1700000000, createdAt: null,
-        fileSize: 280, snippet: '', wordCount: 90,
-        relationships: {}, icon: null, color: null, order: null,
-        sidebarLabel: null, template: null, sort: null, view: null,
-        outgoingLinks: [], properties: {},
-      },
-      {
-        path: '/vault/attachments/image.png',
-        filename: 'image.png',
-        title: 'image.png',
-        isA: null,
-        aliases: [], belongsTo: [], relatedTo: [],
-        status: null, owner: null, cadence: null,
-        archived: false,
-        modifiedAt: 1700000000, createdAt: null,
-        fileSize: 1024, snippet: '', wordCount: 0,
-        relationships: {}, icon: null, color: null, order: null,
-        sidebarLabel: null, template: null, sort: null, view: null,
-        fileKind: 'binary',
-        outgoingLinks: [], properties: {},
-      },
     ]
 
-    render(<Sidebar entries={entries} selection={defaultSelection} onSelect={() => {}} />)
+    render(<Sidebar entries={entries} folders={[]} selection={defaultSelection} onSelect={() => {}} />)
 
-    const topNav = screen.getByTestId('sidebar-top-nav')
-    expect(topNav.children[1].textContent).toContain('All Notes1')
-    expect(topNav.children[2].textContent).toContain('Archive1')
+    expect(screen.queryByTestId('sidebar-top-nav')).not.toBeInTheDocument()
   })
 
   it('does not show inline entries — no child items in type sections', () => {
@@ -1467,22 +1382,19 @@ describe('Sidebar', () => {
       expect(countChip.className).toContain('text-muted-foreground')
     })
 
-    it('aligns top-nav count pills to the same trailing column as view rows', () => {
+    it('aligns section count chips to the same trailing column as view rows', () => {
       render(
-        <Sidebar entries={mockEntries} selection={defaultSelection} onSelect={() => {}} inboxCount={12} views={mockViews} />
+        <Sidebar entries={mockEntries} selection={defaultSelection} onSelect={() => {}} views={mockViews} />
       )
 
-      const topNavItem = screen.getByText('Inbox').closest('[class*="cursor-pointer"]') as HTMLElement
-      const topNavCount = within(topNavItem).getByTestId('sidebar-count-chip')
+      const sectionItem = screen.getByText('Projects').closest('[class*="cursor-pointer"]') as HTMLElement
+      const sectionCount = within(sectionItem.closest('div') as HTMLElement).getByTestId('sidebar-count-chip')
       const viewItem = screen.getByText('Active Projects').closest('[class*="cursor-pointer"]') as HTMLElement
       const viewCount = within(viewItem).getByTestId('view-count-chip')
 
-      expect(topNavItem).toHaveStyle({ padding: '6px 8px 6px 12px' })
       expect(viewItem).toHaveStyle({ padding: '6px 8px 6px 12px' })
-      expect(topNavCount).toHaveStyle({
+      expect(sectionCount).toHaveStyle({
         background: 'var(--muted)',
-        height: '20px',
-        padding: '0 6px',
       })
       expect(viewCount).toHaveStyle({
         background: 'var(--muted)',

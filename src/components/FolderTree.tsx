@@ -13,7 +13,7 @@ import { translate, type AppLocale } from '../lib/i18n'
 import type { FolderFileActions } from '../hooks/useFileActions'
 import { useNoteListContextMenu as useNoteContextMenu } from './NoteContextMenu'
 import { readDraggedNotePath } from '../utils/noteDragDrop'
-import { useTreeExplorerData, type EntriesByFolder } from './folder-tree/treeExplorerModel'
+import { useTreeExplorerData, entriesForFolderNode, mergeEntryFolders, type EntriesByFolder } from './folder-tree/treeExplorerModel'
 import type { SortConfig } from '../utils/noteListHelpers'
 
 interface FolderTreeProps {
@@ -106,6 +106,19 @@ interface TreeKeyboardNav {
 
 const TREE_INDENT_PX = 12
 
+/** Collect expansion keys for UI-synthesized folder nodes so they render expanded by default. */
+function collectSyntheticKeys(nodes: FolderNode[]): string[] {
+  const keys: string[] = []
+  const walk = (list: FolderNode[]) => {
+    for (const node of list) {
+      if (node.synthetic) keys.push(folderNodeKey(node))
+      walk(node.children)
+    }
+  }
+  walk(nodes)
+  return keys
+}
+
 function vaultRootLabel(vaultRootPath: string, locale: AppLocale): string {
   const trimmed = vaultRootPath.trim().replace(/[\\/]+$/g, '')
   return trimmed.split(/[\\/]/).filter(Boolean).pop() || translate(locale, 'status.vault.default')
@@ -128,20 +141,25 @@ function useDisplayedFolders(
   locale: AppLocale,
 ) {
   return useMemo(() => {
-    if (folders.some((folder) => folder.rootPath)) {
+    const syntheticKeys = collectSyntheticKeys(folders)
+    const syntheticExpanded = Object.fromEntries(syntheticKeys.map((key) => [key, true]))
+    const hasExplicitRoot = folders.some((folder) => folder.path === '' && folder.rootPath)
+    if (hasExplicitRoot) {
       const expandedRoots = Object.fromEntries(
         folders
           .filter((folder) => folder.path === '' && folder.rootPath)
           .map((folder) => [folderNodeKey(folder), true]),
       )
       return {
-        displayedExpanded: { ...expandedRoots, ...expanded },
+        displayedExpanded: { ...syntheticExpanded, ...expandedRoots, ...expanded },
         displayedFolders: folders,
       }
     }
     const rootNode = buildRootNode(folders, vaultRootPath, locale)
     return {
-      displayedExpanded: rootNode ? { [folderNodeKey(rootNode)]: true, ...expanded } : expanded,
+      displayedExpanded: rootNode
+        ? { [folderNodeKey(rootNode)]: true, ...syntheticExpanded, ...expanded }
+        : { ...syntheticExpanded, ...expanded },
       displayedFolders: rootNode ? [rootNode] : folders,
     }
   }, [expanded, folders, locale, vaultRootPath])
@@ -277,6 +295,12 @@ function FileTreeRow({
         className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left"
         onClick={(event) => {
           if (event.detail > 1) return
+          // Meta/Ctrl+click mirrors the old NoteList shortcut for entering
+          // Neighborhood mode on a note.
+          if ((event.metaKey || event.ctrlKey) && handlers.onEnterNeighborhood) {
+            handlers.onEnterNeighborhood(entry)
+            return
+          }
           handlers.onSelectNote?.(entry)
         }}
         onDoubleClick={() => handlers.onOpenInNewWindow?.(entry)}
@@ -304,6 +328,7 @@ interface WithNoteContextMenu extends FileRowHandlers {
 function FolderFiles({
   node,
   depth,
+  rootPath,
   entriesByFolder,
   selection,
   handlers,
@@ -312,6 +337,7 @@ function FolderFiles({
 }: {
   node: FolderNode
   depth: number
+  rootPath?: string
   entriesByFolder: EntriesByFolder
   selection: SidebarSelection
   typeEntryMap: Record<string, VaultEntry>
@@ -319,7 +345,7 @@ function FolderFiles({
   keyboardNav: TreeKeyboardNav
   rowOrderRef: { current: string[] }
 }) {
-  const files = entriesByFolder.get(node.path) ?? []
+  const files = entriesForFolderNode(entriesByFolder, node, rootPath)
   if (files.length === 0) return null
   return (
     <>
@@ -367,7 +393,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
     folders,
     selection,
     onSelect,
-    entries,
+    entries = [],
     onSelectNote,
     onCreateFolder,
     onRenameFolder,
@@ -458,9 +484,14 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
         openCreateForm()
       }, [closeContextMenu, openCreateForm])
 
-      const { displayedExpanded, displayedFolders } = useDisplayedFolders(folders, expanded, vaultRootPath, locale)
+      const { displayedExpanded, displayedFolders } = useDisplayedFolders(
+        useMemo(() => mergeEntryFolders(folders, entries, vaultRootPath), [folders, entries, vaultRootPath]),
+        expanded,
+        vaultRootPath,
+        locale,
+      )
 
-      const entriesByFolder = useTreeExplorerData(entries, listSort, search)
+      const entriesByFolder = useTreeExplorerData(entries, listSort, search, vaultRootPath)
 
       // Keep the folder holding the active note expanded so the file stays visible.
       const activeEntityPath = selection.kind === 'entity' ? selection.entry.path : null
@@ -708,7 +739,7 @@ function ExplorerFolderRow(options: {
   const canMutateFolder = node.path.length > 0 && canUseDefaultFolderActions
   const isRenaming = canMutateFolder && renamingFolderPath === node.path
   const depthIndent = 8 + depth * TREE_INDENT_PX
-  const fileCount = entriesByFolder.get(node.path)?.length ?? 0
+  const fileCount = entriesForFolderNode(entriesByFolder, node, rootPath).length
   const hasChildren = node.children.length > 0 || fileCount > 0
   const rowKey = `folder:${nodeKey}`
 
@@ -723,7 +754,7 @@ function ExplorerFolderRow(options: {
             selectTextOnFocus={true}
             submitOnBlur={true}
             testId="rename-folder-input"
-            onCancel={() => onCancelCreateFolder?.()}
+            onCancel={() => onCancelRenameFolder?.()}
             onSubmit={(nextName) => onRenameFolder(node.path, nextName)}
           />
         </div>
@@ -798,6 +829,7 @@ function ExplorerFolderRow(options: {
             <FolderFiles
               node={node}
               depth={depth}
+              rootPath={nodeRootPath}
               entriesByFolder={entriesByFolder}
               selection={selection}
               typeEntryMap={typeEntryMap}
@@ -922,6 +954,17 @@ function FolderExplorerRowButton({
       onKeyDown={handleKeyDown}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      onClick={(event) => {
+        if (event.detail > 1) return
+        if (hasChildren) onToggle()
+        onSelect()
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault()
+        onSelect()
+        onOpenMenu(node, event)
+      }}
+      onDoubleClick={() => onStartRenameFolder?.(node.path)}
       data-testid={`folder-row:${node.path}`}
     >
       <Button
@@ -931,17 +974,7 @@ function FolderExplorerRowButton({
         style={{ paddingTop: 4, paddingBottom: 4, paddingLeft: 0, paddingRight: 12 }}
         title={node.path || node.name}
         aria-expanded={hasChildren ? isExpanded : undefined}
-        onClick={(event) => {
-          if (event.detail > 1) return
-          if (hasChildren) onToggle()
-          onSelect()
-        }}
-        onContextMenu={(event) => {
-          event.preventDefault()
-          onSelect()
-          onOpenMenu(node, event)
-        }}
-        onDoubleClick={() => onStartRenameFolder?.(node.path)}
+        tabIndex={-1}
         data-note-drop-folder={node.path}
       >
         {hasChildren ? (
