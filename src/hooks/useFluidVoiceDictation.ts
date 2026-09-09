@@ -12,6 +12,45 @@ type FluidVoiceStatus = 'idle' | 'listening' | 'processing' | 'unavailable'
 
 export type DictationBackend = 'web_speech' | 'fluidvoice'
 
+const FLUIDVOICE_MODEL_STORAGE_KEY = 'nabu:fluidvoice-model'
+const FLUIDVOICE_BACKEND_STORAGE_KEY = 'nabu:fluidvoice-backend'
+
+function loadPersistedModel(): string {
+  try {
+    const stored = localStorage.getItem(FLUIDVOICE_MODEL_STORAGE_KEY)
+    if (stored) return stored
+  } catch {
+    // Storage unavailable; fall through to default.
+  }
+  return 'parakeet'
+}
+
+function loadPersistedBackend(): DictationBackend {
+  try {
+    const stored = localStorage.getItem(FLUIDVOICE_BACKEND_STORAGE_KEY)
+    if (stored === 'fluidvoice' || stored === 'web_speech') return stored
+  } catch {
+    // Storage unavailable; fall through to default.
+  }
+  return 'web_speech'
+}
+
+function persistModel(model: string): void {
+  try {
+    localStorage.setItem(FLUIDVOICE_MODEL_STORAGE_KEY, model)
+  } catch {
+    // Best-effort persistence only.
+  }
+}
+
+function persistBackend(backend: DictationBackend): void {
+  try {
+    localStorage.setItem(FLUIDVOICE_BACKEND_STORAGE_KEY, backend)
+  } catch {
+    // Best-effort persistence only.
+  }
+}
+
 interface FluidVoiceState {
   installed: boolean
   models: string[]
@@ -38,8 +77,8 @@ export function useFluidVoiceDictation(lang = 'en-US'): FluidVoiceState & { webS
   const webSpeech = useSpeechRecognition(lang)
   const [installed, setInstalled] = useState(false)
   const [models, setModels] = useState<string[]>([])
-  const [model, setModel] = useState('parakeet')
-  const [backend, setBackend] = useState<DictationBackend>('web_speech')
+  const [model, setModelState] = useState(loadPersistedModel)
+  const [backend, setBackendState] = useState<DictationBackend>(loadPersistedBackend)
   const [status, setStatus] = useState<FluidVoiceStatus>('idle')
   const [transcript, setTranscript] = useState('')
   const pollRef = useRef<number | null>(null)
@@ -55,10 +94,15 @@ export function useFluidVoiceDictation(lang = 'en-US'): FluidVoiceState & { webS
         if (cancelled) return
         setInstalled(isInstalled)
         setModels(availableModels)
+        // Only override the persisted model when it is no longer offered.
         if (availableModels.length > 0 && !availableModels.includes(model)) {
-          setModel(availableModels[0])
+          setModelState(availableModels[0])
+          persistModel(availableModels[0])
         }
-        if (isInstalled) setBackend('fluidvoice')
+        // Auto-select FluidVoice on first run; a persisted web_speech choice
+        // is only overridden when FluidVoice is actually available.
+        if (isInstalled) setBackendState('fluidvoice')
+        else setBackendState('web_speech')
       } catch {
         if (!cancelled) setInstalled(false)
       }
@@ -68,6 +112,16 @@ export function useFluidVoiceDictation(lang = 'en-US'): FluidVoiceState & { webS
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const setModel = useCallback((next: string) => {
+    setModelState(next)
+    persistModel(next)
+  }, [])
+
+  const setBackend = useCallback((next: DictationBackend) => {
+    setBackendState(next)
+    persistBackend(next)
   }, [])
 
   const pollStatus = useCallback(async () => {

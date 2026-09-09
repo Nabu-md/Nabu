@@ -48,6 +48,10 @@ export function DictationPill({
   const [panelOpen, setPanelOpen] = useState(false)
   const fallbackSpeech = useSpeechRecognition()
   const speech = fluidVoice ? fluidVoice.webSpeech : fallbackSpeech
+  // Prefer FluidVoice state (start/stop + status) over the raw Web Speech
+  // hook when FluidVoice is the active backend.
+  const usingFluidVoice = Boolean(fluidVoice?.installed && fluidVoice.backend === 'fluidvoice')
+  const isListening = usingFluidVoice ? fluidVoice?.status === 'listening' : speech.isListening
   const clipboard = useClipboardCache()
   const dropZone = useFileDropZone(vaultPath)
   const panelRef = useRef<HTMLDivElement | null>(null)
@@ -86,12 +90,21 @@ export function DictationPill({
   if (!enabled) return null
 
   const handleStartStop = () => {
+    if (usingFluidVoice && fluidVoice) {
+      if (isListening) {
+        void fluidVoice.stopDictation()
+      } else {
+        void fluidVoice.startDictation()
+      }
+      trackEvent(isListening ? 'dictation_stopped' : 'dictation_started', { backend: 'fluidvoice' })
+      return
+    }
     if (speech.isListening) {
       speech.stop()
-      trackEvent('dictation_stopped')
+      trackEvent('dictation_stopped', { backend: 'web_speech' })
     } else {
       speech.start()
-      trackEvent('dictation_started')
+      trackEvent('dictation_started', { backend: 'web_speech' })
     }
   }
 
@@ -133,23 +146,23 @@ export function DictationPill({
               <div className="mb-1.5 flex items-center gap-2">
                 <Button
                   type="button"
-                  variant={speech.isListening ? 'default' : 'outline'}
+                  variant={isListening ? 'default' : 'outline'}
                   size="sm"
                   className="gap-1.5"
                   onClick={handleStartStop}
-                  disabled={!speech.supported}
+                  disabled={!usingFluidVoice && !speech.supported}
                   data-testid="dictation-record-toggle"
                 >
-                  {speech.isListening ? <MicrophoneSlash size={14} /> : <Microphone size={14} />}
-                  {speech.isListening ? 'Stop' : 'Record'}
+                  {isListening ? <MicrophoneSlash size={14} /> : <Microphone size={14} />}
+                  {isListening ? 'Stop' : 'Record'}
                 </Button>
-                {speech.isListening && (
+                {isListening && (
                   <span className="flex items-center gap-1.5 text-[11px] text-red-500">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
                     Listening…
                   </span>
                 )}
-                {!speech.supported && (
+                {!usingFluidVoice && !speech.supported && (
                   <span className="text-[11px] text-muted-foreground">
                     Speech recognition unavailable in this webview
                   </span>
@@ -248,18 +261,29 @@ export function DictationPill({
         </div>
       )}
 
+      {/* Oblong pill: wide when idle, expands with the panel open. */}
       <Button
         type="button"
         variant="default"
         size="sm"
-        className="h-11 w-11 rounded-full shadow-lg"
+        className={cn(
+          'h-11 rounded-full px-5 shadow-lg transition-all',
+          panelOpen ? 'w-11 px-0' : 'w-auto gap-2',
+        )}
         aria-label="Toggle dictation"
         title="Dictation (⌘⇧D)"
         aria-expanded={panelOpen}
         data-testid="dictation-toggle"
         onClick={togglePanel}
       >
-        {panelOpen ? <X size={18} /> : <Microphone size={18} weight="fill" />}
+        {panelOpen ? (
+          <X size={18} />
+        ) : (
+          <>
+            <Microphone size={18} weight="fill" />
+            <span className="text-[13px] font-medium">Dictate</span>
+          </>
+        )}
       </Button>
     </div>
   )

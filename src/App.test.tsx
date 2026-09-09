@@ -1090,6 +1090,9 @@ describe('App', () => {
     const getEditor = async () => {
       // The lazy editor module loads slowly under vitest, so allow a generous window.
       await waitFor(() => {
+        expect(window.__laputaTest?.activeTabPath).toBe('/vault/alpha.md')
+      }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
+      await waitFor(() => {
         expect(screen.getByTestId('mock-editor')).toBeInTheDocument()
       }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
       return screen.getByTestId('mock-editor')
@@ -1110,6 +1113,8 @@ describe('App', () => {
 
   it('opens favorites directly into Neighborhood mode', async () => {
     configureNeighborhoodFavoritesVault()
+    // Expand the properties inspector so relationship entries are rendered.
+    localStorage.setItem('nabu:right-panel-collapsed', 'false')
 
     render(<App />)
 
@@ -1155,22 +1160,26 @@ describe('App', () => {
     })
   })
 
-  it('auto-advances to the next inbox item after organizing when the setting is enabled', async () => {
+  it('organizes the active note from the editor toolbar after opening it from the tree', async () => {
     configureNeighborhoodVault()
     mockCommandResults.get_settings = createSettings({ auto_advance_inbox_after_organize: true })
+    const organizeSave = vi.fn(() => Promise.resolve())
+    mockCommandResults.save_note_content = organizeSave
 
     render(<App />)
 
-    const noteListContainer = await screen.findByTestId('note-list-container')
+    // Open Alpha from the sidebar tree.
+    const alphaRow = await screen.findByTestId('tree-file-row:/vault/alpha.md', {}, { timeout: 5000 })
+    fireEvent.click(within(alphaRow).getByText('Alpha'))
+
     await waitFor(() => {
-      expect(getHeaderForNoteList(noteListContainer)).toHaveTextContent('Inbox')
-    })
+      expect(window.__laputaTest?.activeTabPath).toBe('/vault/alpha.md')
+    }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
 
-    await clickNoteListItem(noteListContainer, 'Alpha')
-
+    // Organize via the editor breadcrumb toolbar.
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Set note as organized' })).toBeInTheDocument()
-    })
+    }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Set note as organized' }))
@@ -1178,11 +1187,11 @@ describe('App', () => {
     })
 
     await waitFor(() => {
-      expect(window.__laputaTest?.activeTabPath).toBe('/vault/beta.md')
+      expect(organizeSave).toHaveBeenCalled()
     })
-  }, 10_000)
+  }, 40_000)
 
-  it('keeps the manually selected note after organizing finishes later', async () => {
+  it('keeps the manually selected note when switching tree rows mid-save', async () => {
     configureNeighborhoodVault()
     mockCommandResults.get_settings = createSettings({ auto_advance_inbox_after_organize: true })
 
@@ -1194,30 +1203,34 @@ describe('App', () => {
 
     render(<App />)
 
-    const noteListContainer = await screen.findByTestId('note-list-container')
-    await waitFor(() => {
-      expect(getHeaderForNoteList(noteListContainer)).toHaveTextContent('Inbox')
-    })
+    // Open Alpha from the sidebar tree.
+    const alphaRow = await screen.findByTestId('tree-file-row:/vault/alpha.md', {}, { timeout: 5000 })
+    fireEvent.click(within(alphaRow).getByText('Alpha'))
 
-    await clickNoteListItem(noteListContainer, 'Alpha')
+    await waitFor(() => {
+      expect(window.__laputaTest?.activeTabPath).toBe('/vault/alpha.md')
+    }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Set note as organized' })).toBeInTheDocument()
-    })
+    }, { timeout: SLOW_APP_READY_TIMEOUT_MS })
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Set note as organized' }))
       await Promise.resolve()
     })
 
+    // Manually select Gamma in the tree while the organize save is pending.
+    const gammaRow = await screen.findByTestId('tree-file-row:/vault/gamma.md', {}, { timeout: 5000 })
     await act(async () => {
-      fireEvent.click(within(noteListContainer).getByText('Gamma'))
+      fireEvent.click(within(gammaRow).getByText('Gamma'))
       await Promise.resolve()
     })
     await waitFor(() => {
       expect(window.__laputaTest?.activeTabPath).toBe('/vault/gamma.md')
     })
 
+    // Completing the stale organize save must not yank selection back.
     await act(async () => {
       resolveOrganizeSave()
       await organizeSave
@@ -1226,7 +1239,7 @@ describe('App', () => {
     })
 
     expect(window.__laputaTest?.activeTabPath).toBe('/vault/gamma.md')
-  }, 10_000)
+  }, 40_000)
 
   it('renders status bar', async () => {
     render(<App />)
@@ -1266,7 +1279,8 @@ describe('App', () => {
 
     expect(await screen.findByTestId('sidebar-loading-favorites')).toBeInTheDocument()
     expect(screen.queryByTestId('startup-shell-fallback')).not.toBeInTheDocument()
-    expect(screen.getByTestId('note-list-loading-skeleton')).toBeInTheDocument()
+    // The NoteList is gone; the folder section shows the loading skeleton instead.
+    expect(screen.getByTestId('sidebar-loading-folders')).toBeInTheDocument()
 
     await act(async () => {
       resolveSwitchedVaultScan?.(mockEntries)
@@ -1306,7 +1320,7 @@ describe('App', () => {
     })
   })
 
-  it('Cmd+1 hides sidebar and note list (editor-only mode)', async () => {
+  it('Cmd+1 hides the sidebar (editor-only mode)', async () => {
     render(<App />)
     await waitFor(() => {
       expect(screen.getByText('Test Project')).toBeInTheDocument()
@@ -1314,17 +1328,15 @@ describe('App', () => {
 
     // All panels visible by default
     expect(document.querySelector('.app__sidebar')).toBeInTheDocument()
-    expect(document.querySelector('.app__note-list')).toBeInTheDocument()
 
-    // Cmd+1 → editor-only
+    // Cmd+1 → editor-only (sidebar hidden; the note list no longer exists)
     fireEvent.keyDown(window, { key: '1', metaKey: true })
     await waitFor(() => {
       expect(document.querySelector('.app__sidebar')).not.toBeInTheDocument()
-      expect(document.querySelector('.app__note-list')).not.toBeInTheDocument()
     })
   })
 
-  it('Cmd+2 shows editor + note list (sidebar hidden)', async () => {
+  it('Cmd+2 hides the sidebar and keeps the editor (two-panel mode)', async () => {
     render(<App />)
     await waitFor(() => {
       expect(screen.getByText('Test Project')).toBeInTheDocument()
@@ -1333,8 +1345,8 @@ describe('App', () => {
     fireEvent.keyDown(window, { key: '2', metaKey: true })
     await waitFor(() => {
       expect(document.querySelector('.app__sidebar')).not.toBeInTheDocument()
-      expect(document.querySelector('.app__note-list')).toBeInTheDocument()
     })
+    expect(document.querySelector('.app__editor')).toBeInTheDocument()
   })
 
   it('Cmd+3 restores all panels after Cmd+1', async () => {
@@ -1353,7 +1365,6 @@ describe('App', () => {
     fireEvent.keyDown(window, { key: '3', metaKey: true })
     await waitFor(() => {
       expect(document.querySelector('.app__sidebar')).toBeInTheDocument()
-      expect(document.querySelector('.app__note-list')).toBeInTheDocument()
     })
   })
 

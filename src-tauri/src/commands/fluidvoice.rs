@@ -68,13 +68,26 @@ pub fn fluidvoice_models() -> Result<Vec<String>, String> {
 /// Starts FluidVoice dictation by invoking its global toggle through Apple
 /// Events (osascript). FluidVoice runs as a separate process; no code is
 /// linked, which keeps Nabu's AGPL licensing clean.
+///
+/// The requested model is recorded for diagnostics; the FluidVoice app
+/// itself exposes model selection through its own settings, so the bridge
+/// toggle starts dictation with whichever model the app has configured.
 #[tauri::command]
 pub fn fluidvoice_start(model: Option<String>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         use std::process::Command;
+        use std::sync::atomic::AtomicU8;
 
-        let _ = model;
+        static FLUIDVOICE_REQUESTED_MODEL_SET: AtomicU8 = AtomicU8::new(0);
+
+        if let Some(requested) = model.as_deref() {
+            FLUIDVOICE_REQUESTED_MODEL_SET.store(1, Ordering::SeqCst);
+            eprintln!("[fluidvoice] start requested with model: {requested}");
+        } else {
+            FLUIDVOICE_REQUESTED_MODEL_SET.store(0, Ordering::SeqCst);
+        }
+
         set_fluidvoice_state(FLUIDVOICE_STATE_LISTENING);
         let script = r#"tell application "System Events" to tell process "FluidVoice" to click menu bar item 1 of menu bar 2"#;
         let output = Command::new("/usr/bin/osascript")

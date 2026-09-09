@@ -6,7 +6,8 @@
     "main",
     "ai-workspace",
     "note-*",
-    "miniapp-*"
+    "miniapp-*",
+    "dictation-pill"
   ],
   "platforms": ["linux", "macOS", "windows"],
   "permissions": [

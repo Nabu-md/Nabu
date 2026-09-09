@@ -220,6 +220,39 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const { settings, loaded: settingsLoaded, saveSettings } = useSettings()
   const aiFeaturesEnabled = areAiFeaturesEnabled(settings)
 
+  // Transparency & font overrides: publish settings as CSS custom properties on
+  // the document root so panel styles can consume them without re-render churn.
+  useEffect(() => {
+    const root = document.documentElement
+    const clamp01 = (v: number | null | undefined) =>
+      typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null
+    const clampRadius = (v: number | null | undefined) =>
+      typeof v === 'number' && Number.isFinite(v) ? Math.min(20, Math.max(0, v)) : null
+    const panel = (opacity: number | null | undefined, blur: number | null | undefined) => {
+      const o = clamp01(opacity)
+      const b = clampRadius(blur) ?? 0
+      return [
+        o !== null ? `color-mix(in srgb, var(--background) ${Math.round(o * 100)}%, transparent)` : null,
+        b > 0 ? `blur(${b}px)` : null,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
+    root.style.setProperty('--nabu-sidebar-background', panel(settings.sidebar_opacity, settings.sidebar_blur_radius) || 'var(--background)')
+    root.style.setProperty('--nabu-editor-background', panel(settings.editor_opacity, settings.editor_blur_radius) || 'var(--background)')
+    root.style.setProperty('--nabu-ai-panel-background', panel(settings.ai_panel_opacity, settings.ai_panel_blur_radius) || 'var(--background)')
+    root.style.setProperty('--nabu-window-blur', `${clampRadius(settings.window_blur_radius) ?? 0}px`)
+    root.style.setProperty('--nabu-editor-font', settings.editor_font_family || '')
+    root.style.setProperty('--nabu-ai-chat-font', settings.ai_chat_font_family || '')
+    root.style.setProperty('--nabu-sidebar-font', settings.sidebar_font_family || '')
+    // Window-level opacity is Warp-style native transparency; Tauri needs the
+    // flag at creation time, so approximate with the root layer when unset.
+    const wo = clamp01(settings.window_opacity)
+    if (wo !== null && wo < 1 && isTauri()) {
+      void invoke('set_window_opacity', { opacity: wo }).catch(() => undefined)
+    }
+  }, [settings])
+
   // onSwitch closure captures `notes` declared below — safe because it's only
   // called on user interaction, never during render (refs inside the hook
   // guarantee the latest closure is always used).
@@ -769,6 +802,12 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   })
 
   const handleOpenFavorite = useCallback(async (entry: VaultEntry) => {
+    await handleReplaceActiveTab(entry)
+    handleEnterNeighborhood(entry)
+  }, [handleEnterNeighborhood, handleReplaceActiveTab])
+
+  // Tree file rows: open the note AND enter Neighborhood mode (old NoteList parity).
+  const handleOpenFromTreeWithNeighborhood = useCallback(async (entry: VaultEntry) => {
     await handleReplaceActiveTab(entry)
     handleEnterNeighborhood(entry)
   }, [handleEnterNeighborhood, handleReplaceActiveTab])
@@ -1738,7 +1777,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           {sidebarVisible && (
             <>
               <div className="app__sidebar" style={{ width: layout.sidebarWidth }}>
-                <Sidebar entries={visibleEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCanDropNoteOnFolder={noteRetargetingUi.canDropNoteOnFolder} onMoveNoteToFolder={noteRetargetingUi.moveIntoFolder} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} search={sidebarSearch} onSearchChange={setSidebarSearch} listSort={sidebarListSort} onSortChange={setSidebarListSort} fileExplorerActions={{ onEnterNeighborhood: handleEnterNeighborhood, onOpenInNewWindow: handleOpenEntryInNewWindow, onRenameFilename: appSave.handleFilenameRename, onArchivePaths: (paths) => { for (const path of paths) entryActions.handleArchiveNote(path) }, onDeletePaths: (paths) => { for (const path of paths) deleteActions.handleDeleteNote(path) }, onExportPdf: handleExportNotePdfFromList, onToggleFavorite: entryActions.handleToggleFavorite, onToggleOrganized: explicitOrganizationEnabled ? entryActions.handleToggleOrganized : undefined, onRevealFile: fileActions.revealFile, onCopyFilePath: fileActions.copyFilePath, canCopyGitUrl: noteGitUrls.canCopyEntryGitUrl, onCopyGitUrl: noteGitUrls.copyEntryGitUrl }} />
+                <Sidebar entries={visibleEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCanDropNoteOnFolder={noteRetargetingUi.canDropNoteOnFolder} onMoveNoteToFolder={noteRetargetingUi.moveIntoFolder} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} search={sidebarSearch} onSearchChange={setSidebarSearch} listSort={sidebarListSort} onSortChange={setSidebarListSort} fileExplorerActions={{ onEnterNeighborhood: handleOpenFromTreeWithNeighborhood, onOpenInNewWindow: handleOpenEntryInNewWindow, onRenameFilename: appSave.handleFilenameRename, onArchivePaths: (paths) => { for (const path of paths) entryActions.handleArchiveNote(path) }, onDeletePaths: (paths) => { for (const path of paths) deleteActions.handleDeleteNote(path) }, onExportPdf: handleExportNotePdfFromList, onToggleFavorite: entryActions.handleToggleFavorite, onToggleOrganized: explicitOrganizationEnabled ? entryActions.handleToggleOrganized : undefined, onRevealFile: fileActions.revealFile, onCopyFilePath: fileActions.copyFilePath, canCopyGitUrl: noteGitUrls.canCopyEntryGitUrl, onCopyGitUrl: noteGitUrls.copyEntryGitUrl }} />
               </div>
               <ResizeHandle onResize={layout.handleSidebarResize} />
             </>

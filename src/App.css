@@ -1,6 +1,14 @@
 /* App layout - minimal CSS, most styling via Tailwind */
 :root {
-  --sidebar-opacity: 0.7;
+  /* Frosted-glass panel variables. All are set at runtime from settings via
+     App.tsx; these defaults keep every panel fully opaque. */
+  --sidebar-opacity: 1;
+  --sidebar-blur-radius: 0px;
+  --editor-opacity: 1;
+  --editor-blur-radius: 0px;
+  --ai-panel-opacity: 1;
+  --ai-panel-blur-radius: 0px;
+  --app-window-opacity: 1;
 }
 
 .app-shell {
@@ -38,23 +46,12 @@ body.mac-chrome.mac-chrome-fullscreen {
   flex: 1;
 }
 
-.app:has(.app__note-list) .app__sidebar > * {
-  border-right-color: transparent;
-}
-
-.app__note-list {
-  flex: 0 0 auto;
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  z-index: 20;
-  background: var(--surface-sidebar);
-}
-
-.app__note-list > * {
-  flex: 1;
-  border-left: 1px solid var(--sidebar-border);
+/* Frosted-glass sidebar: background goes semi-transparent while content
+   stays fully readable; blur softens whatever sits behind the panel. */
+.app-shell[style*="--sidebar-opacity"] .app__sidebar > :first-child {
+  background-color: color-mix(in srgb, var(--surface-sidebar, var(--background, #fff)) calc(var(--sidebar-opacity) * 100%), transparent);
+  backdrop-filter: blur(var(--sidebar-blur-radius));
+  -webkit-backdrop-filter: blur(var(--sidebar-blur-radius));
 }
 
 .app__editor {
@@ -70,6 +67,25 @@ body.mac-chrome.mac-chrome-fullscreen {
 
 .app__editor > * {
   flex: 1;
+}
+
+/* Frosted-glass editor. */
+.app-shell[style*="--editor-opacity"] .app__editor > :first-child {
+  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--editor-opacity) * 100%), transparent);
+  backdrop-filter: blur(var(--editor-blur-radius));
+  -webkit-backdrop-filter: blur(var(--editor-blur-radius));
+}
+
+/* Frosted-glass AI panel (right-side inline chat). */
+.ai-panel-glass > :first-child {
+  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--ai-panel-opacity) * 100%), transparent);
+  backdrop-filter: blur(var(--ai-panel-blur-radius));
+  -webkit-backdrop-filter: blur(var(--ai-panel-blur-radius));
+}
+
+/* Warp-style window-level opacity: applied to the app shell root. */
+.app-shell {
+  opacity: var(--app-window-opacity);
 }
 
 @keyframes spin {
