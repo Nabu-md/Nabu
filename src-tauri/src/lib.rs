@@ -363,6 +363,7 @@ macro_rules! app_invoke_handler {
             commands::trigger_menu_command,
             commands::update_current_window_min_size,
             commands::perform_current_window_titlebar_double_click,
+            commands::set_window_opacity,
             commands::save_settings,
             commands::save_ai_workspace_sessions,
             commands::download_and_install_app_update,

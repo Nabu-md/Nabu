@@ -47,11 +47,14 @@ body.mac-chrome.mac-chrome-fullscreen {
 }
 
 /* Frosted-glass sidebar: background goes semi-transparent while content
-   stays fully readable; blur softens whatever sits behind the panel. */
-.app-shell[style*="--sidebar-opacity"] .app__sidebar > :first-child {
-  background-color: color-mix(in srgb, var(--surface-sidebar, var(--background, #fff)) calc(var(--sidebar-opacity) * 100%), transparent);
-  backdrop-filter: blur(var(--sidebar-blur-radius));
-  -webkit-backdrop-filter: blur(var(--sidebar-blur-radius));
+   stays fully readable; blur softens whatever sits behind the panel.
+   Vars are set on :root only when the user configured them — the fallbacks
+   below (100% opacity, 0px blur) keep the default look untouched. */
+.app__sidebar > :first-child {
+  background-color: color-mix(in srgb, var(--surface-sidebar, var(--background, #fff)) calc(var(--sidebar-opacity, 1) * 100%), transparent);
+  backdrop-filter: blur(var(--sidebar-blur-radius, 0px));
+  -webkit-backdrop-filter: blur(var(--sidebar-blur-radius, 0px));
+  font-family: var(--nabu-sidebar-font, inherit);
 }
 
 .app__editor {
@@ -70,22 +73,25 @@ body.mac-chrome.mac-chrome-fullscreen {
 }
 
 /* Frosted-glass editor. */
-.app-shell[style*="--editor-opacity"] .app__editor > :first-child {
-  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--editor-opacity) * 100%), transparent);
-  backdrop-filter: blur(var(--editor-blur-radius));
-  -webkit-backdrop-filter: blur(var(--editor-blur-radius));
+.app__editor > :first-child {
+  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--editor-opacity, 1) * 100%), transparent);
+  backdrop-filter: blur(var(--editor-blur-radius, 0px));
+  -webkit-backdrop-filter: blur(var(--editor-blur-radius, 0px));
+  font-family: var(--nabu-editor-font, inherit);
 }
 
 /* Frosted-glass AI panel (right-side inline chat). */
 .ai-panel-glass > :first-child {
-  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--ai-panel-opacity) * 100%), transparent);
-  backdrop-filter: blur(var(--ai-panel-blur-radius));
-  -webkit-backdrop-filter: blur(var(--ai-panel-blur-radius));
+  background-color: color-mix(in srgb, var(--background, #fff) calc(var(--ai-panel-opacity, 1) * 100%), transparent);
+  backdrop-filter: blur(var(--ai-panel-blur-radius, 0px));
+  -webkit-backdrop-filter: blur(var(--ai-panel-blur-radius, 0px));
+  font-family: var(--nabu-ai-chat-font, inherit);
 }
 
-/* Warp-style window-level opacity: applied to the app shell root. */
+/* Warp-style window-level opacity: applied to the app shell root.
+   --app-window-opacity is only defined when the user sets it. */
 .app-shell {
-  opacity: var(--app-window-opacity);
+  opacity: var(--app-window-opacity, 1);
 }
 
 @keyframes spin {

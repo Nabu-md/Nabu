@@ -16,6 +16,19 @@ use tauri::Window;
 
 use super::parse_build_label;
 
+/// Warp-style window-level opacity (Warp's "Size, Opacity, & Blurring" pattern).
+/// Applies native window transparency to the calling window. macOS uses
+/// NSWindow alphaValue; other desktop platforms map to their native
+/// equivalent via Tauri. Values outside 0.05–1.0 are clamped.
+#[cfg(desktop)]
+#[tauri::command]
+pub fn set_window_opacity(window: Window<'_>, opacity: f64) -> Result<(), String> {
+    let clamped = opacity.clamp(0.05, 1.0);
+    window
+        .set_opacity(Some(clamped))
+        .map_err(|error| format!("failed to set window opacity: {error}"))
+}
+
 #[cfg(desktop)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TitleBarDoubleClickAction {

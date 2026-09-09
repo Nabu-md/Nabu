@@ -182,7 +182,6 @@ function App() {
 
 function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | null }) {
   const aiWorkspaceWindow = false
-  const fluidVoice = useFluidVoiceDictation()
   const [selection, setSelection] = useState<SidebarSelection>(DEFAULT_SELECTION)
   const [sidebarSearch, setSidebarSearch] = useState('')
   const [sidebarListSort, setSidebarListSort] = useState<SortConfig | null>(null)
@@ -219,37 +218,45 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const networkStatus = useNetworkStatus()
   const { settings, loaded: settingsLoaded, saveSettings } = useSettings()
   const aiFeaturesEnabled = areAiFeaturesEnabled(settings)
+  const fluidVoice = useFluidVoiceDictation('en-US', {
+    initialModel: settings.fluidvoice_model,
+    initialBackend: settings.dictation_backend,
+    onPersist: (patch) => void saveSettings({ ...settings, ...patch }),
+  })
 
   // Transparency & font overrides: publish settings as CSS custom properties on
-  // the document root so panel styles can consume them without re-render churn.
+  // the document root. Vars are only set when the user configured them, so the
+  // CSS falls back to opaque defaults otherwise.
   useEffect(() => {
     const root = document.documentElement
     const clamp01 = (v: number | null | undefined) =>
-      typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null
+      typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0.05, v)) : null
     const clampRadius = (v: number | null | undefined) =>
       typeof v === 'number' && Number.isFinite(v) ? Math.min(20, Math.max(0, v)) : null
-    const panel = (opacity: number | null | undefined, blur: number | null | undefined) => {
+    const applyPanel = (opacityVar: string, blurVar: string, opacity?: number | null, blur?: number | null) => {
       const o = clamp01(opacity)
       const b = clampRadius(blur) ?? 0
-      return [
-        o !== null ? `color-mix(in srgb, var(--background) ${Math.round(o * 100)}%, transparent)` : null,
-        b > 0 ? `blur(${b}px)` : null,
-      ]
-        .filter(Boolean)
-        .join(' ')
+      if (o !== null) root.style.setProperty(opacityVar, String(o))
+      else root.style.removeProperty(opacityVar)
+      if (b > 0) root.style.setProperty(blurVar, `${b}px`)
+      else root.style.removeProperty(blurVar)
     }
-    root.style.setProperty('--nabu-sidebar-background', panel(settings.sidebar_opacity, settings.sidebar_blur_radius) || 'var(--background)')
-    root.style.setProperty('--nabu-editor-background', panel(settings.editor_opacity, settings.editor_blur_radius) || 'var(--background)')
-    root.style.setProperty('--nabu-ai-panel-background', panel(settings.ai_panel_opacity, settings.ai_panel_blur_radius) || 'var(--background)')
-    root.style.setProperty('--nabu-window-blur', `${clampRadius(settings.window_blur_radius) ?? 0}px`)
-    root.style.setProperty('--nabu-editor-font', settings.editor_font_family || '')
-    root.style.setProperty('--nabu-ai-chat-font', settings.ai_chat_font_family || '')
-    root.style.setProperty('--nabu-sidebar-font', settings.sidebar_font_family || '')
-    // Window-level opacity is Warp-style native transparency; Tauri needs the
-    // flag at creation time, so approximate with the root layer when unset.
+    applyPanel('--sidebar-opacity', '--sidebar-blur-radius', settings.sidebar_opacity, settings.sidebar_blur_radius)
+    applyPanel('--editor-opacity', '--editor-blur-radius', settings.editor_opacity, settings.editor_blur_radius)
+    applyPanel('--ai-panel-opacity', '--ai-panel-blur-radius', settings.ai_panel_opacity, settings.ai_panel_blur_radius)
+    const setFont = (name: string, value?: string | null) => {
+      if (value && value.trim()) root.style.setProperty(name, value.trim())
+      else root.style.removeProperty(name)
+    }
+    setFont('--nabu-editor-font', settings.editor_font_family)
+    setFont('--nabu-ai-chat-font', settings.ai_chat_font_family)
+    setFont('--nabu-sidebar-font', settings.sidebar_font_family)
     const wo = clamp01(settings.window_opacity)
-    if (wo !== null && wo < 1 && isTauri()) {
-      void invoke('set_window_opacity', { opacity: wo }).catch(() => undefined)
+    if (wo !== null) {
+      root.style.setProperty('--app-window-opacity', String(wo))
+      if (wo < 1 && isTauri()) void invoke('set_window_opacity', { opacity: wo }).catch(() => undefined)
+    } else {
+      root.style.removeProperty('--app-window-opacity')
     }
   }, [settings])
 

@@ -1,4 +1,4 @@
-import { Copy, Cube, Monitor, Moon, Sun, X } from '@phosphor-icons/react'
+import { Copy, Cube, Microphone, Monitor, Moon, Sparkle, Sun, X } from '@phosphor-icons/react'
 import {
   AI_AGENT_DEFINITIONS,
   createMissingAiAgentsStatus,
@@ -64,6 +64,10 @@ import {
 import { DEFAULT_NOTE_WIDTH_MODE, normalizeNoteWidthMode } from '../utils/noteWidth'
 import { DEFAULT_DATE_DISPLAY_FORMAT, normalizeDateDisplayFormat, type DateDisplayFormat } from '../utils/dateDisplay'
 import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Slider } from './ui/slider'
+import { invoke } from '@tauri-apps/api/core'
+import { isTauri, mockInvoke } from '../mock-tauri'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import type { NoteWidthMode } from '../types'
 import type { VaultOption } from './status-bar/types'
@@ -122,6 +126,25 @@ interface SettingsDraft {
   crashReporting: boolean
   analytics: boolean
   explicitOrganization: boolean
+  dictationEnabled: boolean
+  dictationPosition: 'bottom-right' | 'bottom-left'
+  dictationOpacity: number
+  dictationBackend: 'web_speech' | 'fluidvoice'
+  fluidvoiceModel: string
+  grammarCheckEnabled: boolean
+  ocrEnabled: boolean
+  documentConversionEnabled: boolean
+  sidebarOpacity: number
+  sidebarBlurRadius: number
+  editorOpacity: number
+  editorBlurRadius: number
+  aiPanelOpacity: number
+  aiPanelBlurRadius: number
+  windowOpacity: number
+  windowBlurRadius: number
+  editorFontFamily: string
+  aiChatFontFamily: string
+  sidebarFontFamily: string
 }
 
 interface SettingsBodyProps {
@@ -192,6 +215,44 @@ interface SettingsBodyProps {
   setCrashReporting: (value: boolean) => void
   analytics: boolean
   setAnalytics: (value: boolean) => void
+  dictationEnabled: boolean
+  setDictationEnabled: (value: boolean) => void
+  dictationPosition: 'bottom-right' | 'bottom-left'
+  setDictationPosition: (value: 'bottom-right' | 'bottom-left') => void
+  dictationOpacity: number
+  setDictationOpacity: (value: number) => void
+  dictationBackend: 'web_speech' | 'fluidvoice'
+  setDictationBackend: (value: 'web_speech' | 'fluidvoice') => void
+  fluidvoiceModel: string
+  setFluidvoiceModel: (value: string) => void
+  grammarCheckEnabled: boolean
+  setGrammarCheckEnabled: (value: boolean) => void
+  ocrEnabled: boolean
+  setOcrEnabled: (value: boolean) => void
+  documentConversionEnabled: boolean
+  setDocumentConversionEnabled: (value: boolean) => void
+  sidebarOpacity: number
+  setSidebarOpacity: (value: number) => void
+  sidebarBlurRadius: number
+  setSidebarBlurRadius: (value: number) => void
+  editorOpacity: number
+  setEditorOpacity: (value: number) => void
+  editorBlurRadius: number
+  setEditorBlurRadius: (value: number) => void
+  aiPanelOpacity: number
+  setAiPanelOpacity: (value: number) => void
+  aiPanelBlurRadius: number
+  setAiPanelBlurRadius: (value: number) => void
+  windowOpacity: number
+  setWindowOpacity: (value: number) => void
+  windowBlurRadius: number
+  setWindowBlurRadius: (value: number) => void
+  editorFontFamily: string
+  setEditorFontFamily: (value: string) => void
+  aiChatFontFamily: string
+  setAiChatFontFamily: (value: string) => void
+  sidebarFontFamily: string
+  setSidebarFontFamily: (value: string) => void
 }
 
 const PULL_INTERVAL_OPTIONS = [1, 2, 5, 10, 15, 30] as const
@@ -238,6 +299,25 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     crashReporting: settings.crash_reporting_enabled ?? false,
     analytics: settings.analytics_enabled ?? false,
     explicitOrganization: explicitOrganizationEnabled,
+    dictationEnabled: settings.dictation_enabled ?? false,
+    dictationPosition: settings.dictation_position ?? 'bottom-right',
+    dictationOpacity: settings.dictation_opacity ?? 0.85,
+    dictationBackend: settings.dictation_backend ?? 'web_speech',
+    fluidvoiceModel: settings.fluidvoice_model ?? 'parakeet',
+    grammarCheckEnabled: settings.grammar_check_enabled ?? true,
+    ocrEnabled: settings.ocr_enabled ?? true,
+    documentConversionEnabled: settings.document_conversion_enabled ?? true,
+    sidebarOpacity: settings.sidebar_opacity ?? 1,
+    sidebarBlurRadius: settings.sidebar_blur_radius ?? 0,
+    editorOpacity: settings.editor_opacity ?? 1,
+    editorBlurRadius: settings.editor_blur_radius ?? 0,
+    aiPanelOpacity: settings.ai_panel_opacity ?? 1,
+    aiPanelBlurRadius: settings.ai_panel_blur_radius ?? 0,
+    windowOpacity: settings.window_opacity ?? 1,
+    windowBlurRadius: settings.window_blur_radius ?? 0,
+    editorFontFamily: settings.editor_font_family ?? '',
+    aiChatFontFamily: settings.ai_chat_font_family ?? '',
+    sidebarFontFamily: settings.sidebar_font_family ?? '',
   }
 }
 
@@ -289,6 +369,25 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     ai_model_providers: draft.aiModelProviders.length > 0 ? draft.aiModelProviders : null,
     hide_gitignored_files: draft.hideGitignoredFiles,
     multi_workspace_enabled: draft.multiWorkspaceEnabled,
+    dictation_enabled: draft.dictationEnabled,
+    dictation_position: draft.dictationPosition,
+    dictation_opacity: draft.dictationOpacity,
+    dictation_backend: draft.dictationBackend,
+    fluidvoice_model: draft.fluidvoiceModel,
+    grammar_check_enabled: draft.grammarCheckEnabled,
+    ocr_enabled: draft.ocrEnabled,
+    document_conversion_enabled: draft.documentConversionEnabled,
+    sidebar_opacity: draft.sidebarOpacity,
+    sidebar_blur_radius: draft.sidebarBlurRadius,
+    editor_opacity: draft.editorOpacity,
+    editor_blur_radius: draft.editorBlurRadius,
+    ai_panel_opacity: draft.aiPanelOpacity,
+    ai_panel_blur_radius: draft.aiPanelBlurRadius,
+    window_opacity: draft.windowOpacity,
+    window_blur_radius: draft.windowBlurRadius,
+    editor_font_family: draft.editorFontFamily.trim() || null,
+    ai_chat_font_family: draft.aiChatFontFamily.trim() || null,
+    sidebar_font_family: draft.sidebarFontFamily.trim() || null,
   }
   return settingsWithAllNotesFileVisibility(nextSettings, draft.allNotesFileVisibility)
 }
@@ -610,6 +709,44 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setCrashReporting={(value) => updateDraft('crashReporting', value)}
       analytics={draft.analytics}
       setAnalytics={(value) => updateDraft('analytics', value)}
+      dictationEnabled={draft.dictationEnabled}
+      setDictationEnabled={(value) => updateDraft('dictationEnabled', value)}
+      dictationPosition={draft.dictationPosition}
+      setDictationPosition={(value) => updateDraft('dictationPosition', value)}
+      dictationOpacity={draft.dictationOpacity}
+      setDictationOpacity={(value) => updateDraft('dictationOpacity', value)}
+      dictationBackend={draft.dictationBackend}
+      setDictationBackend={(value) => updateDraft('dictationBackend', value)}
+      fluidvoiceModel={draft.fluidvoiceModel}
+      setFluidvoiceModel={(value) => updateDraft('fluidvoiceModel', value)}
+      grammarCheckEnabled={draft.grammarCheckEnabled}
+      setGrammarCheckEnabled={(value) => updateDraft('grammarCheckEnabled', value)}
+      ocrEnabled={draft.ocrEnabled}
+      setOcrEnabled={(value) => updateDraft('ocrEnabled', value)}
+      documentConversionEnabled={draft.documentConversionEnabled}
+      setDocumentConversionEnabled={(value) => updateDraft('documentConversionEnabled', value)}
+      sidebarOpacity={draft.sidebarOpacity}
+      setSidebarOpacity={(value) => updateDraft('sidebarOpacity', value)}
+      sidebarBlurRadius={draft.sidebarBlurRadius}
+      setSidebarBlurRadius={(value) => updateDraft('sidebarBlurRadius', value)}
+      editorOpacity={draft.editorOpacity}
+      setEditorOpacity={(value) => updateDraft('editorOpacity', value)}
+      editorBlurRadius={draft.editorBlurRadius}
+      setEditorBlurRadius={(value) => updateDraft('editorBlurRadius', value)}
+      aiPanelOpacity={draft.aiPanelOpacity}
+      setAiPanelOpacity={(value) => updateDraft('aiPanelOpacity', value)}
+      aiPanelBlurRadius={draft.aiPanelBlurRadius}
+      setAiPanelBlurRadius={(value) => updateDraft('aiPanelBlurRadius', value)}
+      windowOpacity={draft.windowOpacity}
+      setWindowOpacity={(value) => updateDraft('windowOpacity', value)}
+      windowBlurRadius={draft.windowBlurRadius}
+      setWindowBlurRadius={(value) => updateDraft('windowBlurRadius', value)}
+      editorFontFamily={draft.editorFontFamily}
+      setEditorFontFamily={(value) => updateDraft('editorFontFamily', value)}
+      aiChatFontFamily={draft.aiChatFontFamily}
+      setAiChatFontFamily={(value) => updateDraft('aiChatFontFamily', value)}
+      sidebarFontFamily={draft.sidebarFontFamily}
+      setSidebarFontFamily={(value) => updateDraft('sidebarFontFamily', value)}
     />
   )
 }
@@ -692,6 +829,14 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
             setUiLanguage={setUiLanguage}
           />
         </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection id={SETTINGS_SECTION_IDS.transparency}>
+        <TransparencySettingsSection {...options} />
+      </SettingsSection>
+
+      <SettingsSection id={SETTINGS_SECTION_IDS.dictation}>
+        <DictationSettingsSection {...options} />
       </SettingsSection>
     </>
   )
@@ -1198,6 +1343,349 @@ function OrganizationWorkflowSection({
           checked={autoAdvanceInboxAfterOrganize}
           onChange={onChangeAutoAdvanceInboxAfterOrganize}
           testId="settings-auto-advance-inbox-after-organize"
+        />
+      </SettingsGroup>
+    </>
+  )
+}
+
+const DICTATION_POSITION_OPTIONS = [
+  { value: 'bottom-right', label: 'settings.dictation.positionBottomRight' },
+  { value: 'bottom-left', label: 'settings.dictation.positionBottomLeft' },
+] as const
+
+const DICTATION_BACKEND_OPTIONS = [
+  { value: 'web_speech', label: 'settings.dictation.backendWebSpeech' },
+  { value: 'fluidvoice', label: 'settings.dictation.backendFluidvoice' },
+] as const
+
+const FLUIDVOICE_MODEL_FALLBACKS = ['nemotron', 'parakeet', 'apple_speech', 'whisper']
+
+/** Loads the FluidVoice model list (same source the dictation pill uses). */
+function useFluidVoiceModelOptions(): string[] {
+  const [models, setModels] = useState<string[]>(FLUIDVOICE_MODEL_FALLBACKS)
+  useEffect(() => {
+    let cancelled = false
+    const request = isTauri()
+      ? invoke<string[]>('fluidvoice_models')
+      : mockInvoke<string[]>('fluidvoice_models', {})
+    request
+      .then((available) => {
+        if (!cancelled && Array.isArray(available) && available.length > 0) setModels(available)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return models
+}
+
+function formatModelLabel(model: string): string {
+  return model.charAt(0).toUpperCase() + model.slice(1).replace(/_/g, ' ')
+}
+
+function PercentSliderControl({
+  label,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  testId: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Slider ariaLabel={label} min={0.05} max={1} step={0.05} value={value} onValueChange={onChange} />
+      <span className="w-10 text-right text-xs tabular-nums text-muted-foreground" data-testid={testId}>
+        {Math.round(value * 100)}%
+      </span>
+    </div>
+  )
+}
+
+function BlurSliderControl({
+  label,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  testId: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Slider ariaLabel={label} min={0} max={20} step={1} value={value} onValueChange={onChange} />
+      <span className="w-10 text-right text-xs tabular-nums text-muted-foreground" data-testid={testId}>
+        {value}px
+      </span>
+    </div>
+  )
+}
+
+/** Warp-style transparency: window-level opacity/blur plus per-panel frosted glass. */
+function TransparencySettingsSection(options: SettingsBodyProps) {
+  const {
+    t,
+    windowOpacity,
+    setWindowOpacity,
+    windowBlurRadius,
+    setWindowBlurRadius,
+    sidebarOpacity,
+    setSidebarOpacity,
+    sidebarBlurRadius,
+    setSidebarBlurRadius,
+    editorOpacity,
+    setEditorOpacity,
+    editorBlurRadius,
+    setEditorBlurRadius,
+    aiPanelOpacity,
+    setAiPanelOpacity,
+    aiPanelBlurRadius,
+    setAiPanelBlurRadius,
+    editorFontFamily,
+    setEditorFontFamily,
+    aiChatFontFamily,
+    setAiChatFontFamily,
+    sidebarFontFamily,
+    setSidebarFontFamily,
+  } = options
+  return (
+    <>
+      <SectionHeading icon={<Sparkle size={16} aria-hidden="true" />} title={t('settings.transparency.title')} />
+      <SettingsGroup>
+        <SettingsRow
+          label={t('settings.transparency.windowOpacity')}
+          description={t('settings.transparency.windowOpacityDescription')}
+        >
+          <PercentSliderControl
+            label={t('settings.transparency.windowOpacity')}
+            value={windowOpacity}
+            onChange={setWindowOpacity}
+            testId="settings-window-opacity-value"
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.transparency.windowBlur')}
+          description={t('settings.transparency.windowBlurDescription')}
+        >
+          <BlurSliderControl
+            label={t('settings.transparency.windowBlur')}
+            value={windowBlurRadius}
+            onChange={setWindowBlurRadius}
+            testId="settings-window-blur-value"
+          />
+        </SettingsRow>
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingsRow
+          label={t('settings.transparency.sidebarOpacity')}
+          description={t('settings.transparency.sidebarOpacityDescription')}
+        >
+          <PercentSliderControl
+            label={t('settings.transparency.sidebarOpacity')}
+            value={sidebarOpacity}
+            onChange={setSidebarOpacity}
+            testId="settings-sidebar-opacity-value"
+          />
+        </SettingsRow>
+        <SettingsRow label={t('settings.transparency.sidebarBlur')}>
+          <BlurSliderControl
+            label={t('settings.transparency.sidebarBlur')}
+            value={sidebarBlurRadius}
+            onChange={setSidebarBlurRadius}
+            testId="settings-sidebar-blur-value"
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.transparency.editorOpacity')}
+          description={t('settings.transparency.editorOpacityDescription')}
+        >
+          <PercentSliderControl
+            label={t('settings.transparency.editorOpacity')}
+            value={editorOpacity}
+            onChange={setEditorOpacity}
+            testId="settings-editor-opacity-value"
+          />
+        </SettingsRow>
+        <SettingsRow label={t('settings.transparency.editorBlur')}>
+          <BlurSliderControl
+            label={t('settings.transparency.editorBlur')}
+            value={editorBlurRadius}
+            onChange={setEditorBlurRadius}
+            testId="settings-editor-blur-value"
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.transparency.aiPanelOpacity')}
+          description={t('settings.transparency.aiPanelOpacityDescription')}
+        >
+          <PercentSliderControl
+            label={t('settings.transparency.aiPanelOpacity')}
+            value={aiPanelOpacity}
+            onChange={setAiPanelOpacity}
+            testId="settings-ai-panel-opacity-value"
+          />
+        </SettingsRow>
+        <SettingsRow label={t('settings.transparency.aiPanelBlur')}>
+          <BlurSliderControl
+            label={t('settings.transparency.aiPanelBlur')}
+            value={aiPanelBlurRadius}
+            onChange={setAiPanelBlurRadius}
+            testId="settings-ai-panel-blur-value"
+          />
+        </SettingsRow>
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingsRow label={t('settings.transparency.editorFont')}>
+          <Input
+            value={editorFontFamily}
+            onChange={(event) => setEditorFontFamily(event.target.value)}
+            placeholder={t('settings.transparency.fontPlaceholder')}
+            aria-label={t('settings.transparency.editorFont')}
+            data-testid="settings-editor-font"
+            className="bg-transparent"
+          />
+        </SettingsRow>
+        <SettingsRow label={t('settings.transparency.aiChatFont')}>
+          <Input
+            value={aiChatFontFamily}
+            onChange={(event) => setAiChatFontFamily(event.target.value)}
+            placeholder={t('settings.transparency.fontPlaceholder')}
+            aria-label={t('settings.transparency.aiChatFont')}
+            data-testid="settings-ai-chat-font"
+            className="bg-transparent"
+          />
+        </SettingsRow>
+        <SettingsRow label={t('settings.transparency.sidebarFont')}>
+          <Input
+            value={sidebarFontFamily}
+            onChange={(event) => setSidebarFontFamily(event.target.value)}
+            placeholder={t('settings.transparency.fontPlaceholder')}
+            aria-label={t('settings.transparency.sidebarFont')}
+            data-testid="settings-sidebar-font"
+            className="bg-transparent"
+          />
+        </SettingsRow>
+      </SettingsGroup>
+    </>
+  )
+}
+
+/** Dictation pill controls plus FluidVoice backend/model and AI tool toggles. */
+function DictationSettingsSection(options: SettingsBodyProps) {
+  const {
+    t,
+    dictationEnabled,
+    setDictationEnabled,
+    dictationPosition,
+    setDictationPosition,
+    dictationOpacity,
+    setDictationOpacity,
+    dictationBackend,
+    setDictationBackend,
+    fluidvoiceModel,
+    setFluidvoiceModel,
+    grammarCheckEnabled,
+    setGrammarCheckEnabled,
+    ocrEnabled,
+    setOcrEnabled,
+    documentConversionEnabled,
+    setDocumentConversionEnabled,
+  } = options
+  const models = useFluidVoiceModelOptions()
+  const modelOptions = models.map((model) => ({ value: model, label: formatModelLabel(model) }))
+  return (
+    <>
+      <SectionHeading icon={<Microphone size={16} aria-hidden="true" />} title={t('settings.dictation.title')} />
+      <SettingsGroup>
+        <SettingsSwitchRow
+          label={t('settings.dictation.enable')}
+          description={t('settings.dictation.enableDescription')}
+          checked={dictationEnabled}
+          onChange={setDictationEnabled}
+          testId="settings-dictation-enabled"
+        />
+        <SettingsRow label={t('settings.dictation.position')}>
+          <SelectControl
+            value={dictationPosition}
+            onValueChange={(value) => {
+              if (value === 'bottom-right' || value === 'bottom-left') setDictationPosition(value)
+            }}
+            options={DICTATION_POSITION_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label as Parameters<typeof t>[0]),
+            }))}
+            testId="settings-dictation-position"
+            ariaLabel={t('settings.dictation.position')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.dictation.opacity')}
+          description={t('settings.dictation.opacityDescription')}
+        >
+          <PercentSliderControl
+            label={t('settings.dictation.opacity')}
+            value={dictationOpacity}
+            onChange={setDictationOpacity}
+            testId="settings-dictation-opacity-value"
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.dictation.backend')}
+          description={t('settings.dictation.backendDescription')}
+        >
+          <SelectControl
+            value={dictationBackend}
+            onValueChange={(value) => {
+              if (value === 'web_speech' || value === 'fluidvoice') setDictationBackend(value)
+            }}
+            options={DICTATION_BACKEND_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label as Parameters<typeof t>[0]),
+            }))}
+            testId="settings-dictation-backend"
+            ariaLabel={t('settings.dictation.backend')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('settings.dictation.model')}
+          description={t('settings.dictation.modelDescription')}
+        >
+          <SelectControl
+            value={modelOptions.some((option) => option.value === fluidvoiceModel) ? fluidvoiceModel : (modelOptions[0]?.value ?? 'parakeet')}
+            onValueChange={setFluidvoiceModel}
+            options={modelOptions}
+            testId="settings-fluidvoice-model"
+            ariaLabel={t('settings.dictation.model')}
+          />
+        </SettingsRow>
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingsSwitchRow
+          label={t('settings.dictation.grammarCheck')}
+          description={t('settings.dictation.grammarCheckDescription')}
+          checked={grammarCheckEnabled}
+          onChange={setGrammarCheckEnabled}
+          testId="settings-grammar-check"
+        />
+        <SettingsSwitchRow
+          label={t('settings.dictation.ocr')}
+          description={t('settings.dictation.ocrDescription')}
+          checked={ocrEnabled}
+          onChange={setOcrEnabled}
+          testId="settings-ocr"
+        />
+        <SettingsSwitchRow
+          label={t('settings.dictation.documentConversion')}
+          description={t('settings.dictation.documentConversionDescription')}
+          checked={documentConversionEnabled}
+          onChange={setDocumentConversionEnabled}
+          testId="settings-document-conversion"
         />
       </SettingsGroup>
     </>

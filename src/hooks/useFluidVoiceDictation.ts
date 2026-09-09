@@ -51,6 +51,15 @@ function persistBackend(backend: DictationBackend): void {
   }
 }
 
+export interface FluidVoiceHookOptions {
+  /** Persisted model from settings; takes precedence over localStorage when set. */
+  initialModel?: string | null
+  /** Persisted backend from settings; takes precedence over localStorage when set. */
+  initialBackend?: DictationBackend | null
+  /** Best-effort sink so model/backend changes also land in app settings. */
+  onPersist?: (patch: { fluidvoice_model?: string; dictation_backend?: DictationBackend }) => void
+}
+
 interface FluidVoiceState {
   installed: boolean
   models: string[]
@@ -73,15 +82,24 @@ function fluidVoiceInvoke<T>(command: string, args?: Record<string, unknown>): P
  * FluidVoice app). Falls back to the Web Speech API when FluidVoice is not
  * installed, on non-macOS platforms, or in browser mode.
  */
-export function useFluidVoiceDictation(lang = 'en-US'): FluidVoiceState & { webSpeech: SpeechRecognitionState } {
+export function useFluidVoiceDictation(
+  lang = 'en-US',
+  options: FluidVoiceHookOptions = {},
+): FluidVoiceState & { webSpeech: SpeechRecognitionState } {
+  const { initialModel, initialBackend, onPersist } = options
   const webSpeech = useSpeechRecognition(lang)
   const [installed, setInstalled] = useState(false)
   const [models, setModels] = useState<string[]>([])
-  const [model, setModelState] = useState(loadPersistedModel)
-  const [backend, setBackendState] = useState<DictationBackend>(loadPersistedBackend)
+  const [model, setModelState] = useState(() => initialModel ?? loadPersistedModel())
+  const [backend, setBackendState] = useState<DictationBackend>(() => {
+    if (initialBackend === 'fluidvoice' || initialBackend === 'web_speech') return initialBackend
+    return loadPersistedBackend()
+  })
   const [status, setStatus] = useState<FluidVoiceStatus>('idle')
   const [transcript, setTranscript] = useState('')
   const pollRef = useRef<number | null>(null)
+  const onPersistRef = useRef(onPersist)
+  onPersistRef.current = onPersist
 
   useEffect(() => {
     let cancelled = false
@@ -117,11 +135,13 @@ export function useFluidVoiceDictation(lang = 'en-US'): FluidVoiceState & { webS
   const setModel = useCallback((next: string) => {
     setModelState(next)
     persistModel(next)
+    onPersistRef.current?.({ fluidvoice_model: next })
   }, [])
 
   const setBackend = useCallback((next: DictationBackend) => {
     setBackendState(next)
     persistBackend(next)
+    onPersistRef.current?.({ dictation_backend: next })
   }, [])
 
   const pollStatus = useCallback(async () => {
