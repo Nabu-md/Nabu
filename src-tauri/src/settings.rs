@@ -128,6 +128,16 @@ pub struct Settings {
     pub dictation_opacity: Option<f64>,
     pub dictation_backend: Option<String>,
     pub fluidvoice_model: Option<String>,
+    /// Text-to-speech engine: "system" (Web Speech) or "kokoro". null = auto.
+    pub tts_engine: Option<String>,
+    /// Kokoro voice id, e.g. "af_sky".
+    pub kokoro_voice: Option<String>,
+    /// Kokoro reading speed, clamped to 0.5–2.0.
+    pub kokoro_speed: Option<f64>,
+    /// Live word highlighting while TTS reads.
+    pub tts_highlight_enabled: Option<bool>,
+    /// Mini-apps (DuckDB-backed notes with app_id) enabled.
+    pub mini_apps_sql_enabled: Option<bool>,
     pub grammar_check_enabled: Option<bool>,
     pub ocr_enabled: Option<bool>,
     pub document_conversion_enabled: Option<bool>,
@@ -278,6 +288,11 @@ fn normalize_settings(settings: Settings) -> Settings {
         dictation_opacity: normalize_opacity(settings.dictation_opacity),
         dictation_backend: normalize_dictation_backend(settings.dictation_backend.as_deref()),
         fluidvoice_model: normalize_optional_string(settings.fluidvoice_model),
+        tts_engine: normalize_tts_engine(settings.tts_engine.as_deref()),
+        kokoro_voice: normalize_optional_string(settings.kokoro_voice),
+        kokoro_speed: normalize_kokoro_speed(settings.kokoro_speed),
+        tts_highlight_enabled: settings.tts_highlight_enabled,
+        mini_apps_sql_enabled: settings.mini_apps_sql_enabled,
         grammar_check_enabled: settings.grammar_check_enabled,
         ocr_enabled: settings.ocr_enabled,
         document_conversion_enabled: settings.document_conversion_enabled,
@@ -311,6 +326,22 @@ fn normalize_dictation_backend(value: Option<&str>) -> Option<String> {
         Some("fluidvoice") => Some("fluidvoice".to_string()),
         _ => None,
     }
+}
+
+/// Accepts only the documented TTS engines; anything else is dropped.
+fn normalize_tts_engine(value: Option<&str>) -> Option<String> {
+    match value? {
+        "system" => Some("system".to_string()),
+        "kokoro" => Some("kokoro".to_string()),
+        _ => None,
+    }
+}
+
+/// Kokoro playback speed, clamped to the documented 0.5–2.0 range.
+fn normalize_kokoro_speed(value: Option<f64>) -> Option<f64> {
+    value
+        .filter(|speed| speed.is_finite())
+        .map(|speed| speed.clamp(0.5, 2.0))
 }
 
 fn normalize_ai_workspace_conversations(

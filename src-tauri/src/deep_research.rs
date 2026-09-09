@@ -27,6 +27,11 @@ pub struct DeepResearchRequest {
     pub permission_mode: Option<AiAgentPermissionMode>,
     #[serde(default)]
     pub event_name: Option<String>,
+    /// Buzz team channel for multiplayer research. When set, recent team
+    /// messages are injected before each iteration and progress updates plus
+    /// the final report are posted to the channel.
+    #[serde(default)]
+    pub team_channel: Option<String>,
 }
 
 impl DeepResearchRequest {
@@ -359,7 +364,33 @@ where
     let mut session_id = String::new();
 
     for iteration in 1..=depth {
-        let message = build_iteration_message(&query, iteration, depth, &previous_summary);
+        let mut message = build_iteration_message(&query, iteration, depth, &previous_summary);
+        // Multiplayer mode: prepend team context so the agent knows what the
+        // rest of the team is doing, then announce the iteration start.
+        if let Some(channel) = request.team_channel.as_deref() {
+            match crate::buzz_integration::get_team_messages(channel, 10) {
+                Ok(messages) if !messages.is_empty() => {
+                    let context = messages
+                        .iter()
+                        .map(|message| format!("[{}] {}", message.author, message.content))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    message = format!("Team context:\n{context}\n\n{message}");
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    emit(DeepResearchEvent::Error { message: error });
+                }
+            }
+            if let Err(error) = crate::buzz_integration::post_agent_update(
+                channel,
+                &format!(
+                    "Starting research iteration {iteration}/{depth} for: {query}"
+                ),
+            ) {
+                emit(DeepResearchEvent::Error { message: error });
+            }
+        }
         emit(DeepResearchEvent::IterationStart {
             iteration,
             goal: message.clone(),
@@ -481,6 +512,12 @@ where
             emit(DeepResearchEvent::Result {
                 report: report.clone(),
             });
+            // Multiplayer mode: share the finished report with the team.
+            if let Some(channel) = request.team_channel.as_deref() {
+                if let Err(error) = crate::buzz_integration::post_research_result(channel, &query, &report) {
+                    emit(DeepResearchEvent::Error { message: error });
+                }
+            }
             // Reports are first-class notes: persist the final report into the
             // vault so the user can read, link, and PDF-export it. A failed
             // write must not fail the research run itself.
@@ -519,6 +556,11 @@ where
             emit(DeepResearchEvent::Result {
                 report: fallback.clone(),
             });
+            if let Some(channel) = request.team_channel.as_deref() {
+                if let Err(error) = crate::buzz_integration::post_research_result(channel, &query, &fallback) {
+                    emit(DeepResearchEvent::Error { message: error });
+                }
+            }
             match write_report_note(&request.vault_path, &query, &fallback) {
                 Ok(note_path) => {
                     emit(DeepResearchEvent::ReportWritten { path: note_path });
@@ -553,6 +595,7 @@ mod tests {
             agent: None,
             permission_mode: None,
             event_name: None,
+            team_channel: None,
         };
         assert_eq!(request(None).effective_depth(), 3);
         assert_eq!(request(Some(1)).effective_depth(), 1);
@@ -712,6 +755,7 @@ mod tests {
             agent: None,
             permission_mode: None,
             event_name: None,
+            team_channel: None,
         };
         let mut events = Vec::new();
         let result = run_deep_research(request, |event| events.push(event));

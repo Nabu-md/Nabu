@@ -407,6 +407,20 @@ macro_rules! app_invoke_handler {
             commands::fluidvoice_start,
             commands::fluidvoice_stop,
             commands::fluidvoice_status,
+            commands::buzz_status,
+            commands::buzz_get_team_messages,
+            commands::buzz_post_agent_update,
+            commands::kokoro_available,
+            commands::kokoro_list_voices,
+            commands::kokoro_word_timings,
+            commands::kokoro_speak,
+            commands::kokoro_stop,
+            commands::discover_mini_apps,
+            commands::get_mini_app,
+            commands::run_mini_app_view,
+            commands::execute_mini_app_mut,
+            commands::export_mini_app_to_markdown,
+            commands::import_mini_app_markdown,
             commands::sync_mcp_bridge_vault,
             commands::get_process_memory_snapshot,
             commands::repair_vault,
@@ -431,6 +445,11 @@ macro_rules! app_invoke_handler {
             mini_apps::open_mini_app_devtools,
             mini_apps::mcp_tool_call,
             mini_apps::list_mini_app_cron_jobs,
+            miniapp_gateways::proxy_fetch,
+            miniapp_gateways::scrape_selector,
+            miniapp_gateways::fetch_rss_feed,
+            miniapp_gateways::get_current_activity,
+            miniapp_gateways::sync_email,
             vault_watcher::start_vault_watcher,
             vault_watcher::stop_vault_watcher
         ]
@@ -538,6 +557,7 @@ pub fn run_research_cli() -> Result<(), String> {
         agent,
         permission_mode: None,
         event_name: None,
+        team_channel: None,
     };
 
     deep_research::run_deep_research(request, |event| match event {
