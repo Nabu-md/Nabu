@@ -22,11 +22,41 @@ use super::parse_build_label;
 /// equivalent via Tauri. Values outside 0.05–1.0 are clamped.
 #[cfg(desktop)]
 #[tauri::command]
-pub fn set_window_opacity(window: Window<'_>, opacity: f64) -> Result<(), String> {
+pub fn set_window_opacity(window: Window, opacity: f64) -> Result<(), String> {
     let clamped = opacity.clamp(0.05, 1.0);
-    window
-        .set_opacity(Some(clamped))
-        .map_err(|error| format!("failed to set window opacity: {error}"))
+    apply_window_opacity(&window, clamped)
+}
+
+/// Applies native window transparency. Tauri 2.x has no cross-platform
+/// `set_opacity`, so macOS goes through NSWindow's `setAlphaValue:` and other
+/// desktop platforms report unsupported (the webview CSS fallback still
+/// covers them).
+#[cfg(desktop)]
+fn apply_window_opacity(window: &Window, opacity: f64) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2::msg_send;
+        use objc2::runtime::AnyObject;
+
+        let ns_window = window
+            .ns_window()
+            .map_err(|error| format!("failed to resolve native window: {error}"))?;
+        let ns_window = ns_window as *mut AnyObject;
+        if ns_window.is_null() {
+            return Err("native window handle is unavailable".to_string());
+        }
+        // SAFETY: `ns_window` is a live NSWindow pointer supplied by Tauri for
+        // the duration of the call; `setAlphaValue:` takes a plain CGFloat and
+        // returns void.
+        let _: () = unsafe { msg_send![ns_window, setAlphaValue: opacity as f64] };
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = window;
+        let _ = opacity;
+        Err("window-level opacity is only supported on macOS".to_string())
+    }
 }
 
 #[cfg(desktop)]
