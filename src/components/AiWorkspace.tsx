@@ -577,6 +577,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     ready: modelCatalogReady,
     selectedModelId: conversation.modelId,
   })
+  const [teamChannel, setTeamChannel] = useState<string | null>(null)
   const controller = useAiPanelController({
     vaultPath,
     vaultPaths,
@@ -600,7 +601,6 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     sessionId: conversation.id,
   })
   const running = controller.agent.status === 'thinking' || controller.agent.status === 'tool-executing'
-  const [teamChannel, setTeamChannel] = useState<string | null>(null)
   const composerMenuSide = mode === 'window' ? 'bottom' : 'top'
   const handleModelChange = useAiAgentModelActions({
     addLocalMarker: controller.agent.addLocalMarker,

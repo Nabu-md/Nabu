@@ -10,6 +10,7 @@ import {
   useSpeechRecognition,
 } from '../hooks/useDictation'
 import type { useFluidVoiceDictation } from '../hooks/useFluidVoiceDictation'
+import type { KokoroTtsState } from '../hooks/useKokoroTts'
 import { TtsPlaybackControls } from './TtsPlaybackControls'
 import { useKokoroTts } from '../hooks/useKokoroTts'
 import { useTtsTextSource } from '../hooks/useTtsTextSource'
@@ -21,6 +22,8 @@ export interface DictationPillProps {
   opacity?: number
   /** When provided, FluidVoice becomes the selectable dictation backend. */
   fluidVoice?: ReturnType<typeof useFluidVoiceDictation>
+  /** Shared Kokoro TTS engine from the app root; a local one is used otherwise. */
+  tts?: KokoroTtsState
 }
 
 const DICTATION_SHORTCUT_KEY = 'd'
@@ -47,7 +50,12 @@ export function DictationPill({
   position = 'bottom-right',
   opacity = 0.85,
   fluidVoice,
+  tts: sharedTts,
 }: DictationPillProps) {
+  // The App root shares its Kokoro engine so selection reading and note
+  // reading share one playback stream (plan 4 §1.4).
+  const localTts = useKokoroTts()
+  const tts = sharedTts ?? localTts
   const [panelOpen, setPanelOpen] = useState(false)
   const fallbackSpeech = useSpeechRecognition()
   const speech = fluidVoice ? fluidVoice.webSpeech : fallbackSpeech
@@ -61,7 +69,6 @@ export function DictationPill({
 
   // Plan 4 §1.6C: when the user selects text anywhere, the pill switches from
   // microphone to speaker mode and reads the selection aloud with Kokoro.
-  const tts = useKokoroTts()
   const ttsSource = useTtsTextSource({ tts, sourceId: 'selection' })
   const [hasSelection, setHasSelection] = useState(false)
   useEffect(() => {

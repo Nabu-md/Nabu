@@ -17,6 +17,7 @@ import { AiWorkspaceWindowApp } from './components/AiWorkspaceWindowApp'
 import { MiniAppWindowApp } from './components/MiniAppWindowApp'
 import { DictationWindowApp } from './DictationWindowApp'
 import { MiniAppsLauncher } from './components/MiniAppsLauncher'
+import { useKokoroTts } from './hooks/useKokoroTts'
 import { DictationPill } from './components/DictationPill'
 import { useFluidVoiceDictation } from './hooks/useFluidVoiceDictation'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -222,6 +223,13 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     initialModel: settings.fluidvoice_model,
     initialBackend: settings.dictation_backend,
     onPersist: (patch) => void saveSettings({ ...settings, ...patch }),
+  })
+  // Shared Kokoro TTS engine (plan 4 §1.4): initial voice/speed/highlight
+  // come from settings; the hook persists user changes locally.
+  const tts = useKokoroTts({
+    initialVoice: settings.kokoro_voice,
+    initialSpeed: settings.kokoro_speed,
+    initialHighlight: settings.tts_highlight_enabled,
   })
 
   // Transparency & font overrides: publish settings as CSS custom properties on
@@ -1890,17 +1898,20 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
         ) : null}
         {!noteWindowParams && (
           <>
-            <MiniAppsLauncher
-              vaultPath={resolvedPath}
-              activeNote={{ path: activeTabEntry?.path, title: activeTabEntry?.title }}
-              onToast={setToastMessage}
-            />
+            {(settings.mini_apps_enabled ?? true) && (
+              <MiniAppsLauncher
+                vaultPath={resolvedPath}
+                activeNote={{ path: activeTabEntry?.path, title: activeTabEntry?.title }}
+                onToast={setToastMessage}
+              />
+            )}
             <DictationPill
               vaultPath={resolvedPath}
               enabled={settings.dictation_enabled ?? true}
               position={settings.dictation_position ?? 'bottom-right'}
               opacity={settings.dictation_opacity ?? 0.85}
               fluidVoice={fluidVoice}
+              tts={tts}
             />
           </>
         )}
