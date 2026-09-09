@@ -157,6 +157,11 @@ let mockSettings: Settings = {
   dictation_opacity: null,
   dictation_backend: null,
   fluidvoice_model: null,
+  tts_engine: null,
+  kokoro_voice: null,
+  kokoro_speed: null,
+  tts_highlight_enabled: null,
+  mini_apps_enabled: null,
   grammar_check_enabled: null,
   ocr_enabled: null,
   document_conversion_enabled: null,
@@ -684,6 +689,11 @@ export const mockHandlers = {
       dictation_opacity: s.dictation_opacity ?? null,
       dictation_backend: s.dictation_backend ?? null,
       fluidvoice_model: s.fluidvoice_model ?? null,
+      tts_engine: s.tts_engine ?? null,
+      kokoro_voice: s.kokoro_voice ?? null,
+      kokoro_speed: s.kokoro_speed ?? null,
+      tts_highlight_enabled: s.tts_highlight_enabled ?? null,
+      mini_apps_enabled: s.mini_apps_enabled ?? null,
       grammar_check_enabled: s.grammar_check_enabled ?? null,
       ocr_enabled: s.ocr_enabled ?? null,
       document_conversion_enabled: s.document_conversion_enabled ?? null,
@@ -837,6 +847,40 @@ export const mockHandlers = {
     return 'Vault repaired'
   },
   reinit_telemetry: (): null => null,
+
+  // ── Kokoro TTS ──────────────────────────────────────────────────────────
+  kokoro_available: (): boolean => false,
+  kokoro_list_voices: (): string[] => [
+    'af_heart', 'af_sky', 'af_bella', 'af_nicole', 'am_adam', 'am_michael', 'bf_emma', 'bm_george',
+  ],
+  kokoro_word_timings: (args: { text?: string; speed?: number | null; duration_ms?: number | null }) => {
+    const words = (args.text ?? '').split(/\s+/).filter(Boolean)
+    const duration = (args.duration_ms ?? 0) / 1000
+    const speed = args.speed ?? 1
+    const total = words.reduce((sum, w) => sum + Math.max(w.length, 1), 0)
+    let cursor = 0
+    return words.map((word) => {
+      const span = duration * speed * (Math.max(word.length, 1) / Math.max(total, 1))
+      const timing = { word, start: cursor, end: cursor + span }
+      cursor += span
+      return timing
+    })
+  },
+  kokoro_speak: (): string => '/tmp/nabu-tts-mock.wav',
+  kokoro_stop: (): null => null,
+
+  // ── Buzz multiplayer ────────────────────────────────────────────────────
+  buzz_status: () => ({ installed: false, has_identity: false, env_key_present: false }),
+  buzz_get_team_messages: (): Array<{ author: string; content: string; created_at: number }> => [],
+  buzz_post_agent_update: (): null => null,
+
+  // ── DuckDB mini-apps ───────────────────────────────────────────────────
+  discover_mini_apps: (): Array<{ app_id: string; title: string; note_path: string }> => [],
+  get_mini_app: (): null => null,
+  run_mini_app_view: (): Array<Record<string, unknown>> => [],
+  execute_mini_app_mut: (): null => null,
+  export_mini_app_to_markdown: (): string => '',
+  import_mini_app_markdown_cmd: (): number => 0,
 } satisfies Record<string, (...args: never[]) => unknown>
 
 export function addMockEntry(_entry: VaultEntry, content: string): void {

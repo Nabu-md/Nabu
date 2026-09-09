@@ -76,7 +76,7 @@ pub enum MiniAppFormFieldType {
 /// Lightweight metadata returned by `discover_mini_apps`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub struct MiniAppSqlMeta {
+pub struct MiniAppMeta {
     pub app_id: String,
     pub title: String,
     pub note_path: String,
@@ -641,7 +641,7 @@ fn parse_insert_template(query: &str) -> Option<ParsedInsert> {
 /// body)>` of candidate notes produced by the caller.
 pub fn discover_apps(
     notes: Vec<(String, String, String)>,
-) -> Result<Vec<MiniAppSqlMeta>, String> {
+) -> Result<Vec<MiniAppMeta>, String> {
     let mut apps = Vec::new();
     for (note_path, frontmatter_json, body) in notes {
         let frontmatter: HashMap<String, Value> =
@@ -650,7 +650,7 @@ pub fn discover_apps(
             continue;
         }
         match MiniAppSql::from_markdown(&frontmatter, &body, &note_path) {
-            Ok(app) => apps.push(MiniAppSqlMeta {
+            Ok(app) => apps.push(MiniAppMeta {
                 app_id: app.app_id,
                 title: app.title,
                 note_path: app.note_path,

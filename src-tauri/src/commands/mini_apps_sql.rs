@@ -1,5 +1,5 @@
 use super::mini_apps_sql::{
-    discover_apps, run_form_insert, run_view, MiniAppRow, MiniAppSql, MiniAppSqlMeta,
+    discover_apps, run_form_insert, run_view, MiniAppRow, MiniAppSql, MiniAppMeta,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -29,7 +29,7 @@ fn confine_to_vault(vault_path: &str, note_path: &str) -> Result<PathBuf, String
 
 /// Extracts frontmatter key-value pairs from a note using the same
 /// gray-matter parsing the rest of the backend uses, and returns the body.
-fn split_frontmatter(content: &str) -> (HashMap<String, Value>, String) {
+fn split_frontmatter_meta(content: &str) -> (HashMap<String, Value>, String) {
     let parsed = gray_matter::Matter::<gray_matter::engine::YAML>::new().parse(content);
     let mut map = HashMap::new();
     if let Some(data) = parsed.data {
@@ -45,11 +45,11 @@ fn split_frontmatter(content: &str) -> (HashMap<String, Value>, String) {
     (map, parsed.content)
 }
 
-fn read_app_note(vault_path: &str, note_path: &str) -> Result<MiniAppSql, String> {
+fn read_mini_app_note(vault_path: &str, note_path: &str) -> Result<MiniAppSql, String> {
     let full_path = confine_to_vault(vault_path, note_path)?;
     let content = std::fs::read_to_string(&full_path)
         .map_err(|error| format!("Failed to read mini-app note: {error}"))?;
-    let (frontmatter, body) = split_frontmatter(&content);
+    let (frontmatter, body) = split_frontmatter_meta(&content);
     MiniAppSql::from_markdown(&frontmatter, &body, note_path)
 }
 
@@ -59,7 +59,7 @@ const MAX_DISCOVERY_NOTES: usize = 5_000;
 const MAX_NOTE_BYTES: u64 = 2 * 1024 * 1024;
 
 #[tauri::command]
-pub fn discover_mini_apps(vault_path: String) -> Result<Vec<MiniAppSqlMeta>, String> {
+pub fn discover_mini_apps(vault_path: String) -> Result<Vec<MiniAppMeta>, String> {
     let vault = PathBuf::from(vault_path.trim());
     if vault.as_os_str().is_empty() || !vault.is_dir() {
         return Err("A valid vault path is required".to_string());
@@ -93,7 +93,7 @@ pub fn discover_mini_apps(vault_path: String) -> Result<Vec<MiniAppSqlMeta>, Str
         if !content.contains("app_id") {
             continue;
         }
-        let (frontmatter, _) = split_frontmatter(&content);
+        let (frontmatter, _) = split_frontmatter_meta(&content);
         if !frontmatter.contains_key("app_id") {
             continue;
         }
@@ -110,7 +110,7 @@ pub fn discover_mini_apps(vault_path: String) -> Result<Vec<MiniAppSqlMeta>, Str
 
 #[tauri::command]
 pub fn get_mini_app(vault_path: String, note_path: String) -> Result<MiniAppSql, String> {
-    read_app_note(&vault_path, &note_path)
+    read_mini_app_note(&vault_path, &note_path)
 }
 
 #[tauri::command]
@@ -120,7 +120,7 @@ pub fn run_mini_app_view(
     view_name: String,
     params: Option<HashMap<String, String>>,
 ) -> Result<Vec<MiniAppRow>, String> {
-    let app = read_app_note(&vault_path, &note_path)?;
+    let app = read_mini_app_note(&vault_path, &note_path)?;
     run_view(Path::new(vault_path.trim()), &app, &view_name, &params.unwrap_or_default())
 }
 
@@ -131,7 +131,7 @@ pub fn execute_mini_app_mut(
     view_name: String,
     values: HashMap<String, String>,
 ) -> Result<(), String> {
-    let app = read_app_note(&vault_path, &note_path)?;
+    let app = read_mini_app_note(&vault_path, &note_path)?;
     run_form_insert(Path::new(vault_path.trim()), &app, &view_name, &values)
 }
 
@@ -182,7 +182,7 @@ pub fn export_mini_app_to_markdown(
     note_path: String,
     view_name: String,
 ) -> Result<String, String> {
-    let app = read_app_note(&vault_path, &note_path)?;
+    let app = read_mini_app_note(&vault_path, &note_path)?;
     let rows = run_view(
         Path::new(vault_path.trim()),
         &app,
@@ -194,13 +194,13 @@ pub fn export_mini_app_to_markdown(
 
 /// Import request: column values for one record, submitted to a form view.
 #[tauri::command]
-pub fn import_mini_app_markdown(
+pub fn import_mini_app_markdown_cmd(
     vault_path: String,
     note_path: String,
     view_name: String,
     rows: Vec<HashMap<String, String>>,
 ) -> Result<u32, String> {
-    let app = read_app_note(&vault_path, &note_path)?;
+    let app = read_mini_app_note(&vault_path, &note_path)?;
     let mut imported = 0u32;
     for row in rows {
         run_form_insert(Path::new(vault_path.trim()), &app, &view_name, &row)?;
@@ -297,7 +297,7 @@ mod tests {
         write_note(vault.path(), "notes/crm.md", CRM_NOTE);
         let vault_str = vault.path().to_string_lossy().into_owned();
 
-        let imported = import_mini_app_markdown(
+        let imported = import_mini_app_markdown_cmd(
             vault_str,
             "notes/crm.md".to_string(),
             "Add Customer".to_string(),

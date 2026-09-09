@@ -156,6 +156,16 @@ export interface Settings {
   dictation_backend?: 'web_speech' | 'fluidvoice' | null
   /** Preferred FluidVoice speech model, persisted across reloads. */
   fluidvoice_model?: string | null
+  /** Text-to-speech engine. null = auto (Kokoro when installed, else Web Speech). */
+  tts_engine?: 'system' | 'kokoro' | null
+  /** Kokoro voice id, e.g. "af_sky". */
+  kokoro_voice?: string | null
+  /** Kokoro reading speed, clamped to 0.5–2.0. */
+  kokoro_speed?: number | null
+  /** Live word highlighting while text is being read aloud. */
+  tts_highlight_enabled?: boolean | null
+  /** Mini-apps (DuckDB-backed notes with `app_id` frontmatter) enabled. */
+  mini_apps_enabled?: boolean | null
   /** Harper grammar checking for the editor. */
   grammar_check_enabled?: boolean | null
   /** OCR text extraction from images/PDFs. */
