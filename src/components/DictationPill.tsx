@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClipboardText, Image, Microphone, MicrophoneSlash, X } from '@phosphor-icons/react'
+import { ClipboardText, Image, Microphone, MicrophoneSlash, SpeakerHigh, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { trackEvent } from '../lib/telemetry'
@@ -10,6 +10,9 @@ import {
   useSpeechRecognition,
 } from '../hooks/useDictation'
 import type { useFluidVoiceDictation } from '../hooks/useFluidVoiceDictation'
+import { TtsPlaybackControls } from './TtsPlaybackControls'
+import { useKokoroTts } from '../hooks/useKokoroTts'
+import { useTtsTextSource } from '../hooks/useTtsTextSource'
 
 export interface DictationPillProps {
   vaultPath: string | null
@@ -55,6 +58,22 @@ export function DictationPill({
   const clipboard = useClipboardCache()
   const dropZone = useFileDropZone(vaultPath)
   const panelRef = useRef<HTMLDivElement | null>(null)
+
+  // Plan 4 §1.6C: when the user selects text anywhere, the pill switches from
+  // microphone to speaker mode and reads the selection aloud with Kokoro.
+  const tts = useKokoroTts()
+  const ttsSource = useTtsTextSource({ tts, sourceId: 'selection' })
+  const [hasSelection, setHasSelection] = useState(false)
+  useEffect(() => {
+    if (tts.status !== 'ready') return
+    const syncSelection = () => {
+      const selection = document.getSelection()
+      setHasSelection(Boolean(selection && selection.toString().trim().length > 0))
+    }
+    document.addEventListener('selectionchange', syncSelection)
+    return () => document.removeEventListener('selectionchange', syncSelection)
+  }, [tts.status])
+  const ttsMode = tts.status === 'ready' && hasSelection && !panelOpen && !isListening
 
   const togglePanel = useCallback(() => {
     setPanelOpen((current) => !current)
@@ -261,6 +280,12 @@ export function DictationPill({
         </div>
       )}
 
+      {ttsMode && ttsSource.active && (
+        <div className="mb-1">
+          <TtsPlaybackControls tts={tts} compact />
+        </div>
+      )}
+
       {/* Oblong pill: wide when idle, expands with the panel open. */}
       <Button
         type="button"
@@ -270,14 +295,25 @@ export function DictationPill({
           'h-11 rounded-full px-5 shadow-lg transition-all',
           panelOpen ? 'w-11 px-0' : 'w-auto gap-2',
         )}
-        aria-label="Toggle dictation"
-        title="Dictation (⌘⇧D)"
+        aria-label={ttsMode ? 'Read selected text aloud' : 'Toggle dictation'}
+        title={ttsMode ? 'Read aloud' : 'Dictation (⌘⇧D)'}
         aria-expanded={panelOpen}
-        data-testid="dictation-toggle"
-        onClick={togglePanel}
+        data-testid={ttsMode ? 'dictation-tts-toggle' : 'dictation-toggle'}
+        onClick={() => {
+          if (ttsMode) {
+            void ttsSource.speak()
+            return
+          }
+          togglePanel()
+        }}
       >
         {panelOpen ? (
           <X size={18} />
+        ) : ttsMode ? (
+          <>
+            <SpeakerHigh size={18} weight="fill" />
+            <span className="text-[13px] font-medium">Read aloud</span>
+          </>
         ) : (
           <>
             <Microphone size={18} weight="fill" />

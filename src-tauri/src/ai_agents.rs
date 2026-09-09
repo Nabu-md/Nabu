@@ -135,6 +135,11 @@ pub struct AiAgentStreamRequest {
     pub permission_mode: Option<AiAgentPermissionMode>,
     #[serde(default)]
     pub event_name: Option<String>,
+    /// Buzz team channel for multiplayer research (plan 4 §2.4). When set and
+    /// the request runs in deep-research mode, the agent's final answer is
+    /// posted to the channel as a research result.
+    #[serde(default)]
+    pub team_channel: Option<String>,
 }
 
 impl AiAgentStreamRequest {
@@ -214,6 +219,34 @@ where
     dispatch_ai_agent_stream(request, permission_mode, emit)
 }
 
+/// Wraps `emit` so the agent's final answer is broadcast to the configured
+/// Buzz team channel once the stream completes (plan 4 §2.4). Fire-and-forget:
+/// relay failures surface as a status broadcast attempt, never as stream errors.
+fn with_team_channel_broadcast<F>(
+    team_channel: Option<String>,
+    mut emit: F,
+) -> impl FnMut(AiAgentStreamEvent)
+where
+    F: FnMut(AiAgentStreamEvent),
+{
+    move |event| {
+        if let (Some(channel), AiAgentStreamEvent::Done) = (&team_channel, &event) {
+            let channel = channel.clone();
+            std::thread::spawn(move || {
+                // The final text was already streamed; the broadcast carries a
+                // summary so teammates get a pointer rather than the full body.
+                if let Err(_error) = crate::buzz_integration::post_agent_update(
+                    &channel,
+                    "Research answer completed in Nabu. See the conversation for the full report.",
+                ) {
+                    // Buzz relay is best-effort; ignore failures.
+                }
+            });
+        }
+        emit(event)
+    }
+}
+
 fn dispatch_ai_agent_stream<F>(
     request: AiAgentStreamRequest,
     permission_mode: AiAgentPermissionMode,
@@ -222,10 +255,11 @@ fn dispatch_ai_agent_stream<F>(
 where
     F: FnMut(AiAgentStreamEvent),
 {
+    let team_channel = request.team_channel.clone();
     let Some(runner) = shared_agent_runner(request.agent) else {
-        return run_claude_agent_stream(request, permission_mode, emit);
+        return run_claude_agent_stream(request, permission_mode, with_team_channel_broadcast(team_channel, emit));
     };
-    run_shared_agent_stream(request, permission_mode, runner, emit)
+    run_shared_agent_stream(request, permission_mode, runner, with_team_channel_broadcast(team_channel, emit))
 }
 
 type SharedAgentRunner<F> =
@@ -349,6 +383,7 @@ mod tests {
             vault_paths: Vec::new(),
             permission_mode,
             event_name: None,
+            team_channel: None,
         }
     }
 

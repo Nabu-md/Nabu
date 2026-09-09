@@ -40,6 +40,8 @@ export interface AgentExecutionContext {
   agentDocsPath?: string
   permissionMode: AiAgentPermissionMode
   systemPromptOverride?: string
+  /** Buzz team channel for multiplayer research; set when multiplayer mode is on. */
+  teamChannel?: string
 }
 
 export interface PendingUserPrompt {

@@ -29,6 +29,8 @@ interface UseAiPanelControllerArgs {
   noteListFilter?: { type: string | null; query: string }
   locale?: AppLocale
   model?: string
+  /** Buzz team channel; posts research results to the relay when set. */
+  teamChannel?: string
   onOpenNote?: (path: string) => void
   onFileCreated?: (relativePath: string) => void
   onFileModified?: (relativePath: string) => void
@@ -118,7 +120,7 @@ function usePanelAgent(
   | 'sessionId'
   > & { contextPrompt?: string },
 ) {
-  const { vaultPath, vaultPaths, contextPrompt, defaultAiAgent, defaultAiTarget, defaultAiAgentReady, defaultAiAgentReadiness, locale, model, onFileCreated, onFileModified, onVaultChanged, sessionId } = options
+  const { vaultPath, vaultPaths, contextPrompt, defaultAiAgent, defaultAiTarget, defaultAiAgentReady, defaultAiAgentReadiness, locale, model, teamChannel, onFileCreated, onFileModified, onVaultChanged, sessionId } = options
   const fileCallbacks = useAgentFileCallbacks({
     onFileCreated,
     onFileModified,
@@ -132,6 +134,7 @@ function usePanelAgent(
     locale,
     agentReady: resolveAgentReady(defaultAiAgentReadiness, defaultAiAgentReady),
     permissionMode,
+    teamChannel,
     sessionId,
   })
   return { agent, permissionMode }
@@ -168,7 +171,7 @@ function useAiPanelActions({
 }
 
 export function useAiPanelController(options: UseAiPanelControllerArgs): AiPanelController {
-  const { vaultPath, vaultPaths, defaultAiAgent, defaultAiTarget, defaultAiAgentReady, defaultAiAgentReadiness, activeEntry, activeNoteContent, entries, openTabs, noteList, noteListFilter, locale = 'en', model, onOpenNote, onFileCreated, onFileModified, onVaultChanged, sessionId } = options
+  const { vaultPath, vaultPaths, defaultAiAgent, defaultAiTarget, defaultAiAgentReady, defaultAiAgentReadiness, activeEntry, activeNoteContent, entries, openTabs, noteList, noteListFilter, locale = 'en', model, teamChannel, onOpenNote, onFileCreated, onFileModified, onVaultChanged, sessionId } = options
   const [input, setInput] = useState('')
   const { linkedEntries, contextPrompt } = useAiPanelContextSnapshot({ activeEntry, activeNoteContent, entries, input, openTabs, noteList, noteListFilter })
 
@@ -182,6 +185,7 @@ export function useAiPanelController(options: UseAiPanelControllerArgs): AiPanel
     defaultAiAgentReadiness,
     locale,
     model,
+    teamChannel,
     onFileCreated,
     onFileModified,
     onVaultChanged,

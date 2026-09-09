@@ -112,6 +112,7 @@ async function streamWithSelectedTarget({
     vaultPath: context.vaultPath,
     vaultPaths: context.vaultPaths,
     permissionMode: context.permissionMode,
+    teamChannel: context.teamChannel,
     callbacks,
     signal,
   })

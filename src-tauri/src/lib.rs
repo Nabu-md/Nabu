@@ -466,6 +466,35 @@ fn handle_run_event(app_handle: &tauri::AppHandle, event: &tauri::RunEvent) {
 
     window_state::handle_run_event(app_handle, event);
 
+    // Plan 4 §1.8: keep the dictation-pill window alive when the main window
+    // closes, so the pill persists as a menu-bar-area companion. When the last
+    // regular window goes away but the pill remains, prevent the app exit and
+    // hide the main window instead of destroying it.
+    if let tauri::RunEvent::ExitRequested { code: None, api } = event {
+        let dictation_pill_alive = app_handle
+            .get_webview_window("dictation-pill")
+            .is_some_and(|window| window.is_visible().unwrap_or(false));
+        let main_window_alive = app_handle
+            .get_webview_window(window_state::MAIN_WINDOW_LABEL)
+            .is_some();
+        if dictation_pill_alive && main_window_alive {
+            api.prevent_exit();
+            if let Some(main_window) = app_handle.get_webview_window(window_state::MAIN_WINDOW_LABEL) {
+                let _ = main_window.hide();
+            }
+        }
+    }
+
+    // macOS Dock-click re-open: surface the main window again after it was
+    // hidden by the persistence path above.
+    #[cfg(target_os = "macos")]
+    if let tauri::RunEvent::Reopen { .. } = event {
+        if let Some(main_window) = app_handle.get_webview_window(window_state::MAIN_WINDOW_LABEL) {
+            let _ = main_window.show();
+            let _ = main_window.set_focus();
+        }
+    }
+
     if let tauri::RunEvent::Exit = event {
         let state: tauri::State<'_, desktop_runtime::WsBridgeChild> = app_handle.state();
         let mut guard = state.0.lock().unwrap();

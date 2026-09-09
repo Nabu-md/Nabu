@@ -24,6 +24,7 @@ import { AiPanelView } from './AiPanel'
 import { GuidanceWarning, WorkspaceHeader } from './AiWorkspaceChrome'
 import { WorkspaceResizeHandles } from './AiWorkspaceResizeHandles'
 import { AiTargetModelPicker } from './AiAgentModelPicker'
+import { BuzzMultiplayerToggle } from './BuzzMultiplayerToggle'
 import { ConversationSidebar } from './AiWorkspaceSidebar'
 import { ResizeHandle } from './ResizeHandle'
 import { SideWorkspaceHeader } from './AiWorkspaceSideHeader'
@@ -591,6 +592,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     noteListFilter: context.noteListFilter,
     locale,
     model: modelSelection.streamModelId,
+    teamChannel: teamChannel ?? undefined,
     onOpenNote,
     onFileCreated,
     onFileModified,
@@ -598,6 +600,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     sessionId: conversation.id,
   })
   const running = controller.agent.status === 'thinking' || controller.agent.status === 'tool-executing'
+  const [teamChannel, setTeamChannel] = useState<string | null>(null)
   const composerMenuSide = mode === 'window' ? 'bottom' : 'top'
   const handleModelChange = useAiAgentModelActions({
     addLocalMarker: controller.agent.addLocalMarker,
@@ -608,7 +611,9 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     surface: mode,
   })
   const composerControls = (
-    <ConversationComposerControls
+    <>
+      <BuzzMultiplayerToggle locale={locale} channel={teamChannel} onChannelChange={setTeamChannel} />
+      <ConversationComposerControls
       catalog={modelCatalog}
       catalogReady={modelCatalogReady}
       disabled={running}
@@ -624,6 +629,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
       modelOptions={modelSelection.options}
       selectedModelId={modelSelection.selectedId}
     />
+    </>
   )
 
   useEffect(() => {

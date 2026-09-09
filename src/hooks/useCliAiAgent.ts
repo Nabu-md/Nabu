@@ -36,6 +36,8 @@ interface UseCliAiAgentOptions {
   locale?: AppLocale
   agentReady: boolean
   permissionMode: AiAgentPermissionMode
+  /** Buzz team channel; posts research results to the relay when set. */
+  teamChannel?: string
   sessionId?: string
 }
 
@@ -124,6 +126,7 @@ export function useCliAiAgent(
   const { agent, agentReady, model, sessionId, target } = options
   const locale = options.locale ?? 'en'
   const { permissionMode } = options
+  const teamChannel = options.teamChannel?.trim() || undefined
   const localRuntime = useCliAiAgentRuntime(fileCallbacks)
   const sharedRuntime = useSharedCliAiAgentRuntime(sessionId, fileCallbacks)
   const runtime = sessionId ? sharedRuntime : localRuntime
@@ -143,6 +146,7 @@ export function useCliAiAgent(
       vaultPaths,
       permissionMode,
       systemPromptOverride: contextPrompt,
+      teamChannel,
     }
   }
 

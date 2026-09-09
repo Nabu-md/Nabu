@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import {
   ArrowSquareOut,
   ClipboardText,
@@ -20,6 +20,14 @@ import { useExternalMediaPreview } from '../utils/mediaPreviewRuntime'
 import { focusNoteListContainer } from '../utils/neighborhoodHistory'
 import { openLocalFile } from '../utils/url'
 import { Button } from './ui/button'
+import { TtsPlaybackControls } from './TtsPlaybackControls'
+import { useKokoroTts } from '../hooks/useKokoroTts'
+import { useTtsTextSource } from '../hooks/useTtsTextSource'
+
+/** Invoke through Tauri when available, otherwise through the mock handlers. */
+function mockInvokeOrNative<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  return isTauri() ? invoke<T>(command, args) : mockInvoke<T>(command, args)
+}
 
 interface FilePreviewProps {
   entry: VaultEntry
@@ -185,6 +193,7 @@ function FilePreviewHeader(options: {
   onRevealFile?: () => void
   onCopyFilePath?: () => void
   onCopyDeepLink?: () => void
+  ttsHeaderSlot?: ReactNode
 }) {
   const {
     entry,
@@ -196,6 +205,7 @@ function FilePreviewHeader(options: {
     onRevealFile,
     onCopyFilePath,
     onCopyDeepLink,
+    ttsHeaderSlot,
   } = options
   return (
     <div
@@ -210,6 +220,7 @@ function FilePreviewHeader(options: {
         </div>
       </div>
       <div className="flex items-center gap-1">
+        {ttsHeaderSlot}
         {onRevealFile && (
           <Button type="button" variant="ghost" size="sm" onClick={onRevealFile} disabled={!canUseFileActions}>
             <FolderOpen size={15} />
@@ -517,6 +528,35 @@ export function FilePreview({
     previewKind,
   })
 
+  // Plan 4 §1.6B: read PDFs aloud. Text is extracted through the existing OCR
+  // command (which falls back to direct text extraction for digital PDFs) the
+  // first time the speaker button is pressed.
+  const tts = useKokoroTts()
+  const pdfTextRef = useRef<string | null>(null)
+  const ttsSource = useTtsTextSource({
+    tts,
+    sourceId: 'pdf',
+    getText: () => pdfTextRef.current ?? '',
+  })
+  const handleSpeakPdf = useCallback(async () => {
+    if (tts.isPlaying || tts.isPaused) {
+      ttsSource.speak()
+      return
+    }
+    if (pdfTextRef.current === null) {
+      if (!previewPath || !isTauri()) {
+        pdfTextRef.current = ''
+        return
+      }
+      try {
+        pdfTextRef.current = await mockInvokeOrNative<string>('ocr_extract_text_from_pdf', { pdfPath: previewPath })
+      } catch {
+        pdfTextRef.current = ''
+      }
+    }
+    await ttsSource.speak()
+  }, [previewPath, tts, ttsSource])
+
   useEffect(() => {
     void previewPath
     trackFilePreviewOpened(previewKind)
@@ -554,7 +594,28 @@ export function FilePreview({
         onRevealFile={onRevealFile ? actions.handleRevealFile : undefined}
         onCopyFilePath={onCopyFilePath ? actions.handleCopyFilePath : undefined}
         onCopyDeepLink={onCopyDeepLink ? actions.handleCopyDeepLink : undefined}
+        ttsHeaderSlot={
+          previewKind === 'pdf' && tts.status === 'ready' ? (
+            <Button
+              type="button"
+              variant={ttsSource.active ? 'default' : 'ghost'}
+              size="sm"
+              aria-label="Read aloud"
+              title="Read aloud"
+              data-testid="pdf-tts-speaker"
+              onClick={() => void handleSpeakPdf()}
+            >
+              <SpeakerHigh size={15} />
+              Read aloud
+            </Button>
+          ) : null
+        }
       />
+      {previewKind === 'pdf' && tts.status === 'ready' && ttsSource.active && (
+        <div className="absolute bottom-4 left-1/2 z-30 -translate-x-1/2">
+          <TtsPlaybackControls tts={tts} />
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-auto bg-background">
         <FilePreviewBody
           entry={entry}

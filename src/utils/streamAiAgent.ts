@@ -33,6 +33,8 @@ export interface StreamAiAgentRequest {
   vaultPath: string
   vaultPaths?: string[]
   permissionMode?: AiAgentPermissionMode
+  /** Buzz team channel; posted to when the research answer completes. */
+  teamChannel?: string
   callbacks: AgentStreamCallbacks
   signal?: AbortSignal
 }
@@ -118,6 +120,7 @@ function nativeAgentStreamRequest(request: StreamAiAgentRequest, eventName: stri
     vault_path: request.vaultPath,
     vault_paths: request.vaultPaths && request.vaultPaths.length > 0 ? request.vaultPaths : null,
     permission_mode: normalizeAiAgentPermissionMode(request.permissionMode),
+    team_channel: request.teamChannel?.trim() || null,
     event_name: eventName,
   }
 }

@@ -446,6 +446,7 @@ mod tests {
             vault_paths: vec!["~/Vaults/secondary".into()],
             permission_mode: None,
             event_name: None,
+            team_channel: None,
         };
 
         let normalized = normalize_agent_request(request);
@@ -476,6 +477,7 @@ mod tests {
             vault_paths: Vec::new(),
             permission_mode: None,
             event_name: None,
+            team_channel: None,
         };
 
         let normalized = normalize_agent_request(request);

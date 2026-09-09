@@ -1,4 +1,4 @@
-import { ArrowSquareOut as ExternalLink, Copy } from '@phosphor-icons/react'
+import { ArrowSquareOut as ExternalLink, Copy, SpeakerHigh } from '@phosphor-icons/react'
 import { Component, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   GridSuggestionMenuController,
@@ -44,6 +44,9 @@ import { NabuFilePanelController } from './NabuFilePanel'
 import { refreshCodeBlockSyntaxHighlighting } from './editorCodeBlockHighlightRefresh'
 import { ActionTooltip } from './ui/action-tooltip'
 import { Button } from './ui/button'
+import { TtsPlaybackControls } from './TtsPlaybackControls'
+import { useKokoroTts } from '../hooks/useKokoroTts'
+import { useTtsTextSource } from '../hooks/useTtsTextSource'
 import { VaultExpressionProvider } from './VaultExpressionContext'
 import { subscribeRichEditorExternalChange } from './editorExternalChangeEvents'
 import {
@@ -748,6 +751,22 @@ export function SingleEditorView(options: {
 
   useSeedBlockNoteTableBridge(editor)
 
+  // Plan 4 §1.6A: read the current note aloud with Kokoro. Text is extracted
+  // from the editor document lazily when the speaker button is pressed.
+  const tts = useKokoroTts()
+  const ttsSource = useTtsTextSource({
+    tts,
+    sourceId: 'note',
+    enabled: editable,
+    getText: useCallback(() => {
+      try {
+        return editor.blocksToMarkdownLossy(editor.document)
+      } catch {
+        return currentContent ?? ''
+      }
+    }, [currentContent, editor]),
+  })
+
   const typeEntryMap = useMemo(() => buildTypeEntryMap(entries), [entries])
   const baseItems = useMemo(() => buildBaseSuggestionItems(entries), [entries])
   const runEditorAction = useCallback(
@@ -868,6 +887,28 @@ export function SingleEditorView(options: {
         )}
       </BlockNoteRenderRecoveryBoundary>
       {copyTarget && <CodeBlockCopyButton copyTarget={copyTarget} locale={locale} />}
+      {tts.status === 'ready' && (
+        <div className="absolute right-4 top-2 z-20" data-testid="note-tts-speaker-wrap">
+          <ActionTooltip copy={{ label: 'Read aloud' }} side="left">
+            <Button
+              type="button"
+              variant={ttsSource.active ? 'default' : 'ghost'}
+              size="icon-sm"
+              aria-label="Read aloud"
+              title="Read aloud"
+              data-testid="note-tts-speaker"
+              onClick={() => void ttsSource.speak()}
+            >
+              <SpeakerHigh size={15} aria-hidden />
+            </Button>
+          </ActionTooltip>
+        </div>
+      )}
+      {tts.status === 'ready' && ttsSource.active && (
+        <div className="absolute bottom-4 left-1/2 z-30 -translate-x-1/2">
+          <TtsPlaybackControls tts={tts} />
+        </div>
+      )}
       <ImageLightbox image={lightbox.image} locale={locale} onClose={lightbox.close} />
     </div>
   )

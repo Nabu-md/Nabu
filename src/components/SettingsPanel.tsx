@@ -1,4 +1,4 @@
-import { Copy, Cube, Microphone, Monitor, Moon, Sparkle, Sun, X } from '@phosphor-icons/react'
+import { Copy, Cube, Microphone, Monitor, Moon, Sparkle, SpeakerHigh, SquaresFour, Sun, X } from '@phosphor-icons/react'
 import {
   AI_AGENT_DEFINITIONS,
   createMissingAiAgentsStatus,
@@ -131,6 +131,11 @@ interface SettingsDraft {
   dictationOpacity: number
   dictationBackend: 'web_speech' | 'fluidvoice'
   fluidvoiceModel: string
+  ttsEngine: 'system' | 'kokoro'
+  kokoroVoice: string
+  kokoroSpeed: number
+  ttsHighlightEnabled: boolean
+  miniAppsEnabled: boolean
   grammarCheckEnabled: boolean
   ocrEnabled: boolean
   documentConversionEnabled: boolean
@@ -225,6 +230,16 @@ interface SettingsBodyProps {
   setDictationBackend: (value: 'web_speech' | 'fluidvoice') => void
   fluidvoiceModel: string
   setFluidvoiceModel: (value: string) => void
+  ttsEngine: 'system' | 'kokoro'
+  setTtsEngine: (value: 'system' | 'kokoro') => void
+  kokoroVoice: string
+  setKokoroVoice: (value: string) => void
+  kokoroSpeed: number
+  setKokoroSpeed: (value: number) => void
+  ttsHighlightEnabled: boolean
+  setTtsHighlightEnabled: (value: boolean) => void
+  miniAppsEnabled: boolean
+  setMiniAppsEnabled: (value: boolean) => void
   grammarCheckEnabled: boolean
   setGrammarCheckEnabled: (value: boolean) => void
   ocrEnabled: boolean
@@ -304,6 +319,11 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     dictationOpacity: settings.dictation_opacity ?? 0.85,
     dictationBackend: settings.dictation_backend ?? 'web_speech',
     fluidvoiceModel: settings.fluidvoice_model ?? 'parakeet',
+    ttsEngine: settings.tts_engine === 'kokoro' ? 'kokoro' : 'system',
+    kokoroVoice: settings.kokoro_voice ?? 'af_sky',
+    kokoroSpeed: clampKokoroSpeed(settings.kokoro_speed),
+    ttsHighlightEnabled: settings.tts_highlight_enabled ?? true,
+    miniAppsEnabled: settings.mini_apps_enabled ?? true,
     grammarCheckEnabled: settings.grammar_check_enabled ?? true,
     ocrEnabled: settings.ocr_enabled ?? true,
     documentConversionEnabled: settings.document_conversion_enabled ?? true,
@@ -319,6 +339,11 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     aiChatFontFamily: settings.ai_chat_font_family ?? '',
     sidebarFontFamily: settings.sidebar_font_family ?? '',
   }
+}
+
+function clampKokoroSpeed(value: Settings['kokoro_speed']): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1
+  return Math.min(2, Math.max(0.5, value))
 }
 
 function resolveSettingsDraftThemeMode(themeMode: Settings['theme_mode']): ThemeMode {
@@ -374,6 +399,11 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     dictation_opacity: draft.dictationOpacity,
     dictation_backend: draft.dictationBackend,
     fluidvoice_model: draft.fluidvoiceModel,
+    tts_engine: draft.ttsEngine === 'kokoro' ? 'kokoro' : 'system',
+    kokoro_voice: draft.kokoroVoice,
+    kokoro_speed: draft.kokoroSpeed,
+    tts_highlight_enabled: draft.ttsHighlightEnabled,
+    mini_apps_enabled: draft.miniAppsEnabled,
     grammar_check_enabled: draft.grammarCheckEnabled,
     ocr_enabled: draft.ocrEnabled,
     document_conversion_enabled: draft.documentConversionEnabled,
@@ -719,6 +749,16 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setDictationBackend={(value) => updateDraft('dictationBackend', value)}
       fluidvoiceModel={draft.fluidvoiceModel}
       setFluidvoiceModel={(value) => updateDraft('fluidvoiceModel', value)}
+      ttsEngine={draft.ttsEngine}
+      setTtsEngine={(value) => updateDraft('ttsEngine', value)}
+      kokoroVoice={draft.kokoroVoice}
+      setKokoroVoice={(value) => updateDraft('kokoroVoice', value)}
+      kokoroSpeed={draft.kokoroSpeed}
+      setKokoroSpeed={(value) => updateDraft('kokoroSpeed', value)}
+      ttsHighlightEnabled={draft.ttsHighlightEnabled}
+      setTtsHighlightEnabled={(value) => updateDraft('ttsHighlightEnabled', value)}
+      miniAppsEnabled={draft.miniAppsEnabled}
+      setMiniAppsEnabled={(value) => updateDraft('miniAppsEnabled', value)}
       grammarCheckEnabled={draft.grammarCheckEnabled}
       setGrammarCheckEnabled={(value) => updateDraft('grammarCheckEnabled', value)}
       ocrEnabled={draft.ocrEnabled}
@@ -1590,6 +1630,16 @@ function DictationSettingsSection(options: SettingsBodyProps) {
     setDictationBackend,
     fluidvoiceModel,
     setFluidvoiceModel,
+    ttsEngine,
+    setTtsEngine,
+    kokoroVoice,
+    setKokoroVoice,
+    kokoroSpeed,
+    setKokoroSpeed,
+    ttsHighlightEnabled,
+    setTtsHighlightEnabled,
+    miniAppsEnabled,
+    setMiniAppsEnabled,
     grammarCheckEnabled,
     setGrammarCheckEnabled,
     ocrEnabled,
@@ -1688,6 +1738,136 @@ function DictationSettingsSection(options: SettingsBodyProps) {
           testId="settings-document-conversion"
         />
       </SettingsGroup>
+      <TtsSettingsSection
+        t={t}
+        ttsEngine={ttsEngine}
+        setTtsEngine={setTtsEngine}
+        kokoroVoice={kokoroVoice}
+        setKokoroVoice={setKokoroVoice}
+        kokoroSpeed={kokoroSpeed}
+        setKokoroSpeed={setKokoroSpeed}
+        ttsHighlightEnabled={ttsHighlightEnabled}
+        setTtsHighlightEnabled={setTtsHighlightEnabled}
+      />
+      <MiniAppsSettingsSection t={t} miniAppsEnabled={miniAppsEnabled} setMiniAppsEnabled={setMiniAppsEnabled} />
     </>
+  )
+}
+
+const KOKORO_SPEED_OPTIONS = [0.5, 0.75, 1, 1.1, 1.25, 1.5, 2]
+
+interface TtsSettingsSectionProps {
+  t: Translate
+  ttsEngine: 'system' | 'kokoro'
+  setTtsEngine: (value: 'system' | 'kokoro') => void
+  kokoroVoice: string
+  setKokoroVoice: (value: string) => void
+  kokoroSpeed: number
+  setKokoroSpeed: (value: number) => void
+  ttsHighlightEnabled: boolean
+  setTtsHighlightEnabled: (value: boolean) => void
+}
+
+/** Text-to-speech section (plan 4 §1.7): engine, voice, speed, highlighting. */
+function TtsSettingsSection(props: TtsSettingsSectionProps) {
+  const { t, ttsEngine, setTtsEngine, kokoroVoice, setKokoroVoice, kokoroSpeed, setKokoroSpeed, ttsHighlightEnabled, setTtsHighlightEnabled } = props
+  const [kokoroReady, setKokoroReady] = useState(false)
+  const [voices, setVoices] = useState<string[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void (isTauri() ? invoke<boolean>('kokoro_available') : mockInvoke<boolean>('kokoro_available'))
+      .then((available) => {
+        if (cancelled || !available) return
+        setKokoroReady(true)
+        return (isTauri() ? invoke<string[]>('kokoro_list_voices') : mockInvoke<string[]>('kokoro_list_voices')).then((list) => {
+          if (!cancelled) setVoices(list)
+        })
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const engineOptions = [
+    { value: 'system' as const, label: t('settings.tts.engineSystem') },
+    ...(kokoroReady ? [{ value: 'kokoro' as const, label: t('settings.tts.engineKokoro') }] : []),
+  ]
+  const voiceOptions = voices.map((voice) => ({ value: voice, label: voice }))
+  const speedOptions = KOKORO_SPEED_OPTIONS.map((speed) => ({ value: String(speed), label: `${speed}x` }))
+
+  return (
+    <SettingsGroup>
+      <SectionHeading icon={<SpeakerHigh size={16} aria-hidden="true" />} title={t('settings.tts.title')} />
+      <SettingsRow label={t('settings.tts.engine')} description={t('settings.tts.engineDescription')}>
+        <SelectControl
+          value={ttsEngine}
+          onValueChange={(value) => {
+            if (value === 'system' || value === 'kokoro') setTtsEngine(value)
+          }}
+          options={engineOptions}
+          testId="settings-tts-engine"
+          ariaLabel={t('settings.tts.engine')}
+        />
+      </SettingsRow>
+      {ttsEngine === 'kokoro' && !kokoroReady && (
+        <p className="px-3 text-[12px] text-muted-foreground" data-testid="settings-tts-kokoro-missing">
+          {t('settings.tts.kokoroNotInstalled')}
+        </p>
+      )}
+      {ttsEngine === 'kokoro' && kokoroReady && (
+        <>
+          <SettingsRow label={t('settings.tts.voice')}>
+            <SelectControl
+              value={voiceOptions.some((option) => option.value === kokoroVoice) ? kokoroVoice : (voiceOptions[0]?.value ?? 'af_sky')}
+              onValueChange={setKokoroVoice}
+              options={voiceOptions}
+              testId="settings-tts-voice"
+              ariaLabel={t('settings.tts.voice')}
+            />
+          </SettingsRow>
+          <SettingsRow label={t('settings.tts.speed')}>
+            <SelectControl
+              value={String(kokoroSpeed)}
+              onValueChange={(value) => setKokoroSpeed(Number(value))}
+              options={speedOptions}
+              testId="settings-tts-speed"
+              ariaLabel={t('settings.tts.speed')}
+            />
+          </SettingsRow>
+        </>
+      )}
+      <SettingsSwitchRow
+        label={t('settings.tts.highlight')}
+        description={t('settings.tts.highlightDescription')}
+        checked={ttsHighlightEnabled}
+        onChange={setTtsHighlightEnabled}
+        testId="settings-tts-highlight"
+      />
+    </SettingsGroup>
+  )
+}
+
+interface MiniAppsSettingsSectionProps {
+  t: Translate
+  miniAppsEnabled: boolean
+  setMiniAppsEnabled: (value: boolean) => void
+}
+
+/** Mini-apps section (plan 4 §3.9): enables the DuckDB mini-app surfaces. */
+function MiniAppsSettingsSection(props: MiniAppsSettingsSectionProps) {
+  const { t, miniAppsEnabled, setMiniAppsEnabled } = props
+  return (
+    <SettingsGroup>
+      <SectionHeading icon={<SquaresFour size={16} aria-hidden="true" />} title={t('settings.miniApps.title')} />
+      <SettingsSwitchRow
+        label={t('settings.miniApps.enable')}
+        description={t('settings.miniApps.enableDescription')}
+        checked={miniAppsEnabled}
+        onChange={setMiniAppsEnabled}
+        testId="settings-mini-apps-enabled"
+      />
+    </SettingsGroup>
   )
 }
