@@ -1,4 +1,4 @@
-import { Article, ArrowsClockwise as RefreshCw, Cube, GitBranch, ListChecks, Microphone, Palette, Robot as Bot, ShieldCheck, Sparkle, type IconProps } from '@phosphor-icons/react'
+import { Article, ArrowsClockwise as RefreshCw, Cube, GitBranch, ListChecks, Microphone, Palette, Robot as Bot, ShieldCheck, Sparkle, SquaresFour, Users, type IconProps } from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
 import type { TranslationKey } from '../lib/i18n'
 import { Button } from './ui/button'
@@ -21,7 +21,9 @@ export function SettingsBodyNav({ t }: SettingsBodyNavProps) {
     { id: SETTINGS_SECTION_IDS.autogit, label: t('settings.autogit.title'), Icon: GitBranch },
     { id: SETTINGS_SECTION_IDS.appearance, label: t('settings.appearance.title'), Icon: Palette },
     { id: SETTINGS_SECTION_IDS.transparency, label: t('settings.transparency.title'), Icon: Sparkle },
-    { id: SETTINGS_SECTION_IDS.dictation, label: t('settings.dictation.title'), Icon: Microphone },
+    { id: SETTINGS_SECTION_IDS.widgets, label: t('settings.widgets.title'), Icon: Microphone },
+    { id: SETTINGS_SECTION_IDS.miniApps, label: t('settings.miniApps.title'), Icon: SquaresFour },
+    { id: SETTINGS_SECTION_IDS.buzz, label: t('settings.buzz.title'), Icon: Users },
     { id: SETTINGS_SECTION_IDS.content, label: t('settings.vaultContent.title'), Icon: Article },
     { id: SETTINGS_SECTION_IDS.ai, label: t('settings.aiAgents.title'), Icon: Bot },
     { id: SETTINGS_SECTION_IDS.workflow, label: t('settings.workflow.title'), Icon: ListChecks },

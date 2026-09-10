@@ -24,6 +24,8 @@ type AiAgentToolCount = number
 type AiAgentResponseTextFlag = 'had_text' | 'had_partial_response'
 type SheetFormulaFunctionName = string
 type StartupSource = 'scan' | 'snapshot'
+type MiniAppGatewayName = 'proxy_fetch' | 'scrape_selector' | 'get_current_activity' | 'fetch_rss_feed'
+type BuzzContextSource = 'settings' | 'agent_run'
 
 const ALL_NOTES_VISIBILITY_CATEGORIES: ReadonlyArray<keyof AllNotesFileVisibility> = [
   'pdfs',
@@ -303,4 +305,20 @@ export function trackAiWorkspaceSidebarToggled(collapsed: AnalyticsBoolean, mode
 
 export function trackAiWorkspaceChatTitled(source: AiWorkspaceTitleSource): void {
   trackEvent('ai_workspace_chat_titled', { source })
+}
+
+export function trackMiniAppCronJobRunNow(appId: string): void {
+  // Manual "Run now" trigger from the Mini-Apps settings section.
+  trackEvent('mini_app_cron_job_run_now', { app_id: appId })
+}
+
+export function trackMiniAppGatewayUsed(gateway: MiniAppGatewayName): void {
+  // Fired by the gateway relay path when a mini-app uses a web/RSS/activity
+  // gateway, so adoption of the mediated network layer is observable.
+  trackEvent('miniapp_gateway_used', { gateway })
+}
+
+export function trackBuzzTeamContextFetched(source: BuzzContextSource): void {
+  // Team-context reads happen before/with agent runs and from settings.
+  trackEvent('buzz_team_context_fetched', { source })
 }

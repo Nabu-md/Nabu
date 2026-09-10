@@ -1052,6 +1052,9 @@ interface Settings {
   all_notes_show_pdfs: boolean | null // null = default false
   all_notes_show_images: boolean | null // null = default false
   all_notes_show_unsupported: boolean | null // null = default false
+  buzz_enabled: boolean | null // null/false = Buzz multiplayer off
+  buzz_default_channel: string | null // team channel for agent posts
+  mini_apps_web_access_enabled: boolean | null // null/true = gateway JS rendering allowed
 }
 ```
 
@@ -1073,6 +1076,7 @@ Managed by `useSettings` hook and `SettingsPanel` component. `theme_mode` is ins
 ### Libraries
 - **`src/lib/telemetry.ts`** — `initSentry()`, `teardownSentry()`, `initPostHog()`, `teardownPostHog()`, `trackEvent()`. Path scrubber via `beforeSend` hook. The same hook drops known benign browser ResizeObserver loop-limit notifications and rich-editor failures already handled by Nabu's recovery boundaries, including stale ProseMirror selection positions, while keeping unrelated failures reportable. DSN/key from `VITE_SENTRY_DSN` and `VITE_POSTHOG_KEY`; `VITE_SENTRY_RELEASE` is treated as the build version and only becomes Sentry's `release` for stable calendar builds (`YYYY.M.D`). Alpha/prerelease/internal builds tag `nabu.build_version` and `nabu.release_kind` without creating normal Sentry Releases entries.
 - **`src/main.tsx`** — React root error callbacks (`onCaughtError`, `onUncaughtError`, `onRecoverableError`) forward component-stack context to `Sentry.reactErrorHandler()` for debuggable production React errors.
+- **`src-tauri/src/mini_apps_cron.rs`** — Mini-app cron scheduler: a background thread parses five-field cron expressions from mini-app manifests, de-duplicates fires per `(vault, app, task, schedule)` key, and executes due jobs by opening hidden `miniapp-cron-*` webviews over the normal postMessage MCP relay. The shell force-closes run windows after a 10-minute watchdog.
 - **`src-tauri/src/telemetry.rs`** — Rust-side Sentry init with `beforeSend` path scrubber. `init_sentry_from_settings()` reads settings and conditionally initializes; stable calendar `CARGO_PKG_VERSION` values become Sentry releases, while alpha/prerelease/internal versions are kept as diagnostic tags only. `reinit_sentry()` for runtime toggle.
 
 ### Product Events
@@ -1081,6 +1085,8 @@ Managed by `useSettings` hook and `SettingsPanel` component. `theme_mode` is ins
 - **Code block copy** — `code_block_copied` records that the rich-editor code-block copy action was used, without sending note paths, languages, or code content.
 - **AI agent sessions** — `ai_agent_message_sent`, `ai_agent_message_blocked`, `ai_agent_response_completed`, `ai_agent_response_failed`, `ai_agent_response_stopped`, `ai_agent_permission_mode_changed`, `ai_agent_model_selected`, and `ai_agent_model_fallback` use only agent ids, permission modes, counts, default-vs-explicit state, and coarse status categories. `ai_workspace_open` includes only whether a model selector is available; model identifiers are never sent.
 - **AI feature visibility** — `ai_features_visibility_changed` records only whether installation-level AI surfaces were enabled or hidden.
+- **Mini-apps** — `mini_app_opened` records app opens (app id only); `mini_app_cron_job_run_now` records manual scheduled-job triggers; `miniapp_gateway_used` records mediated gateway usage with the gateway name (`proxy_fetch`, `scrape_selector`, `get_current_activity`, `fetch_rss_feed`) and never URLs or scraped content. `mini_app_record_created` is intentionally not instrumented: record inserts happen through the existing MCP relay whose usage is already observable via the same app id on other events, and a dedicated event would add noise without new signal.
+- **Buzz multiplayer** — `buzz_multiplayer_enabled`/`buzz_multiplayer_disabled` record the settings toggle; `buzz_team_context_fetched` records team-message reads with only the source surface (`settings` | `agent_run`); channel ids and message content never leave the device.
 - **Automatic update checks** — `automatic_update_checks_changed` records only whether startup/background update checks were enabled or disabled.
 - **All Notes visibility** — `all_notes_visibility_changed` records only the toggled category and enabled state.
 

@@ -7,7 +7,6 @@ import { NoteItem } from './NoteItem'
 import { SmartPropertyValueCell } from './PropertyValueCells'
 import {
   makeEntry,
-  makeTypeDefinition,
 } from '../test-utils/noteListTestUtils'
 
 function renderWithPreferences(ui: ReactElement) {

@@ -265,24 +265,6 @@ function configureNeighborhoodFavoritesVault() {
   mockCommandResults.get_note_content = ({ path }: { path: string }) => neighborhoodContent[path] ?? ''
 }
 
-function getHeaderForNoteList(noteListContainer: HTMLElement) {
-  return within(noteListContainer.parentElement as HTMLElement).getByRole('heading', { level: 3 })
-}
-
-async function clickNoteListItem(noteListContainer: HTMLElement, title: string, options?: MouseEventInit) {
-  await waitFor(() => {
-    expect(within(noteListContainer).getByText(title)).toBeInTheDocument()
-  })
-  await act(async () => {
-    fireEvent.click(within(noteListContainer).getByText(title), options)
-    await Promise.resolve()
-  })
-}
-
-async function enterNeighborhood(noteListContainer: HTMLElement, title: string) {
-  await clickNoteListItem(noteListContainer, title, { metaKey: true })
-}
-
 async function pressEscape() {
   await act(async () => {
     fireEvent.keyDown(window, { key: 'Escape' })

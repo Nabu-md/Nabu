@@ -26,12 +26,6 @@ const TICK_SECONDS: i64 = 30;
 /// than one leap year of minutes.
 const MAX_SCAN_MINUTES: i64 = 366 * 24 * 60;
 
-/// Safety net for hidden run windows, mirrored by the shell watchdog in
-/// `MiniAppWindowApp` (`CRON_RUN_WATCHDOG_MS`): the hidden window closes when
-/// the app posts `mini-app-cron-done`, or the shell force-closes it after
-/// this long so a stuck app cannot leak a window forever.
-const RUN_WINDOW_TIMEOUT_MS: u64 = 10 * 60 * 1000;
-
 pub const MINI_APP_CRON_FIRE_EVENT: &str = "mini-app-cron-fire";
 
 // ── Cron expression parsing ─────────────────────────────────────────────────
@@ -47,11 +41,14 @@ fn parse_cron_field(field: &str, min: u32, max: u32) -> Result<FieldValues, Stri
     }
     let mut values = Vec::new();
     for part in field.split(',') {
-        let (range_part, step) = match part.split_once('/') {
-            Some((range, step)) => (range, step.parse::<u32>().map_err(|_| {
-                format!("Invalid cron step '{step}' in field '{field}'")
-            })?),
-            None => (part, 1),
+        let (range_part, has_step, step) = match part.split_once('/') {
+            Some((range, step)) => (
+                range,
+                true,
+                step.parse::<u32>()
+                    .map_err(|_| format!("Invalid cron step '{step}' in field '{field}'"))?,
+            ),
+            None => (part, false, 1),
         };
         if step == 0 {
             return Err(format!("Cron step must be at least 1 in field '{field}'"));
@@ -66,9 +63,10 @@ fn parse_cron_field(field: &str, min: u32, max: u32) -> Result<FieldValues, Stri
             }
             (start, end)
         } else {
-            // A single value with a step ("5/15") starts at that value.
+            // A single value is a point in time; with an explicit step
+            // ("5/15") it becomes the start of a range up to the field max.
             let value = parse_field_value(range_part, min, max, field)?;
-            (value, max)
+            if has_step { (value, max) } else { (value, value) }
         };
         let mut current = start;
         while current <= end {
@@ -280,8 +278,9 @@ fn fire_job(app_handle: &tauri::AppHandle, job: &MiniAppCronRegistration, now: D
 
 /// Opens the invisible webview that executes one scheduled task. The shell
 /// (`MiniAppWindowApp`) passes `cron_task`/`cron_target` into the app context
-/// and closes the window once the app posts `mini-app-cron-done` — the shell's
-/// watchdog mirrors [`RUN_WINDOW_TIMEOUT_MS`] as the force-close backstop.
+/// and closes the window once the app posts `mini-app-cron-done`. Its
+/// `CRON_RUN_WATCHDOG_MS` (10 minutes) is the force-close backstop so a stuck
+/// app cannot leak a hidden window forever.
 fn spawn_hidden_run_window(
     app_handle: &tauri::AppHandle,
     fire: &MiniAppCronFire,

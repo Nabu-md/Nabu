@@ -32,14 +32,14 @@ function useMiniAppCronJobs(enabled: boolean): {
   loading: boolean
   refresh: () => void
 } {
-  const [jobs, setJobs] = useState<MiniAppCronJobView[]>([])
-  const [loading, setLoading] = useState(false)
+  // `null` means "no fetch resolved yet"; loading is derived, so the effect
+  // never calls setState synchronously (react-hooks/immutability).
+  const [jobs, setJobs] = useState<MiniAppCronJobView[] | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
-    setLoading(true)
     const request = isTauri()
       ? invoke<MiniAppCronJobView[]>('list_mini_app_cron_jobs')
       : mockInvoke<MiniAppCronJobView[]>('list_mini_app_cron_jobs', {})
@@ -50,16 +50,16 @@ function useMiniAppCronJobs(enabled: boolean): {
       .catch(() => {
         if (!cancelled) setJobs([])
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
     return () => {
       cancelled = true
     }
   }, [enabled, refreshKey])
 
-  const refresh = useCallback(() => setRefreshKey((current) => current + 1), [])
-  return { jobs, loading, refresh }
+  const refresh = useCallback(() => {
+    setJobs(null)
+    setRefreshKey((current) => current + 1)
+  }, [])
+  return { jobs: jobs ?? [], loading: enabled && jobs === null, refresh }
 }
 
 /**

@@ -1,4 +1,6 @@
-import { Copy, Cube, Microphone, Monitor, Moon, Sparkle, SpeakerHigh, SquaresFour, Sun, X } from '@phosphor-icons/react'
+import { Copy, Cube, Microphone, Monitor, Moon, Sparkle, SpeakerHigh, Sun, X } from '@phosphor-icons/react'
+import { MiniAppsSettingsSection } from './MiniAppsSettingsSection'
+import { BuzzSettingsSection } from './BuzzSettingsSection'
 import {
   AI_AGENT_DEFINITIONS,
   createMissingAiAgentsStatus,
@@ -150,6 +152,9 @@ interface SettingsDraft {
   editorFontFamily: string
   aiChatFontFamily: string
   sidebarFontFamily: string
+  buzzEnabled: boolean
+  buzzChannel: string
+  miniAppsWebAccessEnabled: boolean
 }
 
 interface SettingsBodyProps {
@@ -268,6 +273,12 @@ interface SettingsBodyProps {
   setAiChatFontFamily: (value: string) => void
   sidebarFontFamily: string
   setSidebarFontFamily: (value: string) => void
+  buzzEnabled: boolean
+  setBuzzEnabled: (value: boolean) => void
+  buzzChannel: string
+  setBuzzChannel: (value: string) => void
+  miniAppsWebAccessEnabled: boolean
+  setMiniAppsWebAccessEnabled: (value: boolean) => void
 }
 
 const PULL_INTERVAL_OPTIONS = [1, 2, 5, 10, 15, 30] as const
@@ -338,6 +349,9 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     editorFontFamily: settings.editor_font_family ?? '',
     aiChatFontFamily: settings.ai_chat_font_family ?? '',
     sidebarFontFamily: settings.sidebar_font_family ?? '',
+    buzzEnabled: settings.buzz_enabled ?? false,
+    buzzChannel: settings.buzz_default_channel ?? '',
+    miniAppsWebAccessEnabled: settings.mini_apps_web_access_enabled ?? false,
   }
 }
 
@@ -418,6 +432,9 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     editor_font_family: draft.editorFontFamily.trim() || null,
     ai_chat_font_family: draft.aiChatFontFamily.trim() || null,
     sidebar_font_family: draft.sidebarFontFamily.trim() || null,
+    buzz_enabled: draft.buzzEnabled,
+    buzz_default_channel: draft.buzzChannel.trim() || null,
+    mini_apps_web_access_enabled: draft.miniAppsWebAccessEnabled,
   }
   return settingsWithAllNotesFileVisibility(nextSettings, draft.allNotesFileVisibility)
 }
@@ -787,6 +804,12 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setAiChatFontFamily={(value) => updateDraft('aiChatFontFamily', value)}
       sidebarFontFamily={draft.sidebarFontFamily}
       setSidebarFontFamily={(value) => updateDraft('sidebarFontFamily', value)}
+      buzzEnabled={draft.buzzEnabled}
+      setBuzzEnabled={(value) => updateDraft('buzzEnabled', value)}
+      buzzChannel={draft.buzzChannel}
+      setBuzzChannel={(value) => updateDraft('buzzChannel', value)}
+      miniAppsWebAccessEnabled={draft.miniAppsWebAccessEnabled}
+      setMiniAppsWebAccessEnabled={(value) => updateDraft('miniAppsWebAccessEnabled', value)}
     />
   )
 }
@@ -805,7 +828,7 @@ function SettingsBody(props: SettingsBodyProps) {
 }
 
 function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
-  const { t, locale, systemLocale, pullInterval, setPullInterval, gitFeaturesEnabled, setGitFeaturesEnabled, gitProvider, setGitProvider, gitWslDistro, setGitWslDistro, isGitVault, vaultPath, autoGitEnabled, setAutoGitEnabled, autoGitAiCommitMessagesEnabled, setAutoGitAiCommitMessagesEnabled, autoGitIdleThresholdSeconds, setAutoGitIdleThresholdSeconds, autoGitInactiveThresholdSeconds, setAutoGitInactiveThresholdSeconds, releaseChannel, setReleaseChannel, automaticUpdateChecksEnabled, setAutomaticUpdateChecksEnabled, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, uiLanguage, setUiLanguage } = options
+  const { t, locale, systemLocale, pullInterval, setPullInterval, gitFeaturesEnabled, setGitFeaturesEnabled, gitProvider, setGitProvider, gitWslDistro, setGitWslDistro, isGitVault, vaultPath, autoGitEnabled, setAutoGitEnabled, autoGitAiCommitMessagesEnabled, setAutoGitAiCommitMessagesEnabled, autoGitIdleThresholdSeconds, setAutoGitIdleThresholdSeconds, autoGitInactiveThresholdSeconds, setAutoGitInactiveThresholdSeconds, releaseChannel, setReleaseChannel, automaticUpdateChecksEnabled, setAutomaticUpdateChecksEnabled, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, uiLanguage, setUiLanguage, buzzEnabled, setBuzzEnabled, buzzChannel, setBuzzChannel, miniAppsEnabled, setMiniAppsEnabled, miniAppsWebAccessEnabled, setMiniAppsWebAccessEnabled } = options
   return (
     <>
       <SettingsSection id={SETTINGS_SECTION_IDS.sync} showDivider={false}>
@@ -875,8 +898,32 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
         <TransparencySettingsSection {...options} />
       </SettingsSection>
 
-      <SettingsSection id={SETTINGS_SECTION_IDS.dictation}>
+      {/* Widgets: dictation pill + text-to-speech — everything that floats on
+          top of the workspace or speaks (user-requested grouping). */}
+      <SettingsSection id={SETTINGS_SECTION_IDS.widgets}>
+        <SectionHeading icon={<Microphone size={16} aria-hidden="true" />} title={t('settings.widgets.title')} />
         <DictationSettingsSection {...options} />
+      </SettingsSection>
+
+      <SettingsSection id={SETTINGS_SECTION_IDS.miniApps}>
+        <MiniAppsSettingsSection
+          t={t}
+          miniAppsEnabled={miniAppsEnabled}
+          setMiniAppsEnabled={setMiniAppsEnabled}
+          webAccessEnabled={miniAppsWebAccessEnabled}
+          setWebAccessEnabled={setMiniAppsWebAccessEnabled}
+        />
+      </SettingsSection>
+
+      <SettingsSection id={SETTINGS_SECTION_IDS.buzz}>
+        <BuzzSettingsSection
+          t={t}
+          locale={locale}
+          buzzEnabled={buzzEnabled}
+          setBuzzEnabled={setBuzzEnabled}
+          buzzChannel={buzzChannel}
+          setBuzzChannel={setBuzzChannel}
+        />
       </SettingsSection>
     </>
   )
@@ -1638,8 +1685,6 @@ function DictationSettingsSection(options: SettingsBodyProps) {
     setKokoroSpeed,
     ttsHighlightEnabled,
     setTtsHighlightEnabled,
-    miniAppsEnabled,
-    setMiniAppsEnabled,
     grammarCheckEnabled,
     setGrammarCheckEnabled,
     ocrEnabled,
@@ -1749,7 +1794,6 @@ function DictationSettingsSection(options: SettingsBodyProps) {
         ttsHighlightEnabled={ttsHighlightEnabled}
         setTtsHighlightEnabled={setTtsHighlightEnabled}
       />
-      <MiniAppsSettingsSection t={t} miniAppsEnabled={miniAppsEnabled} setMiniAppsEnabled={setMiniAppsEnabled} />
     </>
   )
 }
@@ -1844,29 +1888,6 @@ function TtsSettingsSection(props: TtsSettingsSectionProps) {
         checked={ttsHighlightEnabled}
         onChange={setTtsHighlightEnabled}
         testId="settings-tts-highlight"
-      />
-    </SettingsGroup>
-  )
-}
-
-interface MiniAppsSettingsSectionProps {
-  t: Translate
-  miniAppsEnabled: boolean
-  setMiniAppsEnabled: (value: boolean) => void
-}
-
-/** Mini-apps section (plan 4 §3.9): enables the DuckDB mini-app surfaces. */
-function MiniAppsSettingsSection(props: MiniAppsSettingsSectionProps) {
-  const { t, miniAppsEnabled, setMiniAppsEnabled } = props
-  return (
-    <SettingsGroup>
-      <SectionHeading icon={<SquaresFour size={16} aria-hidden="true" />} title={t('settings.miniApps.title')} />
-      <SettingsSwitchRow
-        label={t('settings.miniApps.enable')}
-        description={t('settings.miniApps.enableDescription')}
-        checked={miniAppsEnabled}
-        onChange={setMiniAppsEnabled}
-        testId="settings-mini-apps-enabled"
       />
     </SettingsGroup>
   )

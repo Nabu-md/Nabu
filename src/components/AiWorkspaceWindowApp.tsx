@@ -310,6 +310,7 @@ export function AiWorkspaceWindowApp() {
             vaultPath={vaultPath}
             vaultPaths={vaultPaths}
             locale={preferences.appLocale}
+            teamChannel={aiFeaturesEnabled && settings.buzz_enabled ? (settings.buzz_default_channel ?? undefined) : undefined}
           />
         ) : (
           <div

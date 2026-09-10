@@ -23,6 +23,8 @@ export interface BuzzMultiplayerState {
   /** Most recent non-empty channel id used with the relay. */
   lastChannel: string | null
   refresh: (channel: string) => Promise<void>
+  /** Same as `refresh` but resolves with the fetched messages. */
+  fetchMessages: (channel: string) => Promise<BuzzMessage[]>
   postUpdate: (channel: string, status: string) => Promise<void>
 }
 
@@ -79,9 +81,33 @@ export function useBuzzMultiplayer(): BuzzMultiplayerState {
     }
   }, [])
 
+  /**
+   * Fetches messages for `channel` and resolves with the message list —
+   * used by the settings section where the caller renders its own state.
+   */
+  const fetchMessages = useCallback(
+    async (channel: string): Promise<BuzzMessage[]> => {
+      const trimmed = channel.trim()
+      if (!trimmed) return []
+      setLastChannel(trimmed)
+      try {
+        const messages = await buzzInvoke<BuzzMessage[]>('buzz_get_team_messages', {
+          channel: trimmed,
+          limit: 10,
+        })
+        setTeamMessages(messages)
+        return messages
+      } catch {
+        setTeamMessages([])
+        return []
+      }
+    },
+    [],
+  )
+
   const postUpdate = useCallback(async (channel: string, message: string) => {
     await buzzInvoke('buzz_post_agent_update', { channel: channel.trim(), status: message })
   }, [])
 
-  return { readiness, status, teamMessages, lastChannel, refresh, postUpdate }
+  return { readiness, status, teamMessages, lastChannel, refresh, fetchMessages, postUpdate }
 }

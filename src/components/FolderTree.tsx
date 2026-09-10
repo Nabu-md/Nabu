@@ -519,11 +519,15 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
         onCopyGitUrl,
       }
       const { handleNoteContextMenu, contextMenuNode } = useNoteFileContextMenu(fileHandlers, locale)
-      fileHandlers.onNoteContextMenu = handleNoteContextMenu
+      const noteRowHandlers: WithNoteContextMenu = { ...fileHandlers, onNoteContextMenu: handleNoteContextMenu }
 
       const keyboardNav = useTreeKeyboardNav()
       const rowOrderRef = useRef<string[]>([])
-      rowOrderRef.current = []
+      useEffect(() => {
+        // Rows self-register in mount effects; clearing here (effect phase)
+        // resets the order for this render pass without mutating refs in render.
+        rowOrderRef.current = []
+      })
 
       const explorerEmpty = displayedFolders.length === 0 && !isCreating && entriesByFolder.size === 0
       if (explorerEmpty) return null
@@ -560,7 +564,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
             toggleFolder={toggleFolder}
             entriesByFolder={entriesByFolder}
             typeEntryMap={typeEntryMap}
-            fileHandlers={fileHandlers}
+            fileHandlers={noteRowHandlers}
             keyboardNav={keyboardNav}
             rowOrderRef={rowOrderRef}
           />

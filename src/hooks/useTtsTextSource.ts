@@ -1,14 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { invoke } from '@tauri-apps/api/core'
-import { isTauri, mockInvoke } from '../mock-tauri'
 import { trackEvent } from '../lib/telemetry'
 import type { useKokoroTts } from './useKokoroTts'
 
 type Tts = ReturnType<typeof useKokoroTts>
-
-function ttsInvoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  return isTauri() ? invoke<T>(command, args) : mockInvoke<T>(command, args)
-}
 
 /** Strips frontmatter and markdown syntax so Kokoro reads prose, not markup. */
 export function stripMarkdownForSpeech(markdown: string): string {
@@ -46,9 +40,14 @@ interface UseTtsTextSourceOptions {
  * Returns a handler plus whether playback is currently active for this source.
  */
 export function useTtsTextSource({ tts, getText, sourceId, enabled = true }: UseTtsTextSourceOptions) {
-  const getTextRef = useRef(getText)
-  getTextRef.current = getText
+  // The extractor is read from event handlers only, so a ref plus a sync
+  // effect avoids both stale closures and render-phase ref writes.
+  const getTextRef = useRef<() => string>(() => '')
   const activeRef = useRef(false)
+
+  useEffect(() => {
+    getTextRef.current = getText
+  }, [getText])
 
   useEffect(() => {
     if (!enabled) return

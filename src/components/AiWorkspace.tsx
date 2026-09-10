@@ -21,14 +21,13 @@ import { NEW_AI_CHAT_EVENT } from '../utils/aiPromptBridge'
 import type { GenerateAiConversationTitleRequest } from '../utils/aiConversationTitle'
 import { cloneAiWorkspaceSessionUntilMessage } from '../lib/aiWorkspaceSessionStore'
 import { AiPanelView } from './AiPanel'
+import { useAiPanelController } from './useAiPanelController'
 import { GuidanceWarning, WorkspaceHeader } from './AiWorkspaceChrome'
 import { WorkspaceResizeHandles } from './AiWorkspaceResizeHandles'
 import { AiTargetModelPicker } from './AiAgentModelPicker'
-import { BuzzMultiplayerToggle } from './BuzzMultiplayerToggle'
 import { ConversationSidebar } from './AiWorkspaceSidebar'
 import { ResizeHandle } from './ResizeHandle'
 import { SideWorkspaceHeader } from './AiWorkspaceSideHeader'
-import { useAiPanelController } from './useAiPanelController'
 import { buildAiWorkspaceTargetGroups, type AiWorkspaceTargetGroups } from './aiWorkspaceTargetGroups'
 import {
   activeConversationForState,
@@ -81,6 +80,8 @@ interface AiWorkspaceProps {
   onVaultChanged?: () => void
   open: boolean
   openTabs?: VaultEntry[]
+  /** Buzz team channel from settings; agent answers post here when set. */
+  teamChannel?: string
   vaultAiGuidanceStatus?: VaultAiGuidanceStatus
   vaultPath: string
   vaultPaths?: string[]
@@ -182,6 +183,8 @@ type ConversationSessionProps = {
   readyFallbackTargetId: string
   /** When true, the session's permission mode is forced to deep_research so prompts run the research loop in-chat. */
   researchMode: boolean
+  /** Buzz team channel from settings; agent answers post here when set. */
+  teamChannel?: string
   target: AiTarget
   modelCatalog: AiAgentModelCatalog
   modelCatalogReady: boolean
@@ -549,6 +552,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     openTabs,
     readyFallbackTargetId,
     researchMode,
+    teamChannel,
     target,
     vaultAiGuidanceStatus,
     vaultPath,
@@ -577,7 +581,6 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     ready: modelCatalogReady,
     selectedModelId: conversation.modelId,
   })
-  const [teamChannel, setTeamChannel] = useState<string | null>(null)
   const controller = useAiPanelController({
     vaultPath,
     vaultPaths,
@@ -593,7 +596,7 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     noteListFilter: context.noteListFilter,
     locale,
     model: modelSelection.streamModelId,
-    teamChannel: teamChannel ?? undefined,
+    teamChannel: teamChannel,
     onOpenNote,
     onFileCreated,
     onFileModified,
@@ -612,7 +615,6 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
   })
   const composerControls = (
     <>
-      <BuzzMultiplayerToggle locale={locale} channel={teamChannel} onChannelChange={setTeamChannel} />
       <ConversationComposerControls
       catalog={modelCatalog}
       catalogReady={modelCatalogReady}
@@ -1121,6 +1123,7 @@ function ConversationSessions({
             openTabs={workspace.openTabs}
             readyFallbackTargetId={model.fallbackTarget.id}
             researchMode={researchMode}
+            teamChannel={workspace.teamChannel}
             target={target}
             vaultAiGuidanceStatus={workspace.vaultAiGuidanceStatus}
             vaultPath={workspace.vaultPath}

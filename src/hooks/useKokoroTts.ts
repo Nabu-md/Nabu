@@ -164,15 +164,21 @@ export function useKokoroTts(options: {
     [],
   )
 
+  // The animation frame schedules itself, so the callback lives in a ref and
+  // the effect below keeps it current without a circular useCallback reference.
+  const rafTickRef = useRef<() => void>(() => undefined)
   const tick = useCallback(() => {
     const audio = audioRef.current
     if (audio && !audio.paused) {
       setCurrentTime(audio.currentTime)
-      rafRef.current = requestAnimationFrame(tick)
+      rafRef.current = requestAnimationFrame(() => rafTickRef.current())
     } else {
       rafRef.current = null
     }
   }, [])
+  useEffect(() => {
+    rafTickRef.current = tick
+  }, [tick])
 
   const speak = useCallback(
     async (text: string) => {

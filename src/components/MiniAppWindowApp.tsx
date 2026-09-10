@@ -9,6 +9,7 @@ import {
   type MiniAppContextPayload,
 } from '../utils/miniAppWindow'
 import { cleanupTauriEventListener, type TauriUnlisten } from '../utils/tauriEventCleanup'
+import { trackMiniAppGatewayUsed } from '../lib/productAnalytics'
 
 interface MiniAppConfig {
   id: string
@@ -22,6 +23,21 @@ interface MiniAppConfig {
 }
 
 const MINI_APP_VAULT_DATA_REQUEST_EVENT = 'mini-app-request-vault-data'
+
+/** Posted by a scheduled mini-app when its cron task has finished. */
+const MINI_APP_CRON_DONE_MESSAGE = 'mini-app-cron-done'
+
+/** Safety net matching the scheduler-side budget in `mini_apps_cron.rs`. */
+const CRON_RUN_WATCHDOG_MS = 10 * 60 * 1000
+
+/** Gateway commands mini-apps may invoke; instrumented for adoption metrics. */
+const GATEWAY_COMMANDS = new Set([
+  'proxy_fetch',
+  'scrape_selection',
+  'get_current_activity',
+  'fetch_rss_feed',
+  'sync_email',
+])
 
 function postMiniAppContext(
   target: Window,
@@ -37,6 +53,8 @@ function postMiniAppContext(
         note_title: params?.noteTitle ?? null,
         vault_path: params?.vaultPath ?? null,
         extra: params?.context ?? null,
+        cron_task: params?.cronTask ?? null,
+        cron_target: params?.cronTarget ?? null,
       },
     },
     '*',
@@ -72,6 +90,11 @@ async function runMiniAppMcpCall(
     args: message.params,
     vaultPath,
   })
+}
+
+async function runMiniAppGatewayCommand(command: string, args: Record<string, unknown>): Promise<unknown> {
+  trackMiniAppGatewayUsed(command === 'scrape_selection' ? 'scrape_selector' : (command as 'proxy_fetch' | 'get_current_activity' | 'fetch_rss_feed'))
+  return invoke(command, args)
 }
 
 async function closeMiniAppWindow(): Promise<void> {
@@ -126,6 +149,8 @@ export function MiniAppWindowApp() {
       note_title: params?.noteTitle,
       vault_path: params?.vaultPath ?? undefined,
       extra: params?.context,
+      cron_task: params?.cronTask,
+      cron_target: params?.cronTarget,
     } satisfies MiniAppContextPayload)
 
     let cancelled = false
@@ -160,14 +185,40 @@ export function MiniAppWindowApp() {
   // context is delivered via postMessage both on load and on request. When the
   // app declares `allow_vault_access: true`, MCP tool calls are relayed to the
   // Rust backend over invoke and the result is posted back to the iframe.
+  // Gateway commands (proxy_fetch, scrape_selection, …) go out over direct
+  // invoke so mediated network access works regardless of the vault-access
+  // toggle; each use is instrumented via `miniapp_gateway_used`.
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const frame = document.querySelector<HTMLIFrameElement>('iframe[data-mini-app-frame]')
       if (!frame?.contentWindow) return
       if (event.source !== frame.contentWindow) return
-      const payload = event.data as { type?: string; request_id?: string } | null
+      const payload = event.data as { type?: string; request_id?: string; command?: string; args?: Record<string, unknown> } | null
       if (payload?.type === 'mini-app-request-vault-data') {
         postMiniAppContext(frame.contentWindow, params, payload.request_id ?? '')
+        return
+      }
+      if (payload?.type === MINI_APP_CRON_DONE_MESSAGE) {
+        void closeMiniAppWindow()
+        return
+      }
+      if (payload?.type === 'mini-app-gateway-call' && typeof payload.command === 'string' && GATEWAY_COMMANDS.has(payload.command)) {
+        try {
+          const result = await runMiniAppGatewayCommand(payload.command, payload.args ?? {})
+          frame.contentWindow.postMessage(
+            { type: 'mini-app-gateway-response', id: payload.request_id, result },
+            '*',
+          )
+        } catch (error) {
+          frame.contentWindow.postMessage(
+            {
+              type: 'mini-app-gateway-response',
+              id: payload.request_id,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            '*',
+          )
+        }
         return
       }
       if (!config?.allow_vault_access || !isMiniAppMcpCallMessage(payload)) return
@@ -198,6 +249,18 @@ export function MiniAppWindowApp() {
   }
 
   const frameSrc = appId ? miniAppFrameSource(appId, config?.entrypoint_url) : null
+  const isCronRun = Boolean(params?.cronTask)
+
+  // Scheduled-run watchdog: hidden cron windows must never linger. Close the
+  // window when the app reports completion (handled in the message listener
+  // above) or after the watchdog elapses, whichever comes first.
+  useEffect(() => {
+    if (!isCronRun || !isTauri()) return
+    const timer = window.setTimeout(() => {
+      void closeMiniAppWindow()
+    }, CRON_RUN_WATCHDOG_MS)
+    return () => window.clearTimeout(timer)
+  }, [isCronRun])
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
