@@ -873,14 +873,6 @@ export const mockHandlers = {
   buzz_status: () => ({ installed: false, has_identity: false, env_key_present: false }),
   buzz_get_team_messages: (): Array<{ author: string; content: string; created_at: number }> => [],
   buzz_post_agent_update: (): null => null,
-
-  // ── DuckDB mini-apps ───────────────────────────────────────────────────
-  discover_mini_apps: (): Array<{ app_id: string; title: string; note_path: string }> => [],
-  get_mini_app: (): null => null,
-  run_mini_app_view: (): Array<Record<string, unknown>> => [],
-  execute_mini_app_mut: (): null => null,
-  export_mini_app_to_markdown: (): string => '',
-  import_mini_app_markdown_cmd: (): number => 0,
 } satisfies Record<string, (...args: never[]) => unknown>
 
 export function addMockEntry(_entry: VaultEntry, content: string): void {

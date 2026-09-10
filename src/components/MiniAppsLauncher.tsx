@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { SquaresFour } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useMiniApps, type MiniApp } from '../hooks/useMiniApps'
-import { useMiniApp } from '../hooks/useMiniApp'
-import { MiniAppRenderer } from './MiniAppRenderer'
 import { trackEvent } from '../lib/telemetry'
 
 interface MiniAppsLauncherProps {
@@ -41,9 +39,7 @@ function MiniAppRow({
 /**
  * Floating launcher for installed HTML mini-apps (a dock item for the
  * Command Palette alternative described in the Phase 3 plan). Clicking an app
- * opens it in its own Tauri window with the current note as context. When the
- * active note itself defines a SQL mini-app (app_id frontmatter), its DuckDB
- * views render inline instead (plan 4 §3.7).
+ * opens it in its own Tauri window with the current note as context.
  */
 export function MiniAppsLauncher({ vaultPath, activeNote, onToast }: MiniAppsLauncherProps) {
   const [open, setOpen] = useState(false)
@@ -51,14 +47,6 @@ export function MiniAppsLauncher({ vaultPath, activeNote, onToast }: MiniAppsLau
     vaultPath,
     enabled: open,
   })
-
-  // When the active note has app_id frontmatter, load it as a SQL mini-app.
-  const activeNotePath = activeNote?.path ?? null
-  const sqlApp = useMiniApp({ vaultPath, notePath: activeNotePath, enabled: open && Boolean(activeNotePath) })
-  const inlineApp = useMemo(
-    () => (open && sqlApp.app && vaultPath ? { vaultPath, notePath: activeNotePath as string } : null),
-    [open, sqlApp.app, vaultPath, activeNotePath],
-  )
 
   const handleOpen = (app: MiniApp) => {
     trackEvent('mini_app_opened', { app_id: app.id })
@@ -94,12 +82,6 @@ export function MiniAppsLauncher({ vaultPath, activeNote, onToast }: MiniAppsLau
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" side="top" className="w-64 p-1.5">
-        {inlineApp ? (
-          <div className="h-80 w-[520px]">
-            <MiniAppRenderer vaultPath={inlineApp.vaultPath} notePath={inlineApp.notePath} />
-          </div>
-        ) : (
-          <>
         <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Mini Apps
         </div>
@@ -117,8 +99,6 @@ export function MiniAppsLauncher({ vaultPath, activeNote, onToast }: MiniAppsLau
               <MiniAppRow key={app.id} app={app} onOpen={handleOpen} />
             ))}
           </div>
-        )}
-          </>
         )}
       </PopoverContent>
     </Popover>

@@ -19,7 +19,6 @@ pub mod koko_tts;
 mod commands;
 pub mod dictation;
 pub mod mini_apps;
-pub mod mini_apps_sql;
 pub mod miniapp_gateways;
 pub mod ocr;
 pub mod copilot_cli;
@@ -415,12 +414,6 @@ macro_rules! app_invoke_handler {
             commands::kokoro_word_timings,
             commands::kokoro_speak,
             commands::kokoro_stop,
-            commands::discover_mini_apps,
-            commands::get_mini_app,
-            commands::run_mini_app_view,
-            commands::execute_mini_app_mut,
-            commands::export_mini_app_to_markdown,
-            commands::import_mini_app_markdown_cmd,
             commands::sync_mcp_bridge_vault,
             commands::get_process_memory_snapshot,
             commands::repair_vault,

@@ -1169,14 +1169,5 @@
   "buzz.teamChannelPlaceholder": "e.g. research-team",
   "buzz.notInstalled": "Buzz CLI is not installed.",
   "buzz.noIdentity": "Run `buzz auth login` in your terminal, then restart Nabu.",
-  "buzz.resultsPosted": "Results posted to {{channel}}",
-  "miniApp.loading": "Loading mini-app…",
-  "miniApp.notFound": "Mini-app definition not found.",
-  "miniApp.addView": "Add view",
-  "miniApp.exportMarkdown": "Export as markdown table",
-  "miniApp.import": "Import rows",
-  "miniApp.save": "Save",
-  "miniApp.cancel": "Cancel",
-  "miniApp.requiredField": "This field is required",
-  "miniApp.records": "{{count}} records"
+  "buzz.resultsPosted": "Results posted to {{channel}}"
 }

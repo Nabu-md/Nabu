@@ -38,6 +38,6 @@ mod tests {
 
     #[test]
     fn agent_update_requires_status() {
-        assert!(buzz_post_agent_update("chan", "  ".to_string()).is_err());
+        assert!(buzz_post_agent_update("chan".to_string(), "  ".to_string()).is_err());
     }
 }

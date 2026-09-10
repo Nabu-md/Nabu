@@ -136,8 +136,6 @@ pub struct Settings {
     pub kokoro_speed: Option<f64>,
     /// Live word highlighting while TTS reads.
     pub tts_highlight_enabled: Option<bool>,
-    /// Mini-apps (DuckDB-backed notes with app_id) enabled.
-    pub mini_apps_sql_enabled: Option<bool>,
     pub grammar_check_enabled: Option<bool>,
     pub ocr_enabled: Option<bool>,
     pub document_conversion_enabled: Option<bool>,
@@ -292,7 +290,6 @@ fn normalize_settings(settings: Settings) -> Settings {
         kokoro_voice: normalize_optional_string(settings.kokoro_voice),
         kokoro_speed: normalize_kokoro_speed(settings.kokoro_speed),
         tts_highlight_enabled: settings.tts_highlight_enabled,
-        mini_apps_sql_enabled: settings.mini_apps_sql_enabled,
         grammar_check_enabled: settings.grammar_check_enabled,
         ocr_enabled: settings.ocr_enabled,
         document_conversion_enabled: settings.document_conversion_enabled,

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Mutex;
@@ -43,6 +44,14 @@ pub struct MiniApp {
     pub allow_vault_access: bool,
     #[serde(default)]
     pub cron_jobs: Vec<MiniAppCronJob>,
+    /// Optional SQL DDL applied to the app's DuckDB database. Declaring a
+    /// schema turns the manifest into a data-backed mini-app.
+    #[serde(default)]
+    pub schema: Option<String>,
+    /// Named query templates (table/kanban/chart reads, form inserts) the app
+    /// runs against its DuckDB database via the MCP relay.
+    #[serde(default)]
+    pub views: Vec<MiniAppView>,
 }
 
 /// A scheduled task declared in a mini-app manifest. Only meaningful for apps
@@ -57,6 +66,58 @@ pub struct MiniAppCronJob {
     /// Optional note path the task writes to.
     #[serde(default)]
     pub target_note: Option<String>,
+}
+
+/// A named query template declared in a mini-app manifest. Read views
+/// (table/kanban/chart) carry a SELECT/WITH query; form views carry an INSERT
+/// template plus the field definitions used to validate submitted values.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct MiniAppView {
+    pub name: String,
+    pub view_type: MiniAppViewType,
+    /// SQL query for read views; INSERT statement for form views.
+    pub query: String,
+    /// Kanban group-by column (kanban views only).
+    #[serde(default)]
+    pub group_by: Option<String>,
+    /// Form field definitions (form views only).
+    #[serde(default)]
+    pub fields: Vec<MiniAppFormField>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniAppViewType {
+    Table,
+    Form,
+    Kanban,
+    Chart,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct MiniAppFormField {
+    pub name: String,
+    pub column: String,
+    #[serde(default)]
+    pub field_type: MiniAppFormFieldType,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub options: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniAppFormFieldType {
+    #[default]
+    Text,
+    Number,
+    Email,
+    Date,
+    Select,
+    Textarea,
 }
 
 /// Context packaged with a mini-app launch. Passed to the new window via URL
@@ -393,7 +454,7 @@ pub fn delete_mini_app(app_handle: tauri::AppHandle, id: String) -> Result<(), S
 /// MCP tools a mini-app may call when `allow_vault_access: true`.
 /// Vault-lifecycle tools (list_vaults, attach_vault, clone_vault) stay
 /// reserved for AI agents and are never exposed to mini-apps.
-const MINI_APP_ALLOWED_MCP_TOOLS: [&str; 7] = [
+const MINI_APP_ALLOWED_MCP_TOOLS: [&str; 8] = [
     "search_notes",
     "get_note",
     "create_note",
@@ -401,6 +462,7 @@ const MINI_APP_ALLOWED_MCP_TOOLS: [&str; 7] = [
     "append_to_note",
     "open_note",
     "refresh_vault",
+    "query_mini_app_sql",
 ];
 
 fn is_mini_app_allowed_tool(tool: &str) -> bool {
@@ -549,7 +611,357 @@ pub fn mcp_tool_call(
             // events so the main window can react without direct access.
             Ok(serde_json::json!({ "ok": true }))
         }
+        "query_mini_app_sql" => {
+            // Args: { app_id, view_name?, sql?, params? }. `view_name` runs a
+            // manifest-declared view (form views take `params` as the field
+            // values); `sql` runs ad-hoc SELECT/WITH statements only.
+            let app_id = args
+                .get("app_id")
+                .and_then(serde_json::Value::as_str)
+                .ok_or("app_id is required")?;
+            let (schema, views) = load_mini_app_sql_definition(&vault_root, app_id)?;
+            let db_path = database_path(&vault_root, app_id)?;
+            let connection = open_app_database(&db_path, &schema)?;
+
+            if let Some(view_name) = args.get("view_name").and_then(serde_json::Value::as_str) {
+                let view = views
+                    .iter()
+                    .find(|view| view.name == view_name)
+                    .ok_or_else(|| format!("Mini-app view '{view_name}' not found"))?;
+                match view.view_type {
+                    MiniAppViewType::Form => {
+                        let values = string_map_from_args(&args)?;
+                        let sql = build_insert_sql(view, &values)?;
+                        connection
+                            .execute_batch(&sql)
+                            .map_err(|error| format!("Failed to insert mini-app record: {error}"))?;
+                        Ok(serde_json::json!({ "ok": true, "inserted": 1 }))
+                    }
+                    _ => {
+                        validate_select_query(view_name, &view.query)?;
+                        let rows = execute_select_rows(&connection, &view.query)?;
+                        Ok(serde_json::to_value(rows).unwrap_or_else(|_| serde_json::json!([])))
+                    }
+                }
+            } else if let Some(sql) = args.get("sql").and_then(serde_json::Value::as_str) {
+                validate_select_query("ad-hoc", sql)?;
+                let rows = execute_select_rows(&connection, sql)?;
+                Ok(serde_json::to_value(rows).unwrap_or_else(|_| serde_json::json!([])))
+            } else {
+                Err("Mini-app SQL calls need either a 'view_name' or ad-hoc 'sql'".into())
+            }
+        }
         _ => Err(format!("Tool '{tool}' is not available to mini-apps")),
+    }
+}
+
+// ── SQL-backed mini-app data (DuckDB) ───────────────────────────────────────
+
+/// Where per-vault mini-app databases live. `.nabu/` is vault metadata (the
+/// settings seed already lives there), and the directory is created on demand.
+const NABU_DIR: &str = ".nabu";
+const APPS_DB_DIR: &str = "apps";
+
+/// A single result row: column name → JSON value.
+pub type MiniAppRow = HashMap<String, Value>;
+
+/// Validates a mini-app id: 1-64 letters, digits, dashes, or underscores. The
+/// same rule guards `.apps/{id}` directory lookups and DuckDB file names.
+fn validate_app_id(app_id: &str) -> Result<(), String> {
+    let valid = !app_id.is_empty()
+        && app_id.len() <= 64
+        && app_id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_');
+    if valid {
+        Ok(())
+    } else {
+        Err(format!(
+            "Mini-app id '{app_id}' is invalid: use 1-64 letters, digits, dashes, or underscores"
+        ))
+    }
+}
+
+/// Resolves (and creates) the per-vault DuckDB directory: `<vault>/.nabu/apps`.
+fn apps_db_dir(vault_path: &Path) -> Result<PathBuf, String> {
+    let dir = vault_path.join(NABU_DIR).join(APPS_DB_DIR);
+    std::fs::create_dir_all(&dir)
+        .map_err(|error| format!("Failed to create mini-app database directory: {error}"))?;
+    Ok(dir)
+}
+
+/// Database file for an app id. The id is re-validated here so the path can
+/// never escape the vault's `.nabu/apps` directory.
+fn database_path(vault_path: &Path, app_id: &str) -> Result<PathBuf, String> {
+    validate_app_id(app_id)?;
+    Ok(apps_db_dir(vault_path)?.join(format!("{app_id}.duckdb")))
+}
+
+/// Opens the app's DuckDB file, executing the manifest's schema DDL first.
+/// DDL uses `CREATE TABLE IF NOT EXISTS`-style statements so re-opening is
+/// idempotent.
+fn open_app_database(db_path: &Path, schema: &str) -> Result<duckdb::Connection, String> {
+    let connection = duckdb::Connection::open(db_path)
+        .map_err(|error| format!("Failed to open mini-app database: {error}"))?;
+    connection
+        .execute_batch(schema)
+        .map_err(|error| format!("Failed to apply mini-app schema: {error}"))?;
+    Ok(connection)
+}
+
+/// Loads the DuckDB schema and views a mini-app declares in its manifest.
+/// Apps without a `schema` and at least one view are not data-backed and are
+/// rejected so the relay never creates a database for them.
+fn load_mini_app_sql_definition(
+    vault_root: &Path,
+    app_id: &str,
+) -> Result<(String, Vec<MiniAppView>), String> {
+    validate_app_id(app_id)?;
+    let manifest_path = vault_apps_dir(vault_root).join(app_id).join(MANIFEST_FILE);
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .map_err(|error| format!("Mini-app '{app_id}' has no readable manifest: {error}"))?;
+    let app: MiniApp = serde_json::from_str(&manifest)
+        .map_err(|error| format!("Mini-app '{app_id}' has an invalid manifest: {error}"))?;
+    let schema = app.schema.unwrap_or_default();
+    if schema.trim().is_empty() {
+        return Err(format!(
+            "Mini-app '{app_id}' declares no DuckDB schema; add a `schema` field to its manifest.json"
+        ));
+    }
+    if app.views.is_empty() {
+        return Err(format!(
+            "Mini-app '{app_id}' declares no views; add a `views` array to its manifest.json"
+        ));
+    }
+    Ok((schema, app.views))
+}
+
+/// Read queries must start with SELECT or WITH; everything else (DROP,
+/// DELETE, ATTACH, …) is rejected before it reaches DuckDB.
+fn validate_select_query(view_name: &str, query: &str) -> Result<(), String> {
+    let normalized = query.trim().to_ascii_lowercase();
+    let allowed = normalized.starts_with("select") || normalized.starts_with("with");
+    if allowed {
+        Ok(())
+    } else {
+        Err(format!(
+            "Mini-app view '{view_name}' must start with SELECT or WITH"
+        ))
+    }
+}
+
+/// Runs a read query and maps every row into a JSON object keyed by column
+/// name. DuckDB values are narrowed to JSON-compatible shapes (numbers,
+/// booleans, text; exotic types stringify).
+fn execute_select_rows(
+    connection: &duckdb::Connection,
+    query: &str,
+) -> Result<Vec<MiniAppRow>, String> {
+    let mut statement = connection
+        .prepare(query)
+        .map_err(|error| format!("Failed to prepare mini-app query: {error}"))?;
+
+    let mut rows = statement
+        .query([])
+        .map_err(|error| format!("Failed to run mini-app query: {error}"))?;
+    // Column metadata is populated by executing the statement; `Rows::as_ref`
+    // exposes it without conflicting with the streaming row borrow.
+    let column_names: Vec<String> = rows
+        .as_ref()
+        .map(|statement| statement.column_names())
+        .unwrap_or_default();
+
+    let mut results: Vec<MiniAppRow> = Vec::new();
+    while let Ok(Some(row)) = rows.next() {
+        let mut record = MiniAppRow::new();
+        for (index, column) in column_names.iter().enumerate() {
+            let value: Value = row
+                .get::<_, Option<duckdb::types::Value>>(index)
+                .map(|value| match value {
+                    Some(duckdb::types::Value::Null) | None => Value::Null,
+                    Some(duckdb::types::Value::Boolean(flag)) => Value::Bool(flag),
+                    Some(duckdb::types::Value::Int(number)) => Value::from(number),
+                    Some(duckdb::types::Value::BigInt(number)) => Value::from(number),
+                    Some(duckdb::types::Value::Float(number)) => json_number(f64::from(number)),
+                    Some(duckdb::types::Value::Double(number)) => json_number(number),
+                    Some(duckdb::types::Value::Text(text)) => Value::String(text),
+                    Some(other) => Value::String(format!("{other:?}")),
+                })
+                .unwrap_or(Value::Null);
+            record.insert(column.clone(), value);
+        }
+        results.push(record);
+    }
+    Ok(results)
+}
+
+fn json_number(number: f64) -> Value {
+    serde_json::Number::from_f64(number)
+        .map(Value::Number)
+        .unwrap_or(Value::Null)
+}
+
+fn sql_literal(value: &str) -> String {
+    // DuckDB supports doubled-single-quote escaping ('') inside a literal.
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+fn sql_number_literal(field: &MiniAppFormField, raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    let Ok(number) = trimmed.parse::<f64>() else {
+        return Err(format!("Field '{}' expects a number", field.name));
+    };
+    if !number.is_finite() {
+        return Err(format!("Field '{}' expects a finite number", field.name));
+    }
+    Ok(trimmed.to_string())
+}
+
+/// Builds the concrete INSERT statement for a form view: the template's
+/// VALUES placeholders are column references bound to the submitted values,
+/// validated against the view's field definitions (required fields, allowed
+/// options, numeric and email shapes) and escaped as SQL literals.
+fn build_insert_sql(
+    view: &MiniAppView,
+    values: &HashMap<String, String>,
+) -> Result<String, String> {
+    let parsed = parse_insert_template(&view.query).ok_or_else(|| {
+        format!(
+            "Mini-app form view '{}' must contain an INSERT INTO <table> (...) VALUES (...); template",
+            view.name
+        )
+    })?;
+
+    let mut value_literals: Vec<String> = Vec::new();
+    for placeholder in &parsed.value_placeholders {
+        let column = placeholder.trim();
+        let field = view
+            .fields
+            .iter()
+            .find(|field| field.column.eq_ignore_ascii_case(column))
+            .ok_or_else(|| format!("INSERT template references unknown column '{column}'"))?;
+
+        let raw = values
+            .get(&field.column)
+            .map(String::as_str)
+            .unwrap_or_default();
+        if field.required && raw.trim().is_empty() {
+            return Err(format!("Field '{}' is required", field.name));
+        }
+
+        let literal = if raw.trim().is_empty() {
+            "NULL".to_string()
+        } else {
+            match field.field_type {
+                MiniAppFormFieldType::Number => sql_number_literal(field, raw)?,
+                MiniAppFormFieldType::Select => {
+                    if !field.options.is_empty() && !field.options.iter().any(|option| option == raw) {
+                        return Err(format!(
+                            "Field '{}' must be one of: {}",
+                            field.name,
+                            field.options.join(", ")
+                        ));
+                    }
+                    sql_literal(raw)
+                }
+                MiniAppFormFieldType::Email => {
+                    if !raw.contains('@') {
+                        return Err(format!("Field '{}' expects an email address", field.name));
+                    }
+                    sql_literal(raw)
+                }
+                _ => sql_literal(raw),
+            }
+        };
+        value_literals.push(literal);
+    }
+
+    Ok(format!(
+        "INSERT INTO {} ({}) VALUES ({});",
+        parsed.table,
+        parsed
+            .columns
+            .iter()
+            .map(|column| column.trim().to_string())
+            .collect::<Vec<_>>()
+            .join(", "),
+        value_literals.join(", "),
+    ))
+}
+
+struct ParsedInsert {
+    table: String,
+    columns: Vec<String>,
+    value_placeholders: Vec<String>,
+}
+
+/// Extracts `INSERT INTO table (col1, col2) VALUES (col1, col2)` from the
+/// form view query. Placeholders inside VALUES are column references that get
+/// bound to submitted values.
+fn parse_insert_template(query: &str) -> Option<ParsedInsert> {
+    let normalized = query.replace(['\n', '\r'], " ");
+    let lower = normalized.to_ascii_lowercase();
+    let into_index = lower.find("insert into ")?;
+    let after_into = &normalized[into_index + "insert into ".len()..];
+
+    let table_end = after_into.find(['(', ' '])?;
+    let table = after_into[..table_end].trim().trim_end_matches(';').to_string();
+    if table.is_empty() {
+        return None;
+    }
+
+    let columns_open = after_into.find('(')?;
+    let columns_close = after_into[columns_open..].find(')')? + columns_open;
+    let columns: Vec<String> = after_into[columns_open + 1..columns_close]
+        .split(',')
+        .map(|column| column.trim().to_string())
+        .filter(|column| !column.is_empty())
+        .collect();
+
+    let values_index = lower[columns_close..].find("values").map(|index| index + columns_close)?;
+    let values_open = normalized[values_index..].find('(')? + values_index;
+    let values_close = normalized[values_open..].find(')')? + values_open;
+    let value_placeholders: Vec<String> = normalized[values_open + 1..values_close]
+        .split(',')
+        .map(|placeholder| placeholder.trim().to_string())
+        .filter(|placeholder| !placeholder.is_empty())
+        .collect();
+
+    if columns.len() != value_placeholders.len() {
+        return None;
+    }
+
+    Some(ParsedInsert {
+        table,
+        columns,
+        value_placeholders,
+    })
+}
+
+/// Parses the relay's optional `params` object into string values. Numbers
+/// and booleans are accepted (stringified); anything else is rejected so
+/// malformed calls fail loudly instead of inserting garbage.
+fn string_map_from_args(args: &serde_json::Value) -> Result<HashMap<String, String>, String> {
+    match args.get("params") {
+        None | Some(serde_json::Value::Null) => Ok(HashMap::new()),
+        Some(serde_json::Value::Object(entries)) => {
+            let mut map = HashMap::new();
+            for (key, value) in entries {
+                let text = match value {
+                    serde_json::Value::String(text) => text.clone(),
+                    serde_json::Value::Number(number) => number.to_string(),
+                    serde_json::Value::Bool(flag) => flag.to_string(),
+                    _ => {
+                        return Err(format!(
+                            "Mini-app query param '{key}' must be a string, number, or boolean"
+                        ))
+                    }
+                };
+                map.insert(key.clone(), text);
+            }
+            Ok(map)
+        }
+        Some(_) => Err("Mini-app query params must be an object of string values".into()),
     }
 }
 
@@ -801,6 +1213,7 @@ mod tests {
         for tool in MINI_APP_ALLOWED_MCP_TOOLS {
             assert!(is_mini_app_allowed_tool(tool));
         }
+        assert!(is_mini_app_allowed_tool("query_mini_app_sql"));
         for tool in ["list_vaults", "attach_vault", "clone_vault", "shell", "exec"] {
             assert!(!is_mini_app_allowed_tool(tool));
         }
@@ -944,5 +1357,346 @@ mod tests {
     fn url_encode_encodes_reserved_characters() {
         assert_eq!(url_encode("hello world/ü"), "hello%20world%2F%C3%BC");
         assert_eq!(url_encode("plain-id"), "plain-id");
+    }
+
+    // ── SQL-backed mini-apps (DuckDB via manifests) ─────────────────────────
+
+    const CRM_MANIFEST: &str = r#"{
+        "id": "crm",
+        "name": "Customer Tracker",
+        "entrypoint_url": "index.html",
+        "width": 720,
+        "height": 560,
+        "resizable": true,
+        "allow_vault_access": true,
+        "schema": "CREATE SEQUENCE IF NOT EXISTS customers_id_seq;\nCREATE TABLE IF NOT EXISTS customers (\n  id INTEGER PRIMARY KEY DEFAULT nextval('customers_id_seq'),\n  name TEXT NOT NULL,\n  status TEXT DEFAULT 'lead'\n);",
+        "views": [
+            {
+                "name": "Pipeline",
+                "view_type": "kanban",
+                "group_by": "status",
+                "query": "SELECT id, name, status FROM customers ORDER BY name"
+            },
+            {
+                "name": "Add Customer",
+                "view_type": "form",
+                "query": "INSERT INTO customers (name, status) VALUES (name, status)",
+                "fields": [
+                    { "name": "Customer Name", "column": "name", "field_type": "text", "required": true },
+                    { "name": "Status", "column": "status", "field_type": "select", "options": ["lead", "prospect", "customer"] }
+                ]
+            }
+        ]
+    }"#;
+
+    fn write_sql_mini_app(vault: &Path, id: &str, manifest: &str) {
+        let app_dir = vault.join(".apps").join(id);
+        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(app_dir.join("manifest.json"), manifest).unwrap();
+        std::fs::write(app_dir.join("index.html"), "<!doctype html><html><body>crm</body></html>").unwrap();
+    }
+
+    #[test]
+    fn manifest_schema_and_views_parse() {
+        let app: MiniApp = serde_json::from_str(CRM_MANIFEST).unwrap();
+        assert_eq!(app.id, "crm");
+        let schema = app.schema.expect("schema declared");
+        assert!(schema.contains("CREATE TABLE IF NOT EXISTS customers"));
+        assert_eq!(app.views.len(), 2);
+        assert_eq!(app.views[0].view_type, MiniAppViewType::Kanban);
+        assert_eq!(app.views[0].group_by.as_deref(), Some("status"));
+        assert_eq!(app.views[1].fields.len(), 2);
+        assert_eq!(
+            app.views[1].fields[1].options,
+            vec!["lead", "prospect", "customer"]
+        );
+        assert_eq!(app.views[1].fields[1].field_type, MiniAppFormFieldType::Select);
+    }
+
+    #[test]
+    fn manifest_defaults_sql_fields_for_plain_apps() {
+        let app: MiniApp = serde_json::from_str(&sample_manifest("demo", "Demo App")).unwrap();
+        assert_eq!(app.schema, None);
+        assert!(app.views.is_empty());
+    }
+
+    #[test]
+    fn rejects_invalid_app_ids() {
+        for invalid in ["", "../evil", "a/b", "a\\b", ".", "has space"] {
+            assert!(validate_app_id(invalid).is_err(), "expected '{invalid}' to be rejected");
+        }
+        assert!(validate_app_id(&"a".repeat(65)).is_err());
+        assert!(validate_app_id("crm-1_tracker").is_ok());
+    }
+
+    #[test]
+    fn rejects_read_views_that_are_not_selects() {
+        assert!(validate_select_query("Pipeline", "SELECT 1").is_ok());
+        assert!(validate_select_query("Pipeline", "  with cte as (select 1) select * from cte").is_ok());
+        let error = validate_select_query("Pipeline", "DELETE FROM customers").unwrap_err();
+        assert!(error.contains("SELECT or WITH"), "unexpected error: {error}");
+        assert!(validate_select_query("Pipeline", "DROP TABLE customers").is_err());
+        assert!(validate_select_query("Pipeline", "ATTACH '/etc/passwd' AS pwned").is_err());
+    }
+
+    #[test]
+    fn insert_template_parses_and_binds_values() {
+        let app: MiniApp = serde_json::from_str(CRM_MANIFEST).unwrap();
+        let view = &app.views[1];
+        let values = HashMap::from([
+            ("name".to_string(), "ACME Corp".to_string()),
+            ("status".to_string(), "prospect".to_string()),
+        ]);
+
+        let sql = build_insert_sql(view, &values).unwrap();
+        assert_eq!(
+            sql,
+            "INSERT INTO customers (name, status) VALUES ('ACME Corp', 'prospect');"
+        );
+    }
+
+    #[test]
+    fn insert_rejects_invalid_option_and_missing_required() {
+        let app: MiniApp = serde_json::from_str(CRM_MANIFEST).unwrap();
+        let view = &app.views[1];
+
+        let values = HashMap::from([
+            ("name".to_string(), "ACME".to_string()),
+            ("status".to_string(), "hacker".to_string()),
+        ]);
+        let error = build_insert_sql(view, &values).unwrap_err();
+        assert!(error.contains("must be one of"), "unexpected: {error}");
+
+        let values = HashMap::from([("status".to_string(), "lead".to_string())]);
+        let error = build_insert_sql(view, &values).unwrap_err();
+        assert!(error.contains("required"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn insert_validates_numbers() {
+        let view = MiniAppView {
+            name: "Add".to_string(),
+            view_type: MiniAppViewType::Form,
+            query: "INSERT INTO t (n) VALUES (n)".to_string(),
+            group_by: None,
+            fields: vec![MiniAppFormField {
+                name: "N".to_string(),
+                column: "n".to_string(),
+                field_type: MiniAppFormFieldType::Number,
+                required: true,
+                options: Vec::new(),
+            }],
+        };
+
+        let values = HashMap::from([("n".to_string(), "not-a-number".to_string())]);
+        assert!(build_insert_sql(&view, &values).is_err());
+
+        let values = HashMap::from([("n".to_string(), "42".to_string())]);
+        assert_eq!(
+            build_insert_sql(&view, &values).unwrap(),
+            "INSERT INTO t (n) VALUES (42);"
+        );
+    }
+
+    #[test]
+    fn insert_rejects_template_with_unknown_column() {
+        let app: MiniApp = serde_json::from_str(CRM_MANIFEST).unwrap();
+        let mut tampered = app.views[1].clone();
+        tampered.query = "INSERT INTO customers (name, bogus) VALUES (name, bogus)".to_string();
+        let values = HashMap::from([
+            ("name".to_string(), "ACME".to_string()),
+            ("bogus".to_string(), "x".to_string()),
+        ]);
+        let error = build_insert_sql(&tampered, &values).unwrap_err();
+        assert!(error.contains("unknown column"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn database_path_stays_inside_vault() {
+        let vault = tempfile::TempDir::new().unwrap();
+        assert_eq!(
+            database_path(vault.path(), "crm").unwrap(),
+            vault.path().join(".nabu/apps/crm.duckdb")
+        );
+        assert!(database_path(vault.path(), "../escape").is_err());
+        assert!(database_path(vault.path(), "a/b").is_err());
+    }
+
+    #[test]
+    fn sql_definition_requires_schema_and_views() {
+        let vault = tempfile::TempDir::new().unwrap();
+
+        let no_schema = r#"{"id":"x","name":"X","schema":null,"views":[{"name":"A","view_type":"table","query":"SELECT 1"}]}"#;
+        write_sql_mini_app(vault.path(), "no-schema", no_schema);
+        let error = load_mini_app_sql_definition(vault.path(), "no-schema").unwrap_err();
+        assert!(error.contains("no DuckDB schema"), "unexpected: {error}");
+
+        let no_views = r#"{"id":"x","name":"X","schema":"CREATE TABLE t(x);","views":[]}"#;
+        write_sql_mini_app(vault.path(), "no-views", no_views);
+        let error = load_mini_app_sql_definition(vault.path(), "no-views").unwrap_err();
+        assert!(error.contains("no views"), "unexpected: {error}");
+
+        let error = load_mini_app_sql_definition(vault.path(), "missing-app").unwrap_err();
+        assert!(error.contains("no readable manifest"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn string_map_from_args_accepts_scalars_only() {
+        let map = string_map_from_args(&serde_json::json!({
+            "params": { "name": "ACME", "count": 3, "flag": true }
+        }))
+        .unwrap();
+        assert_eq!(map.get("name").map(String::as_str), Some("ACME"));
+        assert_eq!(map.get("count").map(String::as_str), Some("3"));
+        assert_eq!(map.get("flag").map(String::as_str), Some("true"));
+
+        assert!(string_map_from_args(&serde_json::json!({})).unwrap().is_empty());
+        let error = string_map_from_args(&serde_json::json!({
+            "params": { "nested": { "a": 1 } }
+        }))
+        .unwrap_err();
+        assert!(error.contains("must be a string"), "unexpected: {error}");
+        let error = string_map_from_args(&serde_json::json!({ "params": [1, 2] })).unwrap_err();
+        assert!(error.contains("must be an object"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn mcp_tool_call_query_requires_app_id() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "sql": "SELECT 1" }),
+            dir.path().to_string_lossy().into_owned(),
+        )
+        .unwrap_err();
+        assert!(error.contains("app_id is required"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn mcp_tool_call_query_rejects_non_select_ad_hoc_sql() {
+        let vault = tempfile::TempDir::new().unwrap();
+        write_sql_mini_app(vault.path(), "crm", CRM_MANIFEST);
+        let vault_str = vault.path().to_string_lossy().into_owned();
+
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "sql": "DELETE FROM customers" }),
+            vault_str,
+        )
+        .unwrap_err();
+        assert!(error.contains("SELECT or WITH"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn mcp_tool_call_query_rejects_unknown_views_and_apps() {
+        let vault = tempfile::TempDir::new().unwrap();
+        write_sql_mini_app(vault.path(), "crm", CRM_MANIFEST);
+        let vault_str = vault.path().to_string_lossy().into_owned();
+
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "view_name": "Nope" }),
+            vault_str.clone(),
+        )
+        .unwrap_err();
+        assert!(error.contains("not found"), "unexpected: {error}");
+
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "ghost", "sql": "SELECT 1" }),
+            vault_str,
+        )
+        .unwrap_err();
+        assert!(error.contains("no readable manifest"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn mcp_tool_call_query_mini_app_sql_roundtrip() {
+        let vault = tempfile::TempDir::new().unwrap();
+        write_sql_mini_app(vault.path(), "crm", CRM_MANIFEST);
+        let vault_str = vault.path().to_string_lossy().into_owned();
+
+        // Form view insert via the manifest template.
+        let inserted = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({
+                "app_id": "crm",
+                "view_name": "Add Customer",
+                "params": { "name": "ACME Corp", "status": "customer" }
+            }),
+            vault_str.clone(),
+        )
+        .unwrap();
+        assert_eq!(inserted["inserted"], 1);
+
+        // Predefined read view.
+        let rows = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "view_name": "Pipeline" }),
+            vault_str.clone(),
+        )
+        .unwrap();
+        assert_eq!(rows.as_array().map(Vec::len), Some(1));
+        assert_eq!(rows[0]["name"], "ACME Corp");
+        assert_eq!(rows[0]["status"], "customer");
+
+        // Ad-hoc SELECT/WITH against the same database.
+        let rows = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "sql": "SELECT name FROM customers WHERE status = 'customer'" }),
+            vault_str,
+        )
+        .unwrap();
+        assert_eq!(rows.as_array().map(Vec::len), Some(1));
+        assert_eq!(rows[0]["name"], "ACME Corp");
+
+        // The database lives inside the vault's `.nabu/apps` directory.
+        assert!(vault.path().join(".nabu/apps/crm.duckdb").is_file());
+    }
+
+    #[test]
+    fn mcp_tool_call_form_insert_validates_values() {
+        let vault = tempfile::TempDir::new().unwrap();
+        write_sql_mini_app(vault.path(), "crm", CRM_MANIFEST);
+        let vault_str = vault.path().to_string_lossy().into_owned();
+
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({
+                "app_id": "crm",
+                "view_name": "Add Customer",
+                "params": { "name": "ACME", "status": "hacker" }
+            }),
+            vault_str.clone(),
+        )
+        .unwrap_err();
+        assert!(error.contains("must be one of"), "unexpected: {error}");
+
+        let error = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "view_name": "Add Customer", "params": {} }),
+            vault_str,
+        )
+        .unwrap_err();
+        assert!(error.contains("required"), "unexpected: {error}");
+    }
+
+    #[test]
+    fn mcp_tool_call_query_rejects_sql_apps_without_vault_access_manifest() {
+        // An app without allow_vault_access still resolves its manifest for
+        // SQL definitions; the relay gate is enforced by the shell window
+        // (MiniAppWindowApp), which only relays calls for allowed apps.
+        let manifest = CRM_MANIFEST.replace("\"allow_vault_access\": true", "\"allow_vault_access\": false");
+        let vault = tempfile::TempDir::new().unwrap();
+        write_sql_mini_app(vault.path(), "crm", &manifest);
+        let vault_str = vault.path().to_string_lossy().into_owned();
+
+        let rows = mcp_tool_call(
+            "query_mini_app_sql".into(),
+            serde_json::json!({ "app_id": "crm", "sql": "SELECT 1 AS one" }),
+            vault_str,
+        )
+        .unwrap();
+        assert_eq!(rows[0]["one"], 1);
     }
 }

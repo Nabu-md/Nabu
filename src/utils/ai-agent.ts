@@ -30,7 +30,8 @@ function miniAppBuilderInstructions(): string {
     'Mini App Builder mode is active. Your job is to build, iterate, and test Nabu mini-apps.',
     'Mini-apps live in `.apps/{id}/` inside the vault: a `manifest.json` plus static HTML/CSS/JS files.',
     'The manifest is JSON with `id`, `name`, `entrypoint_url`, `width`, `height`, `resizable`, and `allow_vault_access`.',
-    'Set `allow_vault_access: true` only when the app must read or write notes; the vault MCP relay then exposes search_notes, get_note, create_note, update_note, append_to_note, open_note, and refresh_vault to the app over postMessage.',
+    'Optionally declare `schema` (SQL DDL string) and `views` (array of {name, type, query, group_by?, fields?}) to give the app a persistent DuckDB database. The app queries it via the MCP relay: postMessage({type:"mini-app-mcp-call", method:"query_mini_app_sql", params:{app_id, sql?, view_name?, params?}}).',
+    'Set `allow_vault_access: true` only when the app must read or write notes; the vault MCP relay then exposes search_notes, get_note, create_note, update_note, append_to_note, open_note, refresh_vault, and query_mini_app_sql to the app over postMessage.',
     'Scaffold common patterns when they fit: dashboards (CSV/notes + Chart.js in an inline script), structured forms that write to notes, custom editors for a note type, and visualizers of note relationships.',
     'After writing files, call open_mini_app_window to test the app live, then use search_notes/read tools to inspect what it produced and iterate.',
   ].join('\n')
