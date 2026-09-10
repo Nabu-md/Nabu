@@ -445,10 +445,15 @@ macro_rules! app_invoke_handler {
             mini_apps::open_mini_app_devtools,
             mini_apps::mcp_tool_call,
             mini_apps::list_mini_app_cron_jobs,
+            #[cfg(feature = "miniapp-gateways")]
             miniapp_gateways::proxy_fetch,
-            miniapp_gateways::scrape_selector,
+            #[cfg(feature = "miniapp-gateways")]
+            miniapp_gateways::scrape_selection,
+            #[cfg(feature = "miniapp-gateways")]
             miniapp_gateways::fetch_rss_feed,
+            #[cfg(feature = "miniapp-gateways")]
             miniapp_gateways::get_current_activity,
+            #[cfg(feature = "miniapp-gateways")]
             miniapp_gateways::sync_email,
             vault_watcher::start_vault_watcher,
             vault_watcher::stop_vault_watcher
@@ -470,7 +475,7 @@ fn handle_run_event(app_handle: &tauri::AppHandle, event: &tauri::RunEvent) {
     // closes, so the pill persists as a menu-bar-area companion. When the last
     // regular window goes away but the pill remains, prevent the app exit and
     // hide the main window instead of destroying it.
-    if let tauri::RunEvent::ExitRequested { code: None, api } = event {
+    if let tauri::RunEvent::ExitRequested { code: None, api, .. } = event {
         let dictation_pill_alive = app_handle
             .get_webview_window("dictation-pill")
             .is_some_and(|window| window.is_visible().unwrap_or(false));

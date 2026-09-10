@@ -14,6 +14,8 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
+#[cfg(feature = "miniapp-gateways")]
+use std::path::Path;
 use std::time::Duration;
 
 const USER_AGENT: &str = "Nabu MiniAppGateway/1.0";
@@ -39,7 +41,7 @@ pub fn validate_public_http_url(raw: &str) -> Result<reqwest::Url, String> {
     }
     // Bracketless IPv6 literals and odd forms are rejected by parsing above;
     // treat anything that parses as an IP with the IP rules below.
-    if let Ok(ip) = host.trim_end_matches(|c| c != ']' && !c.is_ascii_alphanumeric()).parse::<IpAddr>() {
+    if let Ok(ip) = host.trim_end_matches(|c: char| c != ']' && !c.is_ascii_alphanumeric()).parse::<IpAddr>() {
         return Err(private_ip_error(&ip));
     }
     if let Ok(ip) = host.parse::<IpAddr>() {
@@ -100,7 +102,9 @@ fn read_limited_body(response: &mut reqwest::blocking::Response) -> Result<Vec<u
     let mut body: Vec<u8> = Vec::new();
     let mut buffer = [0u8; 16 * 1024];
     loop {
-        let chunk = std::io::Read::read(&mut response, &mut buffer)
+        use std::io::Read as _;
+        let chunk = response
+            .read(&mut buffer)
             .map_err(|error| format!("Failed to read response body: {error}"))?;
         if chunk == 0 {
             break;
@@ -126,7 +130,7 @@ pub struct ProxyFetchResult {
 
 /// Mediated HTTP GET for mini-apps (bypasses the webview CSP without
 /// weakening it). Refuses private targets and caps the body at 5 MB.
-pub fn proxy_fetch(raw_url: &str) -> Result<ProxyFetchResult, String> {
+pub fn fetch_over_http(raw_url: &str) -> Result<ProxyFetchResult, String> {
     let url = validate_public_http_url(raw_url)?;
     resolve_and_check_host(&url)?;
 
@@ -230,12 +234,22 @@ fn selector_regex(selector: &str) -> Option<Regex> {
 }
 
 fn strip_tags(html: &str) -> String {
-    let without_scripts = Regex::new(r"(?is)<(script|style)[^>]*>.*?</\1>")
-        .map(|pattern| pattern.replace_all(html, ""))
-        .unwrap_or_else(|_| html.to_string().into());
-    let without_tags = Regex::new(r"(?s)<[^>]*>")
-        .map(|pattern| pattern.replace_all(&without_scripts, " "))
-        .unwrap_or(without_scripts);
+    let without_scripts_owned;
+    let without_scripts: &str = match Regex::new(r"(?is)<(script|style)[^>]*>.*?</\1>") {
+        Ok(pattern) => {
+            without_scripts_owned = pattern.replace_all(html, "").into_owned();
+            &without_scripts_owned
+        }
+        Err(_) => html,
+    };
+    let without_tags_owned;
+    let without_tags: &str = match Regex::new(r"(?s)<[^>]*>") {
+        Ok(pattern) => {
+            without_tags_owned = pattern.replace_all(without_scripts, " ").into_owned();
+            &without_tags_owned
+        }
+        Err(_) => without_scripts,
+    };
     // Collapse whitespace and decode a handful of entities.
     let decoded = without_tags
         .replace("&amp;", "&")
@@ -328,235 +342,266 @@ pub struct EmailSyncReport {
 }
 
 #[cfg(feature = "miniapp-gateways")]
-mod gated {
-    use super::*;
-
-    #[tauri::command]
-    pub fn proxy_fetch(url: String) -> Result<ProxyFetchResult, String> {
-        super::proxy_fetch(&url)
-    }
-
-    /// Fetches `url` (statically via reqwest, or JS-rendered via shell-out
-    /// when `js` is set) and extracts text for `selector`.
-    #[tauri::command]
-    pub fn scrape_selector(url: String, selector: String, js: bool) -> Result<ScrapedSelection, String> {
-        let (html, js_rendered) = if js {
-            match super::dump_dom_with_js(&url) {
-                Ok(rendered) => (rendered, true),
-                Err(error) => return Err(error),
-            }
-        } else {
-            (super::proxy_fetch(&url)?.body, false)
-        };
-        super::scrape_selector(&html, &selector, js_rendered)
-            .map(|mut selection| {
-                selection.url = url;
-                selection
-            })
-    }
-
-    /// Fetches and parses an RSS/Atom feed via feed-rs.
-    #[tauri::command]
-    pub fn fetch_rss_feed(url: String) -> Result<Vec<RssItem>, String> {
-        use feed_rs::model::Text;
-
-        let fetched = super::proxy_fetch(&url)?;
-        if fetched.status >= 400 {
-            return Err(format!("Feed returned HTTP {status}", status = fetched.status));
-        }
-        let feed = feed_rs::parser::parse(fetched.body.as_bytes())
-            .map_err(|error| format!("Failed to parse feed: {error}"))?;
-
-        Ok(feed
-            .entries
-            .into_iter()
-            .map(|entry| RssItem {
-                title: entry
-                    .title
-                    .map(|Text { content, .. }| content)
-                    .unwrap_or_default(),
-                link: entry
-                    .links
-                    .first()
-                    .map(|link| link.href.clone())
-                    .unwrap_or_default(),
-                summary: entry
-                    .summary
-                    .map(|Text { content, .. }| content)
-                    .unwrap_or_default(),
-                published: entry
-                    .published
-                    .map(|timestamp| timestamp.to_rfc3339()),
-                author: entry
-                    .authors
-                    .first()
-                    .map(|person| person.name.clone())
-                    .unwrap_or_default(),
-            })
-            .collect())
-    }
-
-    /// Returns the currently focused application (activity gateway).
-    #[tauri::command]
-    pub fn get_current_activity() -> Result<ActivityInfo, String> {
-        let window = active_win_pos_rs::get_active_window()
-            .map_err(|error| format!("Failed to get active window: {error}"))?;
-        Ok(ActivityInfo {
-            app_name: window.app_name,
-            window_title: window.title,
-            process_id: window.process_id,
-        })
-    }
-
-    /// Fetches unseen IMAP messages and writes them as markdown notes under
-    /// `<vault>/emails/`. Credentials come from `.nabu/config.toml` which
-    /// stores an env-var *name* only — the secret never touches disk.
-    #[tauri::command]
-    pub async fn sync_email(vault_path: String) -> Result<EmailSyncReport, String> {
-        let config = load_email_config(&vault_path)?;
-        let password = std::env::var(&config.password_env)
-            .map_err(|_| format!("Environment variable '{}' is not set", config.password_env))?;
-
-        let email_client = async_imap::connect((config.imap_server.as_str(), config.imap_port), config.imap_server.as_str(), tokio::spawn)
-            .await
-            .map_err(|error| format!("IMAP connection failed: {error}"))?;
-        let mut session = email_client
-            .login(&config.username, &password)
-            .await
-            .map_err(|error| error.0)
-            .map_err(|error| format!("IMAP login failed: {error}"))?;
-
-        session
-            .select(&config.sync_folder)
-            .await
-            .map_err(|error| format!("Failed to select folder: {error}"))?;
-        let unseen = session
-            .search("UNSEEN")
-            .await
-            .map_err(|error| format!("IMAP search failed: {error}"))?;
-
-        let mut report = EmailSyncReport::default();
-        for sequence in unseen.iter().take(50) {
-            let fetches = match session
-                .fetch(sequence.to_string(), "RFC822")
-                .await
-            {
-                Ok(fetches) => fetches,
-                Err(error) => {
-                    report.errors.push(format!("fetch {sequence}: {error}"));
-                    continue;
-                }
-            };
-            for fetch in fetches.iter() {
-                match fetch.body() {
-                    Some(body) => match save_email_as_markdown(&vault_path, body, *sequence) {
-                        Ok(()) => report.fetched += 1,
-                        Err(error) => report.errors.push(error),
-                    },
-                    None => report.errors.push(format!("fetch {sequence}: empty body")),
-                }
-            }
-        }
-        let _ = session.logout().await;
-        Ok(report)
-    }
-
-    #[derive(Debug, Clone, Deserialize)]
-    struct EmailConfig {
-        imap_server: String,
-        #[serde(default = "default_imap_port")]
-        imap_port: u16,
-        username: String,
-        /// Name of the environment variable holding the account password.
-        password_env: String,
-        #[serde(default = "default_sync_folder")]
-        sync_folder: String,
-        #[serde(default = "default_target_directory")]
-        target_directory: String,
-    }
-
-    fn default_imap_port() -> u16 {
-        993
-    }
-    fn default_sync_folder() -> String {
-        "INBOX".to_string()
-    }
-    fn default_target_directory() -> String {
-        "emails".to_string()
-    }
-
-    fn load_email_config(vault_path: &str) -> Result<EmailConfig, String> {
-        let config_path = Path::new(vault_path)
-            .join(".nabu")
-            .join("config.toml");
-        let raw = std::fs::read_to_string(&config_path)
-            .map_err(|error| format!("Missing or unreadable .nabu/config.toml: {error}"))?;
-        let mut parsed: std::collections::HashMap<String, toml::Value> = raw
-            .parse()
-            .map_err(|error| format!("Failed to parse .nabu/config.toml: {error}"))?;
-        let section = parsed
-            .remove("email_sync")
-            .ok_or("config.toml is missing an [email_sync] section")?;
-        section
-            .try_into()
-            .map_err(|error| format!("Invalid [email_sync] section: {error}"))
-    }
-
-    fn save_email_as_markdown(vault_path: &str, body: &[u8], sequence: u32) -> Result<(), String> {
-        use mail_parser::MessageParser;
-
-        let email = MessageParser::default()
-            .parse(body)
-            .ok_or("Failed to parse email message")?;
-
-        let from = email
-            .from()
-            .and_then(|addresses| addresses.first())
-            .map(|address| address.address().unwrap_or_default().to_string())
-            .unwrap_or_default();
-        let subject = email.subject().unwrap_or("(No Subject)").to_string();
-        let date = email
-            .date()
-            .map(|header| header.to_timestamp())
-            .unwrap_or_else(|| chrono::Utc::now().timestamp());
-        let date_string = chrono::DateTime::from_timestamp(date, 0)
-            .map(|datetime| datetime.format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|| "0000-00-00".to_string());
-
-        let body_text = email
-            .body_text(0)
-            .map(|text| text.to_string())
-            .unwrap_or_else(|| {
-                email
-                    .body_html(0)
-                    .map(|html| html2text::from_read(html.as_bytes(), 80))
-                    .unwrap_or_default()
-            });
-
-        let safe_subject: String = subject
-            .chars()
-            .map(|character| {
-                if character.is_alphanumeric() || matches!(character, '-' | '_' | ' ') {
-                    character
-                } else {
-                    '_'
-                }
-            })
-            .collect();
-        let safe_subject = safe_subject.trim().replace(' ', "-");
-        let filename = format!("{date_string}-{safe_subject}.md");
-
-        let directory = Path::new(vault_path).join("emails");
-        std::fs::create_dir_all(&directory)
-            .map_err(|error| format!("Failed to create emails directory: {error}"))?;
-        let markdown = format!(
-            "---\nfrom: \"{from}\"\nsubject: \"{subject}\"\ndate: {date_string}\nsource: email\nstatus: inbox\n---\n\n{body_text}\n"
-        );
-        std::fs::write(directory.join(&filename), markdown)
-            .map_err(|error| format!("Failed to write email note: {error}"))
-    }
+#[tauri::command]
+pub fn proxy_fetch(url: String) -> Result<ProxyFetchResult, String> {
+    fetch_over_http(&url)
 }
 
+/// Fetches `url` (statically via reqwest, or JS-rendered via shell-out
+/// when `js` is set) and extracts text for `selector`.
+#[cfg(feature = "miniapp-gateways")]
+#[tauri::command]
+pub fn scrape_selection(url: String, selector: String, js: bool) -> Result<ScrapedSelection, String> {
+    let (html, js_rendered) = if js {
+        match dump_dom_with_js(&url) {
+            Ok(rendered) => (rendered, true),
+            Err(error) => return Err(error),
+        }
+    } else {
+        (fetch_over_http(&url)?.body, false)
+    };
+    scrape_selector(&html, &selector, js_rendered)
+        .map(|mut selection| {
+            selection.url = url;
+            selection
+        })
+}
+#[cfg(feature = "miniapp-gateways")]
+#[tauri::command]
+pub fn fetch_rss_feed(url: String) -> Result<Vec<RssItem>, String> {
+    use feed_rs::model::Text;
+
+    let fetched = fetch_over_http(&url)?;
+    if fetched.status >= 400 {
+        return Err(format!("Feed returned HTTP {status}", status = fetched.status));
+    }
+    let feed = feed_rs::parser::parse(fetched.body.as_bytes())
+        .map_err(|error| format!("Failed to parse feed: {error}"))?;
+
+    Ok(feed
+        .entries
+        .into_iter()
+        .map(|entry| RssItem {
+            title: entry
+                .title
+                .map(|Text { content, .. }| content)
+                .unwrap_or_default(),
+            link: entry
+                .links
+                .first()
+                .map(|link| link.href.clone())
+                .unwrap_or_default(),
+            summary: entry
+                .summary
+                .map(|Text { content, .. }| content)
+                .unwrap_or_default(),
+            published: entry
+                .published
+                .map(|timestamp| timestamp.to_rfc3339()),
+            author: entry
+                .authors
+                .first()
+                .map(|person| person.name.clone())
+                .unwrap_or_default(),
+        })
+        .collect())
+}
+
+/// Returns the currently focused application (activity gateway).
+#[cfg(feature = "miniapp-gateways")]
+#[tauri::command]
+pub fn get_current_activity() -> Result<ActivityInfo, String> {
+    let window = active_win_pos_rs::get_active_window()
+        .map_err(|error| format!("Failed to get active window: {error:?}"))?;
+    Ok(ActivityInfo {
+        app_name: window.app_name,
+        window_title: window.title,
+        process_id: u32::try_from(window.process_id).unwrap_or(0),
+    })
+}
+
+/// Fetches unseen IMAP messages and writes them as markdown notes under
+/// `<vault>/emails/`. Credentials come from `.nabu/config.toml` which
+/// stores an env-var *name* only — the secret never touches disk.
+#[cfg(feature = "miniapp-gateways")]
+#[tauri::command]
+pub async fn sync_email(vault_path: String) -> Result<EmailSyncReport, String> {
+    let config = load_email_config(&vault_path)?;
+    let password = std::env::var(&config.password_env)
+        .map_err(|_| format!("Environment variable '{}' is not set", config.password_env))?;
+
+    // async-imap 0.11 leaves transport setup to the caller: dial TCP,
+    // wrap in TLS, then hand the stream to `Client::new`.
+    let tcp = tokio::net::TcpStream::connect((config.imap_server.as_str(), config.imap_port))
+        .await
+        .map_err(|error| format!("IMAP connection failed: {error}"))?;
+    let tls = tokio_native_tls::TlsConnector::from(native_tls::TlsConnector::new()
+        .map_err(|error| format!("TLS setup failed: {error}"))?);
+    let tls_stream = tls
+        .connect(config.imap_server.as_str(), tcp)
+        .await
+        .map_err(|error| format!("TLS handshake failed: {error}"))?;
+    let email_client = async_imap::Client::new(tls_stream);
+    let mut session = email_client
+        .login(&config.username, &password)
+        .await
+        .map_err(|error| error.0)
+        .map_err(|error| format!("IMAP login failed: {error}"))?;
+
+    session
+        .select(&config.sync_folder)
+        .await
+        .map_err(|error| format!("Failed to select folder: {error}"))?;
+    let unseen = session
+        .search("UNSEEN")
+        .await
+        .map_err(|error| format!("IMAP search failed: {error}"))?;
+
+    let mut report = EmailSyncReport::default();
+    for sequence in unseen.iter().take(50) {
+        let mut fetches = match session
+            .fetch(sequence.to_string(), "RFC822")
+            .await
+        {
+            Ok(fetches) => fetches,
+            Err(error) => {
+                report.errors.push(format!("fetch {sequence}: {error}"));
+                continue;
+            }
+        };
+        // async-imap 0.11 returns a stream of fetches rather than a Vec.
+        while let Some(fetch) = futures_util::StreamExt::next(&mut fetches).await {
+            match fetch {
+                Ok(fetch) => match fetch.body() {
+                    Some(body) => {
+                        match save_email_as_markdown(
+                            &vault_path,
+                            &config.target_directory,
+                            body,
+                            *sequence,
+                        ) {
+                            Ok(()) => report.fetched += 1,
+                            Err(error) => report.errors.push(error),
+                        }
+                    }
+                    None => report.errors.push(format!("fetch {sequence}: empty body")),
+                },
+                Err(error) => report.errors.push(format!("fetch {sequence}: {error}")),
+            }
+        }
+    }
+    let _ = session.logout().await;
+    Ok(report)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[cfg(feature = "miniapp-gateways")]
+struct EmailConfig {
+    imap_server: String,
+    #[serde(default = "default_imap_port")]
+    imap_port: u16,
+    username: String,
+    /// Name of the environment variable holding the account password.
+    password_env: String,
+    #[serde(default = "default_sync_folder")]
+    sync_folder: String,
+    #[serde(default = "default_target_directory")]
+    target_directory: String,
+}
+
+#[cfg(feature = "miniapp-gateways")]
+fn default_imap_port() -> u16 {
+    993
+}
+#[cfg(feature = "miniapp-gateways")]
+fn default_sync_folder() -> String {
+    "INBOX".to_string()
+}
+#[cfg(feature = "miniapp-gateways")]
+fn default_target_directory() -> String {
+    "emails".to_string()
+}
+
+#[cfg(feature = "miniapp-gateways")]
+fn load_email_config(vault_path: &str) -> Result<EmailConfig, String> {
+    let config_path = Path::new(vault_path)
+        .join(".nabu")
+        .join("config.toml");
+    let raw = std::fs::read_to_string(&config_path)
+        .map_err(|error| format!("Missing or unreadable .nabu/config.toml: {error}"))?;
+    let parsed: toml::Table = raw
+        .parse()
+        .map_err(|error| format!("Failed to parse .nabu/config.toml: {error}"))?;
+    let section = parsed
+        .get("email_sync")
+        .ok_or("config.toml is missing an [email_sync] section")?;
+    section
+        .clone()
+        .try_into::<EmailConfig>()
+        .map_err(|error| format!("Invalid [email_sync] section: {error}"))
+}
+
+#[cfg(feature = "miniapp-gateways")]
+fn save_email_as_markdown(
+    vault_path: &str,
+    target_directory: &str,
+    body: &[u8],
+    _sequence: u32,
+) -> Result<(), String> {
+    use mail_parser::MessageParser;
+
+    let email = MessageParser::default()
+        .parse(body)
+        .ok_or("Failed to parse email message")?;
+
+    let from = email
+        .from()
+        .and_then(|addresses| addresses.first())
+        .map(|address| address.address().unwrap_or_default().to_string())
+        .unwrap_or_default();
+    let subject = email.subject().unwrap_or("(No Subject)").to_string();
+    let date = email
+        .date()
+        .map(|header| header.to_timestamp())
+        .unwrap_or_else(|| chrono::Utc::now().timestamp());
+    let date_string = chrono::DateTime::from_timestamp(date, 0)
+        .map(|datetime| datetime.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "0000-00-00".to_string());
+
+    let body_text = email
+        .body_text(0)
+        .map(|text| text.to_string())
+        .unwrap_or_else(|| {
+            email
+                .body_html(0)
+                .map(|html| {
+                    html2text::from_read(html.as_bytes(), 80).into_iter().collect::<String>()
+                })
+                .unwrap_or_default()
+        });
+
+    let safe_subject: String = subject
+        .chars()
+        .map(|character| {
+            if character.is_alphanumeric() || matches!(character, '-' | '_' | ' ') {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let safe_subject = safe_subject.trim().replace(' ', "-");
+    let filename = format!("{date_string}-{safe_subject}.md");
+
+    let directory = Path::new(vault_path).join(target_directory);
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("Failed to create emails directory: {error}"))?;
+    let markdown = format!(
+        "---\nfrom: \"{from}\"\nsubject: \"{subject}\"\ndate: {date_string}\nsource: email\nstatus: inbox\n---\n\n{body_text}\n"
+    );
+    std::fs::write(directory.join(&filename), markdown)
+        .map_err(|error| format!("Failed to write email note: {error}"))
+}
 #[cfg(test)]
 mod tests {
     use super::*;

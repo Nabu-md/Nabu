@@ -1,5 +1,5 @@
-use super::mini_apps_sql::{
-    discover_apps, run_form_insert, run_view, MiniAppRow, MiniAppSql, MiniAppMeta,
+use crate::mini_apps_sql::{
+    discover_apps, run_form_insert, run_view, MiniAppMeta, MiniAppRow, MiniAppSql,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -33,12 +33,11 @@ fn split_frontmatter_meta(content: &str) -> (HashMap<String, Value>, String) {
     let parsed = gray_matter::Matter::<gray_matter::engine::YAML>::new().parse(content);
     let mut map = HashMap::new();
     if let Some(data) = parsed.data {
-        // gray_matter's Pod serializes as a map of plain values.
-        if let Ok(value) = serde_json::to_value(&data) {
-            if let Value::Object(entries) = value {
-                for (key, value) in entries {
-                    map.insert(key, value);
-                }
+        // gray_matter's `Pod` converts into `serde_json::Value` via `Into`.
+        let value: Value = data.into();
+        if let Value::Object(entries) = value {
+            for (key, value) in entries {
+                map.insert(key, value);
             }
         }
     }

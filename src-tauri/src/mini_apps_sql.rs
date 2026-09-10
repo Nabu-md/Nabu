@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 /// Where per-vault mini-app databases live. `.nabu/` is vault metadata (the
 /// settings seed already lives there), and the directory is created on demand.
@@ -318,9 +318,10 @@ fn parse_form_field(spec: &str) -> Option<MiniAppFormField> {
         }
     }
 
+    let name = name?;
     Some(MiniAppFormField {
-        name: name?,
-        column: column.unwrap_or_else(|| name.clone().unwrap_or_default()),
+        column: column.unwrap_or_else(|| name.clone()),
+        name,
         field_type,
         required,
         options,
@@ -386,7 +387,7 @@ pub type MiniAppRow = HashMap<String, Value>;
 
 /// Opens the app's DuckDB file, executing the schema DDL first. DDL uses
 /// `CREATE TABLE IF NOT EXISTS`-style statements so re-opening is idempotent.
-fn open_app_database(db_path: &Path, schema: &str) -> Result<duckdb::Connection, String> {
+pub(crate) fn open_app_database(db_path: &Path, schema: &str) -> Result<duckdb::Connection, String> {
     let connection = duckdb::Connection::open(db_path)
         .map_err(|error| format!("Failed to open mini-app database: {error}"))?;
     connection
@@ -446,11 +447,7 @@ pub fn run_view(
     let mut statement = connection
         .prepare(&view.query)
         .map_err(|error| format!("Failed to prepare mini-app query: {error}"))?;
-    let column_names: Vec<String> = statement
-        .column_names()
-        .into_iter()
-        .map(str::to_string)
-        .collect();
+    let column_names: Vec<String> = statement.column_names();
 
     let mut rows = statement
         .query([])
@@ -467,10 +464,10 @@ pub fn run_view(
                     Some(duckdb::types::Value::Boolean(flag)) => Value::Bool(flag),
                     Some(duckdb::types::Value::Int(number)) => Value::from(number),
                     Some(duckdb::types::Value::BigInt(number)) => Value::from(number),
-                    Some(duckdb::types::Value::Float(number)) => json_number(number),
+                    Some(duckdb::types::Value::Float(number)) => json_number(f64::from(number)),
                     Some(duckdb::types::Value::Double(number)) => json_number(number),
                     Some(duckdb::types::Value::Text(text)) => Value::String(text),
-                    Some(other) => Value::String(other.to_string()),
+                    Some(other) => Value::String(format!("{other:?}")),
                 })
                 .unwrap_or(Value::Null);
             record.insert(column.clone(), value);

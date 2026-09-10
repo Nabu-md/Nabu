@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
-use uuid::Uuid;
 
 /// One synthesized word with playback timings, for live highlighting.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -41,7 +40,7 @@ pub fn estimate_word_timings(text: &str, speed: f64, duration: f64) -> Vec<Kokor
 
     let total_units: usize = words.iter().map(|word| word.chars().count().max(1)).sum();
     let scaled = duration * speed;
-    let mut cursor = 0.0;
+    let mut cursor: f64 = 0.0;
     words
         .into_iter()
         .map(|word| {
@@ -128,7 +127,7 @@ impl PlaybackRegistry {
 
     pub fn stop_all(&self) -> usize {
         let mut stopped = 0;
-        if let Ok(mut sessions) = self.sessions.lock() {
+        if let Ok(sessions) = self.sessions.lock() {
             let ids: Vec<String> = sessions.keys().cloned().collect();
             for session in ids {
                 if self.stop(&session) {

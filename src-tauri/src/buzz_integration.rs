@@ -78,11 +78,11 @@ fn invoke_buzz(args: &[&str]) -> Result<String, String> {
     command.args(args);
     // The relay URL is a non-secret configuration value; the private key must
     // be inherited from the user's own environment, never stored by Nabu.
-    if let Ok(relay) = std::env::var("BUZZ_RELAY_URL") {
-        if !relay.trim().is_empty() {
-            command.env("BUZZ_RELAY_URL", relay);
-        }
-    }
+    let relay_url = std::env::var("BUZZ_RELAY_URL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_BUZZ_RELAY_URL.to_string());
+    command.env("BUZZ_RELAY_URL", relay_url);
 
     let output = command
         .output()
