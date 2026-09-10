@@ -348,11 +348,18 @@ pub fn proxy_fetch(url: String) -> Result<ProxyFetchResult, String> {
 }
 
 /// Fetches `url` (statically via reqwest, or JS-rendered via shell-out
-/// when `js` is set) and extracts text for `selector`.
+/// when `js` is set) and extracts text for `selector`. JS rendering spawns a
+/// headless browser subprocess (high RAM), so it additionally requires the
+/// `mini_apps_web_access_enabled` setting to be on.
 #[cfg(feature = "miniapp-gateways")]
 #[tauri::command]
 pub fn scrape_selection(url: String, selector: String, js: bool) -> Result<ScrapedSelection, String> {
     let (html, js_rendered) = if js {
+        if !mini_apps_web_access_enabled() {
+            return Err(
+                "JavaScript-rendered scraping is disabled. Enable mini-app web access in Settings — it lets mini-apps run a headless browser, which uses significant RAM.".to_string(),
+            );
+        }
         match dump_dom_with_js(&url) {
             Ok(rendered) => (rendered, true),
             Err(error) => return Err(error),
@@ -365,6 +372,16 @@ pub fn scrape_selection(url: String, selector: String, js: bool) -> Result<Scrap
             selection.url = url;
             selection
         })
+}
+
+/// Reads the mini-app web-access toggle (defaults to enabled) from saved
+/// settings. A missing or unreadable settings file must not break static
+/// scraping, so failures resolve to the permissive default.
+#[cfg(feature = "miniapp-gateways")]
+fn mini_apps_web_access_enabled() -> bool {
+    crate::settings::get_settings()
+        .map(|settings| settings.mini_apps_web_access_enabled.unwrap_or(true))
+        .unwrap_or(true)
 }
 #[cfg(feature = "miniapp-gateways")]
 #[tauri::command]

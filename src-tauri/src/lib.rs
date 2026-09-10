@@ -19,6 +19,7 @@ pub mod koko_tts;
 mod commands;
 pub mod dictation;
 pub mod mini_apps;
+pub mod mini_apps_cron;
 pub mod miniapp_gateways;
 pub mod ocr;
 pub mod copilot_cli;
@@ -271,6 +272,9 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     {
         desktop_runtime::spawn_startup_tasks();
         desktop_runtime::spawn_initial_ws_bridge_sync(app);
+        // Plan 1 P4: periodic runner that executes due mini-app cron jobs by
+        // opening hidden mini-app windows over the normal MCP relay.
+        mini_apps_cron::spawn_scheduler(app.handle().clone());
     }
 
     Ok(())
@@ -438,6 +442,7 @@ macro_rules! app_invoke_handler {
             mini_apps::open_mini_app_devtools,
             mini_apps::mcp_tool_call,
             mini_apps::list_mini_app_cron_jobs,
+            mini_apps_cron::run_mini_app_cron_job,
             #[cfg(feature = "miniapp-gateways")]
             miniapp_gateways::proxy_fetch,
             #[cfg(feature = "miniapp-gateways")]

@@ -176,6 +176,9 @@ let mockSettings: Settings = {
   editor_font_family: null,
   ai_chat_font_family: null,
   sidebar_font_family: null,
+  buzz_enabled: null,
+  buzz_default_channel: null,
+  mini_apps_web_access_enabled: null,
 }
 
 const DEFAULT_MOCK_VAULT_PATH = '/Users/mock/demo-vault-v2'
@@ -708,6 +711,9 @@ export const mockHandlers = {
       editor_font_family: s.editor_font_family ?? null,
       ai_chat_font_family: s.ai_chat_font_family ?? null,
       sidebar_font_family: s.sidebar_font_family ?? null,
+      buzz_enabled: s.buzz_enabled ?? null,
+      buzz_default_channel: s.buzz_default_channel ?? null,
+      mini_apps_web_access_enabled: s.mini_apps_web_access_enabled ?? null,
     }
     return null
   },
@@ -873,6 +879,18 @@ export const mockHandlers = {
   buzz_status: () => ({ installed: false, has_identity: false, env_key_present: false }),
   buzz_get_team_messages: (): Array<{ author: string; content: string; created_at: number }> => [],
   buzz_post_agent_update: (): null => null,
+
+  // ── Mini-app cron scheduler ─────────────────────────────────────────────
+  list_mini_app_cron_jobs: (): Array<{
+    app_id: string
+    app_name: string
+    vault_path: string
+    schedule: string
+    task: string
+    target_note: string | null
+    allow_vault_access: boolean
+  }> => [],
+  run_mini_app_cron_job: (): null => null,
 } satisfies Record<string, (...args: never[]) => unknown>
 
 export function addMockEntry(_entry: VaultEntry, content: string): void {

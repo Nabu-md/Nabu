@@ -75,6 +75,9 @@ fn test_settings_json_roundtrip() {
         all_notes_show_pdfs: Some(true),
         all_notes_show_images: Some(true),
         all_notes_show_unsupported: Some(false),
+        buzz_enabled: Some(true),
+        buzz_default_channel: Some("research-team".to_string()),
+        mini_apps_web_access_enabled: Some(true),
     };
     let json = serde_json::to_string(&settings).unwrap();
     let parsed: Settings = serde_json::from_str(&json).unwrap();
@@ -102,6 +105,26 @@ fn test_transparency_values_are_normalized() {
     assert_eq!(loaded.ai_panel_blur_radius, Some(20.0));
     assert_eq!(loaded.window_opacity, Some(0.25));
     assert_eq!(loaded.window_blur_radius, Some(12.0));
+}
+
+#[test]
+fn test_buzz_and_miniapp_web_access_settings_round_trip() {
+    let loaded = save_and_reload(Settings {
+        buzz_enabled: Some(true),
+        buzz_default_channel: Some("  research-team  ".to_string()),
+        mini_apps_web_access_enabled: Some(false),
+        ..Default::default()
+    });
+    assert_eq!(loaded.buzz_enabled, Some(true));
+    assert_eq!(loaded.buzz_default_channel.as_deref(), Some("research-team"));
+    assert_eq!(loaded.mini_apps_web_access_enabled, Some(false));
+
+    // Blank channels are dropped rather than persisted.
+    let blanked = save_and_reload(Settings {
+        buzz_default_channel: Some("   ".to_string()),
+        ..Default::default()
+    });
+    assert!(blanked.buzz_default_channel.is_none());
 }
 
 #[test]

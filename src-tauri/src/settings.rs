@@ -150,6 +150,15 @@ pub struct Settings {
     pub editor_font_family: Option<String>,
     pub ai_chat_font_family: Option<String>,
     pub sidebar_font_family: Option<String>,
+    /// Buzz multiplayer integration (plan 4 §2): when enabled, agent research
+    /// answers are posted to the default team channel.
+    pub buzz_enabled: Option<bool>,
+    /// Default Buzz team channel used when multiplayer is enabled.
+    pub buzz_default_channel: Option<String>,
+    /// Mini-app web-access toggle. When disabled, mini-apps can still fetch
+    /// static HTTP content; JS-rendered scraping (headless browser shell-out)
+    /// is refused because it can spawn browser subprocesses with high RAM use.
+    pub mini_apps_web_access_enabled: Option<bool>,
 }
 
 fn normalize_optional_string(value: Option<String>) -> Option<String> {
@@ -304,6 +313,9 @@ fn normalize_settings(settings: Settings) -> Settings {
         editor_font_family: normalize_optional_string(settings.editor_font_family),
         ai_chat_font_family: normalize_optional_string(settings.ai_chat_font_family),
         sidebar_font_family: normalize_optional_string(settings.sidebar_font_family),
+        buzz_enabled: settings.buzz_enabled,
+        buzz_default_channel: normalize_optional_string(settings.buzz_default_channel),
+        mini_apps_web_access_enabled: settings.mini_apps_web_access_enabled,
     }
 }
 

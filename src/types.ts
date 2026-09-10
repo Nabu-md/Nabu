@@ -188,6 +188,15 @@ export interface Settings {
   editor_font_family?: string | null
   ai_chat_font_family?: string | null
   sidebar_font_family?: string | null
+  /** Buzz multiplayer relay (agent status/results posted to a team channel). */
+  buzz_enabled?: boolean | null
+  /** Default Buzz team channel used when multiplayer is enabled. */
+  buzz_default_channel?: string | null
+  /**
+   * Mini-app web access. When disabled, JS-rendered scraping (headless
+   * browser shell-out, high RAM) is refused; static HTTP fetch stays allowed.
+   */
+  mini_apps_web_access_enabled?: boolean | null
 }
 
 export interface AiWorkspaceConversationSetting {

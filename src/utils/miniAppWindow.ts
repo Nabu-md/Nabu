@@ -8,6 +8,10 @@ export interface MiniAppWindowParams {
   notePath?: string
   noteTitle?: string
   context?: unknown
+  /** Scheduled-task id when this window was opened by the cron scheduler. */
+  cronTask?: string
+  /** Optional note path the scheduled task writes to. */
+  cronTarget?: string
 }
 
 export interface MiniAppContextPayload {
@@ -15,6 +19,10 @@ export interface MiniAppContextPayload {
   note_title?: string
   vault_path?: string
   extra?: unknown
+  /** Scheduled-task id when the window was opened by the cron scheduler. */
+  cron_task?: string
+  /** Optional note path the scheduled task writes to. */
+  cron_target?: string
 }
 
 export function isMiniAppWindow(search = window.location.search): boolean {
@@ -42,6 +50,8 @@ export function readMiniAppWindowParams(search = window.location.search): MiniAp
     notePath: params.get('note') ?? undefined,
     noteTitle: params.get('title') ?? undefined,
     context,
+    cronTask: params.get('cronTask') ?? undefined,
+    cronTarget: params.get('cronTarget') ?? undefined,
   }
 }
 
@@ -81,6 +91,8 @@ export function installMiniAppContext(context: MiniAppContextPayload | null | un
       note_title: context.note_title ?? null,
       vault_path: context.vault_path ?? null,
       extra: context.extra ?? null,
+      cron_task: context.cron_task ?? null,
+      cron_target: context.cron_target ?? null,
     }
   } catch {
     // Best-effort: the iframe gets the context via URL params as well.

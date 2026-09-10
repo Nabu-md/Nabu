@@ -1749,6 +1749,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       vaultPath={activeEditorVaultPath}
       vaultPaths={writableVaultPaths}
       locale={appLocale}
+      teamChannel={areAiFeaturesEnabled(settings) && settings.buzz_enabled ? (settings.buzz_default_channel ?? undefined) : undefined}
     />
   )
   if (!vault.hasCompletedInitialLoad && isVaultContentLoading) {

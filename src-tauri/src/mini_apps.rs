@@ -1138,7 +1138,7 @@ pub(crate) fn handle_request(
     mini_app_response(StatusCode::OK, content_type_for_path(&canonical_file), body)
 }
 
-fn url_encode(value: &str) -> String {
+pub(crate) fn url_encode(value: &str) -> String {
     let mut encoded = String::new();
     for byte in value.bytes() {
         match byte {
