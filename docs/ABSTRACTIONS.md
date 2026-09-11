@@ -356,7 +356,11 @@ This enables arbitrary, extensible relationship types without code changes.
 
 ### Outgoing Links
 
-All `[[wikilinks]]` in the note body (not frontmatter) are extracted by regex and stored in `outgoingLinks`. Used for backlink detection and relationship graphs.
+All `[[wikilinks]]` in the note body (not frontmatter) are extracted by regex and stored in `outgoingLinks`. Used for backlink detection, relationship graphs, and folder-note children.
+
+### Folder Notes (type: Folder)
+
+A note with `type: Folder` in its frontmatter is a **folder note** (see [ADR-0181](./adr/0181-folder-notes-with-wikilink-children.md)): a note that doubles as a folder-like container in the sidebar tree. The children are the vault entries its outgoing wikilinks resolve to (`describeFolderNote` in `src/utils/folderNotes.ts`), rendered in link order, deduplicated, with the folder note itself excluded. `FolderTree` renders these rows via `FolderNoteRow` (caret + folder icon + child count); expanding lists the linked notes, double click opens the note. Filesystem folders are unaffected — folder notes are a rendering convention on top of the existing tree, never a replacement for real directories.
 
 ### Title / Filename Sync
 

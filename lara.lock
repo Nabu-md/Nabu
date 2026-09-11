@@ -61,9 +61,7 @@ files:
     feedback.sponsors.developmentLinkLabel: aae3f4f9b055dee6c4832ee2cb76f03f
     feedback.sponsors.developmentSentenceSuffix: 5058f1af8388633f609cadb75a75dc9d
     feedback.sponsors.logoLinkLabel: e5744ab47880f7d488bbb06af085aa07
-    feedback.sponsors.codacyTooltip: 557f730ff4609fb41605f679fb37c08c
     feedback.sponsors.codeSceneTooltip: 66c9e585df9549189f9018ef0368002a
-    feedback.sponsors.circleCiTooltip: be57bb3a98ed92257bc9541ccadecfee
     feedback.sponsors.unblockedTooltip: cc19ef4c5aa2a0f8877f86af32da28e9
     feedback.featureRequests.title: 73ea5953d68b2c20a82bb94240f6fe17
     feedback.featureRequests.description: 9583575bdef16e12927b0a5acfa84307
