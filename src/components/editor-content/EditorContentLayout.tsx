@@ -12,6 +12,7 @@ import { ArchivedNoteBanner } from '../ArchivedNoteBanner'
 import { ConflictNoteBanner } from '../ConflictNoteBanner'
 import { RawEditorView } from '../RawEditorView'
 import { SingleEditorView } from '../SingleEditorView'
+import { NoteCover } from '../NoteCover'
 import type { useEditorContentModel } from './useEditorContentModel'
 
 type EditorContentModel = ReturnType<typeof useEditorContentModel>
@@ -405,6 +406,8 @@ type EditorCanvasProps = Pick<
   | 'vaultPath'
   | 'locale'
   | 'onImageImportError'
+  | 'onPickCover'
+  | 'onRemoveCover'
 >
 
 function EditorCanvas(props: EditorCanvasProps) {
@@ -438,6 +441,8 @@ function StandardEditorCanvas(options: EditorCanvasProps) {
     vaultPath,
     locale,
     onImageImportError,
+    onPickCover,
+    onRemoveCover,
   } = options
   if (!isSheet && !richEditorContentReady) return null
 
@@ -465,6 +470,15 @@ function StandardEditorCanvas(options: EditorCanvasProps) {
   return (
     <EditorFindScope className="editor-scroll-area" style={cssVars as React.CSSProperties}>
       <div className="editor-content-wrapper" data-note-pdf-export-root="true">
+        {activeTab && (
+          <NoteCover
+            entry={activeTab.entry}
+            locale={locale}
+            vaultPath={vaultPath}
+            onPickCover={onPickCover}
+            onRemoveCover={onRemoveCover}
+          />
+        )}
         <SingleEditorView
           currentContent={activeTab?.content ?? ''}
           editor={editor}

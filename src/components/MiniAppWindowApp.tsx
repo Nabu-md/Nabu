@@ -9,7 +9,7 @@ import {
   type MiniAppContextPayload,
 } from '../utils/miniAppWindow'
 import { cleanupTauriEventListener, type TauriUnlisten } from '../utils/tauriEventCleanup'
-import { trackMiniAppGatewayUsed } from '../lib/productAnalytics'
+import { trackMiniAppGatewayUsed, trackMiniAppRecordCreated } from '../lib/productAnalytics'
 
 interface MiniAppConfig {
   id: string
@@ -85,11 +85,17 @@ async function runMiniAppMcpCall(
   vaultPath: string | null,
 ): Promise<unknown> {
   if (!vaultPath) throw new Error('Vault access is unavailable without an open vault')
-  return invoke('mcp_tool_call', {
+  const result = await invoke<unknown>('mcp_tool_call', {
     tool: message.method,
     args: message.params,
     vaultPath,
   })
+  if (message.method === 'query_mini_app_sql'
+    && typeof message.params['view_name'] === 'string'
+    && (result as { inserted?: unknown } | null)?.inserted === 1) {
+    trackMiniAppRecordCreated(message.params['app_id'] as string | undefined)
+  }
+  return result
 }
 
 async function runMiniAppGatewayCommand(command: string, args: Record<string, unknown>): Promise<unknown> {

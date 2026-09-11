@@ -60,47 +60,74 @@ export function entriesForFolderNode(
 
 /**
  * Ensure every entry is reachable in the tree: synthesize folder nodes for
- * entry paths whose folders are missing from the backend listing.
+ * entry paths whose folders are missing from the backend listing. Entries
+ * inside the vault root get vault-relative synthetic folders; entries outside
+ * it (other mounted paths) get an absolute folder chain so their full path is
+ * visible, one node per path segment.
  */
+/**
+ * Folder chain a tree node should exist under for this parent path:
+ * vault-relative inside the root, absolute outside it. Null when the entry
+ * needs no synthetic folder (rootless, at the root itself, or relative
+ * outside the root which the tree does not display).
+ */
+function chainForEntryParent(parent: string, root: string): string | null {
+  if (parent === '' || parent === root) return null
+  if (parent.startsWith(`${root}/`)) return parent.slice(root.length + 1) || null
+  return parent.startsWith('/') ? parent : null
+}
+
+/** Grow (or reuse) one folder node per segment of an absolute or relative chain. */
+function appendSyntheticChain(synthesized: FolderNode[], chain: string, root: string): void {
+  const absolute = chain.startsWith('/')
+  const segments = chain.split('/').filter(Boolean)
+  let level = synthesized
+  let acc = ''
+  for (const part of segments) {
+    acc = acc ? `${acc}/${part}` : absolute ? `/${part}` : part
+    let node = level.find((candidate) => candidate.path === acc)
+    if (!node) {
+      node = { name: part, path: acc, rootPath: root, synthetic: true, children: [] }
+      level.push(node)
+    }
+    level = node.children
+  }
+}
+
+/** Collect every node path in the tree into `existing` for fast dedup checks. */
+function collectFolderPaths(nodes: FolderNode[], existing: Set<string>): void {
+  for (const node of nodes) {
+    existing.add(node.path)
+    collectFolderPaths(node.children, existing)
+  }
+}
+
 export function mergeEntryFolders(folders: FolderNode[], entries: VaultEntry[], vaultRootPath?: string): FolderNode[] {
   const root = normalizeRoot(vaultRootPath)
   if (!root) return folders
   const existing = new Set<string>()
-  const collect = (nodes: FolderNode[]) => {
-    for (const node of nodes) {
-      existing.add(node.path)
-      collect(node.children)
-    }
-  }
-  collect(folders)
+  collectFolderPaths(folders, existing)
 
   const synthesized: FolderNode[] = []
   for (const entry of entries) {
-    const parent = folderPathOf(entry.path)
-    if (!parent.startsWith(`${root}/`)) continue
-    const relative = parent.slice(root.length + 1)
-    if (existing.has(relative)) continue
-    let level = synthesized
-    let acc = ''
-    for (const part of relative.split('/')) {
-      acc = acc ? `${acc}/${part}` : part
-      let node = level.find((candidate) => candidate.path === acc)
-      if (!node) {
-        node = { name: part, path: acc, rootPath: root, synthetic: true, children: [] }
-        level.push(node)
-      }
-      level = node.children
-    }
+    const chain = chainForEntryParent(folderPathOf(entry.path), root)
+    if (!chain || existing.has(chain)) continue
+    appendSyntheticChain(synthesized, chain, root)
   }
   if (synthesized.length === 0) return folders
   synthesized.sort((a, b) => a.name.localeCompare(b.name))
   return [...folders, ...synthesized]
 }
 
+/** Newest-first fallback ordering: modifiedAt, then createdAt. */
+function modifiedRecency(entry: VaultEntry): number {
+  return entry.modifiedAt ?? entry.createdAt ?? 0
+}
+
 /** Sort entries for the tree: null sort falls back to modified-descending. */
 export function sortVaultEntriesForTree(entries: VaultEntry[], sort: SortConfig | null): VaultEntry[] {
   if (!sort) {
-    return [...entries].sort((a, b) => (b.modifiedAt ?? b.createdAt ?? 0) - (a.modifiedAt ?? a.createdAt ?? 0))
+    return [...entries].sort((a, b) => modifiedRecency(b) - modifiedRecency(a))
   }
   return [...entries].sort(getSortComparator(sort.option, sort.direction))
 }

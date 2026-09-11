@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { FolderTree } from './FolderTree'
 import { CREATE_NOTE_IN_FOLDER_EVENT } from '../hooks/noteCreationRequests'
-import type { FolderNode, SidebarSelection } from '../types'
+import type { FolderNode, SidebarSelection, VaultEntry } from '../types'
 
 const mockFolders: FolderNode[] = [
   {
@@ -680,5 +680,94 @@ describe('FolderTree', () => {
     fireEvent.drop(screen.getByTestId('folder-row:'), { dataTransfer })
 
     expect(onMoveNoteToFolder).toHaveBeenCalledWith('/vault/projects/alpha.md', '')
+  })
+
+  describe('folder notes (type: Folder)', () => {
+    const folderNote: VaultEntry = {
+      path: 'My Project/My Project.md',
+      filename: 'My Project.md',
+      title: 'My Project',
+      isA: 'Folder',
+      aliases: [],
+      belongsTo: [],
+      relatedTo: [],
+      status: null,
+      archived: false,
+      modifiedAt: null,
+      createdAt: null,
+      fileSize: 0,
+      snippet: '',
+      wordCount: 0,
+      properties: {},
+      relationships: {},
+      icon: null,
+      color: null,
+      order: null,
+      sidebarLabel: null,
+      template: null,
+      sort: null,
+      view: null,
+      visible: true,
+      organized: false,
+      favorite: false,
+      favoriteIndex: null,
+      listPropertiesDisplay: [],
+      outgoingLinks: ['Task 1', 'Task 2'],
+      hasH1: false,
+      fileKind: 'markdown',
+    }
+    const task1: VaultEntry = { ...folderNote, path: 'My Project/Task 1.md', filename: 'Task 1.md', title: 'Task 1', isA: 'Note', outgoingLinks: [] }
+    const task2: VaultEntry = { ...folderNote, path: 'My Project/Task 2.md', filename: 'Task 2.md', title: 'Task 2', isA: 'Note', outgoingLinks: [] }
+
+    function folderNodeForTests(): FolderNode[] {
+      return [{ name: 'My Project', path: 'My Project', children: [] }]
+    }
+
+    it('renders a folder note row with linked children inside the tree', () => {
+      renderTree({
+        folders: folderNodeForTests(),
+        entries: [folderNote, task1, task2],
+        onSelectNote: vi.fn(),
+      })
+
+      // Click the folder row to expose the files inside it.
+      fireEvent.click(screen.getByTestId('folder-row:My Project'))
+
+      const folderNoteRow = screen.getByTestId('folder-note-row:My Project')
+      expect(folderNoteRow).toBeInTheDocument()
+      expect(screen.getByText('2')).toBeInTheDocument()
+
+      // Expand the folder note to show its linked children.
+      fireEvent.click(folderNoteRow)
+      expect(screen.getAllByTestId('tree-file-row:My Project/Task 1.md').length).toBeGreaterThan(0)
+      expect(screen.getAllByTestId('tree-file-row:My Project/Task 2.md').length).toBeGreaterThan(0)
+    })
+
+    it('opens the folder note in the editor on double click', () => {
+      const onSelectNote = vi.fn()
+      renderTree({
+        folders: folderNodeForTests(),
+        entries: [folderNote, task1],
+        onSelectNote,
+      })
+
+      fireEvent.click(screen.getByTestId('folder-row:My Project'))
+      fireEvent.doubleClick(screen.getByTestId('folder-note-row:My Project'))
+
+      expect(onSelectNote).toHaveBeenCalledWith(folderNote)
+    })
+
+    it('renders regular files unchanged when no folder notes exist', () => {
+      const plain: VaultEntry = { ...folderNote, path: 'My Project/Plain.md', filename: 'Plain.md', title: 'Plain', isA: 'Note', outgoingLinks: [] }
+      renderTree({
+        folders: folderNodeForTests(),
+        entries: [plain],
+        onSelectNote: vi.fn(),
+      })
+
+      fireEvent.click(screen.getByTestId('folder-row:My Project'))
+      expect(screen.getByTestId('tree-file-row:My Project/Plain.md')).toBeInTheDocument()
+      expect(screen.queryByTestId('folder-note-row:Plain')).not.toBeInTheDocument()
+    })
   })
 })

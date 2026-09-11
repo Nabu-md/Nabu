@@ -171,6 +171,7 @@ function ValidFrontmatterPanels(options: {
         entry={entryForWorkspaceActions}
         frontmatter={frontmatter}
         entries={entries}
+        vaultPath={vaultPath}
         onUpdateProperty={onUpdateProperty}
         onDeleteProperty={onDeleteProperty}
         onAddProperty={onAddProperty}

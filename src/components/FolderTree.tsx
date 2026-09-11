@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { CaretDown, CaretRight, File, Plus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,9 @@ import type { FolderFileActions } from '../hooks/useFileActions'
 import { useNoteListContextMenu as useNoteContextMenu } from './NoteContextMenu'
 import { readDraggedNotePath } from '../utils/noteDragDrop'
 import { useTreeExplorerData, entriesForFolderNode, mergeEntryFolders, type EntriesByFolder } from './folder-tree/treeExplorerModel'
+import { FolderNoteRow } from './folder-tree/FolderNoteRow'
+import { describeFolderNote, type FolderNoteDescription } from '../utils/folderNotes'
+import { trackEvent } from '../lib/telemetry'
 import type { SortConfig } from '../utils/noteListHelpers'
 
 interface FolderTreeProps {
@@ -80,6 +83,9 @@ interface FolderTreeBodyProps
   typeEntryMap: Record<string, VaultEntry>
   fileHandlers: FileRowHandlers
   keyboardNav: TreeKeyboardNav
+  folderNoteDescriptions: Map<string, FolderNoteDescription>
+  folderNotesExpanded: Record<string, boolean>
+  onToggleFolderNote: (path: string) => void
 }
 
 interface FileRowHandlers {
@@ -101,7 +107,6 @@ interface FileRowHandlers {
 interface TreeKeyboardNav {
   registerRow: (key: string, element: HTMLElement | null) => void
   focusSiblingRow: (key: string, offset: number) => void
-  rowOrder: string[]
 }
 
 const TREE_INDENT_PX = 12
@@ -208,7 +213,6 @@ function useCreateFolderSubmit({
 }
 
 function useTreeKeyboardNav(): TreeKeyboardNav {
-  const rowOrderRef = useRef<string[]>([])
   const rowElementsRef = useRef<Map<string, HTMLElement>>(new Map())
 
   const registerRow = useCallback((key: string, element: HTMLElement | null) => {
@@ -217,18 +221,22 @@ function useTreeKeyboardNav(): TreeKeyboardNav {
   }, [])
 
   const focusSiblingRow = useCallback((key: string, offset: number) => {
-    const currentIndex = rowOrderRef.current.indexOf(key)
-    if (currentIndex < 0) return
-    const nextKey = rowOrderRef.current[currentIndex + offset]
-    if (!nextKey) return
-    rowElementsRef.current.get(nextKey)?.focus()
+    const element = rowElementsRef.current.get(key)
+    if (!element) return
+    // Visual order is derived from the DOM at keystroke time: rows register
+    // and unregister in their own mount effects, so keeping a parallel key
+    // array in sync would require render-phase mutation.
+    const rows = [...rowElementsRef.current.values()].sort((a, b) => {
+      const position = a.compareDocumentPosition(b)
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1
+      return 0
+    })
+    const next = rows[rows.indexOf(element) + offset]
+    next?.focus()
   }, [])
 
-  const syncRowOrder = useCallback((keys: string[]) => {
-    rowOrderRef.current = keys
-  }, [])
-
-  return { registerRow, focusSiblingRow, rowOrder: [], ...{ syncRowOrder } } as TreeKeyboardNav & { syncRowOrder: (keys: string[]) => void }
+  return { registerRow, focusSiblingRow }
 }
 
 function FileTreeRow({
@@ -238,7 +246,6 @@ function FileTreeRow({
   handlers,
   keyboardNav,
   rowKey,
-  rowOrderRef,
 }: {
   entry: VaultEntry
   depth: number
@@ -246,14 +253,12 @@ function FileTreeRow({
   handlers: WithNoteContextMenu
   keyboardNav: TreeKeyboardNav & { syncRowOrder?: (keys: string[]) => void }
   rowKey: string
-  rowOrderRef: { current: string[] }
 }) {
   const rowRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     keyboardNav.registerRow(rowKey, rowRef.current)
-    rowOrderRef.current.push(rowKey)
     return () => keyboardNav.registerRow(rowKey, null)
-  }, [keyboardNav, rowKey, rowOrderRef])
+  }, [keyboardNav, rowKey])
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'ArrowDown') {
@@ -333,7 +338,9 @@ function FolderFiles({
   selection,
   handlers,
   keyboardNav,
-  rowOrderRef,
+  folderNoteDescriptions,
+  folderNotesExpanded,
+  onToggleFolderNote,
 }: {
   node: FolderNode
   depth: number
@@ -343,24 +350,60 @@ function FolderFiles({
   typeEntryMap: Record<string, VaultEntry>
   handlers: WithNoteContextMenu
   keyboardNav: TreeKeyboardNav
-  rowOrderRef: { current: string[] }
+  folderNoteDescriptions: Map<string, FolderNoteDescription>
+  folderNotesExpanded: Record<string, boolean>
+  onToggleFolderNote: (path: string) => void
 }) {
   const files = entriesForFolderNode(entriesByFolder, node, rootPath)
   if (files.length === 0) return null
   return (
     <>
-      {files.map((entry) => (
-        <FileTreeRow
-          key={entry.path}
-          entry={entry}
-          depth={depth + 1}
-          isSelected={selection.kind === 'entity' && selection.entry.path === entry.path}
-          handlers={handlers}
-          keyboardNav={keyboardNav}
-          rowKey={`file:${entry.path}`}
-          rowOrderRef={rowOrderRef}
-        />
-      ))}
+      {files.map((entry) => {
+        const folderNote = folderNoteDescriptions.get(entry.path)
+        if (folderNote) {
+          const isExpanded = folderNotesExpanded[entry.path] ?? false
+          return (
+            <Fragment key={entry.path}>
+              <FolderNoteRow
+                entry={entry}
+                depth={depth + 1}
+                childrenCount={folderNote.children.length}
+                isExpanded={isExpanded}
+                isSelected={selection.kind === 'entity' && selection.entry.path === entry.path}
+                onToggle={() => onToggleFolderNote(entry.path)}
+                onOpen={handlers.onSelectNote ? () => handlers.onSelectNote?.(entry) : undefined}
+                onContextMenu={handlers.onNoteContextMenu}
+                registerRow={keyboardNav.registerRow}
+                rowKey={`folder-note:${entry.path}`}
+                focusSiblingRow={keyboardNav.focusSiblingRow}
+              />
+              {isExpanded &&
+                folderNote.children.map((child) => (
+                  <FileTreeRow
+                    key={`folder-note-child:${entry.path}:${child.path}`}
+                    entry={child}
+                    depth={depth + 2}
+                    isSelected={selection.kind === 'entity' && selection.entry.path === child.path}
+                    handlers={handlers}
+                    keyboardNav={keyboardNav}
+                    rowKey={`folder-note-child:${entry.path}:${child.path}`}
+                  />
+                ))}
+            </Fragment>
+          )
+        }
+        return (
+          <FileTreeRow
+            key={entry.path}
+            entry={entry}
+            depth={depth + 1}
+            isSelected={selection.kind === 'entity' && selection.entry.path === entry.path}
+            handlers={handlers}
+            keyboardNav={keyboardNav}
+            rowKey={`file:${entry.path}`}
+          />
+        )
+      })}
     </>
   )
 }
@@ -493,6 +536,25 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
 
       const entriesByFolder = useTreeExplorerData(entries, listSort, search, vaultRootPath)
 
+      // Folder notes (`type: Folder`): describe linked children once per entries change.
+      const folderNoteDescriptions = useMemo(() => {
+        const descriptions = new Map<string, FolderNoteDescription>()
+        for (const entry of entries) {
+          const description = describeFolderNote({ entry, entries })
+          if (description && description.children.length > 0) descriptions.set(entry.path, description)
+        }
+        return descriptions
+      }, [entries])
+
+      const [folderNotesExpanded, setFolderNotesExpanded] = useState<Record<string, boolean>>({})
+      const onToggleFolderNote = useCallback((path: string) => {
+        setFolderNotesExpanded((current) => {
+          const next = !current[path]
+          if (next) trackEvent('folder_note_expanded', { child_count: folderNoteDescriptions.get(path)?.children.length })
+          return { ...current, [path]: next }
+        })
+      }, [folderNoteDescriptions])
+
       // Keep the folder holding the active note expanded so the file stays visible.
       const activeEntityPath = selection.kind === 'entity' ? selection.entry.path : null
       useEffect(() => {
@@ -522,12 +584,6 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
       const noteRowHandlers: WithNoteContextMenu = { ...fileHandlers, onNoteContextMenu: handleNoteContextMenu }
 
       const keyboardNav = useTreeKeyboardNav()
-      const rowOrderRef = useRef<string[]>([])
-      useEffect(() => {
-        // Rows self-register in mount effects; clearing here (effect phase)
-        // resets the order for this render pass without mutating refs in render.
-        rowOrderRef.current = []
-      })
 
       const explorerEmpty = displayedFolders.length === 0 && !isCreating && entriesByFolder.size === 0
       if (explorerEmpty) return null
@@ -566,7 +622,9 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
             typeEntryMap={typeEntryMap}
             fileHandlers={noteRowHandlers}
             keyboardNav={keyboardNav}
-            rowOrderRef={rowOrderRef}
+            folderNoteDescriptions={folderNoteDescriptions}
+            folderNotesExpanded={folderNotesExpanded}
+            onToggleFolderNote={onToggleFolderNote}
           />
           <FolderContextMenu
             menu={contextMenu}
@@ -602,7 +660,7 @@ function useNoteFileContextMenu(handlers: WithNoteContextMenu, locale: AppLocale
   })
 }
 
-function FolderTreeBody(options: FolderTreeBodyProps & { rowOrderRef: { current: string[] } }) {
+function FolderTreeBody(options: FolderTreeBodyProps) {
   const {
     displayedExpanded,
     displayedFolders,
@@ -628,7 +686,9 @@ function FolderTreeBody(options: FolderTreeBodyProps & { rowOrderRef: { current:
     typeEntryMap,
     fileHandlers,
     keyboardNav,
-    rowOrderRef,
+    folderNoteDescriptions,
+    folderNotesExpanded,
+    onToggleFolderNote,
   } = options
   if (sectionCollapsed) return null
 
@@ -661,7 +721,9 @@ function FolderTreeBody(options: FolderTreeBodyProps & { rowOrderRef: { current:
           typeEntryMap={typeEntryMap}
           fileHandlers={fileHandlers}
           keyboardNav={keyboardNav}
-          rowOrderRef={rowOrderRef}
+          folderNoteDescriptions={folderNoteDescriptions}
+          folderNotesExpanded={folderNotesExpanded}
+          onToggleFolderNote={onToggleFolderNote}
         />
       ))}
       {isCreating && !creationParent && (
@@ -706,7 +768,9 @@ function ExplorerFolderRow(options: {
   typeEntryMap: Record<string, VaultEntry>
   fileHandlers: WithNoteContextMenu
   keyboardNav: TreeKeyboardNav
-  rowOrderRef: { current: string[] }
+  folderNoteDescriptions: Map<string, FolderNoteDescription>
+  folderNotesExpanded: Record<string, boolean>
+  onToggleFolderNote: (path: string) => void
 }) {
   const {
     depth,
@@ -733,7 +797,9 @@ function ExplorerFolderRow(options: {
     typeEntryMap,
     fileHandlers,
     keyboardNav,
-    rowOrderRef,
+    folderNoteDescriptions,
+    folderNotesExpanded,
+    onToggleFolderNote,
   } = options
   const nodeRootPath = node.rootPath ?? rootPath
   const nodeKey = folderNodeKey({ path: node.path, rootPath: nodeRootPath })
@@ -776,7 +842,6 @@ function ExplorerFolderRow(options: {
           onCanDropNote={onCanDropNote}
           onMoveNoteToFolder={onMoveNoteToFolder}
           keyboardNav={keyboardNav}
-          rowOrderRef={rowOrderRef}
           rowKey={rowKey}
         />
       )}
@@ -826,7 +891,6 @@ function ExplorerFolderRow(options: {
               typeEntryMap={typeEntryMap}
               fileHandlers={fileHandlers}
               keyboardNav={keyboardNav}
-              rowOrderRef={rowOrderRef}
             />
           ))}
           {fileCount > 0 && (
@@ -839,7 +903,9 @@ function ExplorerFolderRow(options: {
               typeEntryMap={typeEntryMap}
               handlers={fileHandlers}
               keyboardNav={keyboardNav}
-              rowOrderRef={rowOrderRef}
+              folderNoteDescriptions={folderNoteDescriptions}
+              folderNotesExpanded={folderNotesExpanded}
+              onToggleFolderNote={onToggleFolderNote}
             />
           )}
         </div>
@@ -861,7 +927,6 @@ function FolderExplorerRowButton({
   onCanDropNote,
   onMoveNoteToFolder,
   keyboardNav,
-  rowOrderRef,
   rowKey,
 }: {
   depth: number
@@ -876,15 +941,13 @@ function FolderExplorerRowButton({
   onCanDropNote?: (notePath: string, folderPath: string) => boolean
   onMoveNoteToFolder?: (notePath: string, folderPath: string) => Promise<unknown> | unknown
   keyboardNav: TreeKeyboardNav
-  rowOrderRef: { current: string[] }
   rowKey: string
 }) {
   const rowRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     keyboardNav.registerRow(rowKey, rowRef.current)
-    rowOrderRef.current.push(rowKey)
     return () => keyboardNav.registerRow(rowKey, null)
-  }, [keyboardNav, rowKey, rowOrderRef])
+  }, [keyboardNav, rowKey])
   const depthIndent = 8 + depth * TREE_INDENT_PX
 
   const canMoveDraggedNote = useCallback(

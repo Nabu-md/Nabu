@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button'
 import type { VaultEntry, WorkspaceIdentity } from '../types'
 import type { FrontmatterValue } from './Inspector'
 import type { ParsedFrontmatter } from '../utils/frontmatter'
+import { COVER_IMAGE_PROPERTY_KEY } from '../utils/coverImage'
+import { pickCoverImageFile } from '../utils/coverImagePicker'
+import { trackEvent } from '../lib/telemetry'
+import { CoverImagePropertySection } from './CoverImagePropertySection'
 import { usePropertyPanelState } from '../hooks/usePropertyPanelState'
 import { getEffectiveDisplayMode, detectPropertyType, DISPLAY_MODE_ICONS } from '../utils/propertyTypes'
 import { SmartPropertyValueCell, DisplayModeSelector } from './PropertyValueCells'
@@ -578,6 +582,7 @@ function DynamicPropertiesPanelContent(options: {
   format: NoteFormat
   locale: AppLocale
   workspaces?: WorkspaceIdentity[]
+  vaultPath?: string
   onUpdateProperty?: (key: string, value: FrontmatterValue) => void
   onDeleteProperty?: (key: string) => void
   onAddProperty?: (key: string, value: FrontmatterValue) => void
@@ -597,6 +602,7 @@ function DynamicPropertiesPanelContent(options: {
     format,
     locale,
     workspaces,
+    vaultPath,
     onUpdateProperty,
     onDeleteProperty,
     onAddProperty,
@@ -607,6 +613,20 @@ function DynamicPropertiesPanelContent(options: {
     onSaveSuggestedValue,
     onAddSuggestedProperty,
   } = options
+
+  const handlePickCover = useCallback(() => {
+    void (async () => {
+      const source = await pickCoverImageFile({ vaultPath })
+      if (!source) return
+      onAddProperty?.(entry.path, COVER_IMAGE_PROPERTY_KEY, source)
+      trackEvent('note_cover_set', { note_type: entry.isA ?? undefined })
+    })()
+  }, [entry.isA, entry.path, onAddProperty, vaultPath])
+
+  const handleRemoveCover = useCallback(() => {
+    onDeleteProperty?.(entry.path, COVER_IMAGE_PROPERTY_KEY)
+    trackEvent('note_cover_removed')
+  }, [entry.path, onDeleteProperty])
   const {
         editingKey,
         setEditingKey,
@@ -646,6 +666,13 @@ function DynamicPropertiesPanelContent(options: {
               typeColorKeys={typeColorKeys}
               typeIconKeys={typeIconKeys}
               workspaces={workspaces}
+            />
+            <CoverImagePropertySection
+              entry={entry}
+              locale={locale}
+              vaultPath={vaultPath}
+              onPickCover={handlePickCover}
+              onRemoveCover={handleRemoveCover}
             />
             <PropertyEntryRows
               source="frontmatter"
@@ -710,6 +737,7 @@ function DynamicPropertiesPanelContent(options: {
       frontmatter: ParsedFrontmatter
       entries?: VaultEntry[]
       workspaces?: WorkspaceIdentity[]
+      vaultPath?: string
       onUpdateProperty?: (key: string, value: FrontmatterValue) => void
       onDeleteProperty?: (key: string) => void
       onAddProperty?: (key: string, value: FrontmatterValue) => void
@@ -719,19 +747,19 @@ function DynamicPropertiesPanelContent(options: {
       locale?: AppLocale
     }
 
-    export function DynamicPropertiesPanel(options: DynamicPropertiesPanelProps) {
-      const {
-        entry,
-        frontmatter,
-        entries,
-        onUpdateProperty,
-        onDeleteProperty,
-        onAddProperty,
-        onNavigate,
-        onCreateMissingType,
-        onChangeWorkspace,
-        workspaces,
-      locale = 'en',
+    export function DynamicPropertiesPanel(options: DynamicPropertiesPanelProps) {  const {
+    entry,
+    frontmatter,
+    entries,
+    onUpdateProperty,
+    onDeleteProperty,
+    onAddProperty,
+    onNavigate,
+    onCreateMissingType,
+    onChangeWorkspace,
+    workspaces,
+    vaultPath,
+  locale = 'en',
   } = options
   const propertyState = usePropertyPanelState({
     entries,
@@ -782,6 +810,7 @@ function DynamicPropertiesPanelContent(options: {
       format={format}
       locale={locale}
       workspaces={workspaces}
+      vaultPath={vaultPath}
       onUpdateProperty={onUpdateProperty}
       onDeleteProperty={onDeleteProperty}
       onAddProperty={onAddProperty}

@@ -346,6 +346,51 @@ body.mac-chrome .app:not(:has(.app__sidebar), :has(.app__note-list)) .breadcrumb
   width: 100%;
 }
 
+/* --- Note cover image banner (Notion-style) --- */
+.note-cover {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.note-cover__image {
+  display: block;
+  width: 100%;
+  height: clamp(140px, 24vh, 280px);
+  object-fit: cover;
+  background: var(--muted, rgba(128, 128, 128, 0.15));
+}
+
+.note-cover__actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.note-cover:hover .note-cover__actions,
+.note-cover:focus-within .note-cover__actions {
+  opacity: 1;
+}
+
+.note-cover--empty {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
+.note-cover--empty .note-cover__actions,
+.note-cover--empty:hover .note-cover__actions {
+  position: static;
+  opacity: 1;
+}
+
 .editor-content-width--wide .editor-content-wrapper {
   max-width: none;
   padding-left: clamp(24px, 4vw, 72px);

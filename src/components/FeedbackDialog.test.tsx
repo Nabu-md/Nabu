@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeedbackDialog } from './FeedbackDialog'
 import { TooltipProvider } from './ui/tooltip'
 import {
-  CIRCLECI_HOME_URL,
-  CODACY_HOME_URL,
   CODESCENE_HOME_URL,
   REFACTORING_HOME_URL,
   NABU_DEVELOPMENT_ARTICLE_URL,
@@ -63,12 +61,8 @@ describe('FeedbackDialog', () => {
     expect(screen.getByText(/Refactoring is my newsletter and community/i)).toBeInTheDocument()
     expect(screen.getByText(/Nabu is supported by a panel of tools/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'how I develop Nabu' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Open Codacy' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open CodeScene' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Open CircleCI' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open Unblocked' })).toBeInTheDocument()
-    fireEvent.focus(screen.getByRole('button', { name: 'Open Codacy' }))
-    expect(await screen.findAllByText('I use Codacy to ensure code security and quality')).not.toHaveLength(0)
     expect(screen.getByText('Search on the board first, upvote existing ideas, and create new posts when genuinely new!')).toBeInTheDocument()
     expect(screen.getByText('Use Discussions for questions, conversations, show & tell, and community context.')).toBeInTheDocument()
     expect(screen.getByText('Small, focused PRs are welcome. Check the board first so you build the right things!')).toBeInTheDocument()
@@ -98,9 +92,7 @@ describe('FeedbackDialog', () => {
     render(<FeedbackDialog open={true} onClose={onClose} buildNumber="b281" releaseChannel={null} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Check out Refactoring' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Codacy' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open CodeScene' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open CircleCI' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Unblocked' }))
     fireEvent.click(screen.getByRole('button', { name: 'how I develop Nabu' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Product Board' }))
@@ -111,9 +103,7 @@ describe('FeedbackDialog', () => {
 
     const expectedActions = [
       ['newsletter_refactoring', REFACTORING_HOME_URL],
-      ['sponsor_codacy', CODACY_HOME_URL],
       ['sponsor_codescene', CODESCENE_HOME_URL],
-      ['sponsor_circleci', CIRCLECI_HOME_URL],
       ['sponsor_unblocked', UNBLOCKED_HOME_URL],
       ['sponsors_development_article', NABU_DEVELOPMENT_ARTICLE_URL],
       ['feature_requests', NABU_PRODUCT_BOARD_URL],
@@ -131,16 +121,14 @@ describe('FeedbackDialog', () => {
     }
 
     await waitFor(() => expect(openExternalUrl).toHaveBeenNthCalledWith(1, REFACTORING_HOME_URL))
-    expect(openExternalUrl).toHaveBeenNthCalledWith(2, CODACY_HOME_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(3, CODESCENE_HOME_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(4, CIRCLECI_HOME_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(5, UNBLOCKED_HOME_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(6, NABU_DEVELOPMENT_ARTICLE_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(7, NABU_PRODUCT_BOARD_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(8, NABU_GITHUB_DISCUSSIONS_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(9, NABU_GITHUB_PULL_REQUESTS_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(10, NABU_GITHUB_CONTRIBUTING_URL)
-    expect(openExternalUrl).toHaveBeenNthCalledWith(11, NABU_GITHUB_ISSUES_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(2, CODESCENE_HOME_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(3, UNBLOCKED_HOME_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(4, NABU_DEVELOPMENT_ARTICLE_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(5, NABU_PRODUCT_BOARD_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(6, NABU_GITHUB_DISCUSSIONS_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(7, NABU_GITHUB_PULL_REQUESTS_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(8, NABU_GITHUB_CONTRIBUTING_URL)
+    expect(openExternalUrl).toHaveBeenNthCalledWith(9, NABU_GITHUB_ISSUES_URL)
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByTestId('feedback-dialog')).toBeInTheDocument()
   })

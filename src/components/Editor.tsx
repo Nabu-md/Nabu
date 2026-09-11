@@ -3,13 +3,15 @@ import { useEditorTabSwap } from '../hooks/useEditorTabSwap'
 import { useCreateBlockNote } from '@blocknote/react'
 import '@blocknote/mantine/style.css'
 import 'katex/dist/katex.min.css'
-import {
-  emptyImageUploadResult,
+import { emptyImageUploadResult,
   isUnsupportedImageFormatError,
   uploadImageFile,
   type ImageImportError,
   type UploadImageFileResult,
 } from '../hooks/useImageDrop'
+import { COVER_IMAGE_PROPERTY_KEY } from '../utils/coverImage'
+import { pickCoverImageFile } from '../utils/coverImagePicker'
+import { trackEvent } from '../lib/telemetry'
 import { DEFAULT_AI_AGENT, type AiAgentId, type AiAgentReadiness } from '../lib/aiAgents'
 import type { AiTarget } from '../lib/aiTargets'
 import { translate, type AppLocale } from '../lib/i18n'
@@ -579,6 +581,8 @@ function useEditorSetup(options: EditorSetupParams) {
       onImageImportError?: ImageImportErrorHandler
       locale?: AppLocale
       onExportPdf?: (source?: NotePdfExportSource) => void
+      onPickCover?: () => void
+      onRemoveCover?: () => void
     }) {
       const {
       tabs,
@@ -658,6 +662,8 @@ function useEditorSetup(options: EditorSetupParams) {
       onUnsupportedAiPaste,
       onImageImportError,
       locale,
+      onPickCover,
+      onRemoveCover,
   } = options
   const activeBinaryTab = activeTab?.entry.fileKind === 'binary' ? activeTab : null
   const showEmptyState = tabs.length === 0 && activeTabPath === null && !isVaultLoading
@@ -727,6 +733,8 @@ function useEditorSetup(options: EditorSetupParams) {
               onKeepMine={onKeepMine}
               onKeepTheirs={onKeepTheirs}
               onImageImportError={onImageImportError}
+              onPickCover={onPickCover}
+              onRemoveCover={onRemoveCover}
               locale={locale}
             />
         )}
@@ -796,7 +804,7 @@ function buildEditorLayoutProps(
 }
 
 export const Editor = memo(function Editor(props: EditorProps) {
-  const { locale, onToast } = props
+  const { locale, onToast, vaultPath, onUpdateFrontmatter, onDeleteProperty } = props
   const handleImageImportError = useCallback(
     (error: ImageImportError) => {
     onToast?.(imageImportErrorMessage(error, locale))
@@ -850,6 +858,30 @@ export const Editor = memo(function Editor(props: EditorProps) {
     onContentChange: props.onContentChange,
     flushPendingRawContentRef: props.flushPendingRawContentRef,
   })
+  const handlePickCover = useCallback(
+    () => {
+      const tab = runtime.activeTab
+      if (!tab) return
+      void (async () => {
+        const source = await pickCoverImageFile({ vaultPath })
+        if (!source) return
+        await onUpdateFrontmatter?.(tab.entry.path, COVER_IMAGE_PROPERTY_KEY, source)
+        trackEvent('note_cover_set', { note_type: tab.entry.isA ?? undefined })
+      })()
+    },
+    [vaultPath, onUpdateFrontmatter, runtime.activeTab],
+  )
+  const handleRemoveCover = useCallback(
+    () => {
+      const tab = runtime.activeTab
+      if (!tab) return
+      void (async () => {
+        await onDeleteProperty?.(tab.entry.path, COVER_IMAGE_PROPERTY_KEY)
+        trackEvent('note_cover_removed')
+      })()
+    },
+    [onDeleteProperty, runtime.activeTab],
+  )
   const rightPanel = useRightPanelExclusion(props)
   const { tableOfContentsToggleRef } = props
   useEffect(() => {
@@ -868,6 +900,8 @@ export const Editor = memo(function Editor(props: EditorProps) {
       showTableOfContents={rightPanel.showTableOfContents}
       onToggleTableOfContents={rightPanel.handleToggleTableOfContents}
       onExportPdf={handleExportPdf}
+      onPickCover={handlePickCover}
+      onRemoveCover={handleRemoveCover}
     />
   )
 })
