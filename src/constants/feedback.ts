@@ -1,8 +1,4 @@
 import { Bug, Chats as MessagesSquare, GitPullRequest, Lightbulb, Newspaper } from '@phosphor-icons/react'
-import circleCiDarkLogo from '../assets/sponsors/circleci-dark.svg'
-import circleCiLightLogo from '../assets/sponsors/circleci-light.svg'
-import codacyDarkLogo from '../assets/sponsors/codacy-dark.svg'
-import codacyLightLogo from '../assets/sponsors/codacy-light.svg'
 import codeSceneDarkLogo from '../assets/sponsors/codescene-dark.svg'
 import codeSceneLightLogo from '../assets/sponsors/codescene-light.svg'
 import unblockedDarkLogo from '../assets/sponsors/unblocked-dark.svg'
@@ -16,9 +12,7 @@ function withContributionUtm(url: string): string {
 }
 
 export const REFACTORING_HOME_URL = withContributionUtm('https://refactoring.fm/')
-export const CODACY_HOME_URL = withContributionUtm('https://codacy.com/nabu')
 export const CODESCENE_HOME_URL = withContributionUtm('https://codescene.com/')
-export const CIRCLECI_HOME_URL = withContributionUtm('https://circleci.com/')
 export const UNBLOCKED_HOME_URL = withContributionUtm('https://getunblocked.com/')
 export const NABU_DEVELOPMENT_ARTICLE_URL = 'https://refactoring.fm/p/introducing-the-nabu-alliance'
 export const NABU_DOCS_URL = 'https://refactoringhq.github.io/nabu/'
@@ -33,9 +27,7 @@ export type ContributionTone = 'blue' | 'green' | 'yellow' | 'purple' | 'red'
 export type ContributionIcon = typeof Lightbulb
 export type ContributionAnalyticsAction =
   | 'newsletter_refactoring'
-  | 'sponsor_codacy'
   | 'sponsor_codescene'
-  | 'sponsor_circleci'
   | 'sponsor_unblocked'
   | 'sponsors_development_article'
   | 'feature_requests'
@@ -92,28 +84,12 @@ export const NEWSLETTER_PATH = {
 
 export const SPONSOR_LOGOS = [
   {
-    analyticsAction: 'sponsor_codacy',
-    name: 'Codacy',
-    url: CODACY_HOME_URL,
-    tooltipKey: 'feedback.sponsors.codacyTooltip',
-    darkLogo: codacyDarkLogo,
-    lightLogo: codacyLightLogo,
-  },
-  {
     analyticsAction: 'sponsor_codescene',
     name: 'CodeScene',
     url: CODESCENE_HOME_URL,
     tooltipKey: 'feedback.sponsors.codeSceneTooltip',
     darkLogo: codeSceneDarkLogo,
     lightLogo: codeSceneLightLogo,
-  },
-  {
-    analyticsAction: 'sponsor_circleci',
-    name: 'CircleCI',
-    url: CIRCLECI_HOME_URL,
-    tooltipKey: 'feedback.sponsors.circleCiTooltip',
-    darkLogo: circleCiDarkLogo,
-    lightLogo: circleCiLightLogo,
   },
   {
     analyticsAction: 'sponsor_unblocked',

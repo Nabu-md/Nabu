@@ -39,13 +39,14 @@ pub fn validate_public_http_url(raw: &str) -> Result<reqwest::Url, String> {
     if host.eq_ignore_ascii_case("localhost") {
         return Err("Access to localhost is not allowed".to_string());
     }
-    // Bracketless IPv6 literals and odd forms are rejected by parsing above;
-    // treat anything that parses as an IP with the IP rules below.
-    if let Ok(ip) = host.trim_end_matches(|c: char| c != ']' && !c.is_ascii_alphanumeric()).parse::<IpAddr>() {
-        return Err(private_ip_error(&ip));
-    }
-    if let Ok(ip) = host.parse::<IpAddr>() {
-        return Err(private_ip_error(&ip));
+    // Bracketed IPv6 literals arrive with brackets in host_str(); strip them
+    // before IP classification so "[::1]" is treated like "::1".
+    let normalized_host = host.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = normalized_host.parse::<IpAddr>() {
+        if is_private_ip(&ip) {
+            return Err(private_ip_error(&ip));
+        }
+        return Ok(url);
     }
     Ok(url)
 }
@@ -54,24 +55,34 @@ fn private_ip_error(ip: &IpAddr) -> String {
     format!("Access to private network address {ip} is not allowed")
 }
 
+fn is_private_ipv4(v4: &std::net::Ipv4Addr) -> bool {
+    // Special-use ranges without stdlib predicates: 169.254.0.0/16 (cloud
+    // instance metadata) and 100.64.0.0/10 (CGNAT, RFC 6598).
+    fn in_metadata_range(octets: [u8; 4]) -> bool {
+        (octets[0], octets[1]) == (169, 254)
+            || octets[0] == 100 && (octets[1] & 0b1100_0000) == 64
+    }
+    v4.is_loopback()
+        || v4.is_private()
+        || v4.is_link_local()
+        || v4.is_broadcast()
+        || v4.is_unspecified()
+        || v4.is_documentation()
+        || in_metadata_range(v4.octets())
+}
+
+fn is_private_ipv6(v6: &std::net::Ipv6Addr) -> bool {
+    v6.is_loopback()
+        || v6.is_unspecified()
+        // Unique-local (fc00::/7) and link-local (fe80::/10) ranges.
+        || (v6.segments()[0] & 0xfe00) == 0xfc00
+        || (v6.segments()[0] & 0xffc0) == 0xfe80
+}
+
 fn is_private_ip(ip: &IpAddr) -> bool {
     match ip {
-        IpAddr::V4(v4) => {
-            v4.is_loopback()
-                || v4.is_private()
-                || v4.is_link_local()
-                || v4.is_broadcast()
-                || v4.is_unspecified()
-                || v4.is_documentation()
-                || v4.octets()[0] == 169 && v4.octets()[1] == 254
-                || v4.octets()[0] == 100 && (v4.octets()[1] & 0b1100_0000) == 64
-        }
-        IpAddr::V6(v6) => {
-            v6.is_loopback()
-                || v6.is_unspecified()
-                || (v6.segments()[0] & 0xfe00) == 0xfc00
-                || (v6.segments()[0] & 0xffc0) == 0xfe80
-        }
+        IpAddr::V4(v4) => is_private_ipv4(v4),
+        IpAddr::V6(v6) => is_private_ipv6(v6),
     }
 }
 
@@ -200,42 +211,84 @@ pub fn scrape_selector(
     })
 }
 
-/// Lowers a simple CSS selector to a regex matching the element's inner HTML.
-fn selector_regex(selector: &str) -> Option<Regex> {
-    let tag = Regex::new(r"^[a-zA-Z][a-zA-Z0-9-]*$").unwrap();
-    let mut tag_name = String::from("[a-zA-Z][a-zA-Z0-9-]*");
-    let mut id: Option<String> = None;
-    let mut class: Option<String> = None;
+/// One parsed selector token: a tag name, `#id`, or `.class`.
+enum SelectorElement {
+    Tag(String),
+    Id(String),
+    Class(String),
+}
 
-    for token in selector.split_whitespace() {
-        if let Some(id_candidate) = token.strip_prefix('#') {
-            id = Some(regex::escape(id_candidate));
-        } else if let Some(class_candidate) = token.strip_prefix('.') {
-            class = Some(regex::escape(class_candidate));
-        } else if tag.is_match(token) {
-            tag_name = regex::escape(token);
-        } else {
-            return None;
+fn parse_selector_token(token: &str, tag_only: &Regex) -> Option<SelectorElement> {
+    if let Some(id) = token.strip_prefix('#') {
+        Some(SelectorElement::Id(regex::escape(id)))
+    } else if let Some(class) = token.strip_prefix('.') {
+        Some(SelectorElement::Class(regex::escape(class)))
+    } else if tag_only.is_match(token) {
+        Some(SelectorElement::Tag(regex::escape(token)))
+    } else {
+        None
+    }
+}
+
+/// Opening-tag pattern for one selector element; required attributes are
+/// woven in as sequential `[^>]*` segments because the `regex` crate has no
+/// lookaheads.
+fn selector_opening_pattern(element: &SelectorElement) -> String {
+    match element {
+        SelectorElement::Tag(tag) => format!(r"{tag}\b[^>]*"),
+        SelectorElement::Id(id) => format!(r#"[a-zA-Z][a-zA-Z0-9-]*[^>]*\bid="{id}"[^>]*"#),
+        SelectorElement::Class(class) => {
+            format!(r#"[a-zA-Z][a-zA-Z0-9-]*[^>]*\bclass="[^"]*\b{class}\b[^"]*""#)
         }
     }
+}
 
-    let mut attributes = String::new();
-    if let Some(id) = id {
-        attributes.push_str(&format!(r#"(?=[^>]*id="{id}")"#));
+/// Closing-tag pattern: only knowable when the target names its tag; with a
+/// bare `#id`/`.class` target, any element's closing tag matches.
+fn selector_closing_pattern(element: &SelectorElement) -> String {
+    match element {
+        SelectorElement::Tag(tag) => format!(r"</{tag}>"),
+        _ => r"</[a-zA-Z][a-zA-Z0-9-]*>".to_string(),
     }
-    if let Some(class) = class {
-        attributes.push_str(&format!(r#"(?=[^>]*class="[^"]*\b{class}\b[^"]*")"#));
-    }
+}
 
-    Regex::new(&format!(
-        r#"(?is)<{tag_name}{attributes}[^>]*>(.*?)</{tag_name}>"#
-    ))
-    .ok()
+/// Lowers a simple CSS selector to a regex matching the element's inner HTML.
+/// Whitespace-separated tokens form a descendant chain (CSS semantics): every
+/// token but the last constrains an ancestor's opening tag, and the last token
+/// selects the captured element. Each token carries exactly one constraint —
+/// a tag name, `#id`, or `.class` — since compound tokens (`div.main`) are
+/// intentionally unsupported by this regex-based scraper.
+fn selector_regex(selector: &str) -> Option<Regex> {
+    let tag_only = Regex::new(r"^[a-zA-Z][a-zA-Z0-9-]*$").ok()?;
+    let tokens: Vec<&str> = selector.split_whitespace().collect();
+    if tokens.is_empty() {
+        return None;
+    }
+    let parsed: Option<Vec<SelectorElement>> = tokens
+        .iter()
+        .map(|token| parse_selector_token(token, &tag_only))
+        .collect();
+    let parsed = parsed?;
+
+    let mut pattern = String::new();
+    for ancestor in &parsed[..parsed.len() - 1] {
+        pattern.push_str(&format!(r"<{}>.*?", selector_opening_pattern(ancestor)));
+    }
+    let target = parsed.last()?;
+    pattern.push_str(&format!(
+        r"<{}>(.*?){}",
+        selector_opening_pattern(target),
+        selector_closing_pattern(target),
+    ));
+
+    Regex::new(&format!(r"(?is){pattern}")).ok()
 }
 
 fn strip_tags(html: &str) -> String {
     let without_scripts_owned;
-    let without_scripts: &str = match Regex::new(r"(?is)<(script|style)[^>]*>.*?</\1>") {
+    // The `regex` crate has no backreferences, so the closing tag is matched
+    // by repeating the alternation instead of `</\1>`.
+    let without_scripts: &str = match Regex::new(r"(?is)<(script|style)[^>]*>.*?</(script|style)>") {
         Ok(pattern) => {
             without_scripts_owned = pattern.replace_all(html, "").into_owned();
             &without_scripts_owned
@@ -258,9 +311,15 @@ fn strip_tags(html: &str) -> String {
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
         .replace("&nbsp;", " ");
-    Regex::new(r"\s+")
+    let collapsed = Regex::new(r"\s+")
         .map(|pattern| pattern.replace_all(&decoded, " ").trim().to_string())
-        .unwrap_or(decoded)
+        .unwrap_or(decoded);
+    // Tag replacement inserts a space where inline elements closed; drop the
+    // stray space before punctuation ("Hello world ." -> "Hello world.").
+    match Regex::new(r"\s+([.,;:!?])") {
+        Ok(pattern) => pattern.replace_all(&collapsed, "$1").into_owned(),
+        Err(_) => collapsed,
+    }
 }
 
 /// Shells out to an externally installed browser for JS-rendered HTML.

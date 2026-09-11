@@ -81,7 +81,7 @@
     },
     "updater": {
       "endpoints": [
-        "https://refactoringhq.github.io/nabu/stable/latest.json"
+        "https://YOUR_USER.github.io/YOUR_REPO/stable/latest.json"
       ],
       "windows": {
         "installMode": "passive"

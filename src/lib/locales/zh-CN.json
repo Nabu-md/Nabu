@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "我如何开发 Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "打开 {sponsor}",
-  "feedback.sponsors.codacyTooltip": "我使用 Codacy 来确保代码的安全性和质量",
   "feedback.sponsors.codeSceneTooltip": "我使用 CodeScene 来检查代码健康状况",
-  "feedback.sponsors.circleCiTooltip": "我使用 CircleCI 在远程环境中进行内部循环验证",
   "feedback.sponsors.unblockedTooltip": "我使用 Unblocked 让代理获取有关代码库的正确上下文",
   "feedback.featureRequests.title": "功能请求",
   "feedback.featureRequests.description": "请先在看板上搜索，为已有想法投票，只有真正全新的想法再创建新帖子！",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "斯洛伐克语",
   "telemetryConsent.saveError": "Nabu 无法保存此选择。请检查您的账户是否可以写入其应用设置，然后重试。",
   "ai.workspace.deepResearch": "深度研究",
-  "ai.workspace.deepResearchBack": "返回聊天"
+  "ai.workspace.deepResearchBack": "返回聊天",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

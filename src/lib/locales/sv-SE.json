@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "hur jag utvecklar Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Öppna {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Jag använder Codacy för att säkerställa kodens säkerhet och kvalitet",
   "feedback.sponsors.codeSceneTooltip": "Jag använder CodeScene för att hålla koll på kodens hälsa",
-  "feedback.sponsors.circleCiTooltip": "Jag använder CircleCI för att göra inner loop-validering med fjärrmiljöer",
   "feedback.sponsors.unblockedTooltip": "Jag använder Unblocked för att låta agenter hämta rätt kontext om kodbasen",
   "feedback.featureRequests.title": "Funktionsönskemål",
   "feedback.featureRequests.description": "Sök på anslagstavlan först, rösta upp befintliga idéer och skapa nya inlägg när de är genuint nya!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Slovakiska",
   "telemetryConsent.saveError": "Nabu kunde inte spara det här valet. Kontrollera att ditt konto kan skriva sina appinställningar och försök sedan igen.",
   "ai.workspace.deepResearch": "Djupresearch",
-  "ai.workspace.deepResearchBack": "Tillbaka till chatten"
+  "ai.workspace.deepResearchBack": "Tillbaka till chatten",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

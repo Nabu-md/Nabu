@@ -9,7 +9,8 @@ project, which is the authoritative source for its license text.
 | Project | License | Integration |
 |---|---|---|
 | [FluidVoice](https://github.com/altic-dev/FluidVoice) | GPL-3.0 | Optional on-device macOS dictation backend. Nabu communicates with the standalone FluidVoice app via Apple Events/clipboard only; no FluidVoice code is bundled, linked, or distributed with Nabu. |
-| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | App skeleton and vault tooling. The Tolaria MCP server and vault lifecycle code are derived from the Tolaria project. |
+| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | App skeleton and vault tooling. Nabu's MCP server, vault lifecycle, capture pipeline, and Git integration code derive from the Tolaria project. Tolaria is a fork-friendly sibling project that shares Nabu's local-first Markdown vault architecture; ongoing upstream work can be tracked via the `tolarria` git remote and cherry-picked selectively. |
+| [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | Apache-2.0 | Optional on-device neural text-to-speech. Nabu drives the standalone `koko` CLI as an external process for speech synthesis and word-timing extraction; no Kokoro model weights or code are bundled, linked, or distributed with Nabu. |
 
 ## Bundled Rust crates (compiled into the application)
 
@@ -35,6 +36,14 @@ project, which is the authoritative source for its license text.
 | [dirs](https://crates.io/crates/dirs) | Apache-2.0/MIT | Platform directories |
 | [objc2](https://crates.io/crates/objc2) stack | Apache-2.0/MIT (dual) | macOS framework bindings |
 | [png](https://crates.io/crates/png) | Apache-2.0/MIT (dual) | PNG image encoding |
+| [duckdb](https://duckdb.org) | MIT | Embedded analytical SQL engine |
+| [feed-rs](https://crates.io/crates/feed-rs) | MIT | RSS/Atom/JSON Feed parsing |
+| [active-win-pos-rs](https://crates.io/crates/active-win-pos-rs) | MIT | Active window detection |
+| [async-imap](https://crates.io/crates/async-imap) | Apache-2.0/MIT (dual) | Async IMAP email ingestion |
+| [mail-parser](https://crates.io/crates/mail-parser) | Apache-2.0 | MIME message parsing |
+| [html2text](https://crates.io/crates/html2text) | Apache-2.0/MIT (dual) | HTML to plain-text conversion |
+| [toml](https://crates.io/crates/toml) | Apache-2.0/MIT (dual) | TOML frontmatter/config parsing |
+| [fastembed](https://github.com/Anush008/fastembed-rs) | Apache-2.0 | ONNX-based local semantic search embeddings |
 
 ## Bundled frontend packages
 

@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "jak ja raspracoŭvaju Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Adkryć {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Ja vykarystoŭvaju Codacy, kab zabiaśpiečvać biaspieku i jakaść kodu",
   "feedback.sponsors.codeSceneTooltip": "Ja vykarystoŭvaju CodeScene, kab trymać zdaroŭje kodu pad kantrolem",
-  "feedback.sponsors.circleCiTooltip": "Ja vykarystoŭvaju CircleCI dlia inner-loop pravierki ŭ addalienych asiaroddziach",
   "feedback.sponsors.unblockedTooltip": "Ja vykarystoŭvaju Unblocked, kab ahienty mahli atrymliwać patrebny kantêkst pra kodavuju bazu",
   "feedback.featureRequests.title": "Zapyty na funkcyi",
   "feedback.featureRequests.description": "Spačatku pašukajcie na došcy, prahalasujcie za isnuiučyja idei i stvarajcie novyja zapisy toĺki kali idea sapraŭdy novaja!",
@@ -1063,5 +1061,9 @@
   "editor.sheet.formula.description.year": "Vylučaie hod z daty.",
   "telemetryConsent.saveError": "Nabu nie zmahła zachavać hety vybar. Praviercie, ci vaš ulikaŭy zapis moža zapisvać nałady prahramy, zatym pasprabujcie jašče raz.",
   "ai.workspace.deepResearch": "Hłybokaje dasledavannie",
-  "ai.workspace.deepResearchBack": "Nazad da čata"
+  "ai.workspace.deepResearchBack": "Nazad da čata",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

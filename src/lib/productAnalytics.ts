@@ -318,6 +318,12 @@ export function trackMiniAppGatewayUsed(gateway: MiniAppGatewayName): void {
   trackEvent('miniapp_gateway_used', { gateway })
 }
 
+export function trackMiniAppRecordCreated(appId: string | undefined): void {
+  // Fired when a mini-app form view INSERT succeeds through the vault MCP
+  // relay, so persistent data capture (not just views) is observable.
+  trackEvent('mini_app_record_created', { app_id: appId ?? 'unknown' })
+}
+
 export function trackBuzzTeamContextFetched(source: BuzzContextSource): void {
   // Team-context reads happen before/with agent runs and from settings.
   trackEvent('buzz_team_context_fetched', { source })

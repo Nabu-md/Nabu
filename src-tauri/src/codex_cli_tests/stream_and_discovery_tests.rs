@@ -99,7 +99,10 @@ fn run_codex_agent_stream_writes_prompt_and_closes_stdin_with_parent_pipe_open()
     let child_stdin = child.stdin.take().unwrap();
     let mut stdout = child.stdout.take().unwrap();
     let mut stderr = child.stderr.take().unwrap();
-    let deadline = Instant::now() + Duration::from_secs(5);
+    // Generous safety net: this deadline only guards against a leaked child,
+    // and the probe can legitimately take seconds when the whole suite runs
+    // in parallel and starves the spawned process of CPU.
+    let deadline = Instant::now() + Duration::from_secs(60);
 
     let status = loop {
         if let Some(status) = child.try_wait().unwrap() {

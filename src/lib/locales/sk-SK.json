@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "ako vyvíjam Tolariu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Otvoriť {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Používam Codacy na zaistenie bezpečnosti a kvality kódu",
   "feedback.sponsors.codeSceneTooltip": "Používam CodeScene na udržiavanie zdravia kódu pod kontrolou",
-  "feedback.sponsors.circleCiTooltip": "Používam CircleCI na overovanie vnútornej slučky v rámci vzdialených prostredí",
   "feedback.sponsors.unblockedTooltip": "Používam Unblocked, aby agenti mohli získať správny kontext o kódovej základni",
   "feedback.featureRequests.title": "Žiadosti o funkcie",
   "feedback.featureRequests.description": "Najprv vyhľadávajte na nástenke, hlasujte za existujúce nápady a vytvárajte nové príspevky, keď sú skutočne nové!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Slovenčina",
   "telemetryConsent.saveError": "Nabu nemohla uložiť tento výber. Skontrolujte, či váš účet môže zapisovať nastavenia aplikácie, a potom to skúste znova.",
   "ai.workspace.deepResearch": "Hĺbkový prieskum",
-  "ai.workspace.deepResearchBack": "Späť na chat"
+  "ai.workspace.deepResearchBack": "Späť na chat",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

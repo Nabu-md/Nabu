@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "cách tôi phát triển Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Mở {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Tôi sử dụng Codacy để đảm bảo tính bảo mật và chất lượng của mã",
   "feedback.sponsors.codeSceneTooltip": "Tôi sử dụng CodeScene để kiểm tra tình trạng mã",
-  "feedback.sponsors.circleCiTooltip": "Tôi sử dụng CircleCI để thực hiện xác thực vòng lặp bên trong với các môi trường từ xa",
   "feedback.sponsors.unblockedTooltip": "Tôi sử dụng Unblocked để cho phép các nhân viên lấy được ngữ cảnh phù hợp về codebase",
   "feedback.featureRequests.title": "Yêu cầu tính năng",
   "feedback.featureRequests.description": "Trước tiên, hãy tìm kiếm trên bảng, bình chọn cho các ý tưởng hiện có và tạo bài đăng mới khi ý tưởng thực sự mới!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Tiếng Slovak",
   "telemetryConsent.saveError": "Nabu không thể lưu lựa chọn này. Hãy kiểm tra xem tài khoản của bạn có thể ghi cài đặt ứng dụng hay không, sau đó thử lại.",
   "ai.workspace.deepResearch": "Nghiên cứu chuyên sâu",
-  "ai.workspace.deepResearchBack": "Quay lại trò chuyện"
+  "ai.workspace.deepResearchBack": "Quay lại trò chuyện",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

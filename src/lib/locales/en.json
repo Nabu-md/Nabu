@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "how I develop Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Open {sponsor}",
-  "feedback.sponsors.codacyTooltip": "I use Codacy to ensure code security and quality",
   "feedback.sponsors.codeSceneTooltip": "I use CodeScene to keep code health in check",
-  "feedback.sponsors.circleCiTooltip": "I use CircleCI to do inner loop validation with remote environments",
   "feedback.sponsors.unblockedTooltip": "I use Unblocked to let agents fetch the right context about the codebase",
   "feedback.featureRequests.title": "Feature requests",
   "feedback.featureRequests.description": "Search on the board first, upvote existing ideas, and create new posts when genuinely new!",
@@ -473,9 +471,6 @@
   "ai.permission.rag.control": "Semantic Search",
   "ai.permission.rag.tooltip": "Semantic Search uses embedding-based search to find conceptually related notes.",
   "ai.permission.modeAria": "AI agent permission mode",
-  "ai.clarifying.other": "Other…",
-  "ai.clarifying.remember": "Use for all similar",
-  "ai.clarifying.next": "Next",
   "ai.clarifying.other": "Other…",
   "ai.clarifying.remember": "Use for all similar",
   "ai.clarifying.next": "Next",
@@ -1183,5 +1178,9 @@
   "buzz.teamChannelPlaceholder": "e.g. research-team",
   "buzz.notInstalled": "Buzz CLI is not installed.",
   "buzz.noIdentity": "Run `buzz auth login` in your terminal, then restart Nabu.",
-  "buzz.resultsPosted": "Results posted to {{channel}}"
+  "buzz.resultsPosted": "Results posted to {{channel}}",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

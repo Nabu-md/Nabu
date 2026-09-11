@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "cómo desarrollo Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Abrir {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Uso Codacy para garantizar la seguridad y la calidad del código",
   "feedback.sponsors.codeSceneTooltip": "Utilizo CodeScene para mantener el estado del código bajo control",
-  "feedback.sponsors.circleCiTooltip": "Utilizo CircleCI para realizar la validación de bucle interno con entornos remotos",
   "feedback.sponsors.unblockedTooltip": "Utilizo Unblocked para que los agentes obtengan el contexto correcto sobre la base de código",
   "feedback.featureRequests.title": "Solicitudes de funciones",
   "feedback.featureRequests.description": "Primero busca en el tablero, vota a favor de las ideas existentes y crea nuevas publicaciones cuando sean realmente nuevas.",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Eslovaco",
   "telemetryConsent.saveError": "Nabu no pudo guardar esta opción. Comprueba que tu cuenta pueda escribir la configuración de la aplicación y vuelve a intentarlo.",
   "ai.workspace.deepResearch": "Investigación profunda",
-  "ai.workspace.deepResearchBack": "Volver al chat"
+  "ai.workspace.deepResearchBack": "Volver al chat",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

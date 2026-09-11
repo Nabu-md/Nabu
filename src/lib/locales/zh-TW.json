@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "我如何開發 Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "開啟 {sponsor}",
-  "feedback.sponsors.codacyTooltip": "我使用 Codacy 來確保程式碼的安全性和品質",
   "feedback.sponsors.codeSceneTooltip": "我使用 CodeScene 來確保程式碼的健全狀態",
-  "feedback.sponsors.circleCiTooltip": "我使用 CircleCI 在遠端環境中進行內迴圈驗證",
   "feedback.sponsors.unblockedTooltip": "我使用 Unblocked 讓代理人取得有關程式碼庫的正確背景資訊",
   "feedback.featureRequests.title": "功能要求",
   "feedback.featureRequests.description": "先在看板上搜尋，為現有的想法點讚，如果真的是新的想法，再建立新貼文！",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "斯洛伐克語",
   "telemetryConsent.saveError": "Nabu 無法儲存此選項。請檢查您的帳戶是否可以寫入其應用程式設定，然後再試一次。",
   "ai.workspace.deepResearch": "深度研究",
-  "ai.workspace.deepResearchBack": "返回聊天"
+  "ai.workspace.deepResearchBack": "返回聊天",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

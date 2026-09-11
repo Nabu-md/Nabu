@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "jak rozwijam Tolarię",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Otwórz {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Używam Codacy, aby zapewnić bezpieczeństwo i jakość kodu",
   "feedback.sponsors.codeSceneTooltip": "Używam CodeScene, aby kontrolować stan kodu",
-  "feedback.sponsors.circleCiTooltip": "Używam CircleCI do walidacji w pętli wewnętrznej w środowiskach zdalnych",
   "feedback.sponsors.unblockedTooltip": "Używam Unblocked, aby agenci mogli pobrać odpowiedni kontekst dotyczący bazy kodu",
   "feedback.featureRequests.title": "Propozycje funkcji",
   "feedback.featureRequests.description": "Najpierw przeszukaj tablicę, zagłosuj na istniejące pomysły i utwórz nowe posty, gdy są naprawdę nowe!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Słowacki",
   "telemetryConsent.saveError": "Nabu nie mogła zapisać tego wyboru. Sprawdź, czy Twoje konto może zapisywać ustawienia aplikacji, a następnie spróbuj ponownie.",
   "ai.workspace.deepResearch": "Pogłębione badania",
-  "ai.workspace.deepResearchBack": "Wróć do czatu"
+  "ai.workspace.deepResearchBack": "Wróć do czatu",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "cara saya mengembangkan Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Buka {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Saya menggunakan Codacy untuk memastikan keamanan dan kualitas kode",
   "feedback.sponsors.codeSceneTooltip": "Saya menggunakan CodeScene untuk memastikan kesehatan kode",
-  "feedback.sponsors.circleCiTooltip": "Saya menggunakan CircleCI untuk melakukan validasi inner loop dengan lingkungan jarak jauh",
   "feedback.sponsors.unblockedTooltip": "Saya menggunakan Unblocked agar agen dapat mengambil konteks yang tepat tentang basis kode",
   "feedback.featureRequests.title": "Permintaan fitur",
   "feedback.featureRequests.description": "Cari di papan terlebih dahulu, upvote ide yang sudah ada, dan buat postingan baru jika benar-benar baru!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Slovakia",
   "telemetryConsent.saveError": "Nabu tidak dapat menyimpan pilihan ini. Periksa apakah akun Anda dapat menulis pengaturan aplikasinya, lalu coba lagi.",
   "ai.workspace.deepResearch": "Riset mendalam",
-  "ai.workspace.deepResearchBack": "Kembali ke obrolan"
+  "ai.workspace.deepResearchBack": "Kembali ke obrolan",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "Nabu를 개발하는 방법",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "{sponsor} 열기",
-  "feedback.sponsors.codacyTooltip": "코드 보안과 품질을 보장하기 위해 Codacy를 사용합니다.",
   "feedback.sponsors.codeSceneTooltip": "CodeScene을 사용하여 코드 상태를 점검합니다.",
-  "feedback.sponsors.circleCiTooltip": "CircleCI를 사용하여 원격 환경에서 내부 루프 검증을 수행합니다.",
   "feedback.sponsors.unblockedTooltip": "저는 Unblocked를 사용하여 에이전트가 코드베이스에 대한 올바른 컨텍스트를 가져오도록 합니다.",
   "feedback.featureRequests.title": "기능 요청",
   "feedback.featureRequests.description": "먼저 게시판에서 검색하고, 기존 아이디어에 찬성 투표한 다음, 정말로 새로운 아이디어일 때 새 게시물을 작성하세요!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "슬로바키아어",
   "telemetryConsent.saveError": "Nabu가 이 선택을 저장할 수 없습니다. 계정이 앱 설정을 쓸 수 있는지 확인한 다음 다시 시도하세요.",
   "ai.workspace.deepResearch": "심층 연구",
-  "ai.workspace.deepResearchBack": "채팅으로 돌아가기"
+  "ai.workspace.deepResearchBack": "채팅으로 돌아가기",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

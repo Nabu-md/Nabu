@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "comment je développe Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Ouvrir {sponsor}",
-  "feedback.sponsors.codacyTooltip": "J'utilise Codacy pour assurer la sécurité et la qualité du code",
   "feedback.sponsors.codeSceneTooltip": "J'utilise CodeScene pour contrôler la santé du code",
-  "feedback.sponsors.circleCiTooltip": "J'utilise CircleCI pour effectuer une validation en boucle interne avec des environnements distants",
   "feedback.sponsors.unblockedTooltip": "J'utilise Unblocked pour permettre aux agents de récupérer le bon contexte concernant le codebase",
   "feedback.featureRequests.title": "Demandes de fonctionnalités",
   "feedback.featureRequests.description": "Recherchez d'abord sur le forum, votez pour les idées existantes et créez de nouveaux messages lorsqu'ils sont vraiment nouveaux !",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Slovaque",
   "telemetryConsent.saveError": "Nabu n'a pas pu enregistrer ce choix. Vérifiez que votre compte peut écrire ses paramètres d'application, puis réessayez.",
   "ai.workspace.deepResearch": "Recherche approfondie",
-  "ai.workspace.deepResearchBack": "Retour au chat"
+  "ai.workspace.deepResearchBack": "Retour au chat",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }

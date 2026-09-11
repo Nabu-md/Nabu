@@ -39,7 +39,9 @@ pub fn estimate_word_timings(text: &str, speed: f64, duration: f64) -> Vec<Kokor
     }
 
     let total_units: usize = words.iter().map(|word| word.chars().count().max(1)).sum();
-    let scaled = duration * speed;
+    // `duration` is the WAV's native (1.0x) length; the audio element plays it
+    // at `playbackRate = speed`, so the highlight timeline spans duration/speed.
+    let scaled = duration / speed;
     let mut cursor: f64 = 0.0;
     words
         .into_iter()

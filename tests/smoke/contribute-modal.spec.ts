@@ -14,19 +14,9 @@ const CONTRIBUTION_ACTIONS: ContributionAction[] = [
     url: 'https://refactoring.fm/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
   },
   {
-    activation: 'Enter',
-    label: 'Open Codacy',
-    url: 'https://codacy.com/nabu?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
-  },
-  {
     activation: 'Space',
     label: 'Open CodeScene',
     url: 'https://codescene.com/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
-  },
-  {
-    activation: 'Enter',
-    label: 'Open CircleCI',
-    url: 'https://circleci.com/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
   },
   {
     activation: 'Space',

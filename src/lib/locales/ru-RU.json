@@ -59,9 +59,7 @@
   "feedback.sponsors.developmentLinkLabel": "как я разрабатываю Nabu",
   "feedback.sponsors.developmentSentenceSuffix": ".",
   "feedback.sponsors.logoLinkLabel": "Открыть {sponsor}",
-  "feedback.sponsors.codacyTooltip": "Я использую Codacy, чтобы обеспечить безопасность и качество кода",
   "feedback.sponsors.codeSceneTooltip": "Я использую CodeScene, чтобы следить за состоянием кода",
-  "feedback.sponsors.circleCiTooltip": "Я использую CircleCI для валидации внутреннего цикла с удаленными средами",
   "feedback.sponsors.unblockedTooltip": "Я использую Unblocked, чтобы агенты могли получать нужный контекст о кодовой базе",
   "feedback.featureRequests.title": "Запросы функций",
   "feedback.featureRequests.description": "Сначала выполните поиск на доске, проголосуйте за существующие идеи и создайте новые сообщения, если они действительно новые!",
@@ -1063,5 +1061,9 @@
   "locale.skSK": "Словацкий",
   "telemetryConsent.saveError": "Nabu не удалось сохранить этот выбор. Убедитесь, что ваша учетная запись может записывать настройки приложения, и повторите попытку.",
   "ai.workspace.deepResearch": "Глубокое исследование",
-  "ai.workspace.deepResearchBack": "Назад к чату"
+  "ai.workspace.deepResearchBack": "Назад к чату",
+  "editor.cover.add": "Add cover",
+  "editor.cover.change": "Change cover",
+  "editor.cover.remove": "Remove cover",
+  "editor.cover.propertyLabel": "Cover image"
 }
