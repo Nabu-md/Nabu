@@ -1,4 +1,4 @@
-import { BookOpen, GearSix as Settings, Megaphone, Moon, Package, Sun, type IconProps } from '@phosphor-icons/react'
+import { BookOpen, GearSix as Settings, Megaphone, Moon, Package, SidebarSimple, Sun, type IconProps } from '@phosphor-icons/react'
 import type { ComponentType, MouseEventHandler } from 'react'
 import type { McpStatus } from '../../hooks/useMcpStatus'
 import type { ThemeMode } from '../../lib/themeMode'
@@ -81,6 +81,8 @@ interface StatusBarPrimarySectionProps {
     activeNote?: { path?: string | null; title?: string | null } | null
     onToast?: (message: string) => void
   }
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
   stacked?: boolean
   compact?: boolean
   locale?: AppLocale
@@ -286,6 +288,36 @@ function StatusLinkButton({
   )
 }
 
+function SidebarToggleAction({
+  compact,
+  locale,
+  onClick,
+  sidebarVisible,
+}: {
+  compact: boolean
+  locale: AppLocale
+  onClick: () => void
+  sidebarVisible?: boolean
+}) {
+  return (
+    <>
+      <StatusBarSeparator show={!compact} />
+      <StatusBarAction
+        copy={{ label: translate(locale, 'status.sidebar.toggle') }}
+        compact={compact}
+        onClick={onClick}
+        testId="sidebar-toggle"
+        ariaLabel={translate(locale, 'status.sidebar.toggle')}
+      >
+        <span style={ICON_STYLE}>
+          <SidebarSimple size={13} weight={sidebarVisible ? 'fill' : 'regular'} />
+          {compact ? null : translate(locale, 'status.sidebar.toggle')}
+        </span>
+      </StatusBarAction>
+    </>
+  )
+}
+
 function FeedbackButton({
   compact,
   locale,
@@ -402,9 +434,17 @@ function StatusBarGitControls(
 }
 
 export function StatusBarPrimarySection(options: StatusBarPrimarySectionProps) {
-  const { modifiedCount, vaultPath, defaultWorkspacePath, vaults, multiWorkspaceEnabled, onSwitchVault, onSetDefaultWorkspace, onOpenVaultSettings, onOpenLocalFolder, onCreateEmptyVault, onCloneVault, onCloneGettingStarted, onAddRemote, onClickPending, onClickPulse, onCommitPush, commitActionPending = false, gitFeaturesEnabled = true, onInitializeGit, isOffline = false, isVaultReloading = false, isGitVault = true, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, buildNumber, onCheckForUpdates, onRemoveVault, onReorderVaults, onUpdateWorkspaceIdentity, mcpStatus, onInstallMcp, miniAppsProps, locale = 'en', stacked = false, compact = false } = options
+  const { modifiedCount, vaultPath, defaultWorkspacePath, vaults, multiWorkspaceEnabled, onSwitchVault, onSetDefaultWorkspace, onOpenVaultSettings, onOpenLocalFolder, onCreateEmptyVault, onCloneVault, onCloneGettingStarted, onAddRemote, onClickPending, onClickPulse, onCommitPush, commitActionPending = false, gitFeaturesEnabled = true, onInitializeGit, isOffline = false, isVaultReloading = false, isGitVault = true, syncStatus, lastSyncTime, conflictCount, remoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onTriggerSync, onPullAndPush, onOpenConflictResolver, buildNumber, onCheckForUpdates, onRemoveVault, onReorderVaults, onUpdateWorkspaceIdentity, mcpStatus, onInstallMcp, miniAppsProps, sidebarVisible, onToggleSidebar, locale = 'en', stacked = false, compact = false } = options
   return (
     <div style={primarySectionStyle(stacked, compact)}>
+      {onToggleSidebar && (
+        <SidebarToggleAction
+          sidebarVisible={sidebarVisible}
+          compact={compact}
+          locale={locale}
+          onClick={onToggleSidebar}
+        />
+      )}
       <VaultMenu
         vaults={vaults}
         vaultPath={vaultPath}

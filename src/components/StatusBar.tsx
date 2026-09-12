@@ -103,6 +103,8 @@ interface StatusBarProps {
     activeNote?: { path?: string | null; title?: string | null } | null
     onToast?: (message: string) => void
   }
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
   locale?: AppLocale
 }
 
