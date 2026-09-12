@@ -135,6 +135,8 @@ export interface EditorProps {
   canGoForward?: boolean
   onGoBack?: () => void
   onGoForward?: () => void
+  search?: string
+  onSearchChange?: (value: string) => void
   leftPanelsCollapsed?: boolean
   /** Mutable ref that Editor registers its raw-mode toggle into, for command palette access. */
   rawToggleRef?: React.MutableRefObject<() => void>

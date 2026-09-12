@@ -13,6 +13,7 @@ import { ConflictNoteBanner } from '../ConflictNoteBanner'
 import { RawEditorView } from '../RawEditorView'
 import { SingleEditorView } from '../SingleEditorView'
 import { NoteCover } from '../NoteCover'
+import { EditorToolbar } from './EditorToolbar'
 import type { useEditorContentModel } from './useEditorContentModel'
 
 type EditorContentModel = ReturnType<typeof useEditorContentModel>
@@ -579,6 +580,18 @@ export function EditorContentLayout(model: EditorContentModel) {
 
   return (
     <div className={rootClassName}>
+      <EditorToolbar
+        entry={chromeTab?.entry ?? null}
+        vaultPath={model.vaultPath}
+        search={model.search}
+        onSearchChange={model.onSearchChange}
+        canGoBack={model.canGoBack}
+        canGoForward={model.canGoForward}
+        onGoBack={model.onGoBack}
+        onGoForward={model.onGoForward}
+        locale={model.locale}
+        isVaultLoading={isVaultLoading}
+      />
       <EditorBreadcrumbArea
         actions={breadcrumbActions}
         barRef={breadcrumbBarRef}

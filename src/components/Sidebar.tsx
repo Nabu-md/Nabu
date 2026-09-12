@@ -740,10 +740,6 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
       <SidebarTitleBar
         locale={locale}
         onCollapse={props.onCollapse}
-        onGoBack={props.onGoBack}
-        onGoForward={props.onGoForward}
-        canGoBack={props.canGoBack}
-        canGoForward={props.canGoForward}
         search={props.search}
         onSearchChange={props.onSearchChange}
         listSort={props.listSort}

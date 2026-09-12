@@ -9,35 +9,47 @@ function renderTitleBar(overrides: Partial<ComponentProps<typeof SidebarTitleBar
 }
 
 describe('SidebarTitleBar', () => {
-  it('renders sidebar and history controls with shortcut tooltips', () => {
+  it('renders sidebar collapse and search controls', () => {
     const onCollapse = vi.fn()
-    const onGoBack = vi.fn()
-    const onGoForward = vi.fn()
+    const onSearchChange = vi.fn()
 
     renderTitleBar({
       onCollapse,
-      onGoBack,
-      onGoForward,
-      canGoBack: true,
-      canGoForward: false,
+      onSearchChange,
+      search: 'test',
     })
 
     const collapse = screen.getByRole('button', { name: 'Collapse sidebar' })
-    const back = screen.getByRole('button', { name: 'Go Back' })
-    const forward = screen.getByRole('button', { name: 'Go Forward' })
-
     expect(collapse).toHaveAttribute('title', expect.stringMatching(/^Collapse sidebar \((⌘|Ctrl\+)2\)$/))
-    expect(back).toHaveAttribute('title', expect.stringMatching(/^Go Back \((⌘←|Ctrl\+Left)\)$/))
-    expect(forward).toHaveAttribute('title', expect.stringMatching(/^Go Forward \((⌘→|Ctrl\+Right)\)$/))
-    expect(forward).toBeDisabled()
+
+    const searchBtn = screen.getByRole('button', { name: 'Search notes' })
+    expect(searchBtn).toBeInTheDocument()
 
     fireEvent.click(collapse)
-    fireEvent.click(back)
-    fireEvent.click(forward)
+    fireEvent.click(searchBtn)
 
     expect(onCollapse).toHaveBeenCalledTimes(1)
-    expect(onGoBack).toHaveBeenCalledTimes(1)
-    expect(onGoForward).not.toHaveBeenCalled()
+    expect(onSearchChange).not.toHaveBeenCalled()
+  })
+
+  it('hides search input when search is cleared', () => {
+    const onSearchChange = vi.fn()
+
+    renderTitleBar({
+      onSearchChange,
+      search: 'test',
+    })
+
+    const searchBtn = screen.getByRole('button', { name: 'Search notes' })
+    fireEvent.click(searchBtn)
+
+    const input = screen.getByPlaceholderText('Search notes...')
+    expect(input).toHaveValue('test')
+
+    const clearSearch = screen.getByRole('button', { name: 'Clear search' })
+    fireEvent.click(clearSearch)
+
+    expect(onSearchChange).toHaveBeenCalledWith('')
   })
 
   it('omits controls when sidebar callbacks are absent', () => {

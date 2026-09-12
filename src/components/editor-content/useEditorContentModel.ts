@@ -62,6 +62,12 @@ export interface EditorContentProps {
   onKeepMine?: (path: string) => void
   onKeepTheirs?: (path: string) => void
   onImageImportError?: (error: ImageImportError) => void
+  search?: string
+  onSearchChange?: (value: string) => void
+  canGoBack?: boolean
+  canGoForward?: boolean
+  onGoBack?: () => void
+  onGoForward?: () => void
   onPickCover?: () => void
   onRemoveCover?: () => void
   locale?: AppLocale

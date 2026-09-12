@@ -21,6 +21,8 @@ import {
   PulseBadge,
   SyncBadge,
   VaultReloadingBadge,
+  StatusBarAction,
+  StatusBarSeparator,
 } from './StatusBarBadges'
 import { MiniAppsStatusBarBadge } from './MiniAppsStatusBarBadge'
 import { ICON_STYLE, SEP_STYLE } from './styles'
@@ -97,6 +99,11 @@ interface StatusBarSecondarySectionProps {
   onOpenFeedback?: () => void
   onOpenDocs?: () => void
   onOpenSettings?: () => void
+  miniAppsProps?: {
+    vaultPath: string | null
+    activeNote?: { path?: string | null; title?: string | null } | null
+    onToast?: (message: string) => void
+  }
   stacked?: boolean
   compact?: boolean
   locale?: AppLocale
@@ -311,7 +318,6 @@ function SidebarToggleAction({
       >
         <span style={ICON_STYLE}>
           <SidebarSimple size={13} weight={sidebarVisible ? 'fill' : 'regular'} />
-          {compact ? null : translate(locale, 'status.sidebar.toggle')}
         </span>
       </StatusBarAction>
     </>

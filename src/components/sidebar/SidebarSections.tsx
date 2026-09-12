@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent, type useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, ArrowRight, MagnifyingGlass, Palette, PencilSimple, Plus, SidebarSimple, Trash, X } from '@phosphor-icons/react'
+import { MagnifyingGlass, Palette, PencilSimple, Plus, SidebarSimple, Trash, X } from '@phosphor-icons/react'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { Button } from '@/components/ui/button'
@@ -30,8 +30,6 @@ const SIDEBAR_TITLE_BAR_ACTION_CLASSNAME =
 const SIDEBAR_TITLE_BAR_LEFT_PADDING = `var(--nabu-macos-traffic-light-padding, ${MACOS_TRAFFIC_LIGHT_SAFE_PADDING}px)`
 
 const SIDEBAR_COLLAPSE_SHORTCUT = getAppCommandShortcutDisplay(APP_COMMAND_IDS.viewEditorList)
-const HISTORY_BACK_SHORTCUT = getAppCommandShortcutDisplay(APP_COMMAND_IDS.viewGoBack)
-const HISTORY_FORWARD_SHORTCUT = getAppCommandShortcutDisplay(APP_COMMAND_IDS.viewGoForward)
 const SIDEBAR_TYPE_CONTEXT_MENU_SURFACE_CLASSNAME =
   'fixed z-50 inline-flex w-fit max-w-[calc(100vw-16px)] flex-col rounded-md border bg-popover p-1 shadow-md'
 const SIDEBAR_TYPE_CONTEXT_MENU_BUTTON_CLASSNAME =
@@ -219,10 +217,6 @@ const SidebarTitleBarAction = ({
 export const SidebarTitleBar = ({
   locale = 'en',
   onCollapse,
-  onGoBack,
-  onGoForward,
-  canGoBack = false,
-  canGoForward = false,
   search,
   onSearchChange,
   listSort,
@@ -230,19 +224,15 @@ export const SidebarTitleBar = ({
 }: {
   locale?: AppLocale
   onCollapse?: () => void
-  onGoBack?: () => void
-  onGoForward?: () => void
-  canGoBack?: boolean
-  canGoForward?: boolean
   search?: string
   onSearchChange?: (value: string) => void
   listSort?: SortConfig | null
   onSortChange?: (sort: SortConfig) => void
 }) => {
-  const { dragRegionRef } = useDragRegion<HTMLDivElement>()
+    const { dragRegionRef } = useDragRegion<HTMLDivElement>()
   const collapseLabel = translate(locale, 'sidebar.action.collapse')
-  const backLabel = translate(locale, 'command.navigation.goBack')
-  const forwardLabel = translate(locale, 'command.navigation.goForward')
+
+
   const [searchVisible, setSearchVisible] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -272,26 +262,6 @@ export const SidebarTitleBar = ({
         {onCollapse && (
           <SidebarTitleBarAction label={collapseLabel} shortcut={SIDEBAR_COLLAPSE_SHORTCUT} onClick={onCollapse}>
             <SidebarSimple size={16} weight="regular" />
-          </SidebarTitleBarAction>
-        )}
-        {onGoBack && (
-          <SidebarTitleBarAction
-            label={backLabel}
-            shortcut={HISTORY_BACK_SHORTCUT}
-            onClick={onGoBack}
-            disabled={!canGoBack}
-          >
-            <ArrowLeft size={16} weight="regular" />
-          </SidebarTitleBarAction>
-        )}
-        {onGoForward && (
-          <SidebarTitleBarAction
-            label={forwardLabel}
-            shortcut={HISTORY_FORWARD_SHORTCUT}
-            onClick={onGoForward}
-            disabled={!canGoForward}
-          >
-            <ArrowRight size={16} weight="regular" />
           </SidebarTitleBarAction>
         )}
       </div>

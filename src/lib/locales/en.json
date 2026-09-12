@@ -991,6 +991,7 @@
   "status.feedback.contribute": "Contribute to Nabu",
    "status.feedback.label": "Contribute",
    "status.sidebar.toggle": "Toggle sidebar",
+   "status.vault.loading": "Loading vault…",
   "status.docs.open": "Open Nabu docs",
   "status.docs.label": "Docs",
   "status.theme.light": "Switch to light mode",

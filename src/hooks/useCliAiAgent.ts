@@ -131,6 +131,7 @@ export function useCliAiAgent(
   const sharedRuntime = useSharedCliAiAgentRuntime(sessionId, fileCallbacks)
   const runtime = sessionId ? sharedRuntime : localRuntime
   const { messages, status } = runtime
+  const { setMessages } = runtime
 
   async function buildAgentContext() {
     const agentDocsPath = await getAgentDocsPath()
@@ -182,5 +183,5 @@ export function useCliAiAgent(
     addAgentLocalMarker(runtime, text)
   }
 
-  return { messages, status, sendMessage, stopMessage, regenerateMessage, clearConversation, addLocalMarker }
+  return { messages, status, sendMessage, stopMessage, regenerateMessage, clearConversation, addLocalMarker, setMessages }
 }

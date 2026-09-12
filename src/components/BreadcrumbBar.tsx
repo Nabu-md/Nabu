@@ -1154,6 +1154,31 @@ function WorkspaceCrumb({ entry }: Pick<BreadcrumbBarProps, 'entry'>) {
   )
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function PathCrumb({ entry }: { entry: VaultEntry }) {
+  if (!entry.path || entry.path === entry.filename) return null
+  const relativePath = entry.path.replace(/\\/g, '/').replace(/\/+$/, '')
+  const filenamePattern = entry.filename.replace(/\\/g, '/').replace(/\/+$/, '')
+  const folderPath = filenamePattern ? relativePath.replace(new RegExp(`${escapeRegExp(filenamePattern)}$`), '').replace(/\/+$/, '') : relativePath
+  if (!folderPath) return null
+
+  const parts = folderPath.split('/').filter(Boolean)
+  if (parts.length === 0) return null
+
+  return (
+    <>
+      {parts.map((part, index) => (
+        <span key={index} className="truncate text-muted-foreground">
+          {part}
+        </span>
+      ))}
+    </>
+  )
+}
+
 function BreadcrumbTitle({
   content,
   entry,
@@ -1165,9 +1190,10 @@ function BreadcrumbTitle({
   return (
     <div className="breadcrumb-bar__title-content flex items-center gap-1.5 min-w-0 text-sm text-muted-foreground">
       <WorkspaceCrumb entry={entry} />
-      <span className="shrink-0">{typeLabel}</span>
+      <span className="truncate" title={entry.path}>{typeLabel}</span>
       <BreadcrumbSeparator />
       <div className="flex min-w-0 items-center gap-1 truncate">
+        <PathCrumb entry={entry} />
         {loadingTitle
           ? <BreadcrumbTitleSkeleton />
           : <FilenameCrumb content={content} entry={entry} locale={locale} onRenameFilename={onRenameFilename} />}
