@@ -866,7 +866,7 @@ export const Editor = memo(function Editor(props: EditorProps) {
         const source = await pickCoverImageFile({ vaultPath })
         if (!source) return
         await onUpdateFrontmatter?.(tab.entry.path, COVER_IMAGE_PROPERTY_KEY, source)
-        trackEvent('note_cover_set', { note_type: tab.entry.isA ?? undefined })
+        trackEvent('note_cover_set', { note_type: (tab.entry.isA ?? '') as string | number })
       })()
     },
     [vaultPath, onUpdateFrontmatter, runtime.activeTab],

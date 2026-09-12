@@ -41,6 +41,7 @@ interface AppAiWorkspaceSurfaceProps {
   vaultAiGuidanceStatus?: VaultAiGuidanceStatus
   vaultPath: string
   vaultPaths?: string[]
+  teamChannel?: string
 }
 
 export function AppAiWorkspaceSurface(options: AppAiWorkspaceSurfaceProps) {

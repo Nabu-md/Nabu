@@ -618,13 +618,13 @@ function DynamicPropertiesPanelContent(options: {
     void (async () => {
       const source = await pickCoverImageFile({ vaultPath })
       if (!source) return
-      onAddProperty?.(entry.path, COVER_IMAGE_PROPERTY_KEY, source)
-      trackEvent('note_cover_set', { note_type: entry.isA ?? undefined })
+      onAddProperty?.(COVER_IMAGE_PROPERTY_KEY, source)
+      trackEvent('note_cover_set', { note_type: (entry.isA ?? '') as string | number })
     })()
   }, [entry.isA, entry.path, onAddProperty, vaultPath])
 
   const handleRemoveCover = useCallback(() => {
-    onDeleteProperty?.(entry.path, COVER_IMAGE_PROPERTY_KEY)
+    onDeleteProperty?.(COVER_IMAGE_PROPERTY_KEY)
     trackEvent('note_cover_removed')
   }, [entry.path, onDeleteProperty])
   const {

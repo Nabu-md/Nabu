@@ -550,7 +550,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
       const onToggleFolderNote = useCallback((path: string) => {
         setFolderNotesExpanded((current) => {
           const next = !current[path]
-          if (next) trackEvent('folder_note_expanded', { child_count: folderNoteDescriptions.get(path)?.children.length })
+          if (next) trackEvent('folder_note_expanded', { child_count: (folderNoteDescriptions.get(path)?.children.length ?? 0) as string | number })
           return { ...current, [path]: next }
         })
       }, [folderNoteDescriptions])
@@ -891,6 +891,9 @@ function ExplorerFolderRow(options: {
               typeEntryMap={typeEntryMap}
               fileHandlers={fileHandlers}
               keyboardNav={keyboardNav}
+              folderNoteDescriptions={folderNoteDescriptions}
+              folderNotesExpanded={folderNotesExpanded}
+              onToggleFolderNote={onToggleFolderNote}
             />
           ))}
           {fileCount > 0 && (

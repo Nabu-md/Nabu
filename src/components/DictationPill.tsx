@@ -69,7 +69,11 @@ export function DictationPill({
 
   // Plan 4 §1.6C: when the user selects text anywhere, the pill switches from
   // microphone to speaker mode and reads the selection aloud with Kokoro.
-  const ttsSource = useTtsTextSource({ tts, sourceId: 'selection' })
+  const ttsSource = useTtsTextSource({
+    tts,
+    getText: () => document.getSelection()?.toString() ?? '',
+    sourceId: 'selection',
+  })
   const [hasSelection, setHasSelection] = useState(false)
   useEffect(() => {
     if (tts.status !== 'ready') return

@@ -384,7 +384,7 @@ function resolveAnonymousId(settings: Settings, draft: SettingsDraft): string | 
 }
 
 function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Settings {
-  const nextSettings = {
+  const nextSettings: Settings = {
     auto_pull_interval_minutes: draft.pullInterval,
     git_enabled: draft.gitFeaturesEnabled,
     git_provider: draft.gitProvider === 'native' ? null : draft.gitProvider,
@@ -417,7 +417,7 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     dictation_opacity: draft.dictationOpacity,
     dictation_backend: draft.dictationBackend,
     fluidvoice_model: draft.fluidvoiceModel,
-    tts_engine: draft.ttsEngine === 'kokoro' ? 'kokoro' : 'system',
+    tts_engine: (draft.ttsEngine === 'kokoro' ? 'kokoro' : 'system') as Settings['tts_engine'],
     kokoro_voice: draft.kokoroVoice,
     kokoro_speed: draft.kokoroSpeed,
     tts_highlight_enabled: draft.ttsHighlightEnabled,
@@ -526,6 +526,9 @@ function useSettingsDraftActions(options: Pick<SettingsPanelInnerProps, 'initial
     applyThemeModeSelection(value)
     onSave({ ...settings, theme_mode: value })
   }, [onSave, settings, updateDraft])
+  const handleDockIconVariantChange = useCallback((value: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null) => {
+    updateDraft('dockIconVariant', value)
+  }, [updateDraft])
   const handleSave = useCallback(() => {
     trackTelemetryConsentChange(settings.analytics_enabled === true, draft.analytics)
     trackSettingsPreferenceChanges(settings, draft)
@@ -533,7 +536,7 @@ function useSettingsDraftActions(options: Pick<SettingsPanelInnerProps, 'initial
     onSaveExplicitOrganization?.(draft.explicitOrganization)
     onClose()
   }, [draft, onClose, onSave, onSaveExplicitOrganization, settings])
-  return { draft, updateDraft, handleGitignoredVisibilityChange, handleAllNotesFileVisibilityChange, handleThemeModeChange, handleSave }
+  return { draft, updateDraft, handleGitignoredVisibilityChange, handleAllNotesFileVisibilityChange, handleThemeModeChange, handleDockIconVariantChange, handleSave }
 }
 
 function useSettingsPanelInteractions(options: {
@@ -580,7 +583,7 @@ function SettingsPanelInner(options: SettingsPanelInnerProps) {
   const { settings, aiAgentsStatus, initialDraft, initialSectionId, systemLocale, onSave, onCopyMcpConfig, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, isGitVault, vaultPath, onSaveExplicitOrganization, onClose } = options
   const backdropRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const { draft, updateDraft, handleGitignoredVisibilityChange, handleAllNotesFileVisibilityChange, handleThemeModeChange, handleSave } = useSettingsDraftActions({ initialDraft, onClose, onSave, onSaveExplicitOrganization, settings })
+  const { draft, updateDraft, handleGitignoredVisibilityChange, handleAllNotesFileVisibilityChange, handleThemeModeChange, handleDockIconVariantChange, handleSave } = useSettingsDraftActions({ initialDraft, onClose, onSave, onSaveExplicitOrganization, settings })
   const draftLocale = resolveEffectiveLocale(draft.uiLanguage, [systemLocale])
   const t = createTranslator(draftLocale)
   useSettingsPanelInteractions({ backdropRef, handleSave, initialSectionId, onClose, panelRef })
@@ -625,6 +628,8 @@ function SettingsPanelInner(options: SettingsPanelInnerProps) {
           setThemeMode={handleThemeModeChange}
           setHideGitignoredFiles={handleGitignoredVisibilityChange}
           setAllNotesFileVisibility={handleAllNotesFileVisibilityChange}
+          dockIconVariant={draft.dockIconVariant}
+          setDockIconVariant={handleDockIconVariantChange}
         />
         <SettingsFooter onClose={onClose} onSave={handleSave} t={t} />
       </div>
@@ -691,7 +696,7 @@ interface SettingsBodyFromDraftProps {
 }
 
 function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
-  const { t, draft, locale, systemLocale, updateDraft, isGitVault, vaultPath, aiAgentsStatus, onCopyMcpConfig, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, setThemeMode, setHideGitignoredFiles, setAllNotesFileVisibility, dockIconVariant, setDockIconVariant } = options
+  const { t, draft, locale, systemLocale, updateDraft, isGitVault, vaultPath, aiAgentsStatus, onCopyMcpConfig, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, setThemeMode, setHideGitignoredFiles, setAllNotesFileVisibility } = options
   return (
     <SettingsBody
       t={t}

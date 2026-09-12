@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { isTauri, mockInvoke } from '../mock-tauri'
 import {
   ArrowSquareOut,
   ClipboardText,

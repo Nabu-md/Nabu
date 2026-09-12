@@ -114,6 +114,7 @@ function usePanelAgent(
   | 'defaultAiAgentReadiness'
   | 'locale'
   | 'model'
+  | 'teamChannel'
   | 'onFileCreated'
   | 'onFileModified'
   | 'onVaultChanged'
