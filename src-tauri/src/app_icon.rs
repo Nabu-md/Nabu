@@ -1,28 +1,75 @@
-const LIGHT_ICON_BYTES: &[u8] = include_bytes!("../icons/512x512.png");
-const DARK_ICON_BYTES: &[u8] = include_bytes!("../icons/512x512-dark.png");
+const DOCK_ICON_VARIANTS: [&[u8]; 10] = [
+    include_bytes!("../resources/dock-icons/variant-1.png"),
+    include_bytes!("../resources/dock-icons/variant-2.png"),
+    include_bytes!("../resources/dock-icons/variant-3.png"),
+    include_bytes!("../resources/dock-icons/variant-4.png"),
+    include_bytes!("../resources/dock-icons/variant-5.png"),
+    include_bytes!("../resources/dock-icons/variant-6.png"),
+    include_bytes!("../resources/dock-icons/variant-7.png"),
+    include_bytes!("../resources/dock-icons/variant-8.png"),
+    include_bytes!("../resources/dock-icons/variant-9.png"),
+    include_bytes!("../resources/dock-icons/variant-10.png"),
+];
 
 #[cfg(target_os = "macos")]
 use objc2::MainThreadMarker;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum AppIconMode {
-    Light,
-    Dark,
+    Variant1,
+    Variant2,
+    Variant3,
+    Variant4,
+    Variant5,
+    Variant6,
+    Variant7,
+    Variant8,
+    Variant9,
+    Variant10,
 }
 
 impl AppIconMode {
     fn parse(value: &str) -> Result<Self, String> {
         match value {
-            "light" => Ok(Self::Light),
-            "dark" => Ok(Self::Dark),
-            _ => Err(format!("Unsupported app icon theme mode: {value}")),
+            "variant-1" => Ok(Self::Variant1),
+            "variant-2" => Ok(Self::Variant2),
+            "variant-3" => Ok(Self::Variant3),
+            "variant-4" => Ok(Self::Variant4),
+            "variant-5" => Ok(Self::Variant5),
+            "variant-6" => Ok(Self::Variant6),
+            "variant-7" => Ok(Self::Variant7),
+            "variant-8" => Ok(Self::Variant8),
+            "variant-9" => Ok(Self::Variant9),
+            "variant-10" => Ok(Self::Variant10),
+            "light" => Ok(Self::Variant6),
+            "dark" => Ok(Self::Variant1),
+            _ => Err(format!("Unsupported app icon mode: {value}")),
         }
+    }
+
+    fn is_dark(self) -> bool {
+        matches!(
+            self,
+            Self::Variant1
+                | Self::Variant2
+                | Self::Variant3
+                | Self::Variant4
+                | Self::Variant5
+        )
     }
 
     fn png_bytes(self) -> &'static [u8] {
         match self {
-            Self::Light => LIGHT_ICON_BYTES,
-            Self::Dark => DARK_ICON_BYTES,
+            Self::Variant1 => DOCK_ICON_VARIANTS[0],
+            Self::Variant2 => DOCK_ICON_VARIANTS[1],
+            Self::Variant3 => DOCK_ICON_VARIANTS[2],
+            Self::Variant4 => DOCK_ICON_VARIANTS[3],
+            Self::Variant5 => DOCK_ICON_VARIANTS[4],
+            Self::Variant6 => DOCK_ICON_VARIANTS[5],
+            Self::Variant7 => DOCK_ICON_VARIANTS[6],
+            Self::Variant8 => DOCK_ICON_VARIANTS[7],
+            Self::Variant9 => DOCK_ICON_VARIANTS[8],
+            Self::Variant10 => DOCK_ICON_VARIANTS[9],
         }
     }
 }
@@ -41,7 +88,7 @@ impl Rgb {
 
     fn for_vault_color(value: Option<&str>, mode: AppIconMode) -> Self {
         let [red, green, blue] =
-            crate::workspace_colors::app_icon_rgb(value, mode == AppIconMode::Dark);
+            crate::workspace_colors::app_icon_rgb(value, mode.is_dark());
         Self::new(red, green, blue)
     }
 }
@@ -198,8 +245,10 @@ mod tests {
 
     #[test]
     fn parses_supported_icon_modes() {
-        assert_eq!(AppIconMode::parse("light"), Ok(AppIconMode::Light));
-        assert_eq!(AppIconMode::parse("dark"), Ok(AppIconMode::Dark));
+        assert_eq!(AppIconMode::parse("light"), Ok(AppIconMode::Variant6));
+        assert_eq!(AppIconMode::parse("dark"), Ok(AppIconMode::Variant1));
+        assert_eq!(AppIconMode::parse("variant-1"), Ok(AppIconMode::Variant1));
+        assert_eq!(AppIconMode::parse("variant-10"), Ok(AppIconMode::Variant10));
     }
 
     #[test]
@@ -210,19 +259,19 @@ mod tests {
     #[test]
     fn maps_vault_colors_to_light_and_dark_interface_accents() {
         assert_eq!(
-            Rgb::for_vault_color(Some("red"), AppIconMode::Light),
+            Rgb::for_vault_color(Some("red"), AppIconMode::Variant6),
             Rgb::new(229, 62, 62)
         );
         assert_eq!(
-            Rgb::for_vault_color(Some("red"), AppIconMode::Dark),
+            Rgb::for_vault_color(Some("red"), AppIconMode::Variant1),
             Rgb::new(255, 138, 134)
         );
         assert_eq!(
-            Rgb::for_vault_color(None, AppIconMode::Light),
+            Rgb::for_vault_color(None, AppIconMode::Variant6),
             Rgb::new(21, 93, 255)
         );
         assert_eq!(
-            Rgb::for_vault_color(Some("pink"), AppIconMode::Dark),
+            Rgb::for_vault_color(Some("pink"), AppIconMode::Variant1),
             Rgb::new(120, 164, 255)
         );
     }

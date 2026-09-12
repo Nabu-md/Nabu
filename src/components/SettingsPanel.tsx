@@ -155,6 +155,7 @@ interface SettingsDraft {
   buzzEnabled: boolean
   buzzChannel: string
   miniAppsWebAccessEnabled: boolean
+  dockIconVariant: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null
 }
 
 interface SettingsBodyProps {
@@ -279,6 +280,8 @@ interface SettingsBodyProps {
   setBuzzChannel: (value: string) => void
   miniAppsWebAccessEnabled: boolean
   setMiniAppsWebAccessEnabled: (value: boolean) => void
+  dockIconVariant: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null
+  setDockIconVariant: (value: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null) => void
 }
 
 const PULL_INTERVAL_OPTIONS = [1, 2, 5, 10, 15, 30] as const
@@ -352,6 +355,7 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     buzzEnabled: settings.buzz_enabled ?? false,
     buzzChannel: settings.buzz_default_channel ?? '',
     miniAppsWebAccessEnabled: settings.mini_apps_web_access_enabled ?? false,
+    dockIconVariant: settings.dock_icon_variant ?? 'variant-1',
   }
 }
 
@@ -435,6 +439,7 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     buzz_enabled: draft.buzzEnabled,
     buzz_default_channel: draft.buzzChannel.trim() || null,
     mini_apps_web_access_enabled: draft.miniAppsWebAccessEnabled,
+    dock_icon_variant: draft.dockIconVariant === 'variant-1' ? null : draft.dockIconVariant,
   }
   return settingsWithAllNotesFileVisibility(nextSettings, draft.allNotesFileVisibility)
 }
@@ -681,10 +686,12 @@ interface SettingsBodyFromDraftProps {
   setThemeMode: (value: ThemeMode) => void
   setHideGitignoredFiles: (value: boolean) => void
   setAllNotesFileVisibility: (value: AllNotesFileVisibility) => void
+  dockIconVariant: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null
+  setDockIconVariant: (value: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null) => void
 }
 
 function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
-  const { t, draft, locale, systemLocale, updateDraft, isGitVault, vaultPath, aiAgentsStatus, onCopyMcpConfig, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, setThemeMode, setHideGitignoredFiles, setAllNotesFileVisibility } = options
+  const { t, draft, locale, systemLocale, updateDraft, isGitVault, vaultPath, aiAgentsStatus, onCopyMcpConfig, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, setThemeMode, setHideGitignoredFiles, setAllNotesFileVisibility, dockIconVariant, setDockIconVariant } = options
   return (
     <SettingsBody
       t={t}
@@ -810,6 +817,8 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setBuzzChannel={(value) => updateDraft('buzzChannel', value)}
       miniAppsWebAccessEnabled={draft.miniAppsWebAccessEnabled}
       setMiniAppsWebAccessEnabled={(value) => updateDraft('miniAppsWebAccessEnabled', value)}
+      dockIconVariant={draft.dockIconVariant}
+      setDockIconVariant={(value) => updateDraft('dockIconVariant', value)}
     />
   )
 }
@@ -828,7 +837,7 @@ function SettingsBody(props: SettingsBodyProps) {
 }
 
 function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
-  const { t, locale, systemLocale, pullInterval, setPullInterval, gitFeaturesEnabled, setGitFeaturesEnabled, gitProvider, setGitProvider, gitWslDistro, setGitWslDistro, isGitVault, vaultPath, autoGitEnabled, setAutoGitEnabled, autoGitAiCommitMessagesEnabled, setAutoGitAiCommitMessagesEnabled, autoGitIdleThresholdSeconds, setAutoGitIdleThresholdSeconds, autoGitInactiveThresholdSeconds, setAutoGitInactiveThresholdSeconds, releaseChannel, setReleaseChannel, automaticUpdateChecksEnabled, setAutomaticUpdateChecksEnabled, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, uiLanguage, setUiLanguage, buzzEnabled, setBuzzEnabled, buzzChannel, setBuzzChannel, miniAppsEnabled, setMiniAppsEnabled, miniAppsWebAccessEnabled, setMiniAppsWebAccessEnabled } = options
+  const { t, locale, systemLocale, pullInterval, setPullInterval, gitFeaturesEnabled, setGitFeaturesEnabled, gitProvider, setGitProvider, gitWslDistro, setGitWslDistro, isGitVault, vaultPath, autoGitEnabled, setAutoGitEnabled, autoGitAiCommitMessagesEnabled, setAutoGitAiCommitMessagesEnabled, autoGitIdleThresholdSeconds, setAutoGitIdleThresholdSeconds, autoGitInactiveThresholdSeconds, setAutoGitInactiveThresholdSeconds, releaseChannel, setReleaseChannel, automaticUpdateChecksEnabled, setAutomaticUpdateChecksEnabled, multiWorkspaceEnabled, setMultiWorkspaceEnabled, vaults, defaultWorkspacePath, onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity, themeMode, setThemeMode, uiLanguage, setUiLanguage, buzzEnabled, setBuzzEnabled, buzzChannel, setBuzzChannel, miniAppsEnabled, setMiniAppsEnabled, miniAppsWebAccessEnabled, setMiniAppsWebAccessEnabled, dockIconVariant, setDockIconVariant } = options
   return (
     <>
       <SettingsSection id={SETTINGS_SECTION_IDS.sync} showDivider={false}>
@@ -883,7 +892,7 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
       <SettingsSection id={SETTINGS_SECTION_IDS.appearance}>
         <SectionHeading title={t('settings.appearance.title')} />
         <SettingsGroup>
-          <AppearanceSettingsSection t={t} themeMode={themeMode} setThemeMode={setThemeMode} />
+          <AppearanceSettingsSection t={t} themeMode={themeMode} setThemeMode={setThemeMode} dockIconVariant={dockIconVariant} setDockIconVariant={setDockIconVariant} />
           <LanguageSettingsSection
             t={t}
             locale={locale}
@@ -1061,11 +1070,41 @@ function AppearanceSettingsSection({
   t,
   themeMode,
   setThemeMode,
-}: Pick<SettingsBodyProps, 't' | 'themeMode' | 'setThemeMode'>) {
+  dockIconVariant,
+  setDockIconVariant,
+}: {
+  t: Translate
+  themeMode: ThemeMode
+  setThemeMode: (value: ThemeMode) => void
+  dockIconVariant: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null
+  setDockIconVariant: (value: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null) => void
+}) {
   return (
-    <SettingsRow label={t('settings.theme.label')} description={t('settings.appearance.description')}>
-      <ThemeModeControl value={themeMode} onChange={setThemeMode} t={t} />
-    </SettingsRow>
+    <>
+      <SettingsRow label={t('settings.theme.label')} description={t('settings.appearance.description')}>
+        <ThemeModeControl value={themeMode} onChange={setThemeMode} t={t} />
+      </SettingsRow>
+      <SettingsRow label={t('settings.appearance.dockIcon')} description={t('settings.appearance.dockIconDescription')}>
+        <SelectControl
+          ariaLabel={t('settings.appearance.dockIcon')}
+          value={dockIconVariant ?? 'variant-1'}
+          onValueChange={(value) => setDockIconVariant(value as 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null)}
+          options={[
+            { value: 'variant-1', label: t('settings.appearance.dockIconVariant1') },
+            { value: 'variant-2', label: t('settings.appearance.dockIconVariant2') },
+            { value: 'variant-3', label: t('settings.appearance.dockIconVariant3') },
+            { value: 'variant-4', label: t('settings.appearance.dockIconVariant4') },
+            { value: 'variant-5', label: t('settings.appearance.dockIconVariant5') },
+            { value: 'variant-6', label: t('settings.appearance.dockIconVariant6') },
+            { value: 'variant-7', label: t('settings.appearance.dockIconVariant7') },
+            { value: 'variant-8', label: t('settings.appearance.dockIconVariant8') },
+            { value: 'variant-9', label: t('settings.appearance.dockIconVariant9') },
+            { value: 'variant-10', label: t('settings.appearance.dockIconVariant10') },
+          ]}
+          testId="settings-dock-icon-variant"
+        />
+      </SettingsRow>
+    </>
   )
 }
 

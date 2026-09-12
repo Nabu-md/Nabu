@@ -197,6 +197,7 @@ export interface Settings {
    * browser shell-out, high RAM) is refused; static HTTP fetch stays allowed.
    */
   mini_apps_web_access_enabled?: boolean | null
+  dock_icon_variant?: 'variant-1' | 'variant-2' | 'variant-3' | 'variant-4' | 'variant-5' | 'variant-6' | 'variant-7' | 'variant-8' | 'variant-9' | 'variant-10' | null
 }
 
 export interface AiWorkspaceConversationSetting {

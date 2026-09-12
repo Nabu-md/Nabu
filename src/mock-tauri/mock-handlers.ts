@@ -179,6 +179,7 @@ let mockSettings: Settings = {
   buzz_enabled: null,
   buzz_default_channel: null,
   mini_apps_web_access_enabled: null,
+  dock_icon_variant: null,
 }
 
 const DEFAULT_MOCK_VAULT_PATH = '/Users/mock/demo-vault-v2'
@@ -712,8 +713,9 @@ export const mockHandlers = {
       ai_chat_font_family: s.ai_chat_font_family ?? null,
       sidebar_font_family: s.sidebar_font_family ?? null,
       buzz_enabled: s.buzz_enabled ?? null,
-      buzz_default_channel: s.buzz_default_channel ?? null,
+      buzz_default_channel: s.buzz_default_channel?.trim() || null,
       mini_apps_web_access_enabled: s.mini_apps_web_access_enabled ?? null,
+      dock_icon_variant: s.dock_icon_variant ?? null,
     }
     return null
   },

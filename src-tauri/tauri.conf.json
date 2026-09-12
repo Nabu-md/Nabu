@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Nabu",
   "version": "0.1.0",
-  "identifier": "club.refactoring.nabu",
+  "identifier": "md.nabu.Nabu",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5202",
@@ -80,9 +80,9 @@
        }
     },
     "updater": {
-      "endpoints": [
-        "https://YOUR_USER.github.io/YOUR_REPO/stable/latest.json"
-      ],
+       "endpoints": [
+         "https://Nabu-md.github.io/Nabu/stable/latest.json"
+       ],
       "windows": {
         "installMode": "passive"
       },

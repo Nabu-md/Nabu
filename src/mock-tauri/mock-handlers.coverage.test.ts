@@ -193,6 +193,7 @@ describe('mockHandlers coverage', () => {
       dictation_enabled: null,
       dictation_position: null,
       dictation_opacity: null,
+      dock_icon_variant: null,
     })
 
     const list = {

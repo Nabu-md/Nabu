@@ -6,8 +6,8 @@ use tauri_plugin_updater::UpdaterExt;
 
 const ALPHA_METADATA_ASSET_NAME: &str = "alpha-latest.json";
 const GITHUB_RELEASES_API_URL: &str =
-    "https://api.github.com/repos/YOUR_USER/YOUR_REPO/releases?per_page=100";
-const RELEASES_BASE_URL: &str = "https://YOUR_USER.github.io/YOUR_REPO";
+    "https://api.github.com/repos/Nabu-md/Nabu/releases?per_page=100";
+const RELEASES_BASE_URL: &str = "https://Nabu-md.github.io/Nabu";
 const POISONED_STABLE_RECOVERY_FLOOR: &str = "2026.8.19";
 const UPDATER_HTTP_TIMEOUT: Duration = Duration::from_secs(5);
 const UPDATER_USER_AGENT: &str = concat!("Nabu/", env!("CARGO_PKG_VERSION"));
