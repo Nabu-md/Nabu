@@ -14,7 +14,7 @@ Run this after Phase 1 (Playwright) and Phase 2 (native app QA) both pass **and 
 
 **1. Add completion comment to the task**
 
-Summarize what was done — this is the context Luca and Brian will read in Todoist:
+Summarize what was done — this is the context Demo User and Brian will read in Todoist:
 
 ```bash
 curl -s -X POST "https://api.todoist.com/api/v1/comments" \

@@ -72,7 +72,7 @@ describe('detectPropertyType', () => {
   })
 
   it('returns text for plain strings', () => {
-    expect(detectPropertyType('owner', 'Luca Rossi')).toBe('text')
+    expect(detectPropertyType('owner', 'Demo User')).toBe('text')
     expect(detectPropertyType('cadence', 'Weekly')).toBe('text')
   })
 

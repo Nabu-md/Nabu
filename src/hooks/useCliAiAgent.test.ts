@@ -24,7 +24,7 @@ vi.mock('../lib/agentDocsPath', () => ({
 const mockStreamAiAgent = vi.mocked(streamAiAgent)
 const mockBuildAgentSystemPrompt = vi.mocked(buildAgentSystemPrompt)
 const mockGetAgentDocsPath = vi.mocked(getAgentDocsPath)
-const VAULT = '/Users/luca/Laputa'
+const VAULT = '/Users/demo/vault'
 
 function renderAgent(
   contextPrompt: string | undefined = undefined,
@@ -32,7 +32,7 @@ function renderAgent(
   sessionId?: string,
 ) {
   return renderHook(
-    ({ context }) => useCliAiAgent(VAULT, [VAULT, '/Users/luca/Brian'], context, undefined, {
+    ({ context }) => useCliAiAgent(VAULT, [VAULT, '/Users/demo/Brian'], context, undefined, {
       agent: 'codex',
       agentReady: true,
       permissionMode,
@@ -68,7 +68,7 @@ describe('useCliAiAgent', () => {
       agent: 'codex',
       agentDocsPath: '/app/agent-docs',
       permissionMode: 'safe',
-      vaultPaths: [VAULT, '/Users/luca/Brian'],
+      vaultPaths: [VAULT, '/Users/demo/Brian'],
       vaultContext: 'You are viewing note with body: Hello world',
     })
     expect(mockStreamAiAgent).toHaveBeenCalledWith(expect.objectContaining({
@@ -97,7 +97,7 @@ describe('useCliAiAgent', () => {
 
     expect(mockStreamAiAgent).toHaveBeenCalledWith(expect.objectContaining({
       vaultPath: VAULT,
-      vaultPaths: [VAULT, '/Users/luca/Brian'],
+      vaultPaths: [VAULT, '/Users/demo/Brian'],
     }))
   })
 

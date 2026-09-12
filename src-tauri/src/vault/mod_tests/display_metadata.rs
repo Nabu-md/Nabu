@@ -179,7 +179,7 @@ fn test_extract_properties_skips_structural_fields() {
     let content = r#"---
 Is A: Project
 Status: Active
-Owner: Luca
+Owner: Demo User
 Cadence: Weekly
 Archived: false
 Priority: High
@@ -190,7 +190,7 @@ Priority: High
     assert_eq!(entry.properties.len(), 3);
     for (key, value) in [
         ("Priority", "High"),
-        ("Owner", "Luca"),
+        ("Owner", "Demo User"),
         ("Cadence", "Weekly"),
     ] {
         assert_string_property(&entry, key, value);

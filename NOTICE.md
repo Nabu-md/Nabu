@@ -9,7 +9,7 @@ project, which is the authoritative source for its license text.
 | Project | License | Integration |
 |---|---|---|
 | [FluidVoice](https://github.com/altic-dev/FluidVoice) | GPL-3.0 | Optional on-device macOS dictation backend. Nabu communicates with the standalone FluidVoice app via Apple Events/clipboard only; no FluidVoice code is bundled, linked, or distributed with Nabu. |
-| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | App skeleton and vault tooling. Nabu's MCP server, vault lifecycle, capture pipeline, and Git integration code derive from the Tolaria project. Tolaria is a fork-friendly sibling project that shares Nabu's local-first Markdown vault architecture; ongoing upstream work can be tracked via the `tolarria` git remote and cherry-picked selectively. |
+| [Tolaria](https://github.com/Nabu-md/tolaria) | AGPL-3.0 | App skeleton and vault tooling. Nabu's MCP server, vault lifecycle, capture pipeline, and Git integration code derive from the Tolaria project. Tolaria is a fork-friendly sibling project that shares Nabu's local-first Markdown vault architecture; ongoing upstream work can be tracked via the `tolarria` git remote and cherry-picked selectively. |
 | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | Apache-2.0 | Optional on-device neural text-to-speech. Nabu drives the standalone `koko` CLI as an external process for speech synthesis and word-timing extraction; no Kokoro model weights or code are bundled, linked, or distributed with Nabu. |
 
 ## Bundled Rust crates (compiled into the application)

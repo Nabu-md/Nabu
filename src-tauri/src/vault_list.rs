@@ -146,25 +146,25 @@ mod tests {
             vaults: vec![
                 VaultEntry {
                     label: "My Vault".to_string(),
-                    path: "/Users/luca/Laputa".to_string(),
+                    path: "/Users/demo/vault".to_string(),
                     ..Default::default()
                 },
                 VaultEntry {
                     label: "Work".to_string(),
-                    path: "/Users/luca/Work".to_string(),
+                    path: "/Users/demo/Work".to_string(),
                     ..Default::default()
                 },
             ],
-            active_vault: Some("/Users/luca/Laputa".to_string()),
+            active_vault: Some("/Users/demo/vault".to_string()),
             default_workspace_path: None,
             hidden_defaults: vec![],
         };
         let loaded = save_and_reload(&list);
         assert_eq!(loaded.vaults.len(), 2);
         assert_eq!(loaded.vaults[0].label, "My Vault");
-        assert_eq!(loaded.vaults[0].path, "/Users/luca/Laputa");
+        assert_eq!(loaded.vaults[0].path, "/Users/demo/vault");
         assert_eq!(loaded.vaults[1].label, "Work");
-        assert_eq!(loaded.active_vault.as_deref(), Some("/Users/luca/Laputa"));
+        assert_eq!(loaded.active_vault.as_deref(), Some("/Users/demo/vault"));
     }
 
     #[test]
@@ -240,13 +240,13 @@ mod tests {
             vaults: vec![],
             active_vault: None,
             default_workspace_path: None,
-            hidden_defaults: vec!["/Users/luca/Documents/Getting Started".to_string()],
+            hidden_defaults: vec!["/Users/demo/Documents/Getting Started".to_string()],
         };
         let loaded = save_and_reload(&list);
         assert_eq!(loaded.hidden_defaults.len(), 1);
         assert_eq!(
             loaded.hidden_defaults[0],
-            "/Users/luca/Documents/Getting Started"
+            "/Users/demo/Documents/Getting Started"
         );
     }
 
@@ -280,16 +280,16 @@ mod tests {
     #[test]
     fn loaded_vault_list_expands_tilde_paths() {
         let home = dirs::home_dir().unwrap();
-        let expected_vault = home.join("Workspace/refactoring-vault");
+        let expected_vault = home.join("Workspace/vault");
         let expected_hidden = home.join("Workspace/nabu/demo-vault-v2");
         let list = VaultList {
             vaults: vec![VaultEntry {
-                label: "Refactoring".to_string(),
-                path: "~/Workspace/refactoring-vault".to_string(),
+                label: "Engineering".to_string(),
+                path: "~/Workspace/vault".to_string(),
                 ..Default::default()
             }],
-            active_vault: Some("~/Workspace/refactoring-vault".to_string()),
-            default_workspace_path: Some("~/Workspace/refactoring-vault".to_string()),
+            active_vault: Some("~/Workspace/vault".to_string()),
+            default_workspace_path: Some("~/Workspace/vault".to_string()),
             hidden_defaults: vec!["~/Workspace/nabu/demo-vault-v2".to_string()],
         };
 

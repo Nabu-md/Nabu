@@ -253,29 +253,29 @@ describe('useNoteSearch', () => {
 
   it('ranks exact title match first even with many prefix competitors', () => {
     const ranked: VaultEntry[] = [
-      makeEntry({ path: '/vault/ri.md', title: 'Refactoring Ideas', modifiedAt: 1700000010 }),
-      makeEntry({ path: '/vault/rk.md', title: 'Refactoring Key Ideas', modifiedAt: 1700000009 }),
-      makeEntry({ path: '/vault/rp.md', title: 'Refactoring Patterns', modifiedAt: 1700000008 }),
-      makeEntry({ path: '/vault/rs.md', title: 'Refactoring Strategy', modifiedAt: 1700000007 }),
-      makeEntry({ path: '/vault/rt.md', title: 'Refactoring Techniques', modifiedAt: 1700000006 }),
-      makeEntry({ path: '/vault/rb.md', title: 'Refactoring Best Practices', modifiedAt: 1700000005 }),
-      makeEntry({ path: '/vault/rg.md', title: 'Refactoring Guide', modifiedAt: 1700000004 }),
-      makeEntry({ path: '/vault/rw.md', title: 'Refactoring Workflows', modifiedAt: 1700000003 }),
-      makeEntry({ path: '/vault/rc.md', title: 'Refactoring Checklist', modifiedAt: 1700000002 }),
-      makeEntry({ path: '/vault/r.md', title: 'Refactoring', isA: 'Area', modifiedAt: 1700000001 }),
+      makeEntry({ path: '/vault/ri.md', title: 'Engineering Ideas', modifiedAt: 1700000010 }),
+      makeEntry({ path: '/vault/rk.md', title: 'Engineering Key Ideas', modifiedAt: 1700000009 }),
+      makeEntry({ path: '/vault/rp.md', title: 'Engineering Patterns', modifiedAt: 1700000008 }),
+      makeEntry({ path: '/vault/rs.md', title: 'Engineering Strategy', modifiedAt: 1700000007 }),
+      makeEntry({ path: '/vault/rt.md', title: 'Engineering Techniques', modifiedAt: 1700000006 }),
+      makeEntry({ path: '/vault/rb.md', title: 'Engineering Best Practices', modifiedAt: 1700000005 }),
+      makeEntry({ path: '/vault/rg.md', title: 'Engineering Guide', modifiedAt: 1700000004 }),
+      makeEntry({ path: '/vault/rw.md', title: 'Engineering Workflows', modifiedAt: 1700000003 }),
+      makeEntry({ path: '/vault/rc.md', title: 'Engineering Checklist', modifiedAt: 1700000002 }),
+      makeEntry({ path: '/vault/r.md', title: 'Engineering', isA: 'Area', modifiedAt: 1700000001 }),
     ]
-    const { result } = renderHook(() => useNoteSearch(ranked, 'Refactoring'))
-    expect(result.current.results[0].title).toBe('Refactoring')
+    const { result } = renderHook(() => useNoteSearch(ranked, 'Engineering'))
+    expect(result.current.results[0].title).toBe('Engineering')
   })
 
   it('ranks exact title match above note with alias exact match', () => {
     const ranked: VaultEntry[] = [
-      makeEntry({ path: '/vault/ri.md', title: 'Refactoring Ideas', aliases: ['Refactoring'], modifiedAt: 1700000003 }),
-      makeEntry({ path: '/vault/rk.md', title: 'Refactoring Key Ideas', modifiedAt: 1700000002 }),
-      makeEntry({ path: '/vault/r.md', title: 'Refactoring', modifiedAt: 1700000001 }),
+      makeEntry({ path: '/vault/ri.md', title: 'Engineering Ideas', aliases: ['Engineering'], modifiedAt: 1700000003 }),
+      makeEntry({ path: '/vault/rk.md', title: 'Engineering Key Ideas', modifiedAt: 1700000002 }),
+      makeEntry({ path: '/vault/r.md', title: 'Engineering', modifiedAt: 1700000001 }),
     ]
-    const { result } = renderHook(() => useNoteSearch(ranked, 'Refactoring'))
-    expect(result.current.results[0].title).toBe('Refactoring')
+    const { result } = renderHook(() => useNoteSearch(ranked, 'Engineering'))
+    expect(result.current.results[0].title).toBe('Engineering')
   })
 
   it('ranks case-insensitive exact match first', () => {
@@ -289,11 +289,11 @@ describe('useNoteSearch', () => {
 
   it('boosts note whose alias is an exact match', () => {
     const ranked: VaultEntry[] = [
-      makeEntry({ path: '/vault/ri.md', title: 'Refactoring Ideas', modifiedAt: 1700000002 }),
-      makeEntry({ path: '/vault/rn.md', title: 'Refactoring Notes', aliases: ['ref'], modifiedAt: 1700000001 }),
+      makeEntry({ path: '/vault/ri.md', title: 'Engineering Ideas', modifiedAt: 1700000002 }),
+      makeEntry({ path: '/vault/rn.md', title: 'Engineering Notes', aliases: ['ref'], modifiedAt: 1700000001 }),
     ]
     const { result } = renderHook(() => useNoteSearch(ranked, 'ref'))
-    expect(result.current.results[0].title).toBe('Refactoring Notes')
+    expect(result.current.results[0].title).toBe('Engineering Notes')
   })
 
   it('does not exclude archived notes from results', () => {

@@ -90,7 +90,7 @@ fn ignores_unknown_underscore_keys_in_properties_and_relationships() {
     let entry = parse_test_entry(
         &dir,
         "note.md",
-        "---\ntype: Note\n_internal: secret\n_hidden_link: \"[[secret]]\"\nOwner: Luca\n---\n# Note\n",
+        "---\ntype: Note\n_internal: secret\n_hidden_link: \"[[secret]]\"\nOwner: Demo User\n---\n# Note\n",
     );
 
     assert!(!entry.properties.contains_key("_internal"));
@@ -100,7 +100,7 @@ fn ignores_unknown_underscore_keys_in_properties_and_relationships() {
             .properties
             .get("Owner")
             .and_then(|value| value.as_str()),
-        Some("Luca")
+        Some("Demo User")
     );
 }
 

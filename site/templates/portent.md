@@ -63,7 +63,7 @@ Because Portent is file-friendly and portable, the same model can work across lo
 
 The fastest starting point is the Portent template vault:
 
-- [refactoringhq/portent-vault-template](https://github.com/refactoringhq/portent-vault-template)
+- [Nabu-md/portent-vault-template](https://github.com/Nabu-md/portent-vault-template)
 
 Use it as-is, rename pieces to match your language, or treat it as a reference model for your own Nabu setup.
 

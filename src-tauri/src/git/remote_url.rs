@@ -95,10 +95,10 @@ mod tests {
     #[test]
     fn validate_user_remote_url_accepts_supported_remote_forms() {
         for url in [
-            "https://github.com/refactoringhq/nabu.git",
+            "https://github.com/Nabu-md/nabu.git",
             "http://git.example.test/org/repo.git",
             "ssh://git@git.example.test/org/repo.git",
-            "git@github.com:refactoringhq/nabu.git",
+            "git@github.com:Nabu-md/nabu.git",
         ] {
             assert_eq!(validate_user_remote_url(url).unwrap(), url);
         }
@@ -107,8 +107,8 @@ mod tests {
     #[test]
     fn validate_user_remote_url_trims_supported_urls() {
         assert_eq!(
-            validate_user_remote_url("  https://github.com/refactoringhq/nabu.git  ").unwrap(),
-            "https://github.com/refactoringhq/nabu.git"
+            validate_user_remote_url("  https://github.com/Nabu-md/nabu.git  ").unwrap(),
+            "https://github.com/Nabu-md/nabu.git"
         );
     }
 
@@ -118,13 +118,13 @@ mod tests {
             "",
             "--upload-pack=touch-pwned",
             "ext::sh -c touch-pwned %0.git",
-            "file:///Users/luca/private.git",
-            "/Users/luca/private.git",
-            "github.com:refactoringhq/nabu.git",
+            "file:///Users/demo/private.git",
+            "/Users/demo/private.git",
+            "github.com:Nabu-md/nabu.git",
             "git@-oProxyCommand=touch-pwned:repo.git",
             "https://",
             "ssh://git@example.com",
-            "https://github.com/refactoringhq/nabu with space.git",
+            "https://github.com/Nabu-md/nabu with space.git",
         ] {
             assert!(validate_user_remote_url(url).is_err(), "{url}");
         }

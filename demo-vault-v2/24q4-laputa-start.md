@@ -3,7 +3,7 @@ type: Project
 aliases:
   - "[[Start Laputa App Project]]"
 belongs_to: "[[24q4]]"
-owner: "[[person-luca-rossi]]"
+owner: "[[person-demo-user]]"
 status: Done
 ---
 
@@ -13,5 +13,5 @@ The original spike that proved Nabu could read a markdown vault, render note met
 
 - Set the initial four-panel layout.
 - Proved the note list, editor, and inspector could coexist in one flow.
-- Led directly into [[25q1-laputa-v1]].
+- Led directly into [[25q1-v1]].
 

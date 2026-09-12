@@ -22,7 +22,7 @@ You may not, without prior written permission:
 - use the Nabu name or logo for a modified fork in a way that suggests it is the official project
 - rebrand a hosted or commercial offering as "Nabu" if it is not the official Nabu service or product
 - use the Nabu logo in product branding, app icons, domains, marketing pages, or store listings for a fork or derivative product
-- imply endorsement, affiliation, sponsorship, or approval by the Nabu project, Luca Rossi, or Refactoring when none exists
+- imply endorsement, affiliation, sponsorship, or approval by the Nabu project when none exists
 
 ## Forks and modified versions
 

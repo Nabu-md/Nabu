@@ -196,11 +196,11 @@ describe('resolveEntry', () => {
 
 describe('relativePathStem', () => {
   it('extracts relative path stem from absolute path and vault path', () => {
-    expect(relativePathStem('/Users/luca/Vault/note.md', '/Users/luca/Vault')).toBe('note')
+    expect(relativePathStem('/Users/demo/vault/note.md', '/Users/demo/vault')).toBe('note')
   })
 
   it('preserves subdirectory structure', () => {
-    expect(relativePathStem('/Users/luca/Vault/docs/adr/0031.md', '/Users/luca/Vault')).toBe('docs/adr/0031')
+    expect(relativePathStem('/Users/demo/vault/docs/adr/0031.md', '/Users/demo/vault')).toBe('docs/adr/0031')
   })
 
   it('normalizes Windows extended-length paths before extracting the vault-relative stem', () => {
@@ -222,7 +222,7 @@ describe('relativePathStem', () => {
   })
 
   it('falls back to filename stem when vault path does not match', () => {
-    expect(relativePathStem('/other/path/note.md', '/Users/luca/Vault')).toBe('note')
+    expect(relativePathStem('/other/path/note.md', '/Users/demo/vault')).toBe('note')
   })
 })
 

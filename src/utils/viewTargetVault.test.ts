@@ -12,11 +12,11 @@ describe('viewCreationVaultPath', () => {
 
   it('keeps edited views in their owning vault', () => {
     expect(viewCreationVaultPath({
-      editingRootPath: '/refactoring',
+      editingRootPath: '/engineering',
       fallbackVaultPath: '/portent',
       graphDefaultWorkspacePath: '/laputa',
       multiWorkspaceEnabled: true,
-    })).toBe('/refactoring')
+    })).toBe('/engineering')
   })
 
   it('uses the active vault when workspace mounting is disabled', () => {

@@ -10,29 +10,29 @@ interface ContributionAction {
 const CONTRIBUTION_ACTIONS: ContributionAction[] = [
   {
     activation: 'Enter',
-    label: 'Check out Refactoring',
-    url: 'https://refactoring.fm/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
+    label: 'Check out Engineering',
+    url: 'https://Nabu-md.github.io/Nabu/?utm_source=nabu&utm_medium=app&utm_campaign=engineering',
   },
   {
     activation: 'Space',
     label: 'Open CodeScene',
-    url: 'https://codescene.com/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
+    url: 'https://codescene.com/?utm_source=nabu&utm_medium=app&utm_campaign=engineering',
   },
   {
     activation: 'Space',
     label: 'Open Unblocked',
-    url: 'https://getunblocked.com/?utm_source=nabu&utm_medium=app&utm_campaign=refactoring',
+    url: 'https://getunblocked.com/?utm_source=nabu&utm_medium=app&utm_campaign=engineering',
   },
   {
     activation: 'Enter',
     label: 'how I develop Nabu',
-    url: 'https://refactoring.fm/p/introducing-the-nabu-alliance',
+    url: 'https://Nabu-md.github.io/Nabu/p/introducing-the-nabu-alliance',
   },
   { activation: 'Enter', label: 'Open Product Board', url: 'https://nabu.canny.io/' },
-  { activation: 'Space', label: 'Open Discussions', url: 'https://github.com/refactoringhq/nabu/discussions' },
-  { activation: 'Enter', label: 'Open PRs', url: 'https://github.com/refactoringhq/nabu/pulls' },
-  { activation: 'Space', label: 'Open Guide', url: 'https://github.com/refactoringhq/nabu/blob/main/CONTRIBUTING.md' },
-  { activation: 'Enter', label: 'Open Issues', url: 'https://github.com/refactoringhq/nabu/issues' },
+  { activation: 'Space', label: 'Open Discussions', url: 'https://github.com/Nabu-md/nabu/discussions' },
+  { activation: 'Enter', label: 'Open PRs', url: 'https://github.com/Nabu-md/nabu/pulls' },
+  { activation: 'Space', label: 'Open Guide', url: 'https://github.com/Nabu-md/nabu/blob/main/CONTRIBUTING.md' },
+  { activation: 'Enter', label: 'Open Issues', url: 'https://github.com/Nabu-md/nabu/issues' },
 ]
 
 async function expectOpenedUrl(page: Page, url: string): Promise<void> {
@@ -79,7 +79,7 @@ test.describe('Contribute modal', () => {
 
     await expect(page.getByTestId('feedback-dialog')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Contribute to Nabu' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Check out Refactoring' })).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Check out Engineering' })).toBeFocused()
 
     for (const [index, action] of CONTRIBUTION_ACTIONS.entries()) {
       if (index > 0) await page.keyboard.press('Tab')

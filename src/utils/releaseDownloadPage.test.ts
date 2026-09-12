@@ -188,7 +188,7 @@ describe('buildStableDownloadRedirectPage', () => {
     expect(html).toContain('Nabu Stable Download Unavailable')
     expect(html).toContain('View release history')
     expect(html).toContain('https://nabu.md/releases/')
-    expect(html).not.toContain('https://refactoringhq.github.io/nabu/')
+    expect(html).not.toContain('https://Nabu-md.github.io/nabu/')
     expect(html).not.toContain('DOWNLOAD_TARGETS')
   })
 })

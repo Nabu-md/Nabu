@@ -204,7 +204,7 @@ describe('isUrlValue', () => {
   it('rejects plain text', () => {
     expect(isUrlValue('just some text')).toBe(false)
     expect(isUrlValue('Weekly')).toBe(false)
-    expect(isUrlValue('Luca Rossi')).toBe(false)
+    expect(isUrlValue('Demo User')).toBe(false)
   })
 
   it('rejects empty strings', () => {

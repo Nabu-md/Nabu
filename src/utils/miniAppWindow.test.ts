@@ -14,12 +14,12 @@ describe('miniAppWindow', () => {
 
   it('reads packaged context from the query params', () => {
     const params = readMiniAppWindowParams(
-      '?window=mini-app&appId=hello-world&vault=/Users/luca/Vault&note=/Users/luca/Vault/notes/a.md&title=My+Note',
+      '?window=mini-app&appId=hello-world&vault=/Users/demo/vault&note=/Users/demo/vault/notes/a.md&title=My+Note',
     )
     expect(params).toEqual({
       appId: 'hello-world',
-      vaultPath: '/Users/luca/Vault',
-      notePath: '/Users/luca/Vault/notes/a.md',
+      vaultPath: '/Users/demo/vault',
+      notePath: '/Users/demo/vault/notes/a.md',
       noteTitle: 'My Note',
       context: undefined,
     })
@@ -37,15 +37,15 @@ describe('miniAppWindow', () => {
   })
 
   it('builds launcher URLs with vault and note context', () => {
-    const url = buildMiniAppWindowUrl('hello-world', '/Users/luca/Vault', {
-      note_path: '/Users/luca/Vault/notes/a.md',
+    const url = buildMiniAppWindowUrl('hello-world', '/Users/demo/vault', {
+      note_path: '/Users/demo/vault/notes/a.md',
       note_title: 'My Note',
     })
     const params = new URLSearchParams(url.replace(/^\//, ''))
     expect(params.get('window')).toBe('mini-app')
     expect(params.get('appId')).toBe('hello-world')
-    expect(params.get('vault')).toBe('/Users/luca/Vault')
-    expect(params.get('note')).toBe('/Users/luca/Vault/notes/a.md')
+    expect(params.get('vault')).toBe('/Users/demo/vault')
+    expect(params.get('note')).toBe('/Users/demo/vault/notes/a.md')
     expect(params.get('title')).toBe('My Note')
   })
 })

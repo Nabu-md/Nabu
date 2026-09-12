@@ -10,18 +10,18 @@ import {
 
 const workVault: DeepLinkVault = {
   label: 'Work Vault',
-  path: '/Users/luca/Work Vault',
+  path: '/Users/demo/Work Vault',
 }
 
 const personalVault: DeepLinkVault = {
   label: 'Personal Vault',
-  path: '/Users/luca/Personal Vault',
+  path: '/Users/demo/Personal Vault',
 }
 
 describe('Nabu deep links', () => {
   it('builds readable links with extensions and encoded path segments', () => {
     const result = buildNabuDeepLinkForEntry({
-      entry: { path: '/Users/luca/Work Vault/sponsorships/Acme call #1.md' },
+      entry: { path: '/Users/demo/Work Vault/sponsorships/Acme call #1.md' },
       vaultPath: workVault.path,
       vaults: [workVault],
     })
@@ -43,8 +43,8 @@ describe('Nabu deep links', () => {
   })
 
   it('appends stable path hashes when vault slugs collide', () => {
-    const first = { label: 'Work', path: '/Users/luca/One' }
-    const second = { label: 'Work', path: '/Users/luca/Two' }
+    const first = { label: 'Work', path: '/Users/demo/One' }
+    const second = { label: 'Work', path: '/Users/demo/Two' }
 
     const firstSlug = vaultDeepLinkSlug(first, [first, second])
     const secondSlug = vaultDeepLinkSlug(second, [first, second])
@@ -55,21 +55,21 @@ describe('Nabu deep links', () => {
   })
 
   it('resolves generated collision-safe slugs without opening the wrong vault', () => {
-    const first = { label: 'Work', path: '/Users/luca/One' }
-    const second = { label: 'Work', path: '/Users/luca/Two' }
+    const first = { label: 'Work', path: '/Users/demo/One' }
+    const second = { label: 'Work', path: '/Users/demo/Two' }
     const slug = vaultDeepLinkSlug(second, [first, second])
 
     expect(resolveNabuDeepLink({ rawUrl: `nabu://${slug}/note.md`, vaults: [first, second] })).toEqual({
       ok: true,
-      absolutePath: '/Users/luca/Two/note.md',
+      absolutePath: '/Users/demo/Two/note.md',
       relativePath: 'note.md',
       vault: second,
     })
   })
 
   it('rejects ambiguous handwritten base slugs', () => {
-    const first = { label: 'Work', path: '/Users/luca/One' }
-    const second = { label: 'Work', path: '/Users/luca/Two' }
+    const first = { label: 'Work', path: '/Users/demo/One' }
+    const second = { label: 'Work', path: '/Users/demo/Two' }
 
     expect(resolveNabuDeepLink({ rawUrl: 'nabu://work/note.md', vaults: [first, second] })).toEqual({
       ok: false,
@@ -104,15 +104,15 @@ describe('Nabu deep links', () => {
 
   it('requires target files to stay inside a known vault root', () => {
     expect(relativePathForVaultItem({
-      itemPath: '/Users/luca/Work Vault/docs/adr/0129.md',
+      itemPath: '/Users/demo/Work Vault/docs/adr/0129.md',
       vaultPath: workVault.path,
     })).toBe('docs/adr/0129.md')
     expect(relativePathForVaultItem({
-      itemPath: '/Users/luca/Work Vaults/docs/adr/0129.md',
+      itemPath: '/Users/demo/Work Vaults/docs/adr/0129.md',
       vaultPath: workVault.path,
     })).toBeNull()
     expect(buildNabuDeepLinkForEntry({
-      entry: { path: '/Users/luca/Personal Vault/note.md' },
+      entry: { path: '/Users/demo/Personal Vault/note.md' },
       vaultPath: workVault.path,
       vaults: [workVault, personalVault],
     })).toEqual({

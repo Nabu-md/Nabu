@@ -31,7 +31,7 @@ describe('frontmatterOps system metadata', () => {
 
   it('keeps canonical system metadata out of custom properties', () => {
     const patch = contentToEntryPatch(
-      '---\ntype: Type\n_icon: rocket\n_order: 4\n_sidebar_label: Projects\n_sort: title:asc\n_internal: secret\nOwner: Luca\n---\n# Project\n',
+      '---\ntype: Type\n_icon: rocket\n_order: 4\n_sidebar_label: Projects\n_sort: title:asc\n_internal: secret\nOwner: Demo User\n---\n# Project\n',
     )
 
     expect(patch).toEqual({

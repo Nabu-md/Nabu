@@ -178,7 +178,7 @@ mod tests {
     fn image_entries_use_filename_preview() {
         let _guard = TEST_LOCK.lock().unwrap();
         reset_cache();
-        cache_clipboard_image("/Users/luca/vault/attachments/photo.png");
+        cache_clipboard_image("/Users/demo/vault/attachments/photo.png");
 
         let entry = recent_entries(1).pop().unwrap();
         assert_eq!(entry.kind, ClipboardEntryKind::Image);

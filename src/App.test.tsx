@@ -62,7 +62,7 @@ const mockEntries = [
     relatedTo: [],
     status: 'Active',
     archived: false,
-    owner: 'Luca',
+    owner: 'Demo User',
     cadence: null,
     modifiedAt: 1700000000,
     createdAt: null,

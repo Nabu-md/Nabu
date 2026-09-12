@@ -29,10 +29,10 @@ function mockFileHistory(path: string) {
   const filename = path.split('/').pop()?.replace('.md', '') ?? 'unknown'
   const ts = Math.floor(Date.now() / 1000)
   return [
-    { hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0', shortHash: 'a1b2c3d', message: `Update ${filename} with latest changes`, author: 'Luca Rossi', date: ts - 86400 * 2 },
-    { hash: 'e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3', shortHash: 'e4f5g6h', message: `Add new section to ${filename}`, author: 'Luca Rossi', date: ts - 86400 * 5 },
-    { hash: 'i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4a5b6', shortHash: 'i7j8k9l', message: `Fix formatting in ${filename}`, author: 'Luca Rossi', date: ts - 86400 * 12 },
-    { hash: 'm0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9', shortHash: 'm0n1o2p', message: `Create ${filename}`, author: 'Luca Rossi', date: ts - 86400 * 30 },
+    { hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0', shortHash: 'a1b2c3d', message: `Update ${filename} with latest changes`, author: 'Demo User', date: ts - 86400 * 2 },
+    { hash: 'e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3', shortHash: 'e4f5g6h', message: `Add new section to ${filename}`, author: 'Demo User', date: ts - 86400 * 5 },
+    { hash: 'i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4a5b6', shortHash: 'i7j8k9l', message: `Fix formatting in ${filename}`, author: 'Demo User', date: ts - 86400 * 12 },
+    { hash: 'm0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9', shortHash: 'm0n1o2p', message: `Create ${filename}`, author: 'Demo User', date: ts - 86400 * 30 },
   ]
 }
 
@@ -55,10 +55,10 @@ function mockSearchContent(content: string, excludeFrontmatter?: boolean): strin
 
 function mockModifiedFiles(): ModifiedFile[] {
   return [
-    { path: '/Users/luca/Laputa/26q1-laputa-app.md', relativePath: '26q1-laputa-app.md', status: 'modified' },
-    { path: '/Users/luca/Laputa/facebook-ads-strategy.md', relativePath: 'facebook-ads-strategy.md', status: 'modified' },
-    { path: '/Users/luca/Laputa/ai-agents-primer.md', relativePath: 'ai-agents-primer.md', status: 'added' },
-    { path: '/Users/luca/Laputa/old-draft.md', relativePath: 'old-draft.md', status: 'deleted' },
+    { path: '/Users/demo/vault/26q1-laputa-app.md', relativePath: '26q1-laputa-app.md', status: 'modified' },
+    { path: '/Users/demo/vault/facebook-ads-strategy.md', relativePath: 'facebook-ads-strategy.md', status: 'modified' },
+    { path: '/Users/demo/vault/ai-agents-primer.md', relativePath: 'ai-agents-primer.md', status: 'added' },
+    { path: '/Users/demo/vault/old-draft.md', relativePath: 'old-draft.md', status: 'deleted' },
   ]
 }
 
@@ -498,7 +498,7 @@ export const mockHandlers = {
   }),
   get_build_number: () => 'bDEV',
   should_use_external_media_preview: () => false,
-  get_last_commit_info: (): LastCommitInfo => ({ shortHash: 'a1b2c3d', commitUrl: 'https://github.com/lucaong/laputa-vault/commit/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0' }),
+  get_last_commit_info: (): LastCommitInfo => ({ shortHash: 'a1b2c3d', commitUrl: 'https://github.com/nabu-md/laputa-vault/commit/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0' }),
   is_git_repo: () => true,
   git_workspace_info: ({ vaultPath }: { vaultPath?: string } = {}) => ({
     vaultRoot: vaultPath ?? '/mock-vault',
@@ -518,7 +518,7 @@ export const mockHandlers = {
     const vaultPath = args?.vaultPath ?? args?.vault_path ?? mockLastVaultPath ?? DEFAULT_MOCK_VAULT_PATH
     if (!getMockRemoteState(vaultPath)) return null
     const path = args?.path?.replace(/^.*?\/Laputa\//, '') ?? 'note.md'
-    return `https://github.com/lucaong/laputa-vault/blob/main/${encodeURI(path)}`
+    return `https://github.com/nabu-md/laputa-vault/blob/main/${encodeURI(path)}`
   },
   git_provider_status: (): GitProviderStatus => ({
     selected_provider: mockSettings.git_provider ?? 'native',
@@ -582,8 +582,8 @@ export const mockHandlers = {
     const limit = args.limit ?? 30
     const ts = Math.floor(Date.now() / 1000)
     const commits: PulseCommit[] = [
-      { hash: 'a1b2c3d4e5f6', shortHash: 'a1b2c3d', message: 'Update project notes and add new experiment', date: ts - 3600, githubUrl: 'https://github.com/lucaong/laputa-vault/commit/a1b2c3d4e5f6', files: [{ path: '26q1-laputa-app.md', status: 'modified', title: '26q1 laputa app' }, { path: 'ai-search.md', status: 'added', title: 'ai search' }], added: 1, modified: 1, deleted: 0 },
-      { hash: 'b2c3d4e5f6g7', shortHash: 'b2c3d4e', message: 'Reorganize people notes', date: ts - 86400, githubUrl: 'https://github.com/lucaong/laputa-vault/commit/b2c3d4e5f6g7', files: [{ path: 'alice-johnson.md', status: 'modified', title: 'alice johnson' }, { path: 'bob-smith.md', status: 'modified', title: 'bob smith' }, { path: 'old-contact.md', status: 'deleted', title: 'old contact' }], added: 0, modified: 2, deleted: 1 },
+      { hash: 'a1b2c3d4e5f6', shortHash: 'a1b2c3d', message: 'Update project notes and add new experiment', date: ts - 3600, githubUrl: 'https://github.com/nabu-md/laputa-vault/commit/a1b2c3d4e5f6', files: [{ path: '26q1-laputa-app.md', status: 'modified', title: '26q1 laputa app' }, { path: 'ai-search.md', status: 'added', title: 'ai search' }], added: 1, modified: 1, deleted: 0 },
+      { hash: 'b2c3d4e5f6g7', shortHash: 'b2c3d4e', message: 'Reorganize people notes', date: ts - 86400, githubUrl: 'https://github.com/nabu-md/laputa-vault/commit/b2c3d4e5f6g7', files: [{ path: 'alice-johnson.md', status: 'modified', title: 'alice johnson' }, { path: 'bob-smith.md', status: 'modified', title: 'bob smith' }, { path: 'old-contact.md', status: 'deleted', title: 'old contact' }], added: 0, modified: 2, deleted: 1 },
       { hash: 'c3d4e5f6g7h8', shortHash: 'c3d4e5f', message: 'Add daily journal entry', date: ts - 172800, githubUrl: null, files: [{ path: '2026-03-03.md', status: 'added', title: '2026 03 03' }], added: 1, modified: 0, deleted: 0 },
     ]
     return commits.slice(0, limit)
@@ -639,16 +639,16 @@ export const mockHandlers = {
     return null
   },
   save_image: (args: { vault_path?: string; filename: string; data: string }) => {
-    const vault = args.vault_path ?? '/Users/luca/Laputa'
+    const vault = args.vault_path ?? '/Users/demo/vault'
     return `${vault}/attachments/${Date.now()}-${args.filename}`
   },
   copy_image_to_vault: (args: { vault_path?: string; source_path: string }) => {
-    const vault = args.vault_path ?? '/Users/luca/Laputa'
+    const vault = args.vault_path ?? '/Users/demo/vault'
     const filename = args.source_path.split('/').pop() ?? 'image.png'
     return `${vault}/attachments/${Date.now()}-${filename}`
   },
   download_remote_image_to_vault: (args: { vault_path?: string; url: string }) => {
-    const vault = args.vault_path ?? '/Users/luca/Laputa'
+    const vault = args.vault_path ?? '/Users/demo/vault'
     const filename = new URL(args.url).pathname.split('/').pop() || 'remote-image.png'
     return `${vault}/attachments/${Date.now()}-${filename}`
   },
@@ -811,7 +811,7 @@ export const mockHandlers = {
   start_dictation: () => 'dictation-mock',
   stop_dictation: () => null,
   capture_file_drop: (args: { vault_path?: string; paths?: string[] }) => {
-    const vault = args.vault_path ?? '/Users/luca/Laputa'
+    const vault = args.vault_path ?? '/Users/demo/vault'
     return (args.paths ?? []).map((path) => {
       const filename = path.split('/').pop() ?? 'file'
       return `${vault}/attachments/${Date.now()}-${filename}`

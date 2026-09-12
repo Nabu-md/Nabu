@@ -1,6 +1,6 @@
 # Getting Started Vault
 
-The Getting Started vault is a small public sample vault hosted at [refactoringhq/nabu-getting-started](https://github.com/refactoringhq/nabu-getting-started).
+The Getting Started vault is a small public sample vault hosted at [Nabu-md/nabu-getting-started](https://github.com/Nabu-md/nabu-getting-started).
 
 It exists to show Nabu's conventions without requiring you to restructure your own notes first.
 

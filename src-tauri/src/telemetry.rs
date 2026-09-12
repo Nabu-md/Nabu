@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn test_scrub_paths_unix() {
         assert_eq!(
-            scrub_paths("Error at /Users/luca/Laputa/note.md"),
+            scrub_paths("Error at /Users/demo/vault/note.md"),
             "Error at <redacted-path>"
         );
     }

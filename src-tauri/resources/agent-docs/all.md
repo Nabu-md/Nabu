@@ -57,7 +57,7 @@ URL: /start/getting-started-vault
 
 # Getting Started Vault
 
-The Getting Started vault is a small public sample vault hosted at [refactoringhq/nabu-getting-started](https://github.com/refactoringhq/nabu-getting-started).
+The Getting Started vault is a small public sample vault hosted at [Nabu-md/nabu-getting-started](https://github.com/Nabu-md/nabu-getting-started).
 
 It exists to show Nabu's conventions without requiring you to restructure your own notes first.
 
@@ -112,7 +112,7 @@ Nabu publishes desktop builds for macOS, Windows, and Linux. macOS is the primar
 Use the latest stable release unless you are intentionally testing pre-release builds:
 
 - <a href="https://nabu.md/download/" target="_self">Download the latest stable build</a>
-- [Browse all GitHub releases](https://github.com/refactoringhq/nabu/releases)
+- [Browse all GitHub releases](https://github.com/Nabu-md/nabu/releases)
 - <a href="https://nabu.md/releases/" target="_self">Read the release notes</a>
 
 ## Homebrew
@@ -595,7 +595,7 @@ For example:
 
 - `newsletter-revenue.md`
 - `sponsorship-pipeline.md`
-- `refactoring-business-plan.md`
+- `engineering-business-plan.md`
 
 Each can be a normal `_display: sheet` note, and formulas can reference cells in another sheet note with Nabu's wikilink cell syntax.
 
@@ -639,7 +639,7 @@ Nabu adds a sheet-note reference syntax on top of IronCalc formulas:
 ```txt
 =[[newsletter-revenue]].B5
 =SUM(B2:D2)+[[sponsorship-pipeline]].E12
-=[[refactoring-business-plan]].$C$18
+=[[engineering-business-plan]].$C$18
 ```
 
 The target before the dot is a normal Nabu wikilink target. For another sheet note, the part after the dot is an A1-style cell address.
@@ -1694,7 +1694,7 @@ Because Portent is file-friendly and portable, the same model can work across lo
 
 The fastest starting point is the Portent template vault:
 
-- [refactoringhq/portent-vault-template](https://github.com/refactoringhq/portent-vault-template)
+- [Nabu-md/portent-vault-template](https://github.com/Nabu-md/portent-vault-template)
 
 Use it as-is, rename pieces to match your language, or treat it as a reference model for your own Nabu setup.
 
@@ -1715,16 +1715,16 @@ Nabu is free and open source, and any kind of help is useful. Pick the path that
 
 ## Newsletter
 
-[Refactoring](https://refactoring.fm/) is Luca's newsletter and community for engineers building better teams and software with AI. Subscribing is the best way to support Nabu.
+[Engineering](https://Nabu-md.github.io/Nabu/) is Demo User's newsletter and community for engineers building better teams and software with AI. Subscribing is the best way to support Nabu.
 
 ## Sponsors
 
-Nabu is supported by a panel of tools Luca uses every day to keep the project healthy, tested, and ready for AI-assisted development:
+Nabu is supported by a panel of tools Demo User uses every day to keep the project healthy, tested, and ready for AI-assisted development:
 
-- [Codacy](https://codacy.com/nabu?utm_source=nabu&utm_medium=website&utm_campaign=refactoring)
-- [CodeScene](https://codescene.com/?utm_source=nabu&utm_medium=website&utm_campaign=refactoring)
-- [CircleCI](https://circleci.com/?utm_source=nabu&utm_medium=website&utm_campaign=refactoring)
-- [Unblocked](https://getunblocked.com/?utm_source=nabu&utm_medium=website&utm_campaign=refactoring)
+- [Codacy](https://codacy.com/nabu?utm_source=nabu&utm_medium=website&utm_campaign=engineering)
+- [CodeScene](https://codescene.com/?utm_source=nabu&utm_medium=website&utm_campaign=engineering)
+- [CircleCI](https://circleci.com/?utm_source=nabu&utm_medium=website&utm_campaign=engineering)
+- [Unblocked](https://getunblocked.com/?utm_source=nabu&utm_medium=website&utm_campaign=engineering)
 
 ## Feature Requests
 
@@ -1732,15 +1732,15 @@ Use the [product board](https://nabu.canny.io/) for feature ideas. Search first,
 
 ## Discussions
 
-Use [GitHub Discussions](https://github.com/refactoringhq/nabu/discussions) for questions, conversations, show and tell, and broader community context.
+Use [GitHub Discussions](https://github.com/Nabu-md/nabu/discussions) for questions, conversations, show and tell, and broader community context.
 
 ## Contribute Code
 
-Small, focused pull requests are welcome. Check the product board first so you build the right thing, then open a PR on [GitHub](https://github.com/refactoringhq/nabu/pulls). The [contributing guide](https://github.com/refactoringhq/nabu/blob/main/CONTRIBUTING.md) explains the local workflow.
+Small, focused pull requests are welcome. Check the product board first so you build the right thing, then open a PR on [GitHub](https://github.com/Nabu-md/nabu/pulls). The [contributing guide](https://github.com/Nabu-md/nabu/blob/main/CONTRIBUTING.md) explains the local workflow.
 
 ## Report A Bug
 
-Use [GitHub Issues](https://github.com/refactoringhq/nabu/issues) for bugs. Include what happened, what you expected, and clear reproduction steps. If you are reporting from inside Nabu, use the Contribute panel to copy sanitized diagnostics and attach them to the issue.
+Use [GitHub Issues](https://github.com/Nabu-md/nabu/issues) for bugs. Include what happened, what you expected, and clear reproduction steps. If you are reporting from inside Nabu, use the Contribute panel to copy sanitized diagnostics and attach them to the issue.
 
 ---
 
@@ -2485,7 +2485,7 @@ For scalar values, `json(...)` returns the JSON representation of that value. Fo
   "path": "/vault/acceleration-whiplash.md",
   "status": "Evergreened",
   "raw": "[[acceleration-whiplash]]",
-  "deepLink": "nabu://refactoring-vault/acceleration-whiplash.md"
+  "deepLink": "nabu://vault/acceleration-whiplash.md"
 }
 ```
 

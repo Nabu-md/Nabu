@@ -194,7 +194,7 @@ Nabu stands on the shoulders of these projects. Full transparency, full credit.
 | [CodeMirror](https://codemirror.net) | MIT | Raw Markdown editor |
 | [PostHog](https://posthog.com) | MIT | Product analytics |
 | [Sentry](https://sentry.io) | BSD-3 | Crash reporting |
-| [Tolaria](https://github.com/refactoringhq/tolaria) | AGPL-3.0 | Sibling project; source of Nabu's MCP server and vault lifecycle code |
+| [Tolaria](https://github.com/Nabu-md/tolaria) | AGPL-3.0 | Sibling project; source of Nabu's MCP server and vault lifecycle code |
 | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | Apache-2.0 | On-device neural text-to-speech (via the external `koko` CLI) |
 | [DuckDB](https://duckdb.org) | MIT | Embedded analytical SQL engine |
 

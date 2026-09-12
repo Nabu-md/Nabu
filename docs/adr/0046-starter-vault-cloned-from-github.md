@@ -12,7 +12,7 @@ Laputa ships an optional "Getting Started" vault to help new users understand ty
 
 ## Decision
 
-**The Getting Started vault is no longer bundled in the app repo. On first launch, if the user selects "Get started with a template", the app clones the public starter repo (`https://github.com/refactoringhq/laputa-getting-started.git`) into a user-chosen folder using the existing git clone infrastructure.**
+**The Getting Started vault is no longer bundled in the app repo. On first launch, if the user selects "Get started with a template", the app clones the public starter repo (`https://github.com/Nabu-md/laputa-getting-started.git`) into a user-chosen folder using the existing git clone infrastructure.**
 
 - `getting_started.rs` now holds only the public repo URL constant and delegates to `clone_public_repo()`.
 - The `getting-started-vault/` directory has been removed from the app repo.

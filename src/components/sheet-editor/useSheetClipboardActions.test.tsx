@@ -65,7 +65,7 @@ function ClipboardHarness({ formula, value }: { formula: string; value: string }
 
 describe('useSheetClipboardActions', () => {
   it('copies external formula sources instead of evaluated cell values', () => {
-    const formula = '=C15*[[refactoring-newsletter-model-assumptions]].C19'
+    const formula = '=C15*[[engineering-newsletter-model-assumptions]].C19'
     render(<ClipboardHarness formula={formula} value="$23,527" />)
 
     const clipboardData = makeClipboardData()

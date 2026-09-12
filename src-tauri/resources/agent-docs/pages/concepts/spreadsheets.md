@@ -37,7 +37,7 @@ For example:
 
 - `newsletter-revenue.md`
 - `sponsorship-pipeline.md`
-- `refactoring-business-plan.md`
+- `engineering-business-plan.md`
 
 Each can be a normal `_display: sheet` note, and formulas can reference cells in another sheet note with Nabu's wikilink cell syntax.
 
@@ -81,7 +81,7 @@ Nabu adds a sheet-note reference syntax on top of IronCalc formulas:
 ```txt
 =[[newsletter-revenue]].B5
 =SUM(B2:D2)+[[sponsorship-pipeline]].E12
-=[[refactoring-business-plan]].$C$18
+=[[engineering-business-plan]].$C$18
 ```
 
 The target before the dot is a normal Nabu wikilink target. For another sheet note, the part after the dot is an A1-style cell address.

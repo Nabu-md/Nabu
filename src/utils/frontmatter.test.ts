@@ -108,7 +108,7 @@ _sheet:
   cells:
     B2:
       number_format: "$#,##0.00"
-Owner: Luca
+Owner: Demo User
 ---
 Metric,January`)
 

@@ -96,19 +96,19 @@ describe('mockHandlers coverage', () => {
     const { mockHandlers } = await loadHandlers()
 
     mockHandlers.save_note_content({
-      path: '/Users/luca/Laputa/26q1-laputa-app.md',
+      path: '/Users/demo/vault/26q1-laputa-app.md',
       content: '# Updated project note',
     })
     mockHandlers.save_note_content({
-      path: '/Users/luca/Laputa/new-note.md',
+      path: '/Users/demo/vault/new-note.md',
       content: '# New note',
     })
 
     const modifiedBeforeCommit = mockHandlers.get_modified_files()
-    const basePathCount = modifiedBeforeCommit.filter((entry) => entry.path === '/Users/luca/Laputa/26q1-laputa-app.md').length
+    const basePathCount = modifiedBeforeCommit.filter((entry) => entry.path === '/Users/demo/vault/26q1-laputa-app.md').length
 
     expect(basePathCount).toBe(1)
-    expect(modifiedBeforeCommit.some((entry) => entry.path === '/Users/luca/Laputa/new-note.md')).toBe(true)
+    expect(modifiedBeforeCommit.some((entry) => entry.path === '/Users/demo/vault/new-note.md')).toBe(true)
 
     expect(mockHandlers.git_commit({ message: 'Save everything' })).toContain('6 files changed')
     expect(mockHandlers.get_modified_files()).toEqual([])
@@ -116,7 +116,7 @@ describe('mockHandlers coverage', () => {
 
   it('searches mock content and slices pulse results to the requested limit', async () => {
     const { mockHandlers } = await loadHandlers()
-    const projectPath = '/Users/luca/Laputa/26q1-laputa-app.md'
+    const projectPath = '/Users/demo/vault/26q1-laputa-app.md'
 
     mockHandlers.save_note_content({
       path: projectPath,
@@ -193,6 +193,30 @@ describe('mockHandlers coverage', () => {
       dictation_enabled: null,
       dictation_position: null,
       dictation_opacity: null,
+      dictation_backend: null,
+      fluidvoice_model: null,
+      tts_engine: null,
+      kokoro_voice: null,
+      kokoro_speed: null,
+      tts_highlight_enabled: null,
+      mini_apps_enabled: null,
+      grammar_check_enabled: null,
+      ocr_enabled: null,
+      document_conversion_enabled: null,
+      sidebar_opacity: null,
+      sidebar_blur_radius: null,
+      editor_opacity: null,
+      editor_blur_radius: null,
+      ai_panel_opacity: null,
+      ai_panel_blur_radius: null,
+      window_opacity: null,
+      window_blur_radius: null,
+      editor_font_family: null,
+      ai_chat_font_family: null,
+      sidebar_font_family: null,
+      buzz_enabled: null,
+      buzz_default_channel: null,
+      mini_apps_web_access_enabled: null,
       dock_icon_variant: null,
     })
 

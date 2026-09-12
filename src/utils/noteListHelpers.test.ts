@@ -183,28 +183,28 @@ describe('filterEntries', () => {
 
   it('shows only direct root-level files when selecting the vault root folder', () => {
     const entries = [
-      makeEntry({ path: '/Users/luca/Laputa/root-note.md', title: 'Root Note', fileKind: 'markdown' }),
-      makeEntry({ path: '/Users/luca/Laputa/config.json', title: 'config.json', fileKind: 'text' }),
-      makeEntry({ path: '/Users/luca/Laputa/projects/nested.md', title: 'Nested Note', fileKind: 'markdown' }),
-      makeEntry({ path: '/Users/luca/Laputa/assets/logo.png', title: 'Logo', fileKind: 'binary' }),
+      makeEntry({ path: '/Users/demo/vault/root-note.md', title: 'Root Note', fileKind: 'markdown' }),
+      makeEntry({ path: '/Users/demo/vault/config.json', title: 'config.json', fileKind: 'text' }),
+      makeEntry({ path: '/Users/demo/vault/projects/nested.md', title: 'Nested Note', fileKind: 'markdown' }),
+      makeEntry({ path: '/Users/demo/vault/assets/logo.png', title: 'Logo', fileKind: 'binary' }),
     ]
 
-    const result = filterEntries(entries, { kind: 'folder', path: '', rootPath: '/Users/luca/Laputa' })
+    const result = filterEntries(entries, { kind: 'folder', path: '', rootPath: '/Users/demo/vault' })
 
     expect(result.map((entry) => entry.title)).toEqual(['Root Note', 'config.json'])
   })
 
   it('keeps same-named folders isolated by selected workspace root', () => {
     const entries = [
-      makeEntry({ path: '/Users/luca/Personal/projects/personal.md', title: 'Personal Project' }),
-      makeEntry({ path: '/Users/luca/Team/projects/team.md', title: 'Team Project' }),
-      makeEntry({ path: '/Users/luca/Team/archive/team.md', title: 'Team Archive' }),
+      makeEntry({ path: '/Users/demo/Personal/projects/personal.md', title: 'Personal Project' }),
+      makeEntry({ path: '/Users/demo/Team/projects/team.md', title: 'Team Project' }),
+      makeEntry({ path: '/Users/demo/Team/archive/team.md', title: 'Team Archive' }),
     ]
 
     const result = filterEntries(entries, {
       kind: 'folder',
       path: 'projects',
-      rootPath: '/Users/luca/Team',
+      rootPath: '/Users/demo/Team',
     })
 
     expect(result.map((entry) => entry.title)).toEqual(['Team Project'])
@@ -327,7 +327,7 @@ describe('buildRelationshipGroups', () => {
       filename: undefined,
     } as unknown as ReturnType<typeof makeEntry>
     const backlink = makeEntry({
-      path: '/Users/luca/Laputa/note/backlink.md',
+      path: '/Users/demo/vault/note/backlink.md',
       filename: 'backlink.md',
       title: 'Backlink',
       outgoingLinks: ['project/alpha'],

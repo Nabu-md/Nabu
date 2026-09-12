@@ -78,6 +78,7 @@ fn test_settings_json_roundtrip() {
         buzz_enabled: Some(true),
         buzz_default_channel: Some("research-team".to_string()),
         mini_apps_web_access_enabled: Some(true),
+        dock_icon_variant: None,
     };
     let json = serde_json::to_string(&settings).unwrap();
     let parsed: Settings = serde_json::from_str(&json).unwrap();
@@ -178,6 +179,7 @@ fn test_save_and_load_preserves_values() {
         all_notes_show_pdfs: Some(true),
         all_notes_show_images: Some(false),
         all_notes_show_unsupported: Some(true),
+        dock_icon_variant: None,
         ..Default::default()
     });
     assert_eq!(loaded.auto_pull_interval_minutes, Some(10));

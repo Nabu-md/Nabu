@@ -7,7 +7,7 @@ Nabu publishes desktop builds for macOS, Windows, and Linux. macOS is the primar
 Use the latest stable release unless you are intentionally testing pre-release builds:
 
 - <a href="https://nabu.md/download/" target="_self">Download the latest stable build</a>
-- [Browse all GitHub releases](https://github.com/refactoringhq/nabu/releases)
+- [Browse all GitHub releases](https://github.com/Nabu-md/nabu/releases)
 - <a href="https://nabu.md/releases/" target="_self">Read the release notes</a>
 
 ## Homebrew

@@ -24,7 +24,7 @@ vi.mock('./mockFrontmatterHelpers', () => ({
 }))
 
 const makeEntry = (overrides: Partial<VaultEntry> = {}): VaultEntry => ({
-  path: '/Users/luca/Laputa/test.md',
+  path: '/Users/demo/vault/test.md',
   filename: 'test.md',
   title: 'Test Note',
   isA: 'Note',

@@ -3,7 +3,7 @@ type: Project
 aliases:
   - "[[Laputa App V2]]"
 belongs_to: "[[25q2]]"
-owner: "[[person-luca-rossi]]"
+owner: "[[person-demo-user]]"
 status: Active
 related_to:
   - "[[laputa-qa-reference]]"

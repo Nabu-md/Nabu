@@ -261,7 +261,13 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             mcp::set_runtime_resource_dir(resource_dir);
         }
         setup_desktop_plugins(app)?;
-        app_icon::update_app_icon_for_theme(app.handle(), "light")?;
+        let variant = settings::get_settings()
+            .ok()
+            .and_then(|s| s.dock_icon_variant)
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .unwrap_or_else(|| "variant-1".to_string());
+        app_icon::update_app_icon_for_theme(app.handle(), &variant)?;
     }
 
     if telemetry::init_sentry_from_settings() {
@@ -366,6 +372,7 @@ macro_rules! app_invoke_handler {
             commands::check_for_app_update,
             commands::update_menu_state,
             commands::update_app_icon,
+            commands::set_dock_icon_variant,
             commands::open_vault_in_new_window,
             commands::trigger_menu_command,
             commands::update_current_window_min_size,

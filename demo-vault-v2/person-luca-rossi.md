@@ -1,11 +1,11 @@
 ---
 type: Person
 aliases:
-  - "[[Luca Rossi]]"
+  - "[[Demo User]]"
 tier: 1st
 ---
 
-# Luca Rossi
+# Demo User
 
 Owns the Laputa product work and remains the primary owner on the fixture's project notes.
 

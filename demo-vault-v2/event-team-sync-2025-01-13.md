@@ -1,8 +1,8 @@
 ---
 type: Event
-belongs_to: "[[25q1-laputa-v1]]"
+belongs_to: "[[25q1-v1]]"
 related_to:
-  - "[[person-luca-rossi]]"
+  - "[[person-demo-user]]"
   - "[[person-matteo-cellini]]"
 date: 2025-01-13
 ---

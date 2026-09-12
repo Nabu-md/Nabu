@@ -43,7 +43,7 @@ test.describe('Dynamic wikilink relationship detection', () => {
   })
 
   test('existing wikilink relationships still render correctly', async ({ page }) => {
-    // Open "Start Laputa App Project" — has Belongs to: [[24q4]], Owner: [[person-luca-rossi]]
+    // Open "Start Laputa App Project" — has Belongs to: [[24q4]], Owner: [[person-demo-user]]
     await openNoteViaQuickOpen(page, 'Start Laputa App')
 
     // Wait for note content to load

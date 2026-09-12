@@ -4,7 +4,7 @@ import type { FolderNode, SidebarSelection, VaultEntry } from '../types'
 import { makeEntry } from '../test-utils/noteListTestUtils'
 import { useNoteRetargetingUi } from './useNoteRetargetingUi'
 
-const vaultPath = '/Users/luca/Laputa'
+const vaultPath = '/Users/demo/vault'
 const activeEntry = makeEntry({
   path: `${vaultPath}/projects/alpha.md`,
   filename: 'alpha.md',

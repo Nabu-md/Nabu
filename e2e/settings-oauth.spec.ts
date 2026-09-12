@@ -15,7 +15,7 @@ test('settings shows connected GitHub state with username', async ({ page }) => 
   // Mock data starts with github connected — verify connected state
   const connected = page.getByTestId('github-connected')
   await expect(connected).toBeVisible({ timeout: 5000 })
-  await expect(connected).toContainText('lucaong')
+  await expect(connected).toContainText('nabu-md')
   await expect(connected).toContainText('Connected')
 
   // Verify disconnect button

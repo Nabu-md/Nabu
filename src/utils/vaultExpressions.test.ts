@@ -6,14 +6,14 @@ import {
   vaultExpressionDependencySource,
 } from './vaultExpressions'
 
-const refactoringWorkspace = {
-  alias: 'refactoring-vault',
+const engineeringWorkspace = {
+  alias: 'engineering-vault',
   available: true,
   color: null,
   defaultForNewNotes: true,
   icon: null,
-  id: 'refactoring-vault',
-  label: 'Refactoring Vault',
+  id: 'engineering-vault',
+  label: 'Engineering Vault',
   mounted: true,
   path: '/vault',
   shortLabel: 'RV',
@@ -154,7 +154,7 @@ describe('vaultExpressions', () => {
   })
 
   it('serializes enriched relationship JSON from normalized relationship keys', () => {
-    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: refactoringWorkspace })
+    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: engineeringWorkspace })
     const essayEntry = entry('/vault/acceleration-whiplash.md', 'Acceleration whiplash', {
       relationships: {
         'Has Notes': [
@@ -163,15 +163,15 @@ describe('vaultExpressions', () => {
         ],
       },
       status: 'Evergreened',
-      workspace: refactoringWorkspace,
+      workspace: engineeringWorkspace,
     })
     const firstNote = entry('/vault/starting-work-is-easier-finishing-it-is-harder.md', 'Ignored when alias exists', {
       status: 'Extracted',
-      workspace: refactoringWorkspace,
+      workspace: engineeringWorkspace,
     })
     const secondNote = entry('/vault/human-reviews-do-not-scale-like-ai-coding.md', 'Human reviews do not scale like AI coding', {
       status: 'Evergreen',
-      workspace: refactoringWorkspace,
+      workspace: engineeringWorkspace,
     })
 
     const rendered = renderVaultExpressionTemplate({
@@ -195,7 +195,7 @@ describe('vaultExpressions', () => {
     const notes = JSON.parse(documentObject.getElementById('notes')?.textContent ?? '[]') as Array<Record<string, unknown>>
 
     expect(essay).toMatchObject({
-      deepLink: 'nabu://refactoring-vault/acceleration-whiplash.md',
+      deepLink: 'nabu://engineering-vault/acceleration-whiplash.md',
       path: '/vault/acceleration-whiplash.md',
       status: 'Evergreened',
       target: 'acceleration-whiplash',
@@ -203,13 +203,13 @@ describe('vaultExpressions', () => {
     })
     expect(notes).toHaveLength(2)
     expect(notes[0]).toMatchObject({
-      deepLink: 'nabu://refactoring-vault/starting-work-is-easier-finishing-it-is-harder.md',
+      deepLink: 'nabu://engineering-vault/starting-work-is-easier-finishing-it-is-harder.md',
       path: '/vault/starting-work-is-easier-finishing-it-is-harder.md',
       status: 'Extracted',
       title: 'Starting work is easier, finishing it is harder',
     })
     expect(notes[1]).toMatchObject({
-      deepLink: 'nabu://refactoring-vault/human-reviews-do-not-scale-like-ai-coding.md',
+      deepLink: 'nabu://engineering-vault/human-reviews-do-not-scale-like-ai-coding.md',
       path: '/vault/human-reviews-do-not-scale-like-ai-coding.md',
       status: 'Evergreen',
       title: 'Human reviews do not scale like AI coding',
@@ -226,7 +226,7 @@ describe('vaultExpressions', () => {
         enumerable: true,
         get: () => {
           workspaceReads += 1
-          return refactoringWorkspace
+          return engineeringWorkspace
         },
       })
       return value
@@ -264,16 +264,16 @@ describe('vaultExpressions', () => {
 
     expect(notes).toHaveLength(linkedTargets.length)
     expect(notes[23]).toMatchObject({
-      deepLink: 'nabu://refactoring-vault/related-24.md',
+      deepLink: 'nabu://engineering-vault/related-24.md',
       title: 'Related 24',
     })
     expect(workspaceReads).toBeLessThanOrEqual(entries.length * 5)
   })
 
   it('escapes JSON so dynamic data cannot close the script element', () => {
-    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: refactoringWorkspace })
+    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: engineeringWorkspace })
     const unsafeNote = entry('/vault/unsafe.md', '</script><img src=x onerror=alert(1)>', {
-      workspace: refactoringWorkspace,
+      workspace: engineeringWorkspace,
     })
 
     const rendered = renderVaultExpressionTemplate({
@@ -294,7 +294,7 @@ describe('vaultExpressions', () => {
   })
 
   it('emits parseable null JSON when dashboard data references are missing', () => {
-    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: refactoringWorkspace })
+    const sourceEntry = entry('/vault/dashboard.md', 'Dashboard', { workspace: engineeringWorkspace })
     const rendered = renderVaultExpressionTemplate({
       compiled: compileVaultExpressionTemplate([
         '<script type="application/json" id="notes">{{json([[missing-hub]].has_notes)}}</script>',

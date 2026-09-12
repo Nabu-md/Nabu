@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 /// Public starter vault cloned when the user chooses Getting Started.
 pub const GETTING_STARTED_REPO_URL: &str =
-    "https://github.com/refactoringhq/nabu-getting-started.git";
+    "https://github.com/Nabu-md/nabu-getting-started.git";
 
 /// Default location for the Getting Started vault.
 pub fn default_vault_path() -> Result<PathBuf, String> {
@@ -62,7 +62,7 @@ fn has_getting_started_template_marker(path: &Path) -> bool {
 /// that is safe to refresh automatically.
 const STALE_AGENTS_MD: &str = r##"# AGENTS.md — Nabu Vault
 
-This is a [Nabu](https://github.com/refactoringhq/nabu) vault - a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
+This is a [Nabu](https://github.com/Nabu-md/nabu) vault - a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
 
 Keep edits compatible with Nabu's current conventions. Prefer small, human-readable changes over heavy restructuring.
 
@@ -160,7 +160,7 @@ Use kebab-case: `my-note-title.md`. One note per file.
 /// managed content that is safe to refresh automatically.
 const PRE_TYPE_AGENTS_MD: &str = r##"# AGENTS.md — Nabu Vault
 
-This is a [Nabu](https://github.com/refactoringhq/nabu) vault — a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
+This is a [Nabu](https://github.com/Nabu-md/nabu) vault — a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
 
 ## Note structure
 
@@ -310,7 +310,7 @@ _organized: true
 
 # AGENTS.md — Nabu Vault
 
-This is a [Nabu](https://github.com/refactoringhq/nabu) vault.
+This is a [Nabu](https://github.com/Nabu-md/nabu) vault.
 
 Keep this file focused on vault-specific conventions. For general Nabu behavior, use the bundled Nabu agent docs path provided by the app session context.
 
@@ -434,7 +434,7 @@ Use kebab-case: `my-note-title.md`. One note per file.
 
 pub(super) const LEGACY_AGENTS_MD: &str = r##"# AGENTS.md — Nabu Vault
 
-This is a [Nabu](https://github.com/refactoringhq/nabu) vault — a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
+This is a [Nabu](https://github.com/Nabu-md/nabu) vault — a folder of markdown files with YAML frontmatter forming a personal knowledge graph.
 
 ## Note structure
 
@@ -689,7 +689,7 @@ mod tests {
     fn test_default_getting_started_repo_url_uses_nabu_slug() {
         assert_eq!(
             GETTING_STARTED_REPO_URL,
-            "https://github.com/refactoringhq/nabu-getting-started.git"
+            "https://github.com/Nabu-md/nabu-getting-started.git"
         );
     }
 

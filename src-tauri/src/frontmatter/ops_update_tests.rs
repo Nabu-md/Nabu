@@ -43,8 +43,8 @@ fn test_update_frontmatter_replaces_or_adds_string_fields() {
         UpdateCase {
             content: "---\nStatus: Draft\n---\n# Test\n",
             key: "Owner",
-            value: Some(FrontmatterValue::String("Luca".to_string())),
-            expected_present: &["Owner: Luca", "Status: Draft"],
+            value: Some(FrontmatterValue::String("Demo User".to_string())),
+            expected_present: &["Owner: Demo User", "Status: Draft"],
             expected_absent: &[],
         },
         UpdateCase {
@@ -123,7 +123,7 @@ fn test_update_frontmatter_list_and_delete_paths() {
             expected_absent: &["aliases", "Alias1"],
         },
         UpdateCase {
-            content: "---\nStatus: Draft\nOwner: Luca\n---\n# Test\n",
+            content: "---\nStatus: Draft\nOwner: Demo User\n---\n# Test\n",
             key: "Owner",
             value: None,
             expected_present: &["Status: Draft"],

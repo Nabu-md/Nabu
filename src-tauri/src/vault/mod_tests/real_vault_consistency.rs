@@ -93,7 +93,7 @@ fn parse_real_vault_mismatches(vault_path: &Path) -> Vec<String> {
 
 #[test]
 fn test_real_vault_type_and_organized_consistency() {
-    let vault_path = Path::new("/Users/luca/Laputa");
+    let vault_path = Path::new("/Users/demo/vault");
     if !vault_path.exists() {
         eprintln!("Skipping: ~/Laputa vault not found");
         return;

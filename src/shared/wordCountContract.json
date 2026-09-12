@@ -13,7 +13,7 @@
     },
     {
       "name": "frontmatter and title exclusion",
-      "content": "---\ntype: Note\nowner: Luca Rossi\n---\n# Project update\n\nThree body words.",
+      "content": "---\ntype: Note\nowner: Demo User\n---\n# Project update\n\nThree body words.",
       "expected": 3
     },
     {

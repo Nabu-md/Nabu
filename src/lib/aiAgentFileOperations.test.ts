@@ -5,7 +5,7 @@ import {
   type AgentFileCallbacks,
 } from './aiAgentFileOperations'
 
-const VAULT = '/Users/luca/Laputa'
+const VAULT = '/Users/demo/vault'
 
 function makeCallbacks() {
   return {

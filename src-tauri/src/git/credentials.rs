@@ -107,16 +107,16 @@ mod tests {
 
     #[test]
     fn credential_fill_input_extracts_https_remote_parts() {
-        let input = credential_fill_input("https://github.com/refactoringhq/nabu.git").unwrap();
+        let input = credential_fill_input("https://github.com/Nabu-md/nabu.git").unwrap();
 
         assert!(input.contains("protocol=https\n"));
         assert!(input.contains("host=github.com\n"));
-        assert!(input.contains("path=refactoringhq/nabu.git\n"));
+        assert!(input.contains("path=Nabu-md/nabu.git\n"));
         assert!(input.ends_with("\n\n"));
     }
 
     #[test]
     fn credential_fill_input_ignores_ssh_remotes() {
-        assert!(credential_fill_input("git@github.com:refactoringhq/nabu.git").is_none());
+        assert!(credential_fill_input("git@github.com:Nabu-md/nabu.git").is_none());
     }
 }

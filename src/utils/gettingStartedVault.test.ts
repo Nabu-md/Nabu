@@ -8,11 +8,11 @@ import {
 
 describe('gettingStartedVault', () => {
   it('builds a child vault path from a parent folder', () => {
-    expect(buildGettingStartedVaultPath('/Users/luca/Documents')).toBe('/Users/luca/Documents/Getting Started')
+    expect(buildGettingStartedVaultPath('/Users/demo/Documents')).toBe('/Users/demo/Documents/Getting Started')
   })
 
   it('trims trailing separators when building the child vault path', () => {
-    expect(buildGettingStartedVaultPath('/Users/luca/Documents/')).toBe('/Users/luca/Documents/Getting Started')
+    expect(buildGettingStartedVaultPath('/Users/demo/Documents/')).toBe('/Users/demo/Documents/Getting Started')
   })
 
   it('preserves windows separators when building the child vault path', () => {
@@ -20,7 +20,7 @@ describe('gettingStartedVault', () => {
   })
 
   it('derives a label from the final path segment', () => {
-    expect(labelFromPath('/Users/luca/Documents/Getting Started')).toBe(GETTING_STARTED_VAULT_NAME)
+    expect(labelFromPath('/Users/demo/Documents/Getting Started')).toBe(GETTING_STARTED_VAULT_NAME)
   })
 
   it('passes through destination errors verbatim', () => {

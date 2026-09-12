@@ -31,7 +31,7 @@ afterEach(() => {
 
 describe('telemetry scrubPaths', () => {
   it('redacts macOS absolute paths', () => {
-    expect(scrubPaths('Error in /Users/luca/Laputa/note.md')).toBe(
+    expect(scrubPaths('Error in /Users/demo/vault/note.md')).toBe(
       'Error in [redacted-path]'
     )
   })
@@ -413,7 +413,7 @@ describe('initSentry', () => {
       exception: {
         values: [{
           type: 'UnhandledRejection',
-          value: 'File does not exist: /Users/luca/Laputa/missing.md',
+          value: 'File does not exist: /Users/demo/vault/missing.md',
         }],
       },
     }
@@ -428,13 +428,13 @@ describe('initSentry', () => {
       exception: {
         values: [{
           type: 'Error',
-          value: 'File does not exist: /Users/luca/Laputa/missing.md',
+          value: 'File does not exist: /Users/demo/vault/missing.md',
         }],
       },
     }
 
     expect(beforeSend(event, {
-      originalException: new Error('File does not exist: /Users/luca/Laputa/missing.md'),
+      originalException: new Error('File does not exist: /Users/demo/vault/missing.md'),
     })).toBe(event)
     expect(event.exception.values[0].value).toBe('File does not exist: [redacted-path]')
   })

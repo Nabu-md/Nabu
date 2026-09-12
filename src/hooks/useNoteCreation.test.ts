@@ -85,20 +85,20 @@ describe('useNoteCreation hook', () => {
       result.current.handleCreateNoteImmediate(undefined, {
         creationPath: 'folder_header',
         folderPath: 'Projects/2026 Planning',
-        vaultPath: '/Users/luca/Team',
+        vaultPath: '/Users/demo/Team',
       })
       await flushImmediateCreate()
     })
 
-    const createdPath = '/Users/luca/Team/Projects/2026 Planning/untitled-note-1700000000.md'
+    const createdPath = '/Users/demo/Team/Projects/2026 Planning/untitled-note-1700000000.md'
     expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_note_content', {
       path: createdPath,
       content: '---\ntype: Note\n---\n\n# \n\n',
-      vaultPath: '/Users/luca/Team',
+      vaultPath: '/Users/demo/Team',
     })
     expect(addEntry).toHaveBeenCalledWith(expect.objectContaining({
       path: createdPath,
-      workspace: expect.objectContaining({ path: '/Users/luca/Team' }),
+      workspace: expect.objectContaining({ path: '/Users/demo/Team' }),
     }))
     vi.restoreAllMocks()
   })
@@ -110,15 +110,15 @@ describe('useNoteCreation hook', () => {
     renderHook(() => useNoteCreation(makeConfig(), tabDeps))
 
     await act(async () => {
-      requestCreateNoteInFolder('Projects/2026 Planning', '/Users/luca/Team')
+      requestCreateNoteInFolder('Projects/2026 Planning', '/Users/demo/Team')
       await flushImmediateCreate()
     })
 
-    const createdPath = '/Users/luca/Team/Projects/2026 Planning/untitled-note-1700000000.md'
+    const createdPath = '/Users/demo/Team/Projects/2026 Planning/untitled-note-1700000000.md'
     expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_note_content', {
       path: createdPath,
       content: '---\ntype: Note\n---\n\n# \n\n',
-      vaultPath: '/Users/luca/Team',
+      vaultPath: '/Users/demo/Team',
     })
     expect(openTabWithContent).toHaveBeenCalledWith(
       expect.objectContaining({ path: createdPath }),

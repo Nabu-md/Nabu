@@ -184,14 +184,14 @@ fn test_string_or_list_normalization_keeps_type_and_scalar_fields() {
 
     let scalar_fields = parse_archived_entry(
         "scalar.md",
-        "---\ntype: Project\nOwner: Luca\nCadence: Daily\nStatus: Done\n---\n# Test\n",
+        "---\ntype: Project\nOwner: Demo User\nCadence: Daily\nStatus: Done\n---\n# Test\n",
     );
     assert_eq!(
         scalar_fields
             .properties
             .get("Owner")
             .and_then(|value| value.as_str()),
-        Some("Luca")
+        Some("Demo User")
     );
     assert_eq!(
         scalar_fields
@@ -210,7 +210,7 @@ fn test_string_or_list_normalization_keeps_type_and_scalar_fields() {
 fn test_array_field_does_not_break_type_detection() {
     let entry = parse_archived_entry(
         "array-fields.md",
-        "---\ntype: Responsibility\nOwner:\n  - Luca\nCadence:\n  - Weekly\nStatus:\n  - Active\n---\n# My Responsibility\n",
+        "---\ntype: Responsibility\nOwner:\n  - Demo User\nCadence:\n  - Weekly\nStatus:\n  - Active\n---\n# My Responsibility\n",
     );
     assert_eq!(entry.is_a, Some("Responsibility".to_string()));
     assert_eq!(entry.status, Some("Active".to_string()));

@@ -63,11 +63,11 @@ describe('useVaultLoader empty cache recovery', () => {
 
   it('keeps mounted workspace entries visible while a newly active empty workspace loads', async () => {
     const laputa = { label: 'Laputa', path: '/laputa', alias: 'laputa', available: true, mounted: true }
-    const refactoring = { label: 'Refactoring', path: '/refactoring', alias: 'refactoring', available: true, mounted: true }
+    const engineering = { label: 'Engineering', path: '/engineering', alias: 'engineering', available: true, mounted: true }
     const commandResults = new Map<string, unknown>([
       ['reload_vault:/laputa', [makeEntry('/laputa/note/hello.md', 'Laputa Hello')]],
-      ['reload_vault:/refactoring', []],
-      ['list_vault:/refactoring', []],
+      ['reload_vault:/engineering', []],
+      ['list_vault:/engineering', []],
       ['get_modified_files:', []],
       ['list_vault_folders:', []],
       ['list_views:', []],
@@ -86,7 +86,7 @@ describe('useVaultLoader empty cache recovery', () => {
       expect(result.current.entries.map((entry) => entry.title)).toEqual(['Laputa Hello'])
     })
 
-    rerender({ activePath: '/refactoring', vaults: [laputa, refactoring] })
+    rerender({ activePath: '/engineering', vaults: [laputa, engineering] })
 
     expect(result.current.entries.map((entry) => entry.title)).toContain('Laputa Hello')
     await waitFor(() => {

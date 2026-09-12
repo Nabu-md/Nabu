@@ -25,7 +25,7 @@ export function AboutSection({ t }: { t: Translate }) {
       <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
         Nabu is licensed under AGPL-3.0-or-later and stands on the shoulders of
         these open-source projects. Full details in{' '}
-        <a href="https://github.com/refactoringhq/nabu/blob/main/NOTICE.md" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
+        <a href="https://github.com/Nabu-md/nabu/blob/main/NOTICE.md" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
           NOTICE.md
         </a>
         .

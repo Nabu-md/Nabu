@@ -76,7 +76,7 @@ For scalar values, `json(...)` returns the JSON representation of that value. Fo
   "path": "/vault/acceleration-whiplash.md",
   "status": "Evergreened",
   "raw": "[[acceleration-whiplash]]",
-  "deepLink": "nabu://refactoring-vault/acceleration-whiplash.md"
+  "deepLink": "nabu://vault/acceleration-whiplash.md"
 }
 ```
 

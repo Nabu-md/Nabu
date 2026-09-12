@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { WebSocketServer } from 'ws'
 
-const NEW_NOTE_PATH = '/Users/luca/Laputa/note/ai-created-note.md'
+const NEW_NOTE_PATH = '/Users/demo/vault/note/ai-created-note.md'
 const NEW_NOTE_TITLE = 'AI Created Note'
 const NEW_NOTE_CONTENT = `---
 title: ${NEW_NOTE_TITLE}

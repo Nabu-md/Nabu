@@ -41,8 +41,8 @@ describe('useGettingStartedClone', () => {
   })
 
   it('clones into a child Getting Started folder and reports the canonical path', async () => {
-    vi.mocked(pickFolder).mockResolvedValue('/Users/luca/Documents')
-    mockInvokeFn.mockResolvedValue('/Users/luca/Documents/Getting Started')
+    vi.mocked(pickFolder).mockResolvedValue('/Users/demo/Documents')
+    mockInvokeFn.mockResolvedValue('/Users/demo/Documents/Getting Started')
 
     const onSuccess = vi.fn()
     const onError = vi.fn()
@@ -53,14 +53,14 @@ describe('useGettingStartedClone', () => {
     })
 
     expect(mockInvokeFn).toHaveBeenCalledWith('create_getting_started_vault', {
-      targetPath: '/Users/luca/Documents/Getting Started',
+      targetPath: '/Users/demo/Documents/Getting Started',
     })
-    expect(onSuccess).toHaveBeenCalledWith('/Users/luca/Documents/Getting Started', 'Getting Started')
+    expect(onSuccess).toHaveBeenCalledWith('/Users/demo/Documents/Getting Started', 'Getting Started')
     expect(onError).not.toHaveBeenCalled()
   })
 
   it('surfaces a friendly message for download failures', async () => {
-    vi.mocked(pickFolder).mockResolvedValue('/Users/luca/Documents')
+    vi.mocked(pickFolder).mockResolvedValue('/Users/demo/Documents')
     mockInvokeFn.mockRejectedValue('git clone failed: fatal: unable to access')
 
     const onSuccess = vi.fn()

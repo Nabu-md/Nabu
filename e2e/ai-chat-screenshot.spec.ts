@@ -1,6 +1,6 @@
 import { type Page, test } from '@playwright/test'
 
-const SCREENSHOT_PATH = '/Users/luca/OpenClaw/ai-chat-final.jpg'
+const SCREENSHOT_PATH = '/Users/demo/OpenClaw/ai-chat-final.jpg'
 
 async function clickNoteListItem(page: Page): Promise<string> {
   return page.evaluate(() => {

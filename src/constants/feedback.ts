@@ -5,28 +5,28 @@ import unblockedDarkLogo from '../assets/sponsors/unblocked-dark.svg'
 import unblockedLightLogo from '../assets/sponsors/unblocked-light.svg'
 import type { TranslationKey } from '../lib/i18n'
 
-const CONTRIBUTION_LINK_UTM = 'utm_source=nabu&utm_medium=app&utm_campaign=refactoring'
+const CONTRIBUTION_LINK_UTM = 'utm_source=nabu&utm_medium=app&utm_campaign=nabu'
 
 function withContributionUtm(url: string): string {
   return `${url}?${CONTRIBUTION_LINK_UTM}`
 }
 
-export const REFACTORING_HOME_URL = withContributionUtm('https://refactoring.fm/')
+export const NABU_HOME_URL = withContributionUtm('https://Nabu-md.github.io/Nabu/')
 export const CODESCENE_HOME_URL = withContributionUtm('https://codescene.com/')
 export const UNBLOCKED_HOME_URL = withContributionUtm('https://getunblocked.com/')
-export const NABU_DEVELOPMENT_ARTICLE_URL = 'https://refactoring.fm/p/introducing-the-nabu-alliance'
-export const NABU_DOCS_URL = 'https://refactoringhq.github.io/nabu/'
+export const NABU_DEVELOPMENT_ARTICLE_URL = 'https://Nabu-md.github.io/Nabu/'
+export const NABU_DOCS_URL = 'https://Nabu-md.github.io/Nabu/'
 export const NABU_FIRST_LAUNCH_DOCS_URL = `${NABU_DOCS_URL}start/first-launch`
 export const NABU_PRODUCT_BOARD_URL = 'https://nabu.canny.io/'
-export const NABU_GITHUB_DISCUSSIONS_URL = 'https://github.com/refactoringhq/nabu/discussions'
-export const NABU_GITHUB_CONTRIBUTING_URL = 'https://github.com/refactoringhq/nabu/blob/main/CONTRIBUTING.md'
-export const NABU_GITHUB_ISSUES_URL = 'https://github.com/refactoringhq/nabu/issues'
-export const NABU_GITHUB_PULL_REQUESTS_URL = 'https://github.com/refactoringhq/nabu/pulls'
+export const NABU_GITHUB_DISCUSSIONS_URL = 'https://github.com/Nabu-md/Nabu/discussions'
+export const NABU_GITHUB_CONTRIBUTING_URL = 'https://github.com/Nabu-md/Nabu/blob/main/CONTRIBUTING.md'
+export const NABU_GITHUB_ISSUES_URL = 'https://github.com/Nabu-md/Nabu/issues'
+export const NABU_GITHUB_PULL_REQUESTS_URL = 'https://github.com/Nabu-md/Nabu/pulls'
 
 export type ContributionTone = 'blue' | 'green' | 'yellow' | 'purple' | 'red'
 export type ContributionIcon = typeof Lightbulb
 export type ContributionAnalyticsAction =
-  | 'newsletter_refactoring'
+  | 'newsletter_nabu'
   | 'sponsor_codescene'
   | 'sponsor_unblocked'
   | 'sponsors_development_article'
@@ -72,12 +72,12 @@ export const CONTRIBUTION_ANALYTICS_EVENT = 'contribution_action_clicked'
 export const CONTRIBUTION_ANALYTICS_SURFACE = 'contribute_dialog'
 
 export const NEWSLETTER_PATH = {
-  analyticsAction: 'newsletter_refactoring',
+  analyticsAction: 'newsletter_nabu',
   titleKey: 'feedback.newsletter.title',
   descriptionKey: 'feedback.newsletter.description',
   ctaLabelKey: 'feedback.newsletter.cta',
   labelKey: 'feedback.newsletter.linkLabel',
-  url: REFACTORING_HOME_URL,
+  url: NABU_HOME_URL,
   icon: Newspaper,
   tone: 'blue',
 } satisfies ContributionPath

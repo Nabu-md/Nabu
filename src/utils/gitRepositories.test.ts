@@ -47,11 +47,11 @@ describe('activeGitRepositories', () => {
 
   it('falls back to the path name when native omits a repository label', () => {
     expect(activeGitRepositories({
-      defaultVaultPath: '/Users/luca/Workspace/laputa',
+      defaultVaultPath: '/Users/demo/workspace/laputa',
       multiWorkspaceEnabled: true,
-      vaults: [{ path: '/Users/luca/Workspace/laputa', available: true, mounted: true } as VaultOption],
+      vaults: [{ path: '/Users/demo/workspace/laputa', available: true, mounted: true } as VaultOption],
     })).toEqual([{
-      path: '/Users/luca/Workspace/laputa',
+      path: '/Users/demo/workspace/laputa',
       label: 'laputa',
       defaultForNewNotes: true,
     }])

@@ -152,7 +152,7 @@ test('inspector shows properties for selected note', async ({ page }) => {
   // Status
   await expect(page.locator('.inspector__status-pill', { hasText: 'Active' })).toBeVisible()
   // Owner
-  await expect(page.locator('.inspector__prop-value', { hasText: 'Luca Rossi' })).toBeVisible()
+  await expect(page.locator('.inspector__prop-value', { hasText: 'Demo User' })).toBeVisible()
 
   await page.screenshot({ path: 'test-results/core-inspector.png', fullPage: true })
 })

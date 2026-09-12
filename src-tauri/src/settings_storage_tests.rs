@@ -121,7 +121,7 @@ fn test_old_settings_json_missing_telemetry_fields() {
     let legacy_token = ["gho", "test"].join("_");
     let legacy_settings = serde_json::json!({
         "github_token": legacy_token,
-        "github_username": "lucaong",
+        "github_username": "nabu-md",
     });
     fs::write(&path, legacy_settings.to_string()).unwrap();
     let loaded = get_settings_at(&path).unwrap();

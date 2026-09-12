@@ -94,7 +94,7 @@ fn test_single_element_array_properties_unwrap_to_scalars() {
         SingleElementArrayCase {
             note_type: "Responsibility",
             key: "Owner",
-            value: "Luca",
+            value: "Demo User",
         },
         SingleElementArrayCase {
             note_type: "Procedure",

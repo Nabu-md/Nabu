@@ -52,7 +52,7 @@ fn test_parse_relationships_single_string() {
     let dir = TempDir::new().unwrap();
     let content = r#"---
 Is A: Project
-Owner: "[[person/luca-rossi|Luca Rossi]]"
+Owner: "[[person/luca-rossi|Demo User]]"
 Belongs to:
   - "[[responsibility/grow-newsletter]]"
 ---

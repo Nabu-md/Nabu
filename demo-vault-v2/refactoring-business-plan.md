@@ -88,7 +88,7 @@ _sheet:
     S14:
       bold: true
 ---
-Refactoring business plan,3-year monthly operating model,,,,,,,,,,,,,,,,,
+Engineering business plan,3-year monthly operating model,,,,,,,,,,,,,,,,,
 Start free newsletter subscribers,2500,,,,,,,,,,,,,,,,,
 Monthly free subscriber growth rate,0.07,,,,,,,,,,,,,,,,,
 Monthly free subscriber churn,0.012,,,,,,,,,,,,,,,,,

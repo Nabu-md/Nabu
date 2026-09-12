@@ -4,7 +4,7 @@ import { FeedbackDialog } from './FeedbackDialog'
 import { TooltipProvider } from './ui/tooltip'
 import {
   CODESCENE_HOME_URL,
-  REFACTORING_HOME_URL,
+  NABU_HOME_URL,
   NABU_DEVELOPMENT_ARTICLE_URL,
   NABU_GITHUB_CONTRIBUTING_URL,
   NABU_GITHUB_DISCUSSIONS_URL,
@@ -52,13 +52,13 @@ describe('FeedbackDialog', () => {
     expect(screen.getByTestId('feedback-dialog')).toBeInTheDocument()
     expect(screen.getByText('Contribute to Nabu')).toBeInTheDocument()
     expect(screen.getByText('Pick the path that fits what you want to do! Any type of help is appreciated')).toBeInTheDocument()
-    expect(screen.getByText('Join Refactoring')).toBeInTheDocument()
+    expect(screen.getByText('Join Engineering')).toBeInTheDocument()
     expect(screen.getByText('Sponsors')).toBeInTheDocument()
     expect(screen.getByText('Feature requests')).toBeInTheDocument()
     expect(screen.getByText('Discussions')).toBeInTheDocument()
     expect(screen.getByText('Contribute code')).toBeInTheDocument()
     expect(screen.getByText('Report a bug')).toBeInTheDocument()
-    expect(screen.getByText(/Refactoring is my newsletter and community/i)).toBeInTheDocument()
+    expect(screen.getByText(/Engineering is my newsletter and community/i)).toBeInTheDocument()
     expect(screen.getByText(/Nabu is supported by a panel of tools/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'how I develop Nabu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open CodeScene' })).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('FeedbackDialog', () => {
 
   it('focuses the primary CTA when opened', async () => {
     render(<FeedbackDialog open={true} onClose={vi.fn()} buildNumber="b281" releaseChannel={null} />)
-    const cta = screen.getByRole('button', { name: 'Check out Refactoring' })
+    const cta = screen.getByRole('button', { name: 'Check out Engineering' })
     await waitFor(() => expect(cta).toHaveFocus())
   })
 
@@ -91,7 +91,7 @@ describe('FeedbackDialog', () => {
     const onClose = vi.fn()
     render(<FeedbackDialog open={true} onClose={onClose} buildNumber="b281" releaseChannel={null} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check out Refactoring' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Check out Engineering' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open CodeScene' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Unblocked' }))
     fireEvent.click(screen.getByRole('button', { name: 'how I develop Nabu' }))
@@ -102,7 +102,7 @@ describe('FeedbackDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Issues' }))
 
     const expectedActions = [
-      ['newsletter_refactoring', REFACTORING_HOME_URL],
+      ['newsletter_nabu', NABU_HOME_URL],
       ['sponsor_codescene', CODESCENE_HOME_URL],
       ['sponsor_unblocked', UNBLOCKED_HOME_URL],
       ['sponsors_development_article', NABU_DEVELOPMENT_ARTICLE_URL],
@@ -120,7 +120,7 @@ describe('FeedbackDialog', () => {
       })
     }
 
-    await waitFor(() => expect(openExternalUrl).toHaveBeenNthCalledWith(1, REFACTORING_HOME_URL))
+    await waitFor(() => expect(openExternalUrl).toHaveBeenNthCalledWith(1, NABU_HOME_URL))
     expect(openExternalUrl).toHaveBeenNthCalledWith(2, CODESCENE_HOME_URL)
     expect(openExternalUrl).toHaveBeenNthCalledWith(3, UNBLOCKED_HOME_URL)
     expect(openExternalUrl).toHaveBeenNthCalledWith(4, NABU_DEVELOPMENT_ARTICLE_URL)

@@ -60,7 +60,7 @@ describe('sheet clipboard', () => {
   })
 
   it('copies external formula sources even when the workbook cell contains the evaluated value', () => {
-    const formula = '=C15*[[refactoring-newsletter-model-assumptions]].C19'
+    const formula = '=C15*[[engineering-newsletter-model-assumptions]].C19'
     const payload = buildNabuSheetClipboardPayload(
       makeModel({ '1:1': '$23,527' }),
       '/vault/business-plan.md',

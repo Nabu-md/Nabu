@@ -32,11 +32,11 @@ describe('TableOfContentsPanel', () => {
   it('does not duplicate the note title when the first markdown H1 matches it', () => {
     const toc = buildTableOfContentsFromMarkdown(
       'Introducing Nabu',
-      '# Introducing Nabu\n\n## Nabu + Refactoring\n\n## Principles',
+      '# Introducing Nabu\n\n## Nabu + Engineering\n\n## Principles',
     )
 
     expect(toc.title).toBe('Introducing Nabu')
-    expect(toc.children.map((item) => item.title)).toEqual(['Nabu + Refactoring', 'Principles'])
+    expect(toc.children.map((item) => item.title)).toEqual(['Nabu + Engineering', 'Principles'])
   })
 
   it('ignores markdown headings inside fenced and inline code areas', () => {
@@ -69,12 +69,12 @@ describe('TableOfContentsPanel', () => {
         editor={{
           document: [
             { id: 'title-block', type: 'heading', props: { level: 1 }, content: [{ type: 'text', text: 'Introducing Nabu' }] },
-            { id: 'section-block', type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Nabu + Refactoring' }] },
+            { id: 'section-block', type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Nabu + Engineering' }] },
           ],
           setTextCursorPosition,
         }}
         entry={{ ...entry, title: 'Introducing Nabu' } as VaultEntry}
-        sourceContent={'# Introducing Nabu\n\n## Nabu + Refactoring'}
+        sourceContent={'# Introducing Nabu\n\n## Nabu + Engineering'}
         onClose={vi.fn()}
       />,
     )
@@ -82,7 +82,7 @@ describe('TableOfContentsPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Introducing Nabu/ }))
     expect(setTextCursorPosition).toHaveBeenCalledWith('title-block', 'start')
 
-    fireEvent.click(await screen.findByRole('button', { name: /Nabu \+ Refactoring/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Nabu \+ Engineering/ }))
     expect(setTextCursorPosition).toHaveBeenCalledWith('section-block', 'start')
   })
 

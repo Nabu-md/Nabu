@@ -159,6 +159,7 @@ pub struct Settings {
     /// static HTTP content; JS-rendered scraping (headless browser shell-out)
     /// is refused because it can spawn browser subprocesses with high RAM use.
     pub mini_apps_web_access_enabled: Option<bool>,
+    pub dock_icon_variant: Option<String>,
 }
 
 fn normalize_optional_string(value: Option<String>) -> Option<String> {
@@ -174,6 +175,21 @@ fn normalize_optional_positive_u32(value: Option<u32>) -> Option<u32> {
 pub fn normalize_release_channel(value: Option<&str>) -> Option<String> {
     match value.map(|candidate| candidate.trim().to_ascii_lowercase()) {
         Some(channel) if channel == "alpha" => Some(channel),
+        _ => None,
+    }
+}
+
+pub fn normalize_dock_icon_variant(value: Option<&str>) -> Option<String> {
+    match value.map(|candidate| candidate.trim().to_ascii_lowercase()) {
+        Some(v)
+            if [
+                "variant-1", "variant-2", "variant-3", "variant-4", "variant-5",
+                "variant-6", "variant-7", "variant-8", "variant-9", "variant-10",
+            ]
+            .contains(&v.as_str()) =>
+        {
+            Some(v)
+        }
         _ => None,
     }
 }
@@ -316,6 +332,7 @@ fn normalize_settings(settings: Settings) -> Settings {
         buzz_enabled: settings.buzz_enabled,
         buzz_default_channel: normalize_optional_string(settings.buzz_default_channel),
         mini_apps_web_access_enabled: settings.mini_apps_web_access_enabled,
+        dock_icon_variant: normalize_dock_icon_variant(settings.dock_icon_variant.as_deref()),
     }
 }
 

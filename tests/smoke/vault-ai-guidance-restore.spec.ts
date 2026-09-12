@@ -6,7 +6,7 @@ test('vault guidance restore command recovers missing managed guidance', async (
     localStorage.clear()
     Object.defineProperty(window, 'prompt', {
       configurable: true,
-      value: () => '/Users/luca/Laputa',
+      value: () => '/Users/demo/vault',
     })
 
     let ref: Record<string, unknown> | null = null
@@ -27,8 +27,8 @@ test('vault guidance restore command recovers missing managed guidance', async (
           default_ai_agent: 'codex',
         })
 
-        ref.get_default_vault_path = () => '/Users/luca/Laputa'
-        ref.check_vault_exists = (args: { path: string }) => args.path === '/Users/luca/Laputa'
+        ref.get_default_vault_path = () => '/Users/demo/vault'
+        ref.check_vault_exists = (args: { path: string }) => args.path === '/Users/demo/vault'
         ref.get_ai_agents_status = () => ({
           claude_code: { installed: false, version: null },
           codex: { installed: true, version: '1.2.3' },

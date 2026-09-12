@@ -40,7 +40,7 @@ export const makeEntry = (overrides: Partial<VaultEntry> = {}): VaultEntry => ({
 
 export const mockEntries: VaultEntry[] = [
   makeEntry({
-    path: '/Users/luca/Laputa/project/26q1-laputa-app.md',
+    path: '/Users/demo/vault/project/26q1-laputa-app.md',
     filename: '26q1-laputa-app.md',
     title: 'Build Laputa App',
     isA: 'Project',
@@ -55,7 +55,7 @@ export const mockEntries: VaultEntry[] = [
     },
   }),
   makeEntry({
-    path: '/Users/luca/Laputa/note/facebook-ads-strategy.md',
+    path: '/Users/demo/vault/note/facebook-ads-strategy.md',
     filename: 'facebook-ads-strategy.md',
     title: 'Facebook Ads Strategy',
     isA: 'Note',
@@ -71,7 +71,7 @@ export const mockEntries: VaultEntry[] = [
     },
   }),
   makeEntry({
-    path: '/Users/luca/Laputa/person/matteo-cellini.md',
+    path: '/Users/demo/vault/person/matteo-cellini.md',
     filename: 'matteo-cellini.md',
     title: 'Matteo Cellini',
     isA: 'Person',
@@ -81,7 +81,7 @@ export const mockEntries: VaultEntry[] = [
     snippet: 'Sponsorship manager.',
   }),
   makeEntry({
-    path: '/Users/luca/Laputa/event/2026-02-14-kickoff.md',
+    path: '/Users/demo/vault/event/2026-02-14-kickoff.md',
     filename: '2026-02-14-kickoff.md',
     title: 'Kickoff Meeting',
     isA: 'Event',
@@ -91,7 +91,7 @@ export const mockEntries: VaultEntry[] = [
     snippet: 'Project kickoff meeting notes.',
   }),
   makeEntry({
-    path: '/Users/luca/Laputa/topic/software-development.md',
+    path: '/Users/demo/vault/topic/software-development.md',
     filename: 'software-development.md',
     title: 'Software Development',
     isA: 'Topic',

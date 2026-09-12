@@ -3,7 +3,7 @@ type: Note
 aliases:
   - "[[Laputa QA Reference]]"
 related_to:
-  - "[[25q2-laputa-v2]]"
+  - "[[25q2-v2]]"
 ---
 
 # Laputa QA Reference

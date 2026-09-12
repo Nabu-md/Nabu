@@ -1,6 +1,6 @@
 # Nabu — Product Vision
 
-*Written by Brian based on conversations with Luca Rossi, Feb–Mar 2026.*
+*Written by Brian based on conversations with Demo User, Feb–Mar 2026.*
 *This is a living document — update it as the vision evolves.*
 
 ---
@@ -11,23 +11,23 @@ Before the what and how: the why.
 
 The best projects are built by people who have an unusually strong answer to "why are you the right person to build this?" This is that answer.
 
-**Luca Rossi** is a startup founder and former generalist CTO — someone who can build a product end-to-end across code, design, scope, and product. And for the last five years, full-time, he has run Refactoring: a technical newsletter with nearly 200,000 subscribers, for which he has written over 300 original articles. In word count, that's roughly two *Lord of the Rings* novels.
+**Demo User** is a startup founder and former generalist CTO — someone who can build a product end-to-end across code, design, scope, and product. And for the last five years, full-time, he has run Engineering: a technical newsletter with nearly 200,000 subscribers, for which he has written over 300 original articles. In word count, that's roughly two *Lord of the Rings* novels.
 
 Personal knowledge management has been an obsession since university. But over the last five years it stopped being a hobby and became *table stakes* — the system that makes writing 300 articles possible. Nabu is an attempt to bottle that system.
 
 The credibility is real: if you wonder whether this person knows how to organize knowledge for sustained output, the output speaks for itself. The method inside Nabu is not theorized — it's been battle-tested for years at scale.
 
-**The distribution is built in.** Refactoring reaches ~200,000 engineers, managers, and technical leaders — exactly the people most receptive to a tool like this. The audience already trusts the author on this topic, because they've been reading his writing about knowledge management and learning for years.
+**The distribution is built in.** Engineering reaches ~200,000 engineers, managers, and technical leaders — exactly the people most receptive to a tool like this. The audience already trusts the author on this topic, because they've been reading his writing about knowledge management and learning for years.
 
 This is not a product looking for a market. It's a tool built by its first power user, for an audience that already knows and trusts him.
 
-**Why Nabu, in the context of Refactoring.**
+**Why Nabu, in the context of Engineering.**
 
-Refactoring is a newsletter about how software is built, how teams work, and how digital products are developed — written from Luca's experience and conversations with other tech leaders. A natural question follows: what is the author's own current experience building software with AI?
+Engineering is a newsletter about how software is built, how teams work, and how digital products are developed — written from Demo User's experience and conversations with other tech leaders. A natural question follows: what is the author's own current experience building software with AI?
 
 Nabu answers that question directly and publicly. If it works — if it becomes a real product used by real people — it validates the author's capabilities and authority to write about these topics. Not as theory, but as demonstrated practice. Anyone can look at the GitHub repository, see 100 commits a day, and verify: this person actually does this.
 
-This is why Nabu is **free and open source**: success becomes a reputation and acquisition channel for Refactoring. The attention and trust earned through a well-executed open source project converts — through sponsorships, paid subscriptions, and brand authority — into the business that Refactoring runs on.
+This is why Nabu is **free and open source**: success becomes a reputation and acquisition channel for Engineering. The attention and trust earned through a well-executed open source project converts — through sponsorships, paid subscriptions, and brand authority — into the business that Engineering runs on.
 
 The strategy is coherent: build the tool you describe, make the work visible, let the product speak for the author.
 
@@ -110,7 +110,7 @@ Notes move through two distinct phases, and the transition between them is inten
 
 The method lives in the app as *conventions*: standard field names and folder structures that have well-defined meanings and trigger specific behavior.
 
-`status:` shows a colored chip. `Workspace: [[workspace/refactoring]]` assigns a note to a context. `Belongs to:` connects it to its parent. `start_date:` and `end_date:` show a duration badge. The app recognizes these by convention, without any setup.
+`status:` shows a colored chip. `Workspace: [[workspace/engineering]]` assigns a note to a context. `Belongs to:` connects it to its parent. `start_date:` and `end_date:` show a duration badge. The app recognizes these by convention, without any setup.
 
 Users who want more can override the defaults: `config/relations.md` changes which relationship fields appear by default; `config/semantic-properties.md` controls how fields are rendered. But the defaults work immediately, for everyone.
 
