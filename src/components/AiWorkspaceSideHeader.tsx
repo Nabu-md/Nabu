@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowsInLineHorizontal, ArrowsOutLineHorizontal, MagnifyingGlass, Plus, SidebarSimple, X } from '@phosphor-icons/react'
+import { ArrowsInLineHorizontal, ArrowsOutLineHorizontal, Clock, MagnifyingGlass, Plus, SidebarSimple, X } from '@phosphor-icons/react'
 import { DndContext, PointerSensor, closestCenter, type DragEndEvent, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -300,6 +300,7 @@ export function SideWorkspaceHeader(options: {
   onSelect: (id: string) => void
   onToggleExpanded: () => void
   onToggleResearch?: () => void
+  onToggleThreads?: () => void
   researchMode?: boolean
   separated: boolean
   statuses: Record<string, AgentStatus>
@@ -317,6 +318,7 @@ export function SideWorkspaceHeader(options: {
     onSelect,
     onToggleExpanded,
     onToggleResearch,
+    onToggleThreads,
     researchMode,
     separated,
     statuses,
@@ -339,13 +341,26 @@ export function SideWorkspaceHeader(options: {
         onSelect={onSelect}
         statuses={statuses}
       />
-      {onToggleResearch && (
+      {onToggleResearch && researchMode && onToggleThreads && (
         <Button
           type="button"
-          variant={researchMode ? 'default' : 'ghost'}
+          variant="ghost"
           size="icon-sm"
-          aria-label={translate(locale, researchMode ? 'ai.workspace.deepResearchBack' : 'ai.workspace.deepResearch')}
-          title={translate(locale, researchMode ? 'ai.workspace.deepResearchBack' : 'ai.workspace.deepResearch')}
+          aria-label={translate(locale, 'ai.workspace.deepResearchBack')}
+          title={translate(locale, 'ai.workspace.deepResearchBack')}
+          data-testid="ai-workspace-threads-toggle"
+          onClick={onToggleThreads}
+        >
+          <Clock size={17} />
+        </Button>
+      )}
+      {onToggleResearch && !researchMode && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={translate(locale, 'ai.workspace.deepResearch')}
+          title={translate(locale, 'ai.workspace.deepResearch')}
           data-testid="ai-workspace-deep-research-toggle"
           onClick={onToggleResearch}
         >

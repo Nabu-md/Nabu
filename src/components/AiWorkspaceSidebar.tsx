@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Archive, ArrowSquareIn, Check, CircleNotch, MagnifyingGlass, Plus, SidebarSimple } from '@phosphor-icons/react'
+import { Archive, ArrowSquareIn, Check, CircleNotch, Clock, MagnifyingGlass, Plus, SidebarSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ interface ConversationSidebarProps {
   onSelect: (id: string) => void
   onToggleCollapsed: () => void
   onToggleResearch?: () => void
+  onToggleThreads?: () => void
   researchMode?: boolean
   setShowArchived: (show: boolean) => void
   showArchived: boolean
@@ -50,6 +51,7 @@ function SidebarHeader({
   onNewChat,
   onToggleCollapsed,
   onToggleResearch,
+  onToggleThreads,
   researchMode,
 }: {
   collapsed: boolean
@@ -57,6 +59,7 @@ function SidebarHeader({
   onNewChat: () => void
   onToggleCollapsed: () => void
   onToggleResearch?: () => void
+  onToggleThreads?: () => void
   researchMode?: boolean
 }) {
   const { dragRegionRef } = useDragRegion<HTMLDivElement>()
@@ -89,10 +92,23 @@ function SidebarHeader({
         )}
       </div>
       <div className="flex min-w-0 items-center gap-1" data-no-drag>
-        {!collapsed && onToggleResearch && (
+        {!collapsed && researchMode && onToggleThreads && (
           <Button
             type="button"
-            variant={researchMode ? 'default' : 'ghost'}
+            variant="ghost"
+            size="icon-xs"
+            aria-label={translate(locale, 'ai.threads.expand')}
+            title={translate(locale, 'ai.threads.expand')}
+            data-testid="ai-workspace-threads-toggle"
+            onClick={onToggleThreads}
+          >
+            <Clock size={16} />
+          </Button>
+        )}
+        {!collapsed && !researchMode && onToggleResearch && (
+          <Button
+            type="button"
+            variant="ghost"
             size="icon-xs"
             aria-label={translate(locale, 'ai.workspace.deepResearch')}
             title={translate(locale, 'ai.workspace.deepResearch')}
@@ -173,19 +189,34 @@ function CollapsedConversationSidebar({
   locale,
   onNewChat,
   onToggleResearch,
+  onToggleThreads,
   researchMode,
 }: {
   locale: AppLocale
   onNewChat: () => void
   onToggleResearch?: () => void
+  onToggleThreads?: () => void
   researchMode?: boolean
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2 p-2">
-      {onToggleResearch && (
+      {researchMode && onToggleThreads && (
         <Button
           type="button"
-          variant={researchMode ? 'default' : 'ghost'}
+          variant="ghost"
+          size="icon-xs"
+          aria-label={translate(locale, 'ai.threads.expand')}
+          title={translate(locale, 'ai.threads.expand')}
+          data-testid="ai-workspace-threads-toggle"
+          onClick={onToggleThreads}
+        >
+          <Clock size={16} />
+        </Button>
+      )}
+      {!researchMode && onToggleResearch && (
+        <Button
+          type="button"
+          variant="ghost"
           size="icon-xs"
           aria-label={translate(locale, 'ai.workspace.deepResearch')}
           title={translate(locale, 'ai.workspace.deepResearch')}
@@ -448,9 +479,10 @@ export function ConversationSidebar(options: ConversationSidebarProps) {
     onRename,
     onRestore,
     onSelect,
-    onToggleCollapsed,
-    onToggleResearch,
-    researchMode,
+     onToggleCollapsed,
+     onToggleResearch,
+     onToggleThreads,
+     researchMode,
     setShowArchived,
     showArchived,
     sidebarWidth,
@@ -467,6 +499,7 @@ export function ConversationSidebar(options: ConversationSidebarProps) {
         onNewChat={onNewChat}
         onToggleCollapsed={onToggleCollapsed}
         onToggleResearch={onToggleResearch}
+        onToggleThreads={onToggleThreads}
         researchMode={researchMode}
       />
       {collapsed ? (
@@ -474,6 +507,7 @@ export function ConversationSidebar(options: ConversationSidebarProps) {
           locale={locale}
           onNewChat={onNewChat}
           onToggleResearch={onToggleResearch}
+          onToggleThreads={onToggleThreads}
           researchMode={researchMode}
         />
       ) : (

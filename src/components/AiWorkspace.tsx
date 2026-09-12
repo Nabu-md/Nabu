@@ -76,6 +76,7 @@ interface AiWorkspaceProps {
   onOpenNote?: (path: string) => void
   onPopOut?: (context?: { activeConversationId?: string }) => void
   onRestoreVaultAiGuidance?: () => void
+  onToggleThreads?: () => void
   onUnsupportedAiPaste?: (message: string) => void
   onVaultChanged?: () => void
   open: boolean
@@ -172,6 +173,8 @@ type ConversationSessionProps = {
   onOpenNote?: (path: string) => void
   onPopOut?: () => void
   onRestoreVaultAiGuidance?: () => void
+  onToggleThreads: () => void
+  threadsCollapsed: boolean
   onSelectModel: (modelId: string | null) => void
   onSelectTarget: (targetId: string) => void
   onStatusChange: (id: string, status: AgentStatus) => void
@@ -433,6 +436,8 @@ interface ConversationSessionViewProps {
   onPopOut?: () => void
   onPromptSubmitted: (id: string) => void
   onRestoreVaultAiGuidance?: () => void
+  onToggleThreads?: () => void
+  threadsCollapsed?: boolean
   onSelectTarget: (targetId: string) => void
   onUnsupportedAiPaste?: (message: string) => void
   researchMode: boolean
@@ -460,6 +465,8 @@ function ConversationSessionView(options: ConversationSessionViewProps) {
     onPopOut,
     onPromptSubmitted,
     onRestoreVaultAiGuidance,
+    onToggleThreads,
+    threadsCollapsed,
     onSelectTarget,
     onUnsupportedAiPaste,
     researchMode,
@@ -509,6 +516,8 @@ function ConversationSessionView(options: ConversationSessionViewProps) {
           vaultPath={context.vaultPath}
           vaultPaths={context.vaultPaths}
           researchMode={researchMode}
+          onToggleThreads={onToggleThreads}
+          threadsCollapsed={threadsCollapsed}
         />
       </div>
     </div>
@@ -543,6 +552,8 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
     onPopOut,
     onRestoreVaultAiGuidance,
     onSelectTarget,
+    onToggleThreads,
+    threadsCollapsed,
     onSelectModel,
     onStatusChange,
     onPromptSubmitted,
@@ -669,6 +680,8 @@ function ConversationSession(functionOptions: ConversationSessionProps) {
       onPopOut={onPopOut}
       onPromptSubmitted={onPromptSubmitted}
       onRestoreVaultAiGuidance={onRestoreVaultAiGuidance}
+      onToggleThreads={onToggleThreads}
+      threadsCollapsed={threadsCollapsed}
       onSelectTarget={onSelectTarget}
       onUnsupportedAiPaste={onUnsupportedAiPaste}
       researchMode={researchMode}
@@ -731,12 +744,16 @@ function resolveAiWorkspaceProps(props: AiWorkspaceProps): ResolvedAiWorkspacePr
 function SideAiWorkspaceLayout({
   model,
   onToggleResearch,
+  onToggleThreads,
+  threadsCollapsed,
   researchMode,
   sizing,
   workspace,
 }: {
   model: AiWorkspaceModel
   onToggleResearch: () => void
+  onToggleThreads: () => void
+  threadsCollapsed: boolean
   researchMode: boolean
   sizing: AiWorkspaceSizing
   workspace: ResolvedAiWorkspaceProps
@@ -768,12 +785,15 @@ function SideAiWorkspaceLayout({
           onSelect={model.setActiveId}
           onToggleExpanded={() => setExpanded((current) => !current)}
           onToggleResearch={onToggleResearch}
+          onToggleThreads={onToggleThreads}
           researchMode={researchMode}
           separated={headerSeparated}
           statuses={model.statuses}
         />
         <ConversationSessions
           model={model}
+          onToggleThreads={onToggleThreads}
+          threadsCollapsed={threadsCollapsed}
           researchMode={researchMode}
           workspace={workspace}
           onMessageHistoryScrollStateChange={setHeaderSeparated}
@@ -1011,11 +1031,15 @@ function useAiWorkspaceModel(workspace: ResolvedAiWorkspaceProps): AiWorkspaceMo
 function AiWorkspaceLayout({
   model,
   onToggleResearch,
+  onToggleThreads,
+  threadsCollapsed,
   researchMode,
   workspace,
 }: {
   model: AiWorkspaceModel
   onToggleResearch: () => void
+  onToggleThreads: () => void
+  threadsCollapsed: boolean
   researchMode: boolean
   workspace: ResolvedAiWorkspaceProps
 }) {
@@ -1025,6 +1049,8 @@ function AiWorkspaceLayout({
       <SideAiWorkspaceLayout
         model={model}
         onToggleResearch={onToggleResearch}
+        onToggleThreads={onToggleThreads}
+        threadsCollapsed={threadsCollapsed}
         researchMode={researchMode}
         sizing={sizing}
         workspace={workspace}
@@ -1055,6 +1081,7 @@ function AiWorkspaceLayout({
         onSelect={model.setActiveId}
         onToggleCollapsed={model.toggleSidebarCollapsed}
         onToggleResearch={onToggleResearch}
+        onToggleThreads={onToggleThreads}
         researchMode={researchMode}
         setShowArchived={model.setShowArchived}
         showArchived={model.showArchived}
@@ -1063,7 +1090,13 @@ function AiWorkspaceLayout({
       />
       {!model.sidebarCollapsed && <ResizeHandle onResize={sizing.onSidebarResize} />}
       <div className="flex min-w-0 flex-1 flex-col">
-        <ConversationSessions model={model} researchMode={researchMode} workspace={workspace} />
+        <ConversationSessions
+          model={model}
+          onToggleThreads={onToggleThreads}
+          threadsCollapsed={threadsCollapsed}
+          researchMode={researchMode}
+          workspace={workspace}
+        />
       </div>
     </section>
   )
@@ -1071,11 +1104,15 @@ function AiWorkspaceLayout({
 
 function ConversationSessions({
   model,
+  onToggleThreads,
+  threadsCollapsed,
   researchMode,
   onMessageHistoryScrollStateChange,
   workspace,
 }: {
   model: AiWorkspaceModel
+  onToggleThreads: () => void
+  threadsCollapsed: boolean
   researchMode: boolean
   onMessageHistoryScrollStateChange?: (scrolled: boolean) => void
   workspace: ResolvedAiWorkspaceProps
@@ -1118,6 +1155,8 @@ function ConversationSessions({
             onStatusChange={model.handleStatusChange}
             onPromptSubmitted={model.markConversationActivity}
             onTitleFromAnswer={model.titleConversationFromAnswer}
+            onToggleThreads={onToggleThreads}
+            threadsCollapsed={threadsCollapsed}
             onUnsupportedAiPaste={workspace.onUnsupportedAiPaste}
             onVaultChanged={workspace.onVaultChanged}
             openTabs={workspace.openTabs}
@@ -1145,6 +1184,7 @@ export function AiWorkspace(props: AiWorkspaceProps) {
   const model = useAiWorkspaceModel(workspace)
   const { onActiveConversationChange } = workspace
   const [manualResearchMode, setResearchMode] = useState(false)
+  const [threadsCollapsed, setThreadsCollapsed] = useState(false)
   // Deep Research as a prompt-box permission mode activates the deep research
   // panel; the header toggle stays available and can force it back off.
   const [permissionModeOverride, setPermissionModeOverride] = useState<AiAgentPermissionMode | null>(null)
@@ -1160,6 +1200,10 @@ export function AiWorkspace(props: AiWorkspaceProps) {
       return next
     })
   }, [deepResearchActive])
+
+  const toggleThreads = useCallback(() => {
+    setThreadsCollapsed((current) => !current)
+  }, [])
 
   useEffect(() => {
     if (!workspace.open || !model.activeId) return
@@ -1179,6 +1223,8 @@ export function AiWorkspace(props: AiWorkspaceProps) {
     <AiWorkspaceLayout
       model={model}
       onToggleResearch={toggleResearch}
+      onToggleThreads={toggleThreads}
+      threadsCollapsed={threadsCollapsed}
       researchMode={researchMode}
       workspace={workspace}
     />

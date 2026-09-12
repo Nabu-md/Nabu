@@ -135,6 +135,7 @@ function StatusBarSecondaryFromFooter(options: StatusBarFooterProps) {
     onOpenDocs,
     onOpenSettings,
     locale = 'en',
+    miniAppsProps,
     compact,
     stacked,
   } = options
@@ -151,6 +152,7 @@ function StatusBarSecondaryFromFooter(options: StatusBarFooterProps) {
         locale={locale}
         stacked={stacked}
         compact={compact}
+        miniAppsProps={miniAppsProps}
       />
   )
 }

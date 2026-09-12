@@ -39,6 +39,9 @@ interface AiPanelProps {
   openTabs?: VaultEntry[]
   noteList?: NoteListItem[]
   noteListFilter?: { type: string | null; query: string }
+  researchMode?: boolean
+  onToggleThreads?: () => void
+  threadsCollapsed?: boolean
 }
 
 interface AiPanelViewProps {
@@ -67,6 +70,8 @@ interface AiPanelViewProps {
   vaultPaths?: string[]
   /** Deep research runs inline in this same chat surface when true. */
   researchMode?: boolean
+  onToggleThreads?: () => void
+  threadsCollapsed?: boolean
 }
 
 function readinessFromReadyFlag(ready: boolean | undefined): AiAgentReadiness {
@@ -189,6 +194,8 @@ export function AiPanelView(options: AiPanelViewProps) {
     targetId,
     vaultPath,
     researchMode,
+    onToggleThreads,
+    threadsCollapsed,
   } = options
   const view = resolveAiPanelViewModel({
     defaultAiAgent: providedDefaultAiAgent,
@@ -242,6 +249,7 @@ export function AiPanelView(options: AiPanelViewProps) {
     messages: agent.messages,
     isActive,
     onClearConversation: handleNewChat,
+    setMessages: agent.setMessages,
   })
   const clarifyingForm = useClarifyingForm(interactive)
   // Deep research is a mode, not a separate panel: the normal chat composer
@@ -320,8 +328,8 @@ export function AiPanelView(options: AiPanelViewProps) {
               conversations={threads.conversations}
               activeConversationId={threads.activeConversationId}
               locale={locale}
-              collapsed={threads.threadsCollapsed}
-              onToggleCollapsed={threads.toggleThreadsCollapsed}
+              collapsed={threadsCollapsed ?? threads.threadsCollapsed}
+              onToggleCollapsed={onToggleThreads ?? threads.toggleThreadsCollapsed}
               onNewChat={threads.handleNewChat}
               onSelect={threads.handleSelectThread}
               onDelete={threads.handleDeleteThread}
@@ -347,11 +355,13 @@ function useAiThreadsIntegration({
   messages,
   isActive,
   onClearConversation,
+  setMessages,
 }: {
   vaultPath: string | null
   messages: AiAgentMessage[]
   isActive: boolean
   onClearConversation: () => void
+  setMessages: (messages: AiAgentMessage[]) => void
 }): AiThreadsIntegration | null {
   const [threadsCollapsed, setThreadsCollapsed] = useState(false)
   const conversations = useAiConversations({ vaultPath: vaultPath ?? '', enabled: !!vaultPath })
@@ -366,10 +376,18 @@ function useAiThreadsIntegration({
   }, [onClearConversation])
   const handleSelectThread = useCallback((id: string) => {
     const thread = conversations.conversations.find((conversation) => conversation.id === id)
+    if (!thread) return
     activeThreadIdRef.current = id
-    savedExchangeCountRef.current = thread?.messages.length ?? 0
+    savedExchangeCountRef.current = thread.messages.length
     conversations.selectConversation(id)
-  }, [conversations])
+    const aiMessages: AiAgentMessage[] = thread.messages.map((message) => {
+      if (message.role === 'user') {
+        return { userMessage: message.content, actions: [], response: undefined, isStreaming: false }
+      }
+      return { userMessage: '', actions: [], response: message.content, isStreaming: false }
+    })
+    setMessages(aiMessages)
+  }, [conversations, setMessages])
   const handleDeleteThread = useCallback((id: string) => {
     if (activeThreadIdRef.current === id) {
       activeThreadIdRef.current = null
@@ -444,7 +462,10 @@ function useAiThreadsIntegration({
       openTabs,
       noteList,
       noteListFilter,
-  } = options
+      researchMode,
+      onToggleThreads,
+      threadsCollapsed,
+    } = options
   const defaultAiAgentReadiness = providedDefaultAiAgentReadiness ?? readinessFromReadyFlag(providedDefaultAiAgentReady)
   const controller = useAiPanelController({
     vaultPath,
@@ -480,6 +501,9 @@ function useAiThreadsIntegration({
       activeEntry={activeEntry}
       entries={entries}
       targetId={defaultAiTarget?.id}
+      researchMode={researchMode}
+      onToggleThreads={onToggleThreads}
+      threadsCollapsed={threadsCollapsed}
     />
   )
 }
