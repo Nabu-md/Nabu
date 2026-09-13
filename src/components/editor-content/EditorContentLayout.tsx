@@ -296,9 +296,10 @@ function EditorLoadingBreadcrumb({
       onToggleInspector={actions.onToggleInspector}
       noteWidth={actions.noteWidth}
       onToggleNoteWidth={actions.onToggleNoteWidth}
-       sidebarVisible={sidebarVisible}
-       onToggleSidebar={onToggleSidebar}
-       search={search}
+      sidebarVisible={sidebarVisible}
+      onToggleSidebar={onToggleSidebar}
+      onSelectPath={onSelectPath}
+      search={search}
        onSearchChange={onSearchChange}
        vaultPath={vaultPath}
        locale={locale}

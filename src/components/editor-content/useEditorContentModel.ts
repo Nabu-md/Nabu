@@ -72,6 +72,7 @@ export interface EditorContentProps {
   onRemoveCover?: () => void
   sidebarVisible?: boolean
   onToggleSidebar?: () => void
+  onSelectPath?: (path: string) => void
   locale?: AppLocale
 }
 

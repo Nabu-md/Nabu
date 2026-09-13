@@ -1,4 +1,5 @@
 import {
+  Fragment,
   createContext,
   memo,
   useCallback,
@@ -100,6 +101,8 @@ interface BreadcrumbBarProps {
   search?: string
   onSearchChange?: (value: string) => void
   vaultPath?: string
+  /** Navigate to a folder or note by path — used for pressable breadcrumb crumbs. */
+  onSelectPath?: (path: string) => void
 }
 
 const BREADCRUMB_ICON_CLASS = 'size-[16px]'
@@ -1165,7 +1168,7 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function PathCrumb({ entry, vaultPath }: { entry: VaultEntry; vaultPath?: string }) {
+function PathCrumb({ entry, vaultPath, onSelectPath }: { entry: VaultEntry; vaultPath?: string; onSelectPath?: (path: string) => void }) {
   if (!entry.path || entry.path === entry.filename) return null
   let relativePath = entry.path.replace(/\\/g, '/').replace(/\/+$/, '')
   if (vaultPath) {
@@ -1183,13 +1186,32 @@ function PathCrumb({ entry, vaultPath }: { entry: VaultEntry; vaultPath?: string
   const parts = folderPath.split('/').filter(Boolean)
   if (parts.length === 0) return null
 
+  const vaultPathNormalized = vaultPath?.replace(/\\/g, '/').replace(/\/+$/, '')
+
   return (
     <>
-      {parts.map((part, index) => (
-        <span key={index} className="truncate text-muted-foreground">
-          {part}
-        </span>
-      ))}
+      {parts.map((part, index) => {
+        const accumulatedPath = parts.slice(0, index + 1).join('/')
+        const crumbPath = vaultPathNormalized ? `${vaultPathNormalized}/${accumulatedPath}` : accumulatedPath
+        const isFolder = index < parts.length - 1
+        return (
+          <Fragment key={crumbPath}>
+            {index > 0 && <BreadcrumbSeparator />}
+            {onSelectPath ? (
+              <button
+                type="button"
+                className="truncate font-medium text-muted-foreground hover:text-foreground hover:underline decoration-transparent hover:decoration-current"
+                onClick={() => onSelectPath(crumbPath)}
+                title={isFolder ? crumbPath : undefined}
+              >
+                {part}
+              </button>
+            ) : (
+              <span className="truncate text-muted-foreground">{part}</span>
+            )}
+          </Fragment>
+        )
+      })}
     </>
   )
 }
@@ -1200,7 +1222,8 @@ function BreadcrumbTitle({
   loadingTitle,
   onRenameFilename,
   vaultPath,
-}: Pick<BreadcrumbBarProps, 'content' | 'entry' | 'locale' | 'loadingTitle' | 'onRenameFilename' | 'vaultPath'>) {
+  onSelectPath,
+}: Pick<BreadcrumbBarProps, 'content' | 'entry' | 'locale' | 'loadingTitle' | 'onRenameFilename' | 'vaultPath' | 'onSelectPath'>) {
   const typeLabel = entry.isA ?? 'Note'
   const relPath = vaultPath && entry.path.startsWith(vaultPath.replace(/\\/g, '/').replace(/\/+$/, '') + '/')
     ? entry.path.slice(vaultPath.replace(/\\/g, '/').replace(/\/+$/, '').length + 1)
@@ -1212,7 +1235,7 @@ function BreadcrumbTitle({
       <span className="truncate" title={relPath}>{typeLabel}</span>
       <BreadcrumbSeparator />
       <div className="flex min-w-0 items-center gap-1 truncate">
-        <PathCrumb entry={entry} vaultPath={vaultPath} />
+        <PathCrumb entry={entry} vaultPath={vaultPath} onSelectPath={onSelectPath} />
         {loadingTitle
           ? <BreadcrumbTitleSkeleton />
           : <FilenameCrumb content={content} entry={entry} locale={locale} onRenameFilename={onRenameFilename} />}
@@ -1257,7 +1280,7 @@ function BreadcrumbSidebarAction({
             onClick={onToggleSidebar}
             aria-label={sidebarLabel}
           >
-            <SidebarSimple size={14} weight={sidebarVisible ? 'fill' : 'regular'} />
+            <SidebarSimple size={16} weight={sidebarVisible ? 'fill' : 'regular'} />
           </Button>
         </ActionTooltip>
       )}
@@ -1298,7 +1321,7 @@ function BreadcrumbSidebarAction({
               onClick={handleToggleSearch}
               aria-label={searchLabel}
             >
-              <MagnifyingGlass size={14} weight="regular" />
+              <MagnifyingGlass size={16} weight="regular" />
             </Button>
           </ActionTooltip>
         </>
@@ -1318,8 +1341,9 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
   onToggleSidebar,
   search,
   onSearchChange,
-  vaultPath,
-  ...actionProps
+   vaultPath,
+   onSelectPath,
+   ...actionProps
 }: BreadcrumbBarProps) {
   const { dragRegionRef, onMouseDown } = useDragRegion<HTMLDivElement>()
   const fallbackDragRegionRef = useRef<HTMLDivElement>(null)
@@ -1366,14 +1390,15 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
             locale={locale}
           />
           <div ref={titleRef} className="breadcrumb-bar__title min-w-0 flex-1 overflow-hidden">
-            <BreadcrumbTitle
-              content={content}
-              entry={entry}
-              locale={locale}
-              loadingTitle={loadingTitle}
-              onRenameFilename={onRenameFilename}
-              vaultPath={vaultPath}
-            />
+             <BreadcrumbTitle
+               content={content}
+               entry={entry}
+               locale={locale}
+               loadingTitle={loadingTitle}
+               onRenameFilename={onRenameFilename}
+               vaultPath={vaultPath}
+               onSelectPath={onSelectPath}
+             />
           </div>
           <div
             aria-hidden="true"

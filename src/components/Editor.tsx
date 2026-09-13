@@ -139,6 +139,7 @@ export interface EditorProps {
   onSearchChange?: (value: string) => void
   sidebarVisible?: boolean
   onToggleSidebar?: () => void
+  onSelectPath?: (path: string) => void
   leftPanelsCollapsed?: boolean
   /** Mutable ref that Editor registers its raw-mode toggle into, for command palette access. */
   rawToggleRef?: React.MutableRefObject<() => void>
@@ -589,6 +590,7 @@ function useEditorSetup(options: EditorSetupParams) {
       onRemoveCover?: () => void
       sidebarVisible?: boolean
       onToggleSidebar?: () => void
+      onSelectPath?: (path: string) => void
       search?: string
       onSearchChange?: (value: string) => void
     }) {
@@ -674,6 +676,7 @@ function useEditorSetup(options: EditorSetupParams) {
       onRemoveCover,
       sidebarVisible,
       onToggleSidebar,
+      onSelectPath,
       search,
       onSearchChange,
   } = options
@@ -749,6 +752,7 @@ function useEditorSetup(options: EditorSetupParams) {
               onRemoveCover={onRemoveCover}
               sidebarVisible={sidebarVisible}
               onToggleSidebar={onToggleSidebar}
+              onSelectPath={onSelectPath}
               search={search}
               onSearchChange={onSearchChange}
               locale={locale}

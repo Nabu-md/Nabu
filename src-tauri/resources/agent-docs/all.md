@@ -212,6 +212,9 @@ Coding agents can run in:
 
 - **Vault Safe** mode, limited to file, search, and edit tools.
 - **Power User** mode, which can allow local shell commands scoped to the active vault for agents that support shell access.
+- **Deep Research** mode, which runs a research loop in-chat for agents that support it.
+- **Mini App Builder** mode, which provides full file and shell access for building vault mini-apps.
+- **Semantic Search** mode, which uses RAG-style context retrieval.
 
 ## Agent Models
 
@@ -1130,6 +1133,9 @@ Coding agents support per-vault permission modes:
 
 - **Vault Safe** keeps agents limited to file, search, and edit tools.
 - **Power User** can allow shell commands for agents that support them.
+- **Deep Research** runs the research loop in-chat for agents that support it.
+- **Mini App Builder** builds and iterates on vault mini-apps with full file and shell access.
+- **Semantic Search** uses RAG-style context retrieval.
 
 Direct model targets always stay in chat mode. They can use note context, but they cannot edit vault files through tools.
 

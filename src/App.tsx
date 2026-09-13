@@ -827,6 +827,22 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     handleEnterNeighborhood(entry)
   }, [handleEnterNeighborhood, handleReplaceActiveTab])
 
+  const handleSelectPath = useCallback((path: string) => {
+    const normalizedTarget = path.replace(/\\/g, '/').replace(/\/+$/, '')
+    const found = visibleEntries.find((entry) => {
+      const normalizedEntryPath = entry.path.replace(/\\/g, '/').replace(/\/+$/, '')
+      return normalizedEntryPath === normalizedTarget || normalizedEntryPath.startsWith(`${normalizedTarget}/`)
+    })
+    if (found) {
+      void handleReplaceActiveTab(found)
+    } else {
+      const exactEntry = visibleEntries.find((entry) => notePathsMatch(entry.path, normalizedTarget))
+      if (exactEntry) {
+        void handleReplaceActiveTab(exactEntry)
+      }
+    }
+  }, [visibleEntries, handleReplaceActiveTab])
+
   const vaultBridge = useVaultBridge({
     entriesByPath,
     resolvedPath,
@@ -1874,9 +1890,10 @@ canGoBack={canGoBack}
                onGoForward={handleGoForward}
                 search={sidebarSearch}
                 onSearchChange={setSidebarSearch}
-                sidebarVisible={sidebarVisible}
-                onToggleSidebar={handleToggleSidebar}
-                leftPanelsCollapsed={!sidebarVisible && !noteListVisible}
+               sidebarVisible={sidebarVisible}
+               onToggleSidebar={handleToggleSidebar}
+               onSelectPath={handleSelectPath}
+               leftPanelsCollapsed={!sidebarVisible && !noteListVisible}
               onFileCreated={vaultBridge.handleAgentFileCreated}
               onFileModified={vaultBridge.handleAgentFileModified}
               onVaultChanged={vaultBridge.handleAgentVaultChanged}

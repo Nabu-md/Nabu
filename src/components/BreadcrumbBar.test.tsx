@@ -448,7 +448,7 @@ describe('BreadcrumbBar — title in breadcrumb (always rendered, CSS-toggled)',
   it('always renders title elements in the DOM', () => {
     render(<BreadcrumbBar entry={baseEntry} {...defaultProps} />)
     expect(screen.getByText('Note')).toBeInTheDocument()
-    expect(screen.getByText('›')).toBeInTheDocument()
+    expect(screen.getAllByText('›').length).toBeGreaterThan(0)
     expect(screen.getByText('test')).toBeInTheDocument()
   })
 
@@ -982,5 +982,26 @@ describe('BreadcrumbBar — table of contents toggle', () => {
     } finally {
       restoreMeasurement()
     }
+  })
+})
+
+describe('BreadcrumbBar — pressable folder crumbs', () => {
+  it('renders folder parts as pressable buttons with › separators when onSelectPath is provided', () => {
+    const onSelectPath = vi.fn()
+    renderBreadcrumb({ path: '/vault/note/test.md', filename: 'test.md' }, { onSelectPath })
+    const firstFolder = screen.getByText('vault')
+    const secondFolder = screen.getByText('note')
+    expect(firstFolder.tagName).toBe('BUTTON')
+    expect(secondFolder.tagName).toBe('BUTTON')
+    expect(screen.getAllByText('›').length).toBeGreaterThan(0)
+
+    fireEvent.click(secondFolder)
+    expect(onSelectPath).toHaveBeenCalledWith('vault/note')
+  })
+
+  it('renders folder parts as plain spans when onSelectPath is not provided', () => {
+    renderBreadcrumb({ path: '/vault/note/test.md', filename: 'test.md' })
+    expect(screen.getByText('vault').tagName).toBe('SPAN')
+    expect(screen.getByText('note').tagName).toBe('SPAN')
   })
 })

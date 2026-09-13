@@ -185,13 +185,18 @@ fn encode_png(image: &tauri::image::Image<'_>) -> Result<Vec<u8>, String> {
 fn set_native_app_icon(image: tauri::image::Image<'static>) -> Result<(), String> {
     use objc2::AllocAnyThread;
     use objc2_app_kit::NSImage;
-    use objc2_foundation::NSData;
+    use objc2_foundation::{NSData, NSSize};
 
     let marker = MainThreadMarker::new()
         .ok_or_else(|| "App icon update must run on the main thread".to_string())?;
     let data = NSData::from_vec(encode_png(&image)?);
     let image = NSImage::initWithData(NSImage::alloc(), &data)
         .ok_or_else(|| "Failed to create macOS app icon image".to_string())?;
+    // Set the logical size to 1024x1024 (standard Dock icon size). Source PNGs
+    // at 4096x4096 without an explicit size cause macOS to render the Dock
+    // icon at its full pixel dimensions, making it bleed and appear too large
+    // while the app is running.
+    image.setSize(NSSize::new(1024.0, 1024.0));
     let app = NabuApplication::shared_application(marker);
     app.set_nabu_application_icon(&image);
     Ok(())

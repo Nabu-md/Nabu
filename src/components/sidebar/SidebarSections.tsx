@@ -197,7 +197,7 @@ export const SidebarTitleBar = ({
       </div>
       {(onSortChange) && (
         <div className="flex items-center gap-1.5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-          {onSortChange && listSort && (
+          {listSort && (
             <SortDropdown
               groupLabel="__sidebar__"
               current={listSort.option}

@@ -98,7 +98,7 @@ interface StatusBarSecondarySectionProps {
   onOpenDocs?: () => void
   onOpenSettings?: () => void
   miniAppsProps?: {
-    vaultPath: string
+    vaultPath: string | null
     activeNote?: { path?: string | null; title?: string | null } | null
     onToast?: (message: string) => void
   }
