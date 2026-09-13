@@ -341,7 +341,7 @@ export function SideWorkspaceHeader(options: {
         onSelect={onSelect}
         statuses={statuses}
       />
-      {onToggleResearch && researchMode && onToggleThreads && (
+      {onToggleThreads && (
         <Button
           type="button"
           variant="ghost"

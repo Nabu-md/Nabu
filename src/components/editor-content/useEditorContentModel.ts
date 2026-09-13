@@ -70,6 +70,8 @@ export interface EditorContentProps {
   onGoForward?: () => void
   onPickCover?: () => void
   onRemoveCover?: () => void
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
   locale?: AppLocale
 }
 

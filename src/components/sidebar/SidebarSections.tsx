@@ -1,12 +1,9 @@
 import { closestCenter, DndContext, type DragEndEvent, type useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { MagnifyingGlass, Palette, PencilSimple, Plus, SidebarSimple, Trash, X } from '@phosphor-icons/react'
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
-import { ActionTooltip } from '@/components/ui/action-tooltip'
+import { Palette, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { type CSSProperties, type Ref } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { APP_COMMAND_IDS, getAppCommandShortcutDisplay } from '../../hooks/appCommandCatalog'
 import { useDragRegion } from '../../hooks/useDragRegion'
 import { type AppLocale, translate } from '../../lib/i18n'
 import type { SidebarSelection, VaultEntry, ViewDefinition, ViewFile } from '../../types'
@@ -25,11 +22,7 @@ import { SIDEBAR_SECTION_CONTENT_PADDING_BOTTOM } from './sidebarStyles'
 export { FavoritesSection } from './FavoritesSection'
 export { type SidebarSectionProps, TypesSection } from './SidebarTypesSection'
 
-const SIDEBAR_TITLE_BAR_ACTION_CLASSNAME =
-  '!h-auto !w-auto !min-w-0 !rounded-none !p-0 text-muted-foreground hover:!bg-transparent hover:text-foreground [&_svg]:!size-4'
 const SIDEBAR_TITLE_BAR_LEFT_PADDING = `var(--nabu-macos-traffic-light-padding, ${MACOS_TRAFFIC_LIGHT_SAFE_PADDING}px)`
-
-const SIDEBAR_COLLAPSE_SHORTCUT = getAppCommandShortcutDisplay(APP_COMMAND_IDS.viewEditorList)
 const SIDEBAR_TYPE_CONTEXT_MENU_SURFACE_CLASSNAME =
   'fixed z-50 inline-flex w-fit max-w-[calc(100vw-16px)] flex-col rounded-md border bg-popover p-1 shadow-md'
 const SIDEBAR_TYPE_CONTEXT_MENU_BUTTON_CLASSNAME =
@@ -173,75 +166,17 @@ function SortableViewItem(options: {
   )
 }
 
-const titleWithShortcut = (label: string, shortcut?: string): string => shortcut ? `${label} (${shortcut})` : label
-
-const SidebarTitleBarAction = ({
-  children,
-  disabled = false,
-  label,
-  onClick,
-  shortcut,
-}: {
-  children: ReactNode
-  disabled?: boolean
-  label: string
-  onClick?: () => void
-  shortcut?: string
-}) => {
-  const title = titleWithShortcut(label, shortcut)
-
-  return (
-    <ActionTooltip copy={{ label, shortcut }} side="bottom" sideOffset={8}>
-      <span className="inline-flex" title={title} data-no-drag>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          className={SIDEBAR_TITLE_BAR_ACTION_CLASSNAME}
-          onClick={(event) => {
-            event.stopPropagation()
-            onClick?.()
-          }}
-          disabled={disabled}
-          aria-label={label}
-          title={title}
-          data-no-drag
-        >
-          {children}
-        </Button>
-      </span>
-    </ActionTooltip>
-  )
-}
-
 export const SidebarTitleBar = ({
   locale = 'en',
-  onCollapse,
-  search,
-  onSearchChange,
   listSort,
   onSortChange,
 }: {
   locale?: AppLocale
-  onCollapse?: () => void
-  search?: string
-  onSearchChange?: (value: string) => void
   listSort?: SortConfig | null
   onSortChange?: (sort: SortConfig) => void
 }) => {
     const { dragRegionRef } = useDragRegion<HTMLDivElement>()
-  const collapseLabel = translate(locale, 'sidebar.action.collapse')
 
-
-  const [searchVisible, setSearchVisible] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    if (searchVisible) searchInputRef.current?.focus()
-  }, [searchVisible])
-  const handleToggleSearch = () => {
-    if (searchVisible) onSearchChange?.('')
-    setSearchVisible((current) => !current)
-  }
   const handleSortSelect = (option: SortConfig['option'], direction: SortConfig['direction']) => {
     onSortChange?.({ option, direction })
   }
@@ -259,13 +194,8 @@ export const SidebarTitleBar = ({
       }}
     >
       <div className="flex items-center gap-5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-        {onCollapse && (
-          <SidebarTitleBarAction label={collapseLabel} shortcut={SIDEBAR_COLLAPSE_SHORTCUT} onClick={onCollapse}>
-            <SidebarSimple size={16} weight="regular" />
-          </SidebarTitleBarAction>
-        )}
       </div>
-      {(onSearchChange || onSortChange) && (
+      {(onSortChange) && (
         <div className="flex items-center gap-1.5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
           {onSortChange && listSort && (
             <SortDropdown
@@ -275,42 +205,6 @@ export const SidebarTitleBar = ({
               locale={locale}
               onChange={(_groupLabel, option, direction) => handleSortSelect(option, direction)}
             />
-          )}
-          {onSearchChange && (
-            <>
-              {searchVisible && (
-                <div className="relative" data-testid="sidebar-titlebar-search">
-                  <Input
-                    ref={searchInputRef}
-                    value={search ?? ''}
-                    onChange={(event) => onSearchChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') handleToggleSearch()
-                    }}
-                    placeholder={translate(locale, 'noteList.searchPlaceholder')}
-                    className="h-7 w-36 text-[12px]"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="absolute inset-y-1 right-0 !h-5 !w-5 !min-w-0 !rounded !p-0 !text-muted-foreground hover:!bg-accent hover:!text-foreground [&_svg]:!size-3"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={handleToggleSearch}
-                    title={translate(locale, 'noteList.clearSearch')}
-                    aria-label={translate(locale, 'noteList.clearSearch')}
-                  >
-                    <X size={10} />
-                  </Button>
-                </div>
-              )}
-              <SidebarTitleBarAction
-                label={translate(locale, 'noteList.searchAction')}
-                onClick={handleToggleSearch}
-              >
-                <MagnifyingGlass size={16} weight="regular" />
-              </SidebarTitleBarAction>
-            </>
           )}
         </div>
       )}

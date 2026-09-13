@@ -1,11 +1,10 @@
-import { BookOpen, GearSix as Settings, Megaphone, Moon, Package, SidebarSimple, Sun, type IconProps } from '@phosphor-icons/react'
+import { BookOpen, GearSix as Settings, Moon, Package, SidebarSimple, Sun, type IconProps } from '@phosphor-icons/react'
 import type { ComponentType, MouseEventHandler } from 'react'
 import type { McpStatus } from '../../hooks/useMcpStatus'
 import type { ThemeMode } from '../../lib/themeMode'
 import { translate, type AppLocale, type TranslationKey } from '../../lib/i18n'
 import { useStatusBarAddRemote } from '../../hooks/useStatusBarAddRemote'
 import type { GitRemoteStatus, SyncStatus } from '../../types'
-import { rememberFeedbackDialogOpener } from '../../lib/feedbackDialogOpener'
 import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { AddRemoteModal } from '../AddRemoteModal'
 import { Button } from '@/components/ui/button'
@@ -96,11 +95,10 @@ interface StatusBarSecondarySectionProps {
   themeMode?: ThemeMode
   onZoomReset?: () => void
   onToggleThemeMode?: () => void
-  onOpenFeedback?: () => void
   onOpenDocs?: () => void
   onOpenSettings?: () => void
   miniAppsProps?: {
-    vaultPath: string | null
+    vaultPath: string
     activeNote?: { path?: string | null; title?: string | null } | null
     onToast?: (message: string) => void
   }
@@ -324,31 +322,6 @@ function SidebarToggleAction({
   )
 }
 
-function FeedbackButton({
-  compact,
-  locale,
-  onOpenFeedback,
-}: {
-  compact: boolean
-  locale: AppLocale
-  onOpenFeedback: () => void
-}) {
-  return (
-    <StatusLinkButton
-      compact={compact}
-      icon={Megaphone}
-      labelKey="status.feedback.label"
-      locale={locale}
-      onClick={(event) => {
-        rememberFeedbackDialogOpener(event.currentTarget)
-        onOpenFeedback()
-      }}
-      testId="status-feedback"
-      tooltipKey="status.feedback.contribute"
-    />
-  )
-}
-
 function DocsButton({ compact, locale, onOpenDocs }: { compact: boolean; locale: AppLocale; onOpenDocs: () => void }) {
   return (
     <StatusLinkButton
@@ -510,7 +483,7 @@ export function StatusBarPrimarySection(options: StatusBarPrimarySectionProps) {
 }
 
 export function StatusBarSecondarySection(options: StatusBarSecondarySectionProps) {
-  const { noteCount, zoomLevel, themeMode = 'light', onZoomReset, onToggleThemeMode, onOpenFeedback, onOpenDocs, onOpenSettings, locale = 'en', stacked = false, compact = false } = options
+  const { noteCount, zoomLevel, themeMode = 'light', onZoomReset, onToggleThemeMode, onOpenDocs, onOpenSettings, locale = 'en', stacked = false, compact = false } = options
   void noteCount
   const ThemeIcon = themeMode === 'dark' ? Sun : Moon
   const themeTooltip = {
@@ -549,7 +522,6 @@ export function StatusBarSecondarySection(options: StatusBarSecondarySectionProp
           </Button>
         </ActionTooltip>
       )}
-      {onOpenFeedback && <FeedbackButton compact={compact} locale={locale} onOpenFeedback={onOpenFeedback} />}
       {onOpenDocs && <DocsButton compact={compact} locale={locale} onOpenDocs={onOpenDocs} />}
       <ActionTooltip copy={themeTooltip} side="top" align="end" contentTestId="status-theme-mode-tooltip">
         <Button

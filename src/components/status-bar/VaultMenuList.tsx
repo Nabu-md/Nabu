@@ -1,4 +1,4 @@
-import { Check, ArrowSquareOut, Warning as AlertTriangle, X } from '@phosphor-icons/react'
+import { Check, Warning as AlertTriangle, X } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
 import {
@@ -15,12 +15,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { translate, type AppLocale } from '../../lib/i18n'
 import { trackEvent } from '../../lib/telemetry'
-import { openVaultInNewWindow } from '../../utils/openVaultWindow'
 import { reorderVaultPath, vaultPathList } from '../../utils/vaultOrdering'
 import { workspaceAliasFromOption, workspaceIdentityFromVault } from '../../utils/workspaces'
 import { WorkspaceInitialsBadge } from '../WorkspaceInitialsBadge'
@@ -147,33 +145,6 @@ function VaultWorkspaceInitialsBadge(props: { vault: VaultOption }) {
 
 const HOVER_ACTION_CLASS = 'h-7 w-7 shrink-0 rounded-sm text-muted-foreground opacity-0 pointer-events-none transition-opacity hover:bg-[var(--hover)] hover:text-foreground focus-visible:opacity-100 focus-visible:pointer-events-auto group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto'
 
-function VaultOpenWindowButton(props: { locale: AppLocale; vault: VaultOption }) {
-  const { locale, vault } = props
-  if (vault.available === false) return null
-
-  const label = translate(locale, 'status.vault.openInNewWindow', { label: vault.label })
-  return (
-    <ActionTooltip copy={{ label }} side="top">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        onClick={(event) => {
-          event.stopPropagation()
-          void openVaultInNewWindow(vault).catch((error: unknown) => {
-            console.warn('Failed to open vault in a separate window:', error)
-          })
-        }}
-        aria-label={label}
-        data-testid={`vault-menu-open-window-${vault.label}`}
-        className={HOVER_ACTION_CLASS}
-      >
-        <ArrowSquareOut size={14} />
-      </Button>
-    </ActionTooltip>
-  )
-}
-
 function VaultMenuRemoveButton(props: Pick<
   VaultMenuItemProps,
   'locale' | 'onRequestRemove' | 'vault'
@@ -257,7 +228,6 @@ function VaultMenuItem(props: VaultMenuItemProps) {
           <VaultWorkspaceInitialsBadge vault={vault} />
         </span>
       )}
-      <VaultOpenWindowButton locale={locale} vault={vault} />
       {canRemove && (
         <VaultMenuRemoveButton
           locale={locale}

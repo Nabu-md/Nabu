@@ -35,8 +35,10 @@ import {
   GitBranch,
   Code,
   ListBullets,
+  MagnifyingGlass,
   SidebarSimple,
   Trash,
+  X,
   Archive,
   ArrowUUpLeft,
   ClipboardText,
@@ -93,6 +95,11 @@ interface BreadcrumbBarProps {
   locale?: AppLocale
   loadingTitle?: boolean
   content?: string | null
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
+  search?: string
+  onSearchChange?: (value: string) => void
+  vaultPath?: string
 }
 
 const BREADCRUMB_ICON_CLASS = 'size-[16px]'
@@ -1158,9 +1165,17 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function PathCrumb({ entry }: { entry: VaultEntry }) {
+function PathCrumb({ entry, vaultPath }: { entry: VaultEntry; vaultPath?: string }) {
   if (!entry.path || entry.path === entry.filename) return null
-  const relativePath = entry.path.replace(/\\/g, '/').replace(/\/+$/, '')
+  let relativePath = entry.path.replace(/\\/g, '/').replace(/\/+$/, '')
+  if (vaultPath) {
+    const vaultPathNormalized = vaultPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (relativePath.startsWith(vaultPathNormalized + '/')) {
+      relativePath = relativePath.slice(vaultPathNormalized.length + 1)
+    } else if (relativePath === vaultPathNormalized) {
+      relativePath = ''
+    }
+  }
   const filenamePattern = entry.filename.replace(/\\/g, '/').replace(/\/+$/, '')
   const folderPath = filenamePattern ? relativePath.replace(new RegExp(`${escapeRegExp(filenamePattern)}$`), '').replace(/\/+$/, '') : relativePath
   if (!folderPath) return null
@@ -1178,26 +1193,116 @@ function PathCrumb({ entry }: { entry: VaultEntry }) {
     </>
   )
 }
-
 function BreadcrumbTitle({
   content,
   entry,
   locale,
   loadingTitle,
   onRenameFilename,
-}: Pick<BreadcrumbBarProps, 'content' | 'entry' | 'locale' | 'loadingTitle' | 'onRenameFilename'>) {
+  vaultPath,
+}: Pick<BreadcrumbBarProps, 'content' | 'entry' | 'locale' | 'loadingTitle' | 'onRenameFilename' | 'vaultPath'>) {
   const typeLabel = entry.isA ?? 'Note'
+  const relPath = vaultPath && entry.path.startsWith(vaultPath.replace(/\\/g, '/').replace(/\/+$/, '') + '/')
+    ? entry.path.slice(vaultPath.replace(/\\/g, '/').replace(/\/+$/, '').length + 1)
+    : entry.path
+
   return (
     <div className="breadcrumb-bar__title-content flex items-center gap-1.5 min-w-0 text-sm text-muted-foreground">
       <WorkspaceCrumb entry={entry} />
-      <span className="truncate" title={entry.path}>{typeLabel}</span>
+      <span className="truncate" title={relPath}>{typeLabel}</span>
       <BreadcrumbSeparator />
       <div className="flex min-w-0 items-center gap-1 truncate">
-        <PathCrumb entry={entry} />
+        <PathCrumb entry={entry} vaultPath={vaultPath} />
         {loadingTitle
           ? <BreadcrumbTitleSkeleton />
           : <FilenameCrumb content={content} entry={entry} locale={locale} onRenameFilename={onRenameFilename} />}
       </div>
+    </div>
+  )
+}
+
+function BreadcrumbSidebarAction({
+  sidebarVisible,
+  onToggleSidebar,
+  search,
+  onSearchChange,
+  locale = 'en',
+}: Pick<BreadcrumbBarProps, 'sidebarVisible' | 'onToggleSidebar' | 'search' | 'onSearchChange' | 'locale'>) {
+  const [searchVisible, setSearchVisible] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (searchVisible) searchInputRef.current?.focus()
+  }, [searchVisible])
+
+  const handleToggleSearch = useCallback(() => {
+    if (searchVisible) onSearchChange?.('')
+    setSearchVisible((current) => !current)
+  }, [searchVisible, onSearchChange])
+
+  if (!onToggleSidebar && !onSearchChange) return null
+
+  const sidebarLabel = translate(locale, 'status.sidebar.toggle')
+  const searchLabel = translate(locale, 'noteList.searchAction')
+
+  return (
+    <div className="breadcrumb-bar__sidebar-actions flex items-center" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+      {onToggleSidebar && (
+        <ActionTooltip copy={{ label: sidebarLabel }} side="top">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="h-6 w-6 shrink-0 !min-w-0 !rounded !p-0 text-muted-foreground"
+            onClick={onToggleSidebar}
+            aria-label={sidebarLabel}
+          >
+            <SidebarSimple size={14} weight={sidebarVisible ? 'fill' : 'regular'} />
+          </Button>
+        </ActionTooltip>
+      )}
+      {onSearchChange && (
+        <>
+          {searchVisible && (
+            <div className="relative" data-testid="breadcrumb-bar-search">
+              <Input
+                ref={searchInputRef}
+                value={search ?? ''}
+                onChange={(event) => onSearchChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') handleToggleSearch()
+                }}
+                placeholder={translate(locale, 'noteList.searchPlaceholder')}
+                className="h-7 w-36 text-[12px]"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="absolute inset-y-1 right-0 !h-5 !w-5 !min-w-0 !rounded !p-0 !text-muted-foreground hover:!bg-accent hover:!text-foreground [&_svg]:!size-3"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={handleToggleSearch}
+                title={translate(locale, 'noteList.clearSearch')}
+                aria-label={translate(locale, 'noteList.clearSearch')}
+              >
+                <X size={10} />
+              </Button>
+            </div>
+          )}
+          <ActionTooltip copy={{ label: searchLabel }} side="top">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="h-6 w-6 shrink-0 !min-w-0 !rounded !p-0 text-muted-foreground"
+              onClick={handleToggleSearch}
+              aria-label={searchLabel}
+            >
+              <MagnifyingGlass size={14} weight="regular" />
+            </Button>
+          </ActionTooltip>
+        </>
+      )}
     </div>
   )
 }
@@ -1209,6 +1314,11 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
   locale = 'en',
   loadingTitle = false,
   onRenameFilename,
+  sidebarVisible,
+  onToggleSidebar,
+  search,
+  onSearchChange,
+  vaultPath,
   ...actionProps
 }: BreadcrumbBarProps) {
   const { dragRegionRef, onMouseDown } = useDragRegion<HTMLDivElement>()
@@ -1248,6 +1358,13 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
             boxSizing: 'border-box',
           }}
         >
+          <BreadcrumbSidebarAction
+            sidebarVisible={sidebarVisible}
+            onToggleSidebar={onToggleSidebar}
+            search={search}
+            onSearchChange={onSearchChange}
+            locale={locale}
+          />
           <div ref={titleRef} className="breadcrumb-bar__title min-w-0 flex-1 overflow-hidden">
             <BreadcrumbTitle
               content={content}
@@ -1255,6 +1372,7 @@ export const BreadcrumbBar = memo(function BreadcrumbBar({
               locale={locale}
               loadingTitle={loadingTitle}
               onRenameFilename={onRenameFilename}
+              vaultPath={vaultPath}
             />
           </div>
           <div

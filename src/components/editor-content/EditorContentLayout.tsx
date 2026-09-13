@@ -13,7 +13,6 @@ import { ConflictNoteBanner } from '../ConflictNoteBanner'
 import { RawEditorView } from '../RawEditorView'
 import { SingleEditorView } from '../SingleEditorView'
 import { NoteCover } from '../NoteCover'
-import { EditorToolbar } from './EditorToolbar'
 import type { useEditorContentModel } from './useEditorContentModel'
 
 type EditorContentModel = ReturnType<typeof useEditorContentModel>
@@ -195,6 +194,11 @@ function ActiveTabBreadcrumb({
   actions,
   locale,
   loadingTitle,
+  sidebarVisible,
+  onToggleSidebar,
+  search,
+  onSearchChange,
+  vaultPath,
 }: {
   activeTab: NonNullable<EditorContentModel['activeTab']>
   barRef: React.RefObject<HTMLDivElement | null>
@@ -203,6 +207,11 @@ function ActiveTabBreadcrumb({
   actions: BreadcrumbActions
   locale?: AppLocale
   loadingTitle?: boolean
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
+  search?: string
+  onSearchChange?: (value: string) => void
+  vaultPath?: string
 }) {
   return (
     <BreadcrumbBar
@@ -238,6 +247,11 @@ function ActiveTabBreadcrumb({
       onRenameFilename={actions.onRenameFilename}
       noteWidth={actions.noteWidth}
       onToggleNoteWidth={actions.onToggleNoteWidth}
+      sidebarVisible={sidebarVisible}
+      onToggleSidebar={onToggleSidebar}
+      search={search}
+      onSearchChange={onSearchChange}
+      vaultPath={vaultPath}
       locale={locale}
     />
   )
@@ -247,10 +261,20 @@ function EditorLoadingBreadcrumb({
   actions,
   barRef,
   locale,
+  sidebarVisible,
+  onToggleSidebar,
+  search,
+  onSearchChange,
+  vaultPath,
 }: {
   actions: BreadcrumbActions
   barRef: React.RefObject<HTMLDivElement | null>
   locale?: AppLocale
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
+  search?: string
+  onSearchChange?: (value: string) => void
+  vaultPath?: string
 }) {
   return (
     <BreadcrumbBar
@@ -272,9 +296,14 @@ function EditorLoadingBreadcrumb({
       onToggleInspector={actions.onToggleInspector}
       noteWidth={actions.noteWidth}
       onToggleNoteWidth={actions.onToggleNoteWidth}
-      locale={locale}
-    />
-  )
+       sidebarVisible={sidebarVisible}
+       onToggleSidebar={onToggleSidebar}
+       search={search}
+       onSearchChange={onSearchChange}
+       vaultPath={vaultPath}
+       locale={locale}
+     />
+   )
 }
 
 function buildBreadcrumbActions(model: EditorContentModel): BreadcrumbActions {
@@ -317,6 +346,11 @@ function EditorBreadcrumbArea({
   chromeWordCount,
   isVaultLoading,
   locale,
+  sidebarVisible,
+  onToggleSidebar,
+  search,
+  onSearchChange,
+  vaultPath,
 }: {
   actions: BreadcrumbActions
   barRef: React.RefObject<HTMLDivElement | null>
@@ -325,6 +359,11 @@ function EditorBreadcrumbArea({
   chromeWordCount: number
   isVaultLoading?: boolean
   locale?: AppLocale
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
+  search?: string
+  onSearchChange?: (value: string) => void
+  vaultPath?: string
 }) {
   if (chromeTab) {
     return (
@@ -336,13 +375,29 @@ function EditorBreadcrumbArea({
         locale={locale}
         loadingTitle={isVaultLoading}
         actions={actions}
+        sidebarVisible={sidebarVisible}
+        onToggleSidebar={onToggleSidebar}
+        search={search}
+        onSearchChange={onSearchChange}
+        vaultPath={vaultPath}
       />
     )
   }
 
   if (!isVaultLoading) return null
 
-  return <EditorLoadingBreadcrumb actions={actions} barRef={barRef} locale={locale} />
+  return (
+    <EditorLoadingBreadcrumb
+      actions={actions}
+      barRef={barRef}
+      locale={locale}
+      sidebarVisible={sidebarVisible}
+      onToggleSidebar={onToggleSidebar}
+      search={search}
+      onSearchChange={onSearchChange}
+      vaultPath={vaultPath}
+    />
+  )
 }
 
 function EditorChrome(
@@ -564,43 +619,40 @@ export function EditorContentLayout(model: EditorContentModel) {
     isSheet,
     richEditorContentReady,
     findRequest,
-    locale,
-    onImageImportError,
-    isVaultLoading,
-  } = model
-  const rootClassName = cn(
-    'flex flex-1 flex-col min-w-0 min-h-0',
-    isHtmlPreview || isSheet || noteWidth === 'wide' ? 'editor-content-width--wide' : 'editor-content-width--normal',
-  )
-  const chromeTab = activeTab ?? loadingTab
-  const chromePath = chromeTab?.entry.path ?? path
-  const chromeWordCount = activeTab ? wordCount : 0
-  const showActiveContent = activeTab && !isVaultLoading
-  const breadcrumbActions = buildBreadcrumbActions(model)
+     locale,
+     onImageImportError,
+     isVaultLoading,
+     sidebarVisible,
+     onToggleSidebar,
+     search,
+     onSearchChange,
+   } = model
+   const rootClassName = cn(
+     'flex flex-1 flex-col min-w-0 min-h-0',
+     isHtmlPreview || isSheet || noteWidth === 'wide' ? 'editor-content-width--wide' : 'editor-content-width--normal',
+   )
+   const chromeTab = activeTab ?? loadingTab
+   const chromePath = chromeTab?.entry.path ?? path
+   const chromeWordCount = activeTab ? wordCount : 0
+   const showActiveContent = activeTab && !isVaultLoading
+   const breadcrumbActions = buildBreadcrumbActions(model)
 
-  return (
-    <div className={rootClassName}>
-      <EditorToolbar
-        entry={chromeTab?.entry ?? null}
-        vaultPath={model.vaultPath}
-        search={model.search}
-        onSearchChange={model.onSearchChange}
-        canGoBack={model.canGoBack}
-        canGoForward={model.canGoForward}
-        onGoBack={model.onGoBack}
-        onGoForward={model.onGoForward}
-        locale={model.locale}
-        isVaultLoading={isVaultLoading}
-      />
-      <EditorBreadcrumbArea
-        actions={breadcrumbActions}
-        barRef={breadcrumbBarRef}
-        chromePath={chromePath}
-        chromeTab={chromeTab}
-        chromeWordCount={chromeWordCount}
-        isVaultLoading={isVaultLoading}
-        locale={locale}
-      />
+   return (
+     <div className={rootClassName}>
+        <EditorBreadcrumbArea
+          actions={breadcrumbActions}
+          barRef={breadcrumbBarRef}
+          chromePath={chromePath}
+          chromeTab={chromeTab}
+          chromeWordCount={chromeWordCount}
+          isVaultLoading={isVaultLoading}
+          locale={locale}
+          sidebarVisible={sidebarVisible}
+          onToggleSidebar={onToggleSidebar}
+          search={search}
+          onSearchChange={onSearchChange}
+          vaultPath={vaultPath}
+        />
       {showActiveContent && (
         <>
           <EditorChrome

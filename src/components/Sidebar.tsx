@@ -739,9 +739,6 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     <aside className="flex h-full flex-col overflow-hidden border-r border-[var(--sidebar-border)] bg-sidebar text-sidebar-foreground">
       <SidebarTitleBar
         locale={locale}
-        onCollapse={props.onCollapse}
-        search={props.search}
-        onSearchChange={props.onSearchChange}
         listSort={props.listSort}
         onSortChange={props.onSortChange}
       />

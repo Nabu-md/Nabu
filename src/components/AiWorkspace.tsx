@@ -139,7 +139,7 @@ function PermissionPicker({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side={side} className="min-w-[180px]">
-        {(['safe', 'power_user', 'deep_research', 'rag'] as const).map((mode) => (
+        {(['safe', 'power_user', 'deep_research', 'mini_app_builder', 'rag'] as const).map((mode) => (
           <DropdownMenuItem key={mode} onSelect={() => onChange(mode)}>
             {aiAgentPermissionModeLabels(mode, locale).control}
           </DropdownMenuItem>
@@ -1080,9 +1080,6 @@ function AiWorkspaceLayout({
         onRestore={model.restoreConversation}
         onSelect={model.setActiveId}
         onToggleCollapsed={model.toggleSidebarCollapsed}
-        onToggleResearch={onToggleResearch}
-        onToggleThreads={onToggleThreads}
-        researchMode={researchMode}
         setShowArchived={model.setShowArchived}
         showArchived={model.showArchived}
         sidebarWidth={sizing.sidebarWidth}

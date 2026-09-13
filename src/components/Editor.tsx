@@ -137,6 +137,8 @@ export interface EditorProps {
   onGoForward?: () => void
   search?: string
   onSearchChange?: (value: string) => void
+  sidebarVisible?: boolean
+  onToggleSidebar?: () => void
   leftPanelsCollapsed?: boolean
   /** Mutable ref that Editor registers its raw-mode toggle into, for command palette access. */
   rawToggleRef?: React.MutableRefObject<() => void>
@@ -585,6 +587,10 @@ function useEditorSetup(options: EditorSetupParams) {
       onExportPdf?: (source?: NotePdfExportSource) => void
       onPickCover?: () => void
       onRemoveCover?: () => void
+      sidebarVisible?: boolean
+      onToggleSidebar?: () => void
+      search?: string
+      onSearchChange?: (value: string) => void
     }) {
       const {
       tabs,
@@ -666,6 +672,10 @@ function useEditorSetup(options: EditorSetupParams) {
       locale,
       onPickCover,
       onRemoveCover,
+      sidebarVisible,
+      onToggleSidebar,
+      search,
+      onSearchChange,
   } = options
   const activeBinaryTab = activeTab?.entry.fileKind === 'binary' ? activeTab : null
   const showEmptyState = tabs.length === 0 && activeTabPath === null && !isVaultLoading
@@ -737,6 +747,10 @@ function useEditorSetup(options: EditorSetupParams) {
               onImageImportError={onImageImportError}
               onPickCover={onPickCover}
               onRemoveCover={onRemoveCover}
+              sidebarVisible={sidebarVisible}
+              onToggleSidebar={onToggleSidebar}
+              search={search}
+              onSearchChange={onSearchChange}
               locale={locale}
             />
         )}
@@ -904,6 +918,10 @@ export const Editor = memo(function Editor(props: EditorProps) {
       onExportPdf={handleExportPdf}
       onPickCover={handlePickCover}
       onRemoveCover={handleRemoveCover}
+      sidebarVisible={props.sidebarVisible}
+      onToggleSidebar={props.onToggleSidebar}
+      search={props.search}
+      onSearchChange={props.onSearchChange}
     />
   )
 })

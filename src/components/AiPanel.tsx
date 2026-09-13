@@ -322,21 +322,21 @@ export function AiPanelView(options: AiPanelViewProps) {
       }
 
       return (
-        <AiPanelFrame panelRef={panelRef} isActive={isActive} showLeftBorder={showLeftBorder} surface={surface}>
-          <div className="flex min-h-0 flex-1">
-            <AiConversationThreads
-              conversations={threads.conversations}
-              activeConversationId={threads.activeConversationId}
-              locale={locale}
-              collapsed={threadsCollapsed ?? threads.threadsCollapsed}
-              onToggleCollapsed={onToggleThreads ?? threads.toggleThreadsCollapsed}
-              onNewChat={threads.handleNewChat}
-              onSelect={threads.handleSelectThread}
-              onDelete={threads.handleDeleteThread}
-            />
-            <div className="flex min-w-0 flex-1 flex-col">{panelBody}</div>
-          </div>
-        </AiPanelFrame>
+          <AiPanelFrame panelRef={panelRef} isActive={isActive} showLeftBorder={showLeftBorder} surface={surface}>
+            <div className="flex min-h-0 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col">{panelBody}</div>
+              <AiConversationThreads
+                conversations={threads.conversations}
+                activeConversationId={threads.activeConversationId}
+                locale={locale}
+                collapsed={threadsCollapsed ?? threads.threadsCollapsed}
+                onToggleCollapsed={onToggleThreads ?? threads.toggleThreadsCollapsed}
+                onNewChat={threads.handleNewChat}
+                onSelect={threads.handleSelectThread}
+                onDelete={threads.handleDeleteThread}
+              />
+            </div>
+          </AiPanelFrame>
       )
     }
 

@@ -31,7 +31,6 @@ function renderDenseStatusBar() {
       remoteStatus={{ branch: 'main', ahead: 0, behind: 0, hasRemote: false }}
       onCommitPush={vi.fn()}
       onClickPulse={vi.fn()}
-      onOpenFeedback={vi.fn()}
       buildNumber="b281"
       onCheckForUpdates={vi.fn()}
       mcpStatus="not_installed"
@@ -102,19 +101,6 @@ describe('StatusBar', () => {
     )
     expect(screen.getByTestId('status-git-branch')).toHaveTextContent('feature/drafts')
     expect(screen.getByTestId('status-git-branch')).toHaveAccessibleName('Current branch: feature/drafts')
-  })
-
-  it('shows Contribute button when callback is provided', () => {
-    render(<StatusBar noteCount={100} vaultPath="/Users/demo/vault" vaults={vaults} onSwitchVault={vi.fn()} onOpenFeedback={vi.fn()} />)
-    expect(screen.getByTestId('status-feedback')).toBeInTheDocument()
-    expect(screen.getByText('Contribute')).toBeInTheDocument()
-  })
-
-  it('calls onOpenFeedback when Contribute is clicked', () => {
-    const onOpenFeedback = vi.fn()
-    render(<StatusBar noteCount={100} vaultPath="/Users/demo/vault" vaults={vaults} onSwitchVault={vi.fn()} onOpenFeedback={onOpenFeedback} />)
-    fireEvent.click(screen.getByTestId('status-feedback'))
-    expect(onOpenFeedback).toHaveBeenCalledOnce()
   })
 
   it('shows and opens Docs from the bottom bar', () => {
@@ -490,10 +476,8 @@ describe('StatusBar', () => {
 
     const item = screen.getByTestId('vault-menu-item-Work Vault')
     const removeAction = screen.getByTestId('vault-menu-remove-Work Vault')
-    const openAction = screen.getByRole('button', { name: 'Open Work Vault in a new window' })
 
     expect(item.className).toContain('hover:bg-[var(--hover)]')
-    expect(openAction.compareDocumentPosition(removeAction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(item.lastElementChild).toBe(removeAction)
     expect(removeAction.className).not.toContain('absolute')
     expect(removeAction.className).not.toContain('right-1')
@@ -501,35 +485,6 @@ describe('StatusBar', () => {
     expect(removeAction.className).toContain('group-focus-within:opacity-100')
     expect(removeAction.className).toContain('pointer-events-none')
     expect(screen.getByRole('button', { name: 'Remove Work Vault from list' })).toBeInTheDocument()
-  })
-
-  it('opens a vault in a separate app window with its configured accent color', async () => {
-    const openVaultWindow = vi.fn()
-    window.__mockHandlers = {
-      ...window.__mockHandlers,
-      open_vault_in_new_window: openVaultWindow,
-    }
-    render(
-      <StatusBar
-        noteCount={100}
-        vaultPath="/Users/demo/vault"
-        vaults={[
-          vaults[0],
-          { ...vaults[1], color: 'red' },
-        ]}
-        onSwitchVault={vi.fn()}
-      />,
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Switch vault' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Work Vault in a new window' }))
-
-    await vi.waitFor(() => {
-      expect(openVaultWindow).toHaveBeenCalledWith({
-        vaultPath: '/Users/demo/Work',
-        vaultColor: 'red',
-      })
-    })
   })
 
   it('confirms before removing a vault from the vault menu', () => {
@@ -571,7 +526,7 @@ describe('StatusBar', () => {
     })
     expect(screen.getByTestId('status-commit-push')).toBeInTheDocument()
     expect(screen.getByTestId('status-pulse')).toBeInTheDocument()
-    expect(screen.getByTestId('status-feedback')).toBeInTheDocument()
+    expect(screen.getByTestId('status-build-number')).toBeInTheDocument()
     expect(screen.queryByText('Commit')).not.toBeInTheDocument()
     expect(screen.queryByText('History')).not.toBeInTheDocument()
     expect(screen.queryByText('Contribute')).not.toBeInTheDocument()
@@ -587,7 +542,6 @@ describe('StatusBar', () => {
     })
     expect(screen.getByTestId('status-commit-push')).toBeInTheDocument()
     expect(screen.getByTestId('status-pulse')).toBeInTheDocument()
-    expect(screen.getByTestId('status-feedback')).toBeInTheDocument()
     expect(screen.getByTestId('status-build-number')).toBeInTheDocument()
     expect(screen.queryByTestId('status-claude-code')).not.toBeInTheDocument()
     expect(screen.queryByText('Commit')).not.toBeInTheDocument()
@@ -609,7 +563,6 @@ describe('StatusBar', () => {
     })
     expect(screen.getByTestId('status-commit-push')).toBeInTheDocument()
     expect(screen.getByTestId('status-pulse')).toBeInTheDocument()
-    expect(screen.getByTestId('status-feedback')).toBeInTheDocument()
   })
 
   it('does not render the legacy AI agent control in the status bar', () => {
